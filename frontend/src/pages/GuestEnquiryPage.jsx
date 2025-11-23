@@ -118,22 +118,27 @@ export default function GuestForm({ setActiveTab, addNotification }) {
   const handleConfirmSubmit = async () => {
     try {
      const payload = {
-      name: form.name,
-      rollno: form.rollno,
-      contact: form.contact,
-      email: form.email,
-      gender: form.gender,
-      from: form.from,
-      to: form.to,
-      guests: form.guests,
-      females: form.females,
-      males: form.males,
-      state: form.state,
-      city: form.city,
-      reference: form.reference,
-      purpose: form.purpose,
-      files: form.files,   // base64 array
-      department: form.department,
+      guestName: form.name,
+      guestEmail: form.email,
+      guestPhone: form.contact,
+      message: form.purpose,
+      preferredDate: form.from,
+
+      // store full form data also
+      fullData: {
+        rollno: form.rollno,
+        department: form.department,
+        gender: form.gender,
+        from: form.from,
+        to: form.to,
+        guests: form.guests,
+        females: form.females,
+        males: form.males,
+        state: form.state,
+        city: form.city,
+        reference: form.reference,
+        files: form.files,
+      }
     };
     
     await axios.post(
