@@ -3,29 +3,61 @@ import { createLog } from "../middleware/logMiddleware.js";
 import { sendEnquiryEmail } from "../emails/enquiryEmail.js";
 
 // ================================
-// CREATE ENQUIRY
+// CREATE ENQUIRY (Frontend → Backend Mapping)
 // ================================
 export const createEnquiry = async (req, res) => {
   try {
-    const { guestName, guestEmail, guestPhone, message, preferredDate } = req.body;
+    const {
+      name,
+      rollno,
+      contact,
+      email,
+      gender,
+      from,
+      to,
+      guests,
+      females,
+      males,
+      state,
+      city,
+      reference,
+      purpose,
+      files,
+      department,
+    } = req.body;
 
-    if (!guestName || !guestEmail || !guestPhone) {
+    if (!name || !email || !contact || !from || !to) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const enquiry = await Enquiry.create({
-      guestName,
-      guestEmail,
-      guestPhone,
-      message,
-      preferredDate,
+      name,
+      rollno,
+      contact,
+      email,
+      gender,
+      from,
+      to,
+      guests,
+      females,
+      males,
+      state,
+      city,
+      reference,
+      purpose,
+      files,
+      department,
+      status: "pending",
     });
 
-    // Log the action
     createLog("enquiry_created", null, { enquiryId: enquiry._id });
 
-    // Send confirmation email
-    await sendEnquiryEmail(guestEmail, enquiry);
+    // Optional email function — keep if configured
+    try {
+      await sendEnquiryEmail(email, enquiry);
+    } catch (emailErr) {
+      console.warn("Email not sent:", emailErr.message);
+    }
 
     res.json({
       message: "Enquiry submitted successfully",
@@ -38,28 +70,42 @@ export const createEnquiry = async (req, res) => {
   }
 };
 
+// ================================
+// APPROVE ENQUIRY
+// ================================
 export const approveEnquiry = async (req, res) => {
-  const enquiry = await Enquiry.findById(req.params.id);
-  if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+    if (!enquiry) return res.status(404).json({ message: "Not found" });
 
-  enquiry.status = "approved";
-  await enquiry.save();
+    enquiry.status = "approved";
+    await enquiry.save();
 
-  res.json({ message: "Enquiry approved", enquiry });
-};
-
-export const rejectEnquiry = async (req, res) => {
-  const enquiry = await Enquiry.findById(req.params.id);
-  if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
-
-  enquiry.status = "rejected";
-  await enquiry.save();
-
-  res.json({ message: "Enquiry rejected", enquiry });
+    res.json({ message: "Enquiry approved", enquiry });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // ================================
-// GET ALL ENQUIRIES (ADMIN)
+// REJECT ENQUIRY
+// ================================
+export const rejectEnquiry = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+    if (!enquiry) return res.status(404).json({ message: "Not found" });
+
+    enquiry.status = "rejected";
+    await enquiry.save();
+
+    res.json({ message: "Enquiry rejected", enquiry });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ================================
+// GET ALL ENQUIRIES
 // ================================
 export const getEnquiries = async (req, res) => {
   try {
