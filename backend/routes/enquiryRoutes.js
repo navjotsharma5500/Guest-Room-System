@@ -10,5 +10,7 @@ router.post("/create", createEnquiry);
 
 // Only admin can view enquiries
 router.get("/", protect, authorizeRoles("admin"), getEnquiries);
+router.put("/:id/approve", protect, authorizeRoles("admin"), approveEnquiry);
+router.put("/:id/reject", protect, authorizeRoles("admin"), rejectEnquiry);
 
 export default router;

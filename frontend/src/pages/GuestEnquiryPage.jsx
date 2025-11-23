@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { IndianStates } from "../utils/indianStates";
 import thaparLogo from "../assets/thapar_logo.png";
 import bgImage from "../assets/ThaparBackground1.png";
+import axios from "axios";
 
 // Utility to convert uploaded files to base64
 const fileToBase64 = (file) =>
@@ -49,7 +50,7 @@ export default function GuestForm({ setActiveTab, addNotification }) {
   // ✅ Validation
   const validate = () => {
     const { name, contact, email, from, to, guests, state, city, purpose, files } = form;
-    const emailValid = email.endsWith("@thapar.edu");
+    const emailValid = email.toLowerCase().endsWith("@thapar.edu");
     const contactValid = /^[0-9]{10}$/.test(contact);
 
     return (
@@ -114,52 +115,45 @@ export default function GuestForm({ setActiveTab, addNotification }) {
     setShowPreview(true);
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     try {
-      const existing = JSON.parse(localStorage.getItem("guestEnquiries")) || [];
-      const newEnquiry = {
-        ...form,
-        bookingID: generateBookingID(),
-        date: new Date().toLocaleString(),
-        timestamp: Date.now(),
-        status: "pending",
-      };
-
-      existing.push(newEnquiry);
-      localStorage.setItem("guestEnquiries", JSON.stringify(existing));
-
-      addNotification?.({
-        name: form.name,
-        date: new Date().toLocaleString(),
-        message: `New enquiry from ${form.city}, ${form.state}`,
-      });
-
-      setShowPreview(false);
-      setSubmitted(true);
-    } catch (err) {
-      console.error("Failed to save enquiry", err);
-      alert("Failed to submit. Try again.");
-    }
-  };
-
-    // Generate Unique Booking ID
-    const generateBookingID = () => {
-      const today = new Date();
-      const datePart =
-        today.getFullYear().toString() +
-        String(today.getMonth() + 1).padStart(2, "0") +
-        String(today.getDate()).padStart(2, "0");
-
-      let counter = JSON.parse(localStorage.getItem("bookingCounter")) || {};
-      if (!counter[datePart]) counter[datePart] = 1;
-
-      const id = `HGRB-${datePart}-${String(counter[datePart]).padStart(3, "0")}`;
-
-      counter[datePart] += 1;
-      localStorage.setItem("bookingCounter", JSON.stringify(counter));
-
-      return id;
-    };  
+     const payload = {
+      name: form.name,
+      rollno: form.rollno,
+      contact: form.contact,
+      email: form.email,
+      gender: form.gender,
+      from: form.from,
+      to: form.to,
+      guests: form.guests,
+      females: form.females,
+      males: form.males,
+      state: form.state,
+      city: form.city,
+      reference: form.reference,
+      purpose: form.purpose,
+      files: form.files,   // base64 array
+      department: form.department,
+    };
+    
+    await axios.post(
+      `${process.env.REACT_APP_API_URL}/api/enquiry/create`,
+      payload
+    );
+    
+    addNotification?.({
+      name: form.name,
+      date: new Date().toLocaleString(),
+      message: `New enquiry from ${form.city}, ${form.state}`,
+    });
+    
+    setShowPreview(false);
+    setSubmitted(true);
+  } catch (err) {
+    console.error("Failed to submit enquiry:", err);
+    alert("Failed to submit. Please try again.");
+  }
+};        
 
     const departmentList = [
       "ALUMINI",

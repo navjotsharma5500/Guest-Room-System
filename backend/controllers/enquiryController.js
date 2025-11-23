@@ -38,6 +38,26 @@ export const createEnquiry = async (req, res) => {
   }
 };
 
+export const approveEnquiry = async (req, res) => {
+  const enquiry = await Enquiry.findById(req.params.id);
+  if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
+
+  enquiry.status = "approved";
+  await enquiry.save();
+
+  res.json({ message: "Enquiry approved", enquiry });
+};
+
+export const rejectEnquiry = async (req, res) => {
+  const enquiry = await Enquiry.findById(req.params.id);
+  if (!enquiry) return res.status(404).json({ message: "Enquiry not found" });
+
+  enquiry.status = "rejected";
+  await enquiry.save();
+
+  res.json({ message: "Enquiry rejected", enquiry });
+};
+
 // ================================
 // GET ALL ENQUIRIES (ADMIN)
 // ================================

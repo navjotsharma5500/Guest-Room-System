@@ -9,6 +9,7 @@ import {
   Download,
 } from "lucide-react";
 import bgImage from "../assets/ThaparBackground1.png";
+import axios from "axios";
 
 export default function AdminEnquiryPage({ setActiveTab }) {
   const [enquiries, setEnquiries] = useState([]);
@@ -18,6 +19,10 @@ export default function AdminEnquiryPage({ setActiveTab }) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
+  useEffect(() => {
+    loadEnquiries();
+  }, []);
+
   // ✅ Toast helper
   const showToast = (message, color) => {
     setToast({ show: true, message, color });
@@ -26,72 +31,49 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
   // ✅ Load enquiries safely
   function loadEnquiries() {
-    try {
-      const stored = JSON.parse(localStorage.getItem("guestEnquiries")) || [];
-      const sorted = [...stored].sort((a, b) => {
-        const tA = a.timestamp ? a.timestamp : new Date(a.date).getTime();
-        const tB = b.timestamp ? b.timestamp : new Date(b.date).getTime();
-        return tB - tA;  // newest first
+    axios
+      .get(`${process.env.REACT_APP_API_URL}/api/enquiry`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        const sorted = [...res.data].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setEnquiries(sorted);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch enquiries", err);
+        setEnquiries([]);
       });
-      
-      setEnquiries(sorted);
-    } catch (err) {
-      console.error("Failed to parse guestEnquiries", err);
-      setEnquiries([]);
-    }
-  }
-
-  useEffect(() => {
-    const container = document.querySelector(".admin-page-container");
-    if (container) setTimeout(() => container.classList.add("fade-in"), 10);
-
-    loadEnquiries();
-
-    const handleStorageChange = (e) => {
-      if (e.key === "guestEnquiries") loadEnquiries();
-    };
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("guestEnquiryUpdated", loadEnquiries);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("guestEnquiryUpdated", loadEnquiries);
-    };
-  }, []);
+  }              
 
   // ✅ Handle Approve / Reject
-  const handleDecision = (status) => {
-    if (!selected) return;
+  const handleDecision = async (status) => {
+  if (!selected) return;
 
-    // Use "pending-approval" when approve button clicked, only "approved" after room booking
-    const actualStatus = status === "approved" ? "pending-approval" : status;
-
-    const updated = enquiries.map((e) =>
-      e.date === selected.date ? { ...e, status: actualStatus } : e
+  try {
+    // 🔥 Update backend (approve or reject)
+    await axios.put(
+      `${process.env.REACT_APP_API_URL}/api/enquiry/${selected._id}/${status}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
     );
 
-    try {
-      localStorage.setItem("guestEnquiries", JSON.stringify(updated));
-      setEnquiries(updated);
-
-      // 🔔 Notify other parts of the app
-      window.dispatchEvent(new Event("guestEnquiryUpdated"));
-      window.dispatchEvent(
-        new StorageEvent("storage", { key: "guestEnquiries" })
-      );
-    } catch (err) {
-      console.error("Failed to persist enquiries", err);
-    }
-
+    // 🔥 Your existing logic MUST stay INSIDE the function
     if (status === "approved") {
-      // ✅ Include stay duration for AllHostelsPortal prefill
       const approvedGuest = {
         id: "b_" + Date.now(),
         guest: selected.name,
         rollno: selected.rollno || "",
         department: selected.department || "",
 
-        numGuests: selected.guests || selected.numGuests || 1,
+        numGuests: Number(selected.guests || selected.numGuests || 1),
         females: selected.females || 0,
         males: selected.males || 0,
 
@@ -103,16 +85,16 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         city: selected.city || "",
         purpose: selected.purpose || "",
         reference: selected.reference || "",
-        paymentType: "Pending",      // enquiry has no payment yet
+        files: selected.files || [],
+
+        paymentType: "Pending",
         amount: 0,
         from: selected.from,
         to: selected.to,
-        files: selected.files || [],
-        ...selected,
+
         status: "pending-approval",
-        from: selected.from,
-        to: selected.to,
       };
+
       localStorage.setItem("lastApprovedGuest", JSON.stringify(approvedGuest));
       window.dispatchEvent(new Event("lastApprovedGuestChanged"));
     } else {
@@ -128,22 +110,30 @@ export default function AdminEnquiryPage({ setActiveTab }) {
       }
     }
 
-    setSelected(null);
     showToast(
       status === "approved" ? "Enquiry approved!" : "Enquiry rejected!",
       status === "approved" ? "green" : "red"
     );
 
+    // Refresh table
+    loadEnquiries();
+    setSelected(null);
+
+    // Redirect depending on status
     if (typeof setActiveTab === "function") {
       const container = document.querySelector(".admin-page-container");
       if (container) container.classList.add("fade-out");
       setTimeout(() => {
-        // ✅ redirect to AllHostelsPortal after approve
         setActiveTab(status === "approved" ? "AllHostelsPortal" : "Home");
         if (container) container.classList.remove("fade-out");
       }, 300);
     }
-  };
+
+  } catch (err) {
+    console.error("Decision error:", err);
+    showToast("Failed to update enquiry", "red");
+  }
+};
 
   // ✅ Download approved guests as CSV
   const handleDownloadCSV = () => {
@@ -328,7 +318,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                       <h3 className="text-lg font-semibold text-red-700 dark:text-gray-200">
                         {e.name}
                       </h3>
-                      <p className="text-sm text-gray-600">{e.date}</p>
+                      <p className="text-sm text-gray-600">{new Date(e.createdAt).toLocaleString()}</p>
                       <p className="text-sm text-gray-700 mt-1 italic">
                         {e.purpose || "No purpose provided"}
                       </p>
