@@ -9,10 +9,15 @@ dotenv.config();
 const app = express();
 
 // -----------------------------
-// Middlewares
+// Middlewares (Upload Fix)
 // -----------------------------
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "10mb", parameterLimit: 100000 }));
+app.use(express.urlencoded({ extended: true, limit: "10mb", parameterLimit: 100000 }));
+
+import bodyParser from "body-parser";
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
 app.use(morgan("dev"));
 
 app.use(
