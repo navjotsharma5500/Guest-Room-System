@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -12,11 +11,10 @@ const app = express();
 // -----------------------------
 // Middlewares
 // -----------------------------
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ limit: "5mb", extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 
-// CORS Settings
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -37,7 +35,7 @@ app.get("/", (req, res) => {
 });
 
 // -----------------------------
-// Import API Routes
+// Routes
 // -----------------------------
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -47,9 +45,6 @@ import enquiryRoutes from "./routes/enquiryRoutes.js";
 import tokenRoutes from "./routes/tokenRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 
-// -----------------------------
-// Use API Routes
-// -----------------------------
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/hostels", hostelRoutes);
@@ -59,7 +54,7 @@ app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // -----------------------------
-// Error Handler (Must be last)
+// Error Handler
 // -----------------------------
 import { errorHandler } from "./middleware/errorMiddleware.js";
 app.use(errorHandler);
