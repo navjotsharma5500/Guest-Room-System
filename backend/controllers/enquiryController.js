@@ -6,8 +6,10 @@ import { sendEnquiryEmail } from "../emails/enquiryEmail.js";
 // CREATE ENQUIRY (Supports File Uploads via Multer)
 // ================================
 export const createEnquiry = async (req, res) => {
+  console.log("BODY RECEIVED:", req.body);
+
   try {
-    const {
+    let {
       name,
       rollno,
       contact,
@@ -25,18 +27,33 @@ export const createEnquiry = async (req, res) => {
       department,
     } = req.body;
 
-    // Convert uploaded files to base64
-    const uploadedFiles = req.files?.map((file) => ({
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      data: file.buffer.toString("base64"),
-    })) || [];
+    // Clean undefined / empty strings from mobile browsers
+    from = from?.trim() || null;
+    to = to?.trim() || null;
 
-    if (!name || !email || !contact || !from || !to) {
+    // Safari/mobile fix: convert ISO strings → YYYY-MM-DD
+    if (from && from.includes("T")) {
+      from = from.split("T")[0];
+    }
+    if (to && to.includes("T")) {
+      to = to.split("T")[0];
+    }
+
+    // Required fields (looser validation to avoid 400 issues)
+    if (!name || !email || !contact) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Convert uploaded files to base64
+    const uploadedFiles =
+      req.files?.map((file) => ({
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        data: file.buffer.toString("base64"),
+      })) || [];
+
+    // Save enquiry
     const enquiry = await Enquiry.create({
       name,
       rollno,
@@ -59,7 +76,7 @@ export const createEnquiry = async (req, res) => {
 
     createLog("enquiry_created", null, { enquiryId: enquiry._id });
 
-    // Optional — send acknowledgment email
+    // Optional email
     try {
       await sendEnquiryEmail(email, enquiry);
     } catch (emailErr) {
@@ -70,7 +87,6 @@ export const createEnquiry = async (req, res) => {
       message: "Enquiry submitted successfully",
       enquiry,
     });
-
   } catch (err) {
     console.error("Enquiry Error:", err);
     res.status(500).json({ message: "Server Error" });
