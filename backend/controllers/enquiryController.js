@@ -3,7 +3,7 @@ import { createLog } from "../middleware/logMiddleware.js";
 import { sendEnquiryEmail } from "../emails/enquiryEmail.js";
 
 // ================================
-// CREATE ENQUIRY (Frontend → Backend Mapping)
+// CREATE ENQUIRY (Supports File Uploads via Multer)
 // ================================
 export const createEnquiry = async (req, res) => {
   try {
@@ -22,9 +22,16 @@ export const createEnquiry = async (req, res) => {
       city,
       reference,
       purpose,
-      files,
       department,
     } = req.body;
+
+    // Convert uploaded files to base64
+    const uploadedFiles = req.files?.map((file) => ({
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      data: file.buffer.toString("base64"),
+    })) || [];
 
     if (!name || !email || !contact || !from || !to) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -45,14 +52,14 @@ export const createEnquiry = async (req, res) => {
       city,
       reference,
       purpose,
-      files,
+      files: uploadedFiles,
       department,
       status: "pending",
     });
 
     createLog("enquiry_created", null, { enquiryId: enquiry._id });
 
-    // Optional email function — keep if configured
+    // Optional — send acknowledgment email
     try {
       await sendEnquiryEmail(email, enquiry);
     } catch (emailErr) {

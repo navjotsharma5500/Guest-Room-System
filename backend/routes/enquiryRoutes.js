@@ -7,11 +7,12 @@ import {
 } from "../controllers/enquiryController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import upload from "../utils/upload.js";
 
 const router = express.Router();
 
 // Anyone can submit enquiry
-router.post("/create", createEnquiry);
+router.post("/create", upload.array("files"), createEnquiry);
 
 // Only admin can view enquiries
 router.get("/", protect, authorizeRoles("admin", "Manager"), getEnquiries);
