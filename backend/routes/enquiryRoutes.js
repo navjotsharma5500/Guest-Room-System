@@ -1,26 +1,23 @@
 import express from "express";
 import {
   createEnquiry,
-  getEnquiries,
   approveEnquiry,
-  rejectEnquiry
+  rejectEnquiry,
+  getEnquiries,
 } from "../controllers/enquiryController.js";
-import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
-import upload from "../utils/upload.js";
 
 const router = express.Router();
 
-// Anyone can submit enquiry
-router.post("/create", upload.array("files"), createEnquiry);
+// 🔥 Create enquiry
+router.post("/create", createEnquiry);
 
-// Only admin can view enquiries
-router.get("/", protect, authorizeRoles("admin", "Manager"), getEnquiries);
+// 🔥 Get all enquiries (admin dashboard)
+router.get("/", getEnquiries);
 
-// Approve enquiry
-router.put("/:id/approve", protect, authorizeRoles("admin", "Manager"), approveEnquiry);
+// 🔥 Approve enquiry
+router.put("/:id/approved", approveEnquiry);
 
-// Reject enquiry
-router.put("/:id/reject", protect, authorizeRoles("admin", "Manager"), rejectEnquiry);
+// 🔥 Reject enquiry
+router.put("/:id/rejected", rejectEnquiry);
 
 export default router;

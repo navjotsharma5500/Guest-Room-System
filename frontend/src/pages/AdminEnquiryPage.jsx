@@ -31,23 +31,52 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
   // ✅ Load enquiries safely
   function loadEnquiries() {
-    axios
-      .get(`${process.env.REACT_APP_API_URL}/api/enquiry`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        const sorted = [...res.data].sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        setEnquiries(sorted);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch enquiries", err);
-        setEnquiries([]);
-      });
-  }              
+  axios
+    .get(`${process.env.REACT_APP_API_URL}/api/enquiry`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    })
+    .then((res) => {
+      const mapped = res.data.map((e) => ({
+        ...e,
+
+        // 🔥 Map NEW backend fields → OLD frontend format
+        name: e.guestName,
+        email: e.guestEmail,
+        contact: e.guestPhone,
+        gender: e.fullData?.gender,
+        rollno: e.fullData?.rollno,
+        department: e.fullData?.department,
+
+        from: e.fullData?.from,
+        to: e.fullData?.to,
+
+        guests: e.fullData?.guests,
+        females: e.fullData?.females,
+        males: e.fullData?.males,
+
+        state: e.fullData?.state,
+        city: e.fullData?.city,
+
+        purpose: e.message,
+        reference: e.fullData?.reference,
+
+        files: e.fullData?.files || [],
+
+        // Keep existing status
+        status: e.status,
+      }));
+
+      const sorted = [...mapped].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setEnquiries(sorted);
+    })
+    .catch((err) => {
+      console.error("Failed to fetch enquiries", err);
+      setEnquiries([]);
+    });
+}             
 
   // ✅ Handle Approve / Reject
   const handleDecision = async (status) => {
