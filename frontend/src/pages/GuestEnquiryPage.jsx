@@ -116,49 +116,78 @@ export default function GuestForm({ setActiveTab, addNotification }) {
   };
 
   const handleConfirmSubmit = async () => {
-    try {
-     const payload = {
-      guestName: form.name,
-      guestEmail: form.email,
-      guestPhone: form.contact,
-      message: form.purpose,
-      preferredDate: form.from,
+  // ✔ Basic validation before sending
+  if (!form.files || form.files.length === 0) {
+    alert("Please upload at least one file.");
+    return;
+  }
 
-      // store full form data also
-      fullData: {
-        rollno: form.rollno,
-        department: form.department,
-        gender: form.gender,
-        from: form.from,
-        to: form.to,
-        guests: form.guests,
-        females: form.females,
-        males: form.males,
-        state: form.state,
-        city: form.city,
-        reference: form.reference,
-        files: form.files,
-      }
-    };
-    
-    await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/enquiry/create`,
-      payload
-    );
-    
+  const payload = {
+    guestName: form.name,
+    guestEmail: form.email,
+    guestPhone: form.contact,
+    message: form.purpose,
+    preferredDate: form.from,
+
+    fullData: {
+      rollno: form.rollno,
+      department: form.department,
+      gender: form.gender,
+      from: form.from,
+      to: form.to,
+      guests: form.guests,
+      females: form.females,
+      males: form.males,
+      state: form.state,
+      city: form.city,
+      reference: form.reference,
+
+      // 🔥 files as Base64
+      files: form.files,
+    }
+  };
+
+  // ============================
+  // 🔥 Retry + Timeout Function
+  // ============================
+  async function submitWithRetry() {
+    try {
+      return await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/enquiry/create`,
+        payload,
+        {
+          timeout: 20000, // ← 20 seconds ( mobile network fix )
+        }
+      );
+    } catch (err) {
+      console.warn("First attempt failed → retrying...");
+      return await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/enquiry/create`,
+        payload,
+        {
+          timeout: 20000,
+        }
+      );
+    }
+  }
+
+  try {
+    await submitWithRetry();
+
+    // Success
     addNotification?.({
       name: form.name,
       date: new Date().toLocaleString(),
       message: `New enquiry from ${form.city}, ${form.state}`,
     });
-    
+
     setShowPreview(false);
     setSubmitted(true);
   } catch (err) {
-    console.error("Failed to submit enquiry:", err);
+    console.error("Final submit error:", err);
     alert("Failed to submit. Please try again.");
   }
-};        
+};       
 
     const departmentList = [
       "ALUMINI",
