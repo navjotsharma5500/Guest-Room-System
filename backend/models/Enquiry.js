@@ -1,38 +1,40 @@
 import mongoose from "mongoose";
 
+const fileSchema = new mongoose.Schema({
+  originalName: String,
+  mimeType: String,
+  size: Number,
+  data: String, // base64
+});
+
 const enquirySchema = new mongoose.Schema(
   {
-    guestName: {
-      type: String,
-      required: true,
-    },
-    guestEmail: {
-      type: String,
-      required: true,
-    },
-    guestPhone: {
-      type: String,
-      required: true,
-    },
+    // Basic Guest Info (from frontend)
+    name: { type: String, required: true },     // guestName
+    email: { type: String, required: true },    // guestEmail
+    contact: { type: String, required: true },  // guestPhone
 
-    message: String,
+    // Optional fields
+    purpose: String,   // message
     preferredDate: String,
 
-    fullData: {
-      rollno: String,
-      department: String,
-      gender: String,
-      from: String,
-      to: String,
-      guests: String,
-      females: String,
-      males: String,
-      state: String,
-      city: String,
-      reference: String,
-      files: [String],
-    },
+    // FullData fields (flattened)
+    rollno: String,
+    department: String,
+    gender: String,
+    from: String,
+    to: String,
+    guests: String,
+    females: String,
+    males: String,
+    state: String,
+    city: String,
+    reference: String,
 
+    // File uploads (base64 or multer)
+    files: [fileSchema],
+
+    // Status
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

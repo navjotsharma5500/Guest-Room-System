@@ -2,15 +2,15 @@ import Enquiry from "../models/Enquiry.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendEnquiryEmail } from "../emails/enquiryEmail.js";
 
-// ================================
-// CREATE ENQUIRY (Front-end compatible + file upload support)
-// ================================
+// =====================================================
+// CREATE ENQUIRY (Frontend Compatible + File Upload Safe)
+// =====================================================
 export const createEnquiry = async (req, res) => {
   console.log("BODY RECEIVED:", req.body);
 
   try {
     // FRONTEND sends:
-    // guestName, guestEmail, guestPhone, message, preferredDate, fullData{...}
+    // guestName, guestEmail, guestPhone, message, preferredDate, fullData:{...}
 
     const {
       guestName,
@@ -21,7 +21,7 @@ export const createEnquiry = async (req, res) => {
       fullData = {},
     } = req.body;
 
-    // Extract inside fullData object
+    // Extract nested values (safe)
     const {
       rollno,
       department,
@@ -37,25 +37,26 @@ export const createEnquiry = async (req, res) => {
       files, // base64 array
     } = fullData;
 
-    // ===============================
-    //  HANDLE FILES  (Base64 + Multer)
-    // ===============================
+    // =====================================================
+    // HANDLE FILES (Base64 + Multer)
+    // =====================================================
 
-    // 1️⃣ Base64 files (coming from mobile browser upload)
     let uploadedFiles = [];
+
+    // 1️⃣ Base64 files from mobile browsers
     if (Array.isArray(files)) {
-      uploadedFiles = files.map((fileString, idx) => ({
-        originalName: `uploaded_file_${idx + 1}.pdf`,
-        mimeType: "application/pdf",
-        data: fileString.replace(/^data:.*;base64,/, ""),
-        size: Buffer.byteLength(
-          fileString.replace(/^data:.*;base64,/, ""),
-          "base64"
-        ),
-      }));
+      uploadedFiles = files.map((fileString, idx) => {
+        const base64Data = fileString.replace(/^data:.*;base64,/, "");
+        return {
+          originalName: `uploaded_file_${idx + 1}.pdf`,
+          mimeType: "application/pdf",
+          data: base64Data,
+          size: Buffer.byteLength(base64Data, "base64"),
+        };
+      });
     }
 
-    // 2️⃣ Multer files (if browser supports multipart)
+    // 2️⃣ Multer (if browser supports multipart)
     if (req.files?.length > 0) {
       req.files.forEach((file) => {
         uploadedFiles.push({
@@ -67,22 +68,30 @@ export const createEnquiry = async (req, res) => {
       });
     }
 
-    // ===============================
-    // Validation
-    // ===============================
-    if (!guestName || !guestEmail || !guestPhone || !from || !to) {
+    // =====================================================
+    // VALIDATION (Matches your schema requirements)
+    // =====================================================
+    if (!guestName || !guestEmail || !guestPhone) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // ===============================
-    // SAVE ENQUIRY INTO DATABASE
-    // ===============================
+    if (!from || !to) {
+      return res.status(400).json({ message: "From/To dates missing" });
+    }
+
+    // =====================================================
+    // SAVE ENQUIRY TO DATABASE
+    // =====================================================
     const enquiry = await Enquiry.create({
+      // Map to your existing schema
       name: guestName,
-      rollno: rollno || null,
-      contact: guestPhone,
       email: guestEmail,
-      gender,
+      contact: guestPhone,
+
+      rollno: rollno || null,
+      gender: gender || null,
+      department: department || null,
+
       from,
       to,
       guests,
@@ -92,17 +101,18 @@ export const createEnquiry = async (req, res) => {
       city,
       reference,
       purpose: message,
-      department,
-      files: uploadedFiles,
       preferredDate,
+
+      files: uploadedFiles,
+
       status: "pending",
     });
 
     createLog("enquiry_created", null, { enquiryId: enquiry._id });
 
-    // ===============================
-    // OPTIONAL EMAIL
-    // ===============================
+    // =====================================================
+    // SEND EMAIL (Ignore failures)
+    // =====================================================
     try {
       await sendEnquiryEmail(guestEmail, enquiry);
     } catch (emailErr) {
@@ -119,7 +129,6 @@ export const createEnquiry = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 // ================================
 // APPROVE ENQUIRY
