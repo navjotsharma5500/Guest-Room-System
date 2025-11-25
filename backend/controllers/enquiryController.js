@@ -131,8 +131,36 @@ export const rejectEnquiry = async (req, res) => {
 export const getEnquiries = async (req, res) => {
   try {
     const enquiries = await Enquiry.find().sort({ createdAt: -1 });
-    res.json(enquiries);
+
+    const processed = enquiries.map((e) => {
+      const fixedFiles = (e.fullData?.files || []).map((file) => {
+        // Detect JPEG (base64 starts with /9j/)
+        if (file.startsWith("/9j/")) {
+          return `data:image/jpeg;base64,${file}`;
+        }
+
+        // Detect PNG (base64 starts with iVBOR)
+        if (file.startsWith("iVBOR")) {
+          return `data:image/png;base64,${file}`;
+        }
+
+        // Default → PDF
+        return `data:application/pdf;base64,${file}`;
+      });
+
+      return {
+        ...e._doc,
+        fullData: {
+          ...e.fullData,
+          files: fixedFiles,
+        },
+      };
+    });
+
+    res.json(processed);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+
