@@ -86,6 +86,23 @@ export default function AdminEnquiryPage({ setActiveTab }) {
       );
 
       setEnquiries(sorted);
+      // 🔥 Save for notification system
+      localStorage.setItem(
+        "guestEnquiries",
+        JSON.stringify(
+          sorted.map((e) => ({
+            name: e.name,
+            purpose: e.purpose,
+            city: e.city,
+            state: e.state,
+            status: e.status,
+            date: e.createdAt,
+          }))
+        )
+      );
+      
+      // 🔥 Trigger notification update
+      window.dispatchEvent(new Event("storage"));      
     })
     .catch((err) => {
       console.error("Failed to fetch enquiries", err);
