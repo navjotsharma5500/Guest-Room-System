@@ -66,6 +66,21 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         status: e.status,
       }));
 
+      // 🔥 Save for notification system (NEW → OLD format)
+      localStorage.setItem(
+        "guestEnquiries",
+        JSON.stringify(
+          mapped.map((e) => ({
+            name: e.name,
+            purpose: e.purpose,
+            city: e.city,
+            state: e.state,
+            status: e.status,
+            date: e.createdAt,
+          }))
+        )
+      );
+
       const sorted = [...mapped].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );

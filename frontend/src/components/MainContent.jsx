@@ -83,7 +83,7 @@ export default function MainContent({
             pending.map((e) => ({
               name: e.name,
               message: e.purpose || "New enquiry submitted",
-              date: e.date,
+              date: new Date(e.date).toLocaleString(),
               status: e.status,
             }))
           );
