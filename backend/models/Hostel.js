@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const BookingSchema = new mongoose.Schema({
   id: String,
@@ -19,19 +19,20 @@ const BookingSchema = new mongoose.Schema({
   males: Number,
   from: String,
   to: String,
-  files: Array,
+  files: Array
 });
 
 const RoomSchema = new mongoose.Schema({
   roomNo: String,
   roomType: String,
-  bookings: [BookingSchema],
+  bookings: [BookingSchema]
 });
 
 const HostelSchema = new mongoose.Schema({
   name: String,
-  rooms: [RoomSchema],
+  rooms: [RoomSchema]
 });
 
-// ✅ CommonJS export (CORRECT)
-module.exports = mongoose.model("Hostel", HostelSchema);
+const Hostel = mongoose.model("Hostel", HostelSchema);
+
+export default Hostel;

@@ -1,5 +1,5 @@
 import Booking from "../models/Booking.js";
-const Hostel = require("../models/Hostel.js");
+import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendBookingEmail } from "../emails/bookingEmail.js";
 
