@@ -3,29 +3,41 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
+import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
 
 dotenv.config();
 
 const app = express();
 
 // -----------------------------
-// Middlewares (Upload Fix)
+// JSON + Cookies
 // -----------------------------
-app.use(express.json({ limit: "10mb", parameterLimit: 100000 }));
-app.use(express.urlencoded({ extended: true, limit: "10mb", parameterLimit: 100000 }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-import bodyParser from "body-parser";
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
-
-app.use(morgan("dev"));
-
+// -----------------------------
+// FIXED CORS (Render + Vercel)
+// -----------------------------
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      "http://localhost:3000",
+      "https://guestroom.vercel.app",   // YOUR FRONTEND
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
+// Required for preflight requests
+app.options("*", cors());
+
+app.use(morgan("dev"));
 
 // -----------------------------
 // Database Connection
@@ -33,15 +45,12 @@ app.use(
 connectDB();
 
 // -----------------------------
-// Default Route
-// -----------------------------
-app.get("/", (req, res) => {
-  res.send("Guest Room Backend Running Successfully 🚀");
-});
-
-// -----------------------------
 // Routes
 // -----------------------------
+app.get("/", (req, res) => {
+    res.send("Guest Room Backend Running Successfully 🚀");
+});
+
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import hostelRoutes from "./routes/hostelRoutes.js";
@@ -68,7 +77,6 @@ app.use(errorHandler);
 // Start Server
 // -----------------------------
 const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
