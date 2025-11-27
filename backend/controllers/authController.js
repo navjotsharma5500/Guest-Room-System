@@ -3,6 +3,20 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { createLog } from "../middleware/logMiddleware.js";
 
+export const getMe = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      user: req.user,   // Comes from protect middleware
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to load user details",
+    });
+  }
+};
+
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
