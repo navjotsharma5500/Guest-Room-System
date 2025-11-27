@@ -57,15 +57,12 @@ export const loginUser = async (req, res) => {
     // ==============================
 
     return res.json({
-      success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        assignedHostel: user.assignedHostel,
-      },
-      token: generateToken(user._id),  
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      assignedHostel: user.assignedHostel,
+      token: generateToken(user._id), 
     });
 
   } catch (err) {
