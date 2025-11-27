@@ -33,24 +33,47 @@ export const loginUser = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }    
 
     const match = await user.matchPassword(password);
 
-    if (!match) return res.status(400).json({ message: "Invalid password" });
-
+    if (!match) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+        
+    // Log login event
     createLog("login", user._id);
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      assignedHostel: user.assignedHostel,
-      token: generateToken(user._id),
+    // ==============================
+    // FINAL CORRECT RESPONSE FORMAT
+    // ==============================
+
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        assignedHostel: user.assignedHostel,
+      },
+      token: generateToken(user._id),  
     });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });  
   }
 };
 
