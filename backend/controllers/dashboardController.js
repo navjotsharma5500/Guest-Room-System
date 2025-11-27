@@ -1,13 +1,29 @@
-// backend/routes/dashboardRoutes.js
+import User from "../models/User.js";
+import Enquiry from "../models/Enquiry.js";
+import TokenRequest from "../models/TokenRequest.js";
 
-import express from "express";
-import { getDashboardStats } from "../controllers/dashboardController.js";
-import { protect } from "../middleware/authMiddleware.js";
+export const getDashboardStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalBookings = 0; // no booking model
+    const totalEnquiries = await Enquiry.countDocuments();
+    const pendingTokenRequests = await TokenRequest.countDocuments({
+      approved: false,
+    });
+    const approvedTokenRequests = await TokenRequest.countDocuments({
+      approved: true,
+    });
 
-const router = express.Router();
-
-// GET /api/dashboard/stats
-router.get("/stats", protect, getDashboardStats);
-
-// MUST EXPORT DEFAULT FOR ESM
-export default router;
+    res.json({
+      users: totalUsers,
+      bookings: totalBookings,
+      enquiries: totalEnquiries,
+      tokens: {
+        pending: pendingTokenRequests,
+        approved: approvedTokenRequests,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
