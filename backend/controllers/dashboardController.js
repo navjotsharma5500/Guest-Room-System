@@ -1,18 +1,15 @@
 import User from "../models/User.js";
+import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
 import TokenRequest from "../models/TokenRequest.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-    const totalBookings = 0; // no booking model
+    const totalBookings = await Booking.countDocuments();
     const totalEnquiries = await Enquiry.countDocuments();
-    const pendingTokenRequests = await TokenRequest.countDocuments({
-      approved: false,
-    });
-    const approvedTokenRequests = await TokenRequest.countDocuments({
-      approved: true,
-    });
+    const pendingTokenRequests = await TokenRequest.countDocuments({ approved: false });
+    const approvedTokenRequests = await TokenRequest.countDocuments({ approved: true });
 
     res.json({
       users: totalUsers,
@@ -20,9 +17,10 @@ export const getDashboardStats = async (req, res) => {
       enquiries: totalEnquiries,
       tokens: {
         pending: pendingTokenRequests,
-        approved: approvedTokenRequests,
+        approved: approvedTokenRequests
       },
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

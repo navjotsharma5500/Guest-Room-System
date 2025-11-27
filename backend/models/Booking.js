@@ -11,26 +11,25 @@ const bookingSchema = new mongoose.Schema(
 
     roomNo: { type: String, required: true },
 
-    // reference to hostel
+    // Reference to hostel
     hostel: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hostel",
-      required: false,   // set to false if you are not using Hostel.js
+      required: true
     },
 
     status: {
       type: String,
       enum: ["pending", "approved", "rejected", "cancelled", "completed"],
-      default: "pending",
+      default: "pending"
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+      ref: "User"
     },
 
-    tokenUsed: { type: Boolean, default: false },
+    tokenUsed: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
