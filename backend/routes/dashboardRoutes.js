@@ -1,11 +1,27 @@
-import express from "express";
-import { getDashboardStats } from "../controllers/dashboardController.js";
-import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import HostelData from "../models/HostelData.js";
 
-const router = express.Router();
+export const getDashboardStats = async (req, res) => {
+  try {
+    const doc = await HostelData.findById("hosteldata");
 
-// Admin dashboard data
-router.get("/stats", protect, authorizeRoles("admin"), getDashboardStats);
+    if (!doc) return res.json({ total: 0, occupied: 0 });
 
-export default router;
+    const data = doc.data;
+
+    let total = 0;
+    let occupied = 0;
+
+    Object.values(data).forEach(hostel => {
+      hostel.rooms.forEach(room => {
+        total++;
+        if (room.bookings.length > 0) occupied++;
+      });
+    });
+
+    res.json({ total, occupied, available: total - occupied });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.status(500).json({ error: "Dashboard failed" });
+  }
+};
