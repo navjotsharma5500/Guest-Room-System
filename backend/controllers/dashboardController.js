@@ -1,12 +1,11 @@
 import User from "../models/User.js";
-import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
 import TokenRequest from "../models/TokenRequest.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-    const totalBookings = await Booking.countDocuments();
+    const totalBookings = 0; // Booking model removed
     const totalEnquiries = await Enquiry.countDocuments();
     const pendingTokenRequests = await TokenRequest.countDocuments({ approved: false });
     const approvedTokenRequests = await TokenRequest.countDocuments({ approved: true });
