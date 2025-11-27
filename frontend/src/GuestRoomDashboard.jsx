@@ -23,17 +23,12 @@ export default function GuestRoomDashboard() {
   // ⭐ ALL HOOKS MUST COME BEFORE ANY RETURN
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const loadInitialHostelData = () => {
-    try {
-      const raw = localStorage.getItem("hostelData");
-      if (raw) return JSON.parse(raw);
-    } catch (err) {
-      console.warn("Failed to parse hostelData, using default JSON.", err);
-    }
-    return hostelDataJSON;
-  };
+  const loadInitialHostelData = async () => {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/bookings/all`);
+    return await res.json();
+  };  
 
-  const [hostelData, setHostelData] = useState(loadInitialHostelData);
+  const [hostelData, setHostelData] = useState({});
   const [activeTab, setActiveTab] = useState("Home");
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
@@ -52,15 +47,29 @@ export default function GuestRoomDashboard() {
   );
 
   // ⭐ EFFECTS MUST ALSO BE BEFORE EARLY RETURN
+  useEffect(() => {
+    loadInitialHostelData().then(setHostelData);
+  }, []);
+
   useEffect(() => {}, [loading, currentUser]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("hostelData", JSON.stringify(hostelData));
-    } catch (err) {
-      console.error("Failed to persist hostelData", err);
+    if (!hostelData || Object.keys(hostelData).length === 0) return;
+
+    async function saveToBackend() {
+      try {
+        await fetch(`${process.env.REACT_APP_API_URL}/bookings/save-all`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(hostelData),
+        });
+      } catch (err) {
+        console.error("Failed to sync hostelData with backend", err);    
+      }
     }
-  }, [hostelData]);
+    
+    saveToBackend();
+  }, [hostelData]);  
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");

@@ -66,45 +66,14 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         status: e.status,
       }));
 
-      // 🔥 Save for notification system (NEW → OLD format)
-      localStorage.setItem(
-        "guestEnquiries",
-        JSON.stringify(
-          mapped.map((e) => ({
-            name: e.name,
-            purpose: e.purpose,
-            city: e.city,
-            state: e.state,
-            status: e.status,
-            date: e.createdAt,
-          }))
-        )
-      );
-
-      const sorted = [...mapped].sort(
+      // Sort by latest enquiry first
+      const sorted = mapped.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
-
-      setEnquiries(sorted);
-      // 🔥 Save for notification system
-      localStorage.setItem(
-        "guestEnquiries",
-        JSON.stringify(
-          sorted.map((e) => ({
-            name: e.name,
-            purpose: e.purpose,
-            city: e.city,
-            state: e.state,
-            status: e.status,
-            date: e.createdAt,
-          }))
-        )
-      );
       
-      // 🔥 Trigger notification update
-      window.dispatchEvent(new Event("storage"));      
+      setEnquiries(sorted);
     })
-    .catch((err) => {
+    .catch((err) => {  
       console.error("Failed to fetch enquiries", err);
       setEnquiries([]);
     });
@@ -156,21 +125,9 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         status: "pending-approval",
       };
 
-      localStorage.setItem("lastApprovedGuest", JSON.stringify(approvedGuest));
-      window.dispatchEvent(new Event("lastApprovedGuestChanged"));
-    } else {
-      const raw = localStorage.getItem("lastApprovedGuest");
-      if (raw) {
-        try {
-          const j = JSON.parse(raw);
-          if (j?.date === selected.date && j?.name === selected.name) {
-            localStorage.removeItem("lastApprovedGuest");
-            window.dispatchEvent(new Event("lastApprovedGuestChanged"));
-          }
-        } catch {}
-      }
+      // Pass approved enquiry to AllHostelsPortal
+      window.selectedEnquiry = approvedGuest;
     }
-
     showToast(
       status === "approved" ? "Enquiry approved!" : "Enquiry rejected!",
       status === "approved" ? "green" : "red"

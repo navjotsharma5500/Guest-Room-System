@@ -1,13 +1,36 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
-const hostelSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    block: { type: String, required: true },
-    type: { type: String, enum: ["boys", "girls"], required: true },
-    totalRooms: { type: Number, required: true }
-  },
-  { timestamps: true }
-);
+const BookingSchema = new mongoose.Schema({
+  id: String,
+  guest: String,
+  rollno: String,
+  department: String,
+  contact: String,
+  email: String,
+  gender: String,
+  state: String,
+  city: String,
+  purpose: String,
+  reference: String,
+  paymentType: String,
+  amount: Number,
+  numGuests: Number,
+  females: Number,
+  males: Number,
+  from: String,
+  to: String,
+  files: Array,
+});
 
-export default mongoose.model("Hostel", hostelSchema);
+const RoomSchema = new mongoose.Schema({
+  roomNo: String,
+  roomType: String,
+  bookings: [BookingSchema],
+});
+
+const HostelSchema = new mongoose.Schema({
+  name: String,
+  rooms: [RoomSchema],
+});
+
+module.exports = mongoose.model("Hostel", HostelSchema);

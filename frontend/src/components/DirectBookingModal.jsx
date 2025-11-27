@@ -8,6 +8,23 @@ import AttachmentGrid from "./AttachmentGrid";
 import { isDateRangeOverlapping } from "../utils/dateUtils";
 import { IndianStates } from "../utils/indianStates";
 
+  const API_BASE = "https://guestroom-backend.onrender.com";
+  async function saveBookingToBackend(hostel, roomNo, booking) {
+    try {
+      const res = await fetch(`${API_BASE}/api/bookings/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hostel, roomNo, booking }),
+      });
+    
+      const data = await res.json();
+      return data;
+    } catch (err) {  
+      console.error("Booking save failed:", err);
+      throw err;
+    }
+  }
+
 // ================= CUSTOM UTILS ===================
 
 // Generate Unique Booking ID → DRB-YYYYMMDD-001
@@ -538,25 +555,40 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   // ---------------------------
   // SUBMIT BOOKING
   // ---------------------------
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit()) {
       showToast("⚠️ Fill all required fields properly", "warning");
       return;
     }
-
+    
     const booking = {
       bookingID: generateBookingID(room?.bookings || []),
       ...form,
       remarks,
       from,
       to,
-      files: form.files, // cleaned list
+      files: form.files, // final base64 list
+      id: `b_${Date.now()}_${Math.floor(Math.random() * 10000)}`, // IMPORTANT for Mongo 
     };
+    
+    try {
+      // 🔥 SEND BOOKING TO BACKEND
+      const result = await saveBookingToBackend(hostel, room.roomNo, booking);
 
-    onSubmit(booking);
-    showToast("✅ Booking created!", "success");
-    onClose();
-  };
+      if (result.success) {
+        showToast("✅ Booking created successfully!", "success");
+       
+         // Update frontend UI immediately
+        onSubmit(booking);
+
+        onClose();
+      } else {
+        showToast(`❌ Failed: ${result.error}`, "error"); 
+      }
+    } catch (err) {
+      showToast("❌ Server error while saving booking", "error");
+    }      
+  };  
 
   // ======================= PART 3 =======================
   // DirectBookingModal JSX

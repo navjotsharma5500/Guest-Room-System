@@ -67,86 +67,63 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
   // ---------------------
   // SAVE PROFILE
   // ---------------------
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     try {
-      if (!currentUser?.email) {
-        alert("User email not found. Cannot save profile.");
-        return;
-      }
-
-      const users = JSON.parse(localStorage.getItem("gr_users") || "{}");
-      const email = currentUser.email.toLowerCase();
-
-      if (users[email]) {
-        users[email] = {
-          ...users[email],
+      const res = await fetch("https://guestroom-backend.onrender.com/api/users/update-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: currentUser.email,
           name: form.name,
           hostel: form.hostel,
-          profilePicture: form.profilePicture,
-        };
-        localStorage.setItem("gr_users", JSON.stringify(users));
+          profilePicture: form.profilePicture
+        })
+      });
+      
+      const data = await res.json();
+      if (!data.success) {
+        alert("Failed to update profile");
+        return;
       }
-
-      const updatedUser = {
-        ...currentUser,
-        name: form.name,
-        hostel: form.hostel,
-        profilePicture: form.profilePicture,
-      };
-
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-
-      onUpdate && onUpdate(updatedUser);
+      
+      onUpdate && onUpdate(data.user);
       setEditing(false);
     } catch (err) {
       console.error(err);
-      alert("Failed to update profile.");
+      alert("Error updating profile");  
     }
-  };
+  };    
 
   // ---------------------
   // CHANGE PASSWORD
   // ---------------------
-  const changePasswordForCurrentUser = () => {
-    setPassMessage("");
-
+  const changePasswordForCurrentUser = async () => {
     try {
-      const cuRaw = localStorage.getItem("currentUser");
-      if (!cuRaw) throw new Error("No current user");
+      const res = await fetch("https://guestroom-backend.onrender.com/api/users/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: currentUser.email,
+          oldPassword,
+          newPassword,
+          master: MASTER_PIN
+        })  
+      });
+      
+      const data = await res.json();
 
-      const CU = JSON.parse(cuRaw);
-      const email = CU.email.toLowerCase();
-
-      const usersRaw = localStorage.getItem("gr_users");
-      const users = usersRaw ? JSON.parse(usersRaw) : {};
-
-      if (!users[email]) throw new Error("User not found");
-
-      // Validate old password or master pin
-      const oldMatches =
-        oldPassword === users[email].password ||
-        oldPassword === MASTER_PIN;
-
-      if (!oldMatches) throw new Error("Old password incorrect");
-
-      if (newPassword.length < 6)
-        throw new Error("New password must be at least 6 characters");
-
-      // Save new password
-      users[email].password = newPassword;
-      localStorage.setItem("gr_users", JSON.stringify(users));
-
-      // Update current user
-      const updatedCU = { ...CU, password: newPassword };
-      localStorage.setItem("currentUser", JSON.stringify(updatedCU));
-
-      setPassMessage("Password updated successfully ✔");
+      if (!data.success) {
+        setPassMessage(data.message);
+        return;
+      }
+      
+      setPassMessage("Password updated ✔");
       setOldPassword("");
       setNewPassword("");
     } catch (err) {
-      setPassMessage(err.message || "Failed to change password");
+      setPassMessage("Error updating password");
     }
-  };
+  };      
 
   // ---------------------
   // UI RETURN

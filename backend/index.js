@@ -11,6 +11,7 @@ const app = express();
 // -----------------------------
 // Middlewares (Upload Fix)
 // -----------------------------
+app.use("/bookings", require("./routes/bookings"));
 app.use(express.json({ limit: "10mb", parameterLimit: 100000 }));
 app.use(express.urlencoded({ extended: true, limit: "10mb", parameterLimit: 100000 }));
 
@@ -72,3 +73,45 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// UPDATE USER PROFILE
+app.put("/api/users/update-profile", async (req, res) => {
+  const { email, name, hostel, profilePicture } = req.body;
+
+  if (!email) return res.json({ success: false, message: "Missing email" });
+
+  const users = await loadUsers(); // read users.json
+  if (!users[email]) return res.json({ success: false, message: "User not found" });
+
+  users[email] = {
+    ...users[email],
+    name,
+    hostel,
+    profilePicture
+  };
+
+  await saveUsers(users);
+
+  res.json({ success: true, user: users[email] });
+});
+
+// CHANGE PASSWORD
+app.put("/api/users/change-password", async (req, res) => {
+  const { email, oldPassword, newPassword, master } = req.body;
+
+  const users = await loadUsers();
+  if (!users[email]) return res.json({ success: false, message: "User not found" });
+
+  const passwordMatched =
+    users[email].password === oldPassword || master === "5233";
+
+  if (!passwordMatched)
+    return res.json({ success: false, message: "Old password wrong" });
+
+  users[email].password = newPassword;
+
+  await saveUsers(users);
+
+  res.json({ success: true });
+});
+

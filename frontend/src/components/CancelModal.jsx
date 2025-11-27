@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { XCircle } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-// -------------------- CANCEL MODAL --------------------
 export default function CancelModal({
   modal,
   remarksText,
@@ -14,17 +13,15 @@ export default function CancelModal({
   const { showToast } = useToast();
   const [localRemarks, setLocalRemarks] = useState(remarksText || "");
 
-  // ✅ Sync external remarksText → local state
+  // Sync remarks when modal opens
   useEffect(() => {
     setLocalRemarks(remarksText || "");
   }, [remarksText]);
 
   if (!modal) return null;
 
-  const safeTrim = (val) => {
-    if (val === null || val === undefined) return "";
-    return typeof val === "string" ? val.trim() : String(val).trim();
-  };
+  const safeTrim = (val) =>
+    val ? (typeof val === "string" ? val.trim() : String(val).trim()) : "";
 
   const handleDone = () => {
     if (!safeTrim(localRemarks)) {
@@ -32,17 +29,16 @@ export default function CancelModal({
       return;
     }
 
-    // ✅ Trigger success toast and global sync events
-    showToast("❌ Booking cancelled successfully", "error");
-    window.dispatchEvent(new Event("hostelBookingChanged"));
-    window.dispatchEvent(new StorageEvent("storage", { key: "hostelData" }));
-
-    // ✅ Run parent cancel logic
+    // Run cancel logic in parent (API + UI update)
     if (typeof onDone === "function") onDone();
 
-    // ✅ Reset remarks
+    // Clear and close
+    showToast("❌ Booking cancelled successfully", "error");
+
     setLocalRemarks("");
     setRemarksText("");
+
+    if (typeof onClose === "function") onClose();
   };
 
   const handleClose = () => {
@@ -66,7 +62,7 @@ export default function CancelModal({
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* ===== Header ===== */}
+          {/* Header */}
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-semibold text-red-700 flex items-center gap-2">
               <XCircle size={20} /> Cancel Booking
@@ -74,7 +70,6 @@ export default function CancelModal({
             <button
               onClick={handleClose}
               className="text-gray-500 hover:text-red-700"
-              title="Close"
             >
               ✖
             </button>
@@ -85,7 +80,7 @@ export default function CancelModal({
             {modal.hostel || "—"}
           </p>
 
-          {/* ===== Remarks Input ===== */}
+          {/* Remarks */}
           <textarea
             value={localRemarks}
             onChange={(e) => {
@@ -97,7 +92,7 @@ export default function CancelModal({
             rows={3}
           />
 
-          {/* ===== Buttons ===== */}
+          {/* Buttons */}
           <div className="flex justify-end gap-3">
             <button
               onClick={handleClose}
