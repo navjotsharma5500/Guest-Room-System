@@ -71,9 +71,17 @@ export default function Login() {
         return;
       }
 
-      // data = { user, token }
-      const user = data.user;
-
+      // 🔥 FIXED: backend does NOT send data.user anymore.
+      const user = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        assignedHostel: data.assignedHostel,
+        token: data.token,
+      };
+      
+      // Save session
       if (rememberMe) {
         localStorage.setItem("currentUser", JSON.stringify(user));
       } else {
