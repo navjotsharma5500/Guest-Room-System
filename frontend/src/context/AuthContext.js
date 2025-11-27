@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API = import.meta.env.VITE_API_URL;
+  const API = process.env.REACT_APP_API_URL || "https://guestroom-backend.onrender.com";
 
   // Load session from backend
   useEffect(() => {

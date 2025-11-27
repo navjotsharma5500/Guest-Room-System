@@ -26,5 +26,6 @@ router.put("/approve/:id", protect, authorizeRoles("admin", "manager"), approveB
 
 // Cancel booking
 router.put("/cancel/:id", protect, authorizeRoles("admin", "manager"), cancelBooking);
+router.get("/all", protect, getAllBookings);
 
 export default router;

@@ -13,5 +13,6 @@ router.post("/create-user", protect, authorizeRoles("admin"), createUser);
 
 // Get logged-in user profile
 router.get("/profile", protect, getProfile);
+router.get("/me", protect, getMe);
 
 export default router;
