@@ -57,7 +57,7 @@ export default function Login() {
     if (!validate()) return;
 
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      const res = await fetch("https://guestroom-backend.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -66,19 +66,27 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Invalid credentials.");
+        setError(data.message || "Invalid login credentials");
         return;
       }
 
-      // Backend returns user + token
-      const user = data;
+      // BACKEND RETURNS USER FIELDS DIRECTLY
+      const user = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        assignedHostel: data.assignedHostel,
+        token: data.token,
+      };
 
-      // Save session
-      if (rememberMe) {
+
+      // SAVE USER
+      if (rememberMe)
         localStorage.setItem("currentUser", JSON.stringify(user));
-      } else {
+      else
         sessionStorage.setItem("currentUser", JSON.stringify(user));
-      }
+      
 
       login(user);
 
