@@ -33,4 +33,5 @@ const HostelSchema = new mongoose.Schema({
   rooms: [RoomSchema],
 });
 
+// ✅ CommonJS export (CORRECT)
 module.exports = mongoose.model("Hostel", HostelSchema);
