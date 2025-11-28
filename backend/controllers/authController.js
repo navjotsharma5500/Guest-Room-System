@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { createLog } from "../middleware/logMiddleware.js";
 
 // ==================================================
-// GENERATE JWT (used for cookie)
+// GENERATE JWT
 // ==================================================
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -14,7 +14,7 @@ const generateToken = (id) => {
 };
 
 // ==================================================
-// GET LOGGED-IN USER (for AuthContext)
+// GET LOGGED-IN USER (for AuthContext.js)
 // ==================================================
 export const getMe = async (req, res) => {
   try {
@@ -43,9 +43,9 @@ export const getMe = async (req, res) => {
   }
 };
 
-// =============================
-// LOGIN USER (COOKIE BASED)
-// =============================
+// ==================================================
+// LOGIN USER (COOKIE-BASED FOR VERCEL + RENDER)
+// ==================================================
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -69,19 +69,19 @@ export const loginUser = async (req, res) => {
     }
 
     // Create token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
+    const token = generateToken(user._id);
 
-    // 🔥 Set HttpOnly Cookie (THE MAIN FIX)
+    // ==================================================
+    // 🔥 FIXED COOKIE (REQUIRED FOR VERCEL <-> RENDER)
+    // ==================================================
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,          // true only on HTTPS
-      sameSite: "lax",
+      secure: true,          // TRUE because Render uses HTTPS
+      sameSite: "none",      // REQUIRED for cross-domain cookie
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    // Response
+    // Return user data
     return res.json({
       success: true,
       user: {
@@ -89,19 +89,18 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        assignedHostel: user.assignedHostel,
+        assignedHostel: user.assignedHostel
       }
     });
 
   } catch (err) {
-    console.log(err);
+    console.log("LOGIN ERROR:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
     });
   }
 };
-
 
 // ==================================================
 // CREATE USER (Admin only)
@@ -131,7 +130,7 @@ export const createUser = async (req, res) => {
 };
 
 // ==================================================
-// PROFILE (not used by frontend but OK)
+// PROFILE
 // ==================================================
 export const getProfile = async (req, res) => {
   res.json(req.user);
