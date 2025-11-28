@@ -17,18 +17,30 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 // ---------------------------------------------------
-// 🔥 FIXED CORS — ONLY THIS WORKS WITH COOKIES
+// CORS (IMPORTANT for Cookies!!)
 // ---------------------------------------------------
 app.use(
   cors({
-    origin: "http://localhost:3000",  // ONLY ONE ORIGIN FOR LOCAL
-    credentials: true,                // REQUIRED FOR COOKIES
+    origin: [
+      "http://localhost:3000",
+      "https://guest-room-dashboard.vercel.app",   // your frontend
+    ],
+    credentials: true,                             // allow cookies
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// DO NOT ADD app.options("*", cors()) — breaks cookies
+// ❗ DO NOT ADD app.options("*", cors()) — breaks cookies on Vercel
 
+// Logging
 app.use(morgan("dev"));
+app.use((req, res, next) => {
+  console.log("🌍 REQUEST:", req.method, req.originalUrl);
+  console.log("🔗 Origin:", req.headers.origin);
+  console.log("🍪 Cookies received:", req.cookies);
+  next();
+});
 
 // ---------------------------------------------------
 // CONNECT DB

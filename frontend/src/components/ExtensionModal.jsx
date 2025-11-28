@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 
-// Keep wrapper so hooks are not conditional
+// Wrapper component so hooks are never conditional
 export default function ExtensionModalWrapper(props) {
   if (!props.modal) return null;
   return <ExtensionModal {...props} />;
@@ -43,12 +43,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
 
           <button
             onClick={() => onExtend(newTo)}
-            disabled={!newTo}
-            className={`px-4 py-2 rounded text-white ${
-              newTo
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Extend
           </button>

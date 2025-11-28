@@ -2,33 +2,39 @@ import mongoose from "mongoose";
 
 const enquirySchema = new mongoose.Schema(
   {
-    guestName: { type: String, required: true },
-    guestEmail: { type: String, required: true },
-    guestPhone: { type: String, required: true },
+    name: String,
+    email: String,
+    contact: String,
 
-    message: String,
-    preferredDate: String,
+    rollno: String,
+    department: String,
+    gender: String,
 
-    fullData: {
-      rollno: String,
-      department: String,
-      gender: String,
-      from: String,
-      to: String,
-      guests: String,
-      females: String,
-      males: String,
-      state: String,
-      city: String,
-      reference: String,
-      files: [String], // base64 strings
-    },
+    from: Date,
+    to: Date,
+    guests: Number,
+    females: Number,
+    males: Number,
+    state: String,
+    city: String,
+
+    reference: String,
+    purpose: String,
+
+    files: [
+      {
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        data: String
+      }
+    ],
 
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
+      default: "pending"
+    }
   },
   { timestamps: true }
 );

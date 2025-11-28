@@ -1,9 +1,8 @@
-// ===============================
-// 📌 Premium API Login Page (FULL UI)
-// ===============================
+// src/pages/Login.jsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
+import defaultUsers, { MASTER_PIN } from "../data/defaultUsers";
+import { useAuth } from "../context/AuthContext.js";
 
 // Images
 import logo from "../assets/thapar_logo.png";
@@ -15,14 +14,12 @@ import bg4 from "../assets/Login2 (4).png";
 export default function Login() {
   const { login } = useAuth();
 
-  // -------------------------------
-  // 🔥 STATES
-  // -------------------------------
+  // STATES
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
-  const [loadingBtn, setLoadingBtn] = useState(false);
+  const [users, setUsers] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -30,9 +27,7 @@ export default function Login() {
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
 
-  // -------------------------------
-  // 🔥 BACKGROUND SLIDESHOW
-  // -------------------------------
+  // SLIDESHOW
   const backgrounds = [bg1, bg2, bg3, bg4];
   const [bgIndex, setBgIndex] = useState(0);
 
@@ -43,9 +38,21 @@ export default function Login() {
     return () => clearInterval(timer);
   }, []);
 
-  // -------------------------------
-  // FORM VALIDATION
-  // -------------------------------
+  // LOAD USERS
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("gr_users") || "null");
+      if (stored) setUsers(stored);
+      else {
+        localStorage.setItem("gr_users", JSON.stringify(defaultUsers));
+        setUsers(defaultUsers);
+      }
+    } catch {
+      localStorage.setItem("gr_users", JSON.stringify(defaultUsers));
+      setUsers(defaultUsers);
+    }
+  }, []);
+
   const validate = () => {
     if (!email.trim() || !password.trim()) {
       setError("Enter email and password.");
@@ -53,41 +60,50 @@ export default function Login() {
     }
     return true;
   };
-  // ================================
-  // 🔥 LOGIN HANDLER (API CONNECTED)
-  // ================================
-  const handleSubmit = async (e) => {
+
+  // LOGIN HANDLER
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
 
     if (!validate()) return;
 
-    setLoadingBtn(true);
+    const normalized = email.trim().toLowerCase();
+    const userRecord = users[normalized];
 
-    try {
-      // Call backend login
-      const res = await login(email, password);
-
-      if (!res.success) {
-        setError(res.message || "Invalid email or password");
-        setLoadingBtn(false);
-        return;
-      }
-
-      // Redirect all roles to dashboard
-      window.location.href = "/dashboard";
-
-    } catch (err) {
-      console.error(err);
-      setError("Server error. Try again later.");
+    if (!userRecord) {
+      setError("No account found for that email.");
+      return;
     }
 
-    setLoadingBtn(false);
+    // MASTER PIN
+    if (password === MASTER_PIN) {
+      const user = { ...userRecord, loggedInByMaster: true };
+
+      if (rememberMe) localStorage.setItem("currentUser", JSON.stringify(user));
+      else sessionStorage.setItem("currentUser", JSON.stringify(user));
+
+      login(user);
+      window.location.reload();
+      return;
+    }
+
+    // NORMAL LOGIN
+    if (userRecord.password !== password) {
+      setError("Invalid password.");
+      return;
+    }
+
+    const user = { ...userRecord };
+
+    if (rememberMe) localStorage.setItem("currentUser", JSON.stringify(user));
+    else sessionStorage.setItem("currentUser", JSON.stringify(user));
+
+    login(user);
+    window.location.reload();
   };
 
-  // =================================================
-  // 🔥 GENERATE PASSWORD (FORGOT PASSWORD TEMP LOGIC)
-  // =================================================
+  // GENERATE RANDOM PASSWORD
   const generatePassword = () => {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&";
@@ -97,25 +113,33 @@ export default function Login() {
     return pass;
   };
 
+  // RESET PASSWORD
   const handleForgotPassword = () => {
     setForgotError("");
     setForgotSuccess("");
 
-    if (!forgotEmail.trim()) {
-      setForgotError("Enter your registered email");
+    const emailLower = forgotEmail.trim().toLowerCase();
+    if (!users[emailLower]) {
+      setForgotError("Email not found.");
       return;
     }
 
-    setForgotSuccess(
-      `A reset link has been sent to your email (${forgotEmail}).`
-    );
+    const newPassword = generatePassword();
+
+    const updatedUsers = {
+      ...users,
+      [emailLower]: { ...users[emailLower], password: newPassword },
+    };
+
+    localStorage.setItem("gr_users", JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+
+    setForgotSuccess(`A new password has been sent to your email (${forgotEmail}).`);
   };
 
-  // =================================================
-  // 🔥 UI START
-  // =================================================
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+
       {/* BACKGROUND SLIDESHOW */}
       <AnimatePresence mode="wait">
         <motion.img
@@ -127,43 +151,54 @@ export default function Login() {
           transition={{ duration: 1.4 }}
           className="absolute inset-0 w-full h-full object-cover bg-zoom"
         />
-      </AnimatePresence>
+      </AnimatePresence>     
 
       {/* SOFT FLOATING ORBS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute w-72 h-72 bg-red-500/20 rounded-full blur-3xl"
-          style={{
-            top: "20%",
-            left: "10%",
-            animation: "floatOrb 12s ease-in-out infinite",
-          }}
+          style={{ top: "20%", left: "10%", animation: "floatOrb 12s ease-in-out infinite" }}
         ></div>
 
         <div
           className="absolute w-64 h-64 bg-orange-400/20 rounded-full blur-3xl"
-          style={{
-            bottom: "18%",
-            right: "12%",
-            animation: "floatOrb 14s ease-in-out infinite",
-          }}
+          style={{ bottom: "18%", right: "12%", animation: "floatOrb 14s ease-in-out infinite" }}
         ></div>
 
         <div
           className="absolute w-96 h-96 bg-yellow-300/10 rounded-full blur-3xl"
-          style={{
-            top: "40%",
-            right: "30%",
-            animation: "floatOrb 20s linear infinite",
-          }}
+          style={{ top: "40%", right: "30%", animation: "floatOrb 20s linear infinite" }}
         ></div>
       </div>
 
-      {/* DARK OVERLAY */}
+      {/* PARTICLES */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(25)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute bg-white/50 rounded-full"
+            style={{
+              width: `${Math.random() * 4 + 2}px`,
+              height: `${Math.random() * 4 + 2}px`,
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animation: `riseParticle ${6 + Math.random() * 4}s linear infinite`,
+              animationDelay: `${Math.random() * 4}s`,
+            }}
+          ></div>
+        ))}
+      </div>
+
+      {/* LIGHT RAYS */}
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rotate-12 blur-2xl pointer-events-none"
+        style={{ animation: "lightBeams 12s ease-in-out infinite" }}
+      ></div>
+
+      {/* DARK AESTHETIC OVERLAY */}
       <div className="absolute inset-0 bg-black/20"></div>
-      {/* ================================
-          GLASSMORPHIC LOGIN CARD
-      ================================ */}
+      
+      {/* ===== GLASSMORPHIC LOGIN PANEL (Premium 2025) ===== */}
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -175,6 +210,7 @@ export default function Login() {
           border border-white/20 
           shadow-2xl
           w-full max-w-md rounded-3xl p-8
+          transition
         "
         style={{
           boxShadow:
@@ -186,22 +222,17 @@ export default function Login() {
           <div className="p-4 rounded-full bg-white/10 backdrop-blur-xl">
             <img src={logo} alt="Thapar Logo" className="w-40" />
           </div>
-
           <h1 className="text-3xl font-extrabold text-white mt-2 drop-shadow-lg tracking-wide">
             Hostel Guest Room App
           </h1>
         </div>
 
-        {/* ================================
-            FORM START
-        ================================ */}
+        {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* EMAIL FIELD */}
+          {/* EMAIL */}
           <div className="text-white">
-            <label className="text-sm font-semibold drop-shadow">
-              Email
-            </label>
+            <label className="text-sm font-semibold drop-shadow">Email</label>
             <input
               type="email"
               className="
@@ -213,15 +244,12 @@ export default function Login() {
               "
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
             />
           </div>
 
-          {/* PASSWORD FIELD */}
+          {/* PASSWORD */}
           <div className="text-white">
-            <label className="text-sm font-semibold drop-shadow">
-              Password
-            </label>
+            <label className="text-sm font-semibold drop-shadow">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -234,7 +262,6 @@ export default function Login() {
                 "
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -256,31 +283,27 @@ export default function Login() {
             Always Login
           </label>
 
-          {/* ERROR BOX */}
+          {/* ERROR */}
           {error && (
             <div className="p-3 bg-red-600/30 text-white rounded-lg text-sm border border-red-400/40">
               {error}
             </div>
           )}
 
-          {/* ================================
-              LOGIN BUTTON — FULL WIDTH + FIXED HEIGHT
-          ================================ */}
+          {/* LOGIN BUTTON */}
           <button
             className="
-              w-full py-3.5 rounded-xl
-              text-white font-semibold text-xl
+              w-full py-3 rounded-xl
+              text-white font-semibold text-lg
               bg-gradient-to-r from-red-600 to-red-500
               shadow-xl hover:shadow-2xl transition
-              active:scale-[0.98]
             "
-            disabled={loadingBtn}
           >
-            {loadingBtn ? "Logging in..." : "Login"}
+            Login
           </button>
 
-          {/* FORGOT PASSWORD + SUPPORT */}
-          <div className="flex justify-between text-sm text-white/90 mt-1">
+          {/* LINK ROW */}
+          <div className="flex justify-between text-sm text-white/90">
             <button
               type="button"
               onClick={() => setForgotOpen(true)}
@@ -295,9 +318,8 @@ export default function Login() {
           </div>
         </form>
       </motion.div>
-      {/* =====================================
-          FORGOT PASSWORD MODAL
-      ===================================== */}
+
+      {/* ===== FORGOT PASSWORD MODAL ===== */}
       <AnimatePresence>
         {forgotOpen && (
           <motion.div
@@ -312,9 +334,7 @@ export default function Login() {
               exit={{ scale: 0.7 }}
               className="bg-white/20 backdrop-blur-xl border border-white/30 w-full max-w-md p-6 rounded-2xl shadow-2xl"
             >
-              <h2 className="text-xl font-bold text-white mb-4">
-                Reset Password
-              </h2>
+              <h2 className="text-xl font-bold text-white mb-4">Reset Password</h2>
 
               <label className="text-white text-sm">Registered Email</label>
               <input
@@ -326,7 +346,6 @@ export default function Login() {
                 type="email"
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
-                autoComplete="email"
               />
 
               {/* ERRORS */}
@@ -360,8 +379,7 @@ export default function Login() {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* END OF FULL PAGE WRAPPER */}
-    </div>  
+
+    </div>
   );
 }

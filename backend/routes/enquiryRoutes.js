@@ -20,4 +20,5 @@ router.put("/:id/approved", approveEnquiry);
 // 🔥 Reject enquiry
 router.put("/:id/rejected", rejectEnquiry);
 
+// ✔ EXPORT DEFAULT (required for index.js)
 export default router;

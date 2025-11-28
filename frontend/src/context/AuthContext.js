@@ -1,60 +1,41 @@
-// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext();
-export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API = process.env.REACT_APP_API_URL || "https://guestroom-backend.onrender.com";
-
-  // Load session from backend
+  // Load user from LocalStorage FIRST
   useEffect(() => {
-    async function loadUser() {
-      try {
-        const res = await fetch(`${API}/api/auth/me`, {
-          credentials: "include",
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setCurrentUser(data.user);
-        } else {
-          setCurrentUser(null);
-        }
-      } catch (e) {
-        console.error("Auth load failed", e);
-      }
-      setLoading(false);
+    const saved = localStorage.getItem("currentUser");
+    if (saved) {
+      setCurrentUser(JSON.parse(saved));
     }
-    loadUser();
+    setLoading(false); // finished boot loading
   }, []);
 
-  // LOGIN → Ask backend, store cookie
-  const login = async (email, password) => {
-    const res = await fetch(`${API}/api/auth/login`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+  // 🔥 NEW — Auto sync when localStorage changes
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem("currentUser");
+      setCurrentUser(saved ? JSON.parse(saved) : null);
+      setLoading(false);
+    };
 
-    const data = await res.json();
-    if (res.ok) {
-      setCurrentUser(data.user);
-    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
-    return data;
+  // Login
+  const login = (user) => {
+    localStorage.setItem("currentUser", JSON.stringify(user));
+    setCurrentUser(user);
   };
 
-  // LOGOUT → Clear backend cookie
-  const logout = async () => {
-    await fetch(`${API}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+  // Logout
+  const logout = () => {
+    localStorage.removeItem("currentUser");
     setCurrentUser(null);
   };
 
@@ -64,3 +45,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);

@@ -34,22 +34,13 @@ export default function Sidebar({
   // ============================
   let visibleHostels = [];
 
-  // Normalize hostel keys
-  const hostelKeys = Object.keys(hostelData).map(h => h.trim().toLowerCase());
-  const normalizedUserHostel = userHostel ? userHostel.trim().toLowerCase() : null;
-
   if (isAdmin) {
-    visibleHostels = Object.keys(hostelData);   // admin sees all
-  } 
-  
-  else if (isManager) {
-    visibleHostels = [];   
-  }
-  
-  else if (isCaretaker) {
-    const index = hostelKeys.indexOf(normalizedUserHostel);
-    if (index !== -1) {
-      visibleHostels = [Object.keys(hostelData)[index]];   // caretaker sees ONLY his hostel
+    visibleHostels = Object.keys(hostelData);
+  } else if (isManager) {
+    visibleHostels = [];
+  } else if (isCaretaker) {
+    if (userHostel && hostelData[userHostel]) {
+      visibleHostels = [userHostel];
     }
   }
 

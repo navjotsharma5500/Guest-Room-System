@@ -16,8 +16,8 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
   const { currentUser } = useAuth();
 
   const allowedHostels = currentUser.role === "caretaker"
-    ? [String(currentUser.hostel).trim().toLowerCase()]
-    : Object.keys(hostelData).map(h => h.toLowerCase());
+    ? [currentUser.hostel]
+    : Object.keys(hostelData);
 
   // 👇 Auto-focus input when modal opens
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
       .filter(([hostel]) => {
         // Caretaker → only their hostel
         if (currentUser?.role === "caretaker") {
-          return allowedHostels.includes(hostel.trim().toLowerCase());
+          return allowedHostels.includes(hostel);
         }
         // Admin + Manager → full access
         return true; // admin + manager → full access

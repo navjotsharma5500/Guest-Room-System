@@ -1,106 +1,76 @@
+// controllers/enquiryController.js
+
 import Enquiry from "../models/Enquiry.js";
 import { createLog } from "../middleware/logMiddleware.js";
-import { sendEnquiryEmail } from "../emails/enquiryEmail.js";
+import { sendEmail } from "../emails/sendEmail.js";
+import enquiryNotification from "../emails/templates/enquiryNotification.js";
 
-// ===================================================================
-// CREATE ENQUIRY (Frontend Compatible + Matches Database Schema)
-// ===================================================================
+/* ======================================================
+   CREATE ENQUIRY
+====================================================== */
 export const createEnquiry = async (req, res) => {
-  console.log("BODY RECEIVED:", req.body);
-
   try {
     const {
       guestName,
       guestEmail,
       guestPhone,
       message,
-      preferredDate,
-      fullData = {},
+      fullData = {}
     } = req.body;
 
-    // Extract nested fields
-    const {
-      rollno,
-      department,
-      gender,
-      from,
-      to,
-      guests,
-      females,
-      males,
-      state,
-      city,
-      reference,
-      files = [], // base64 array from mobile
-    } = fullData;
-
-    // ---------------------------
-    // Build base64 file objects
-    // ---------------------------
-    let uploadedFiles = [];
-
-    if (Array.isArray(files)) {
-      uploadedFiles = files.map((f) =>
-        f.replace(/^data:.*;base64,/, "")
-      );
-    }
-
-    // ---------------------------
-    // Save to Mongo EXACTLY as schema wants
-    // -----------------------------
+    // Save enquiry in database
     const enquiry = await Enquiry.create({
-      guestName,
-      guestEmail,
-      guestPhone,
-      message,
-      preferredDate,
-
-      fullData: {
-        rollno,
-        department,
-        gender,
-        from,
-        to,
-        guests,
-        females,
-        males,
-        state,
-        city,
-        reference,
-        files: uploadedFiles,
-      },
-
+      name: guestName,
+      email: guestEmail,
+      contact: guestPhone,
+      purpose: message,
+      ...fullData,
       status: "pending",
     });
 
-    createLog("enquiry_created", null, { enquiryId: enquiry._id });
-
-    try {
-      await sendEnquiryEmail(guestEmail, enquiry);
-    } catch (err) {
-      console.warn("Email not sent:", err.message);
-    }
-
-    res.json({
-      message: "Enquiry submitted successfully",
-      enquiry,
+    // Log action
+    createLog("enquiry_created", req.user?._id || null, {
+      enquiryId: enquiry._id,
     });
+
+    // Send email to Admin
+    await sendEmail({
+      to: "admin@thapar.edu",
+      subject: "New Guest Room Enquiry",
+      html: enquiryNotification(enquiry),
+    });
+
+    // Send email to Manager
+    await sendEmail({
+      to: "manager@thapar.edu",
+      subject: "New Guest Room Enquiry",
+      html: enquiryNotification(enquiry),
+    });
+
+    res.json({ message: "Enquiry submitted", enquiry });
   } catch (err) {
-    console.error("Enquiry Error:", err);
-    res.status(500).json({ message: "Server Error" });
+    console.error("ENQUIRY ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// ===================================================================
-// APPROVE ENQUIRY
-// ===================================================================
+
+/* ======================================================
+   APPROVE ENQUIRY
+====================================================== */
 export const approveEnquiry = async (req, res) => {
   try {
     const enquiry = await Enquiry.findById(req.params.id);
-    if (!enquiry) return res.status(404).json({ message: "Not found" });
+
+    if (!enquiry)
+      return res.status(404).json({ message: "Enquiry not found" });
 
     enquiry.status = "approved";
     await enquiry.save();
+
+    createLog("enquiry_approved", req.user?._id, {
+      enquiryId: enquiry._id,
+    });
 
     res.json({ message: "Enquiry approved", enquiry });
   } catch (err) {
@@ -108,16 +78,23 @@ export const approveEnquiry = async (req, res) => {
   }
 };
 
-// ===================================================================
-// REJECT ENQUIRY
-// ===================================================================
+
+/* ======================================================
+   REJECT ENQUIRY
+====================================================== */
 export const rejectEnquiry = async (req, res) => {
   try {
     const enquiry = await Enquiry.findById(req.params.id);
-    if (!enquiry) return res.status(404).json({ message: "Not found" });
+
+    if (!enquiry)
+      return res.status(404).json({ message: "Enquiry not found" });
 
     enquiry.status = "rejected";
     await enquiry.save();
+
+    createLog("enquiry_rejected", req.user?._id, {
+      enquiryId: enquiry._id,
+    });
 
     res.json({ message: "Enquiry rejected", enquiry });
   } catch (err) {
@@ -125,42 +102,26 @@ export const rejectEnquiry = async (req, res) => {
   }
 };
 
-// ===================================================================
-// GET ALL ENQUIRIES
-// ===================================================================
+
+/* ======================================================
+   GET ALL ENQUIRIES (admin panel)
+====================================================== */
 export const getEnquiries = async (req, res) => {
   try {
     const enquiries = await Enquiry.find().sort({ createdAt: -1 });
-
-    const processed = enquiries.map((e) => {
-      const fixedFiles = (e.fullData?.files || []).map((file) => {
-        // Detect JPEG (base64 starts with /9j/)
-        if (file.startsWith("/9j/")) {
-          return `data:image/jpeg;base64,${file}`;
-        }
-
-        // Detect PNG (base64 starts with iVBOR)
-        if (file.startsWith("iVBOR")) {
-          return `data:image/png;base64,${file}`;
-        }
-
-        // Default → PDF
-        return `data:application/pdf;base64,${file}`;
-      });
-
-      return {
-        ...e._doc,
-        fullData: {
-          ...e.fullData,
-          files: fixedFiles,
-        },
-      };
-    });
-
-    res.json(processed);
+    res.json(enquiries);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 
+/* ======================================================
+   FINAL EXPORTS (Required by enquiryRoutes.js)
+====================================================== */
+export default {
+  createEnquiry,
+  approveEnquiry,
+  rejectEnquiry,
+  getEnquiries
+};

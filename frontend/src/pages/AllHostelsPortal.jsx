@@ -40,32 +40,6 @@ export default function AllHostelsPortal({
   const [extensionModal, setExtensionModal] = useState(null); // ⭐ local state for extend popup
   const [consolidateModal, setConsolidateModal] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
-  
-  const API = "https://guestroom-backend.onrender.com";
-
-  async function addBookingToBackend(hostel, roomNo, booking) {
-    return await fetch(`${API}/api/bookings/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hostel, roomNo, booking }),
-    }).then(r => r.json());
-  }
-  
-  async function removeBookingFromBackend(hostel, roomNo, bookingId) {
-    return await fetch(`${API}/api/bookings/remove`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hostel, roomNo, bookingId }),
-    }).then(r => r.json());
-  }
-  
-  async function extendBookingInBackend(hostel, roomNo, bookingId, newToDate) {
-    return await fetch(`${API}/api/bookings/extend`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hostel, roomNo, bookingId, newToDate }),
-    }).then(r => r.json());
-  }    
 
   // booking list modal (when room has >1 booking)
   const [bookingListModal, setBookingListModal] = useState(null);
@@ -74,15 +48,6 @@ export default function AllHostelsPortal({
 
   // suppress toast at immediate open when prefillGuest arrives
   const suppressToastRef = useRef(false);
-
-  useEffect(() => {
-    async function loadFromBackend() {
-      const res = await fetch(`${API}/api/bookings/all`);
-      const data = await res.json();
-      setHostelData(data);
-    }
-    loadFromBackend();
-  }, []);    
 
   useEffect(() => {
     if (prefillGuest) {
@@ -124,7 +89,14 @@ export default function AllHostelsPortal({
 ];
 
   // ---------- Helpers ----------
-
+  const persistHostelData = (next) => {
+    try {
+      localStorage.setItem("hostelData", JSON.stringify(next));
+    } catch (err) {
+      console.error("Failed to persist hostelData", err);
+    }
+    window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
+  };
 
   // Robust guest name extractor (fallback to many possible keys)
   const getGuestName = (booking) => {
@@ -178,7 +150,7 @@ export default function AllHostelsPortal({
     );
   };
 
-  const handleConsolidatedBooking = async (dates, paymentType, amount) => {
+  const handleConsolidatedBooking = (dates, paymentType, amount) => {
     if (!dates?.from || !dates?.to) {
       showToast("⚠️ Please provide booking dates.", "warning");
       return;
@@ -196,46 +168,66 @@ export default function AllHostelsPortal({
       amount: amount || 0,
     };
 
-    // Loop through selected rooms and add booking to backend
-    for (const { hostel, roomNo } of selectedRooms) {
-      const id = `b_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-
-      const bookingObj = {
-        id,
-        guest: guestData.name || guestData.guest || guestData.fullName || "Guest",
-        ...guestData,
-      };
-      
-      // Send to backend
-      const res = await addBookingToBackend(hostel, roomNo, bookingObj);
-      if (!res.success) {
-        showToast(`❌ Failed to book ${hostel} Room ${roomNo}`, "error");
-        continue;
-      }
-      
-      // Update UI instantly
-      setHostelData(prev => {
-        const copy = structuredClone(prev);
-        const room = copy[hostel]?.rooms?.find(r => r.roomNo === roomNo);
-        if (room) {
-          room.bookings = room.bookings || [];
-          room.bookings.push(bookingObj);
+    setHostelData((prev) => {
+      const copy = structuredClone(prev);
+      selectedRooms.forEach(({ hostel, roomNo }) => {
+        const room = copy[hostel]?.rooms?.find((r) => r.roomNo === roomNo);
+        if (!room) return;
+        room.bookings = room.bookings || [];
+        const id = `b_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        // Ensure consistent booking shape: put guest in `guest` property too
+        const bookingObj = {
+          id,
+          guest: guestData.name || guestData.guest || guestData.fullName || "Guest",
+          ...guestData,
+        };
+        const isOverlapping = (room.bookings || []).some((b) =>
+          isDateRangeOverlapping(b.from, b.to, dates.from, dates.to)
+        );
+        if (isOverlapping) {
+          console.warn(`⛔ Skipping overlapping booking in ${hostel} room ${roomNo}`);
+          showToast(
+            `⚠️ ${hostel} Room ${roomNo} already booked for these dates.`,
+            "warning"
+          );
+          return; // prevent double-booking
         }
-        return copy;  
-      });  
-    }
-    
+        room.bookings.push(bookingObj);
+      });
+      persistHostelData(copy);
+      return copy;
+    });
+
     showToast(
       `✅ ${selectedRooms.length} room(s) booked for ${
         guestData.name || guestData.guest || "Guest"
       }`,
-      "success"  
+      "success"
     );
-    
+
+    // Mark enquiry as fully approved now that room is booked
+    if (prefillGuest && prefillGuest.date) {
+      try {
+        const enquiries =
+          JSON.parse(localStorage.getItem("guestEnquiries")) || [];
+        const updated = enquiries.map((e) =>
+          e.date === prefillGuest.date ? { ...e, status: "approved" } : e
+        );
+        localStorage.setItem("guestEnquiries", JSON.stringify(updated));
+        window.dispatchEvent(new Event("guestEnquiryUpdated"));
+      } catch (err) {
+        console.error("Failed to update enquiry status", err);
+      }
+    }
+
     setSelectedRooms([]);
     setConsolidateModal(false);
     setSelectionMode(false);
-  };  
+    try {
+      localStorage.removeItem("lastApprovedGuest");
+      window.dispatchEvent(new Event("lastApprovedGuestCleared"));
+    } catch {}
+  };
 
   // ---------- Booked room click handling ----------
   const handleBookedRoomClick = (hostel, room) => {
@@ -248,57 +240,67 @@ export default function AllHostelsPortal({
   };
 
   // ---------- Direct booking submit ----------
-  const onDirectBookingSubmit = async (modal, booking) => {
+  const onDirectBookingSubmit = (modal, booking) => {
     if (!modal) return;
-
-    const response = await addBookingToBackend(
-      modal.hostel,
-      modal.room.roomNo,
-      booking
-    );
-    
-    if (!response.success) {
-      showToast("❌ Failed to save booking", "error");
-      return;
-    }
-    
-    // update UI instantly
-    setHostelData(prev => {
+    setHostelData((prev) => {
       const copy = structuredClone(prev);
-      const room = copy[modal.hostel].rooms.find(r => r.roomNo === modal.room.roomNo);
+      const room = copy[modal.hostel]?.rooms?.find(
+        (r) => r.roomNo === modal.room.roomNo
+      );
+      if (!room) return prev;
+      room.bookings = room.bookings || [];
+      if (!booking.id)
+        booking.id = `b_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      // normalize guest property fallback
+      if (!booking.guest)
+        booking.guest = booking.name || booking.fullName || "Guest";
+      try {
+        if (booking.from && typeof booking.from !== "string")
+          booking.from = new Date(booking.from).toISOString().split("T")[0];
+        if (booking.to && typeof booking.to !== "string")
+          booking.to = new Date(booking.to).toISOString().split("T")[0];
+      } catch {}
       room.bookings.push(booking);
+      persistHostelData(copy);
       return copy;
     });
-    
+
     showToast("✅ Booking added successfully!", "success");
     setDirectBookingModal(null);
-  };  
+  };
 
   // ---------- Cancel booking done ----------
-  const onCancelDone = async () => {
-    if (!cancelModal) return;
-
-    const { hostel, room, booking } = cancelModal;
-
-    const res = await removeBookingFromBackend(hostel, room.roomNo, booking.id);
-
-    if (!res.success) {
-      showToast("❌ Failed to cancel booking", "error");
+  const onCancelDone = () => {
+    if (
+      !cancelModal ||
+      !cancelModal.hostel ||
+      !cancelModal.room ||
+      !cancelModal.booking
+    ) {
+      showToast("⚠️ No booking selected to cancel.", "warning");
+      setCancelModal(null);
       return;
     }
-    
-    setHostelData(prev => {
+    setHostelData((prev) => {
       const copy = structuredClone(prev);
-      const r = copy[hostel].rooms.find(r => r.roomNo === room.roomNo);
-      r.bookings = r.bookings.filter(b => b.id !== booking.id);
+      const room = copy[cancelModal.hostel]?.rooms?.find(
+        (r) => r.roomNo === cancelModal.room.roomNo
+      );
+      if (!room) return prev;
+      room.bookings = (room.bookings || []).filter(
+        (b) => b.id !== cancelModal.booking.id
+      );
+      persistHostelData(copy);
       return copy;
     });
-    
-    showToast("❌ Booking cancelled", "error");
+
+    // close cancel modal and booking details/list if present
     setCancelModal(null);
     setBookingDetailsModal(null);
     setBookingListModal(null);
-  };  
+
+    showToast("❌ Booking cancelled", "error");
+  };
 
   const openDirectBookingForVacant = ({ hostel, room, prefill = null }) => {
     setDirectBookingModal({ open: true, hostel, room, prefill });
@@ -313,29 +315,54 @@ export default function AllHostelsPortal({
   };
 
   // ---------- EXTEND BOOKING HANDLER ----------
-  const handleExtendBooking = async (newToDate) => {
+  const handleExtendBooking = (newToDate) => {
     if (!extensionModal) return;
 
     const { hostel, roomNo, booking } = extensionModal;
 
-    const res = await extendBookingInBackend(hostel, roomNo, booking.id, newToDate);
-
-    if (!res.success) {
-      showToast("❌ Failed to extend booking", "error");
+    // Use current hostelData to check overlap
+    const currentHostel = hostelData[hostel];
+    if (!currentHostel) {
+      setExtensionModal(null);
       return;
     }
-    
-    setHostelData(prev => {
+    const currentRoom =
+      currentHostel.rooms?.find((r) => r.roomNo === roomNo) || null;
+    if (!currentRoom) {
+      setExtensionModal(null);
+      return;
+    }
+
+    // Check overlap with other bookings in the same room
+    const hasOverlap = (currentRoom.bookings || []).some((b) => {
+      if (b.id === booking.id) return false; // skip current booking
+      return isDateRangeOverlapping(b.from, b.to, booking.from, newToDate);
+    });
+
+    if (hasOverlap) {
+      showToast("❌ Cannot extend! Dates overlap another booking.", "error");
+      return;
+    }
+
+    // UPDATE STORAGE
+    setHostelData((prev) => {
       const copy = structuredClone(prev);
-      const r = copy[hostel].rooms.find(r => r.roomNo === roomNo);
-      const b = r.bookings.find(b => b.id === booking.id);
-      b.to = newToDate;
+      const hostelObj = copy[hostel];
+      if (!hostelObj) return prev;
+      const roomObj = hostelObj.rooms?.find((r) => r.roomNo === roomNo);
+      if (!roomObj) return prev;
+      const bookingObj = roomObj.bookings?.find((b) => b.id === booking.id);
+      if (!bookingObj) return prev;
+
+      bookingObj.to = newToDate;
+
+      localStorage.setItem("hostelData", JSON.stringify(copy));
       return copy;
     });
-    
+
     showToast("✔️ Booking extended successfully!", "success");
-    setExtensionModal(null);
-  };  
+    setExtensionModal(null); // CLOSE MODAL
+  };
 
   // ---------- Render ----------
   return (
@@ -380,6 +407,12 @@ export default function AllHostelsPortal({
             // Exit selection mode and clear prefillGuest memory
             setSelectionMode(false);
             setSelectedRooms([]);
+            try {
+              localStorage.removeItem("lastApprovedGuest");
+              window.dispatchEvent(new Event("lastApprovedGuestCleared"));
+            } catch (err) {
+              console.warn("Failed to clear lastApprovedGuest:", err);
+            }
             onBackHome && onBackHome();
           }}
           className={`flex items-center gap-2 border px-4 py-2 rounded-full shadow transition ${

@@ -5,16 +5,7 @@ import bcrypt from "bcryptjs";
 import { createLog } from "../middleware/logMiddleware.js";
 
 // ==================================================
-// GENERATE JWT
-// ==================================================
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
-};
-
-// ==================================================
-// GET LOGGED-IN USER (for AuthContext.js)
+// GET LOGGED-IN USER (cookie session)
 // ==================================================
 export const getMe = async (req, res) => {
   try {
@@ -44,22 +35,33 @@ export const getMe = async (req, res) => {
 };
 
 // ==================================================
-// LOGIN USER (COOKIE-BASED FOR VERCEL + RENDER)
+// LOGIN USER (COOKIE BASED)
 // ==================================================
 export const loginUser = async (req, res) => {
+  console.log("🟦 LOGIN HIT");
+  console.log("📩 Body:", req.body);
+  console.log("➡️ Checking:", email);
+  console.log("🍪 Cookie SENT to browser");
+
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    console.log("👉 Checking user:", email);
 
-    if (!user) {
+    // 1️⃣ Find user
+    const foundUser = await User.findOne({ email });
+    console.log("🔍 User found:", foundUser ? "YES" : "NO");
+
+    if (!foundUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    const match = await user.matchPassword(password);
+    // 2️⃣ Validate password
+    const match = await foundUser.matchPassword(password);
+    console.log("🔑 Password match:", match ? "YES" : "NO");
 
     if (!match) {
       return res.status(400).json({
@@ -68,36 +70,41 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Create token
-    const token = generateToken(user._id);
+    // 3️⃣ Create JWT token
+    const token = jwt.sign({ id: foundUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
+    });
 
-    // ==================================================
-    // 🔥 FIXED COOKIE (REQUIRED FOR VERCEL <-> RENDER)
-    // ==================================================
+    console.log("🎫 Token generated:", token ? "YES" : "NO");
+
+    // 4️⃣ Set HttpOnly Cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,          // TRUE because Render uses HTTPS
-      sameSite: "none",      // REQUIRED for cross-domain cookie
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    // Return user data
+    console.log("🍪 Cookie set:", req.cookies?.token ? "YES" : "UNKNOWN (client browser)");
+
+    // 5️⃣ Success
+    console.log("✅ LOGIN SUCCESS");
     return res.json({
       success: true,
       user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        assignedHostel: user.assignedHostel
-      }
+        _id: foundUser._id,
+        name: foundUser.name,
+        email: foundUser.email,
+        role: foundUser.role,
+        assignedHostel: foundUser.assignedHostel,
+      },
     });
 
   } catch (err) {
-    console.log("LOGIN ERROR:", err);
+    console.log("❌ LOGIN ERROR:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
@@ -113,7 +120,7 @@ export const createUser = async (req, res) => {
     if (exists)
       return res.status(400).json({ message: "User already exists" });
 
-    const user = await User.create({
+    const newUser = await User.create({
       name,
       email,
       password,
@@ -121,16 +128,17 @@ export const createUser = async (req, res) => {
       assignedHostel: role === "caretaker" ? assignedHostel : null,
     });
 
-    createLog("user_created", req.user._id, { newUser: user._id });
+    createLog("user_created", req.user?._id, { newUser: newUser._id });
 
-    res.json({ message: "User created", user });
+    res.json({ message: "User created", user: newUser });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 // ==================================================
-// PROFILE
+// GET PROFILE
 // ==================================================
 export const getProfile = async (req, res) => {
   res.json(req.user);

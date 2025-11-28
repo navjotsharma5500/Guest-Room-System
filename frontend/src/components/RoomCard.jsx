@@ -1,4 +1,3 @@
-// src/components/RoomCard.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { CalendarPlus, User2, CalendarDays } from "lucide-react";
@@ -12,27 +11,17 @@ export default function RoomCard({
   theme,
 }) {
   const [showBookings, setShowBookings] = useState(false);
-
-  const activeBookings = room?.bookings || [];
+  const activeBookings = room.bookings || [];
   const isBooked = activeBookings.length > 0;
 
   const handleCardClick = () => {
-    if (!room) return;
-
-    // ONE active booking → directly open booking details
     if (activeBookings.length === 1) {
       onSelect(hostel, room.roomNo, activeBookings[0].id);
-      return;
-    }
-
-    // MANY active bookings → show list modal
-    if (activeBookings.length > 1) {
+    } else if (activeBookings.length > 1) {
       setShowBookings(true);
-      return;
+    } else {
+      alert(`Room ${room.roomNo} is currently available.`);
     }
-
-    // NO bookings
-    alert(`Room ${room.roomNo} is available.`);
   };
 
   return (
@@ -40,7 +29,9 @@ export default function RoomCard({
       <motion.div
         whileHover={{ scale: 1.02 }}
         animate={
-          isBooked ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.12)" } : {}
+          isBooked
+            ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.12)" }
+            : {}
         }
         onClick={handleCardClick}
         className={`relative border rounded-lg p-4 mb-3 transition-all cursor-pointer shadow-sm ${
@@ -62,7 +53,6 @@ export default function RoomCard({
             <CalendarDays className="w-4 h-4" /> Room {room.roomNo}
           </h3>
 
-          {/* DIRECT BOOKING BUTTON */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -74,30 +64,30 @@ export default function RoomCard({
           </button>
         </div>
 
-        {/* EXTEND BOOKING — Only first booking */}
-        {isBooked && new Date(activeBookings[0].to) >= new Date() && (
-          <button
-            className="mt-2 px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-            onClick={(e) => {
-              e.stopPropagation();
+        {/* ⭐ EXTEND BOOKING BUTTON — ADDED, WITHOUT DELETING ANYTHING */}
+        {isBooked &&
+          new Date(activeBookings[0].to) >= new Date() && (
+            <button
+              className="mt-2 px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              onClick={(e) => {
+                e.stopPropagation();
 
-              // Raise global event → Dashboard opens extension modal
-              window.dispatchEvent(
-                new CustomEvent("open-extension-modal", {
-                  detail: {
-                    hostel,
-                    roomNo: room.roomNo,
-                    booking: activeBookings[0],
-                  },
-                })
-              );
-            }}
-          >
-            Extend Booking
-          </button>
-        )}
+                // Fire event → Dashboard catches it and opens the modal
+                window.dispatchEvent(
+                  new CustomEvent("open-extension-modal", {
+                    detail: {
+                      hostel,
+                      roomNo: room.roomNo,
+                      booking: activeBookings[0],
+                    },
+                  })
+                );
+              }}
+            >
+              Extend Booking
+            </button>
+          )}
 
-        {/* STATUS */}
         <p className="text-sm mt-1">
           Status:{" "}
           {isBooked ? (
@@ -119,7 +109,6 @@ export default function RoomCard({
           )}
         </p>
 
-        {/* BOOKING DETAILS PREVIEW */}
         {isBooked && (
           <p
             className={`text-xs mt-2 ${
@@ -129,7 +118,9 @@ export default function RoomCard({
             {activeBookings.length === 1 ? (
               <>
                 Booked by{" "}
-                <span className="font-medium">{activeBookings[0].guest}</span>{" "}
+                <span className="font-medium">
+                  {activeBookings[0].guest}
+                </span>{" "}
                 ({activeBookings[0].from} → {activeBookings[0].to})
               </>
             ) : (
@@ -141,7 +132,7 @@ export default function RoomCard({
         )}
       </motion.div>
 
-      {/* MULTI-BOOKING LIST MODAL */}
+      {/* EXISTING MULTI-BOOKING MODAL — UNTOUCHED */}
       {showBookings && (
         <motion.div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"

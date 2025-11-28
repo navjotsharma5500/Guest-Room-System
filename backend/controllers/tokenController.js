@@ -1,7 +1,6 @@
 import TokenRequest from "../models/TokenRequest.js";
 import crypto from "crypto";
 import { createLog } from "../middleware/logMiddleware.js";
-import { sendTokenApprovalEmail } from "../emails/tokenEmail.js";
 
 // ================================
 // REQUEST TOKEN

@@ -187,19 +187,12 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
               }
               className="border p-2 rounded w-full"
             >
-              {currentUser?.role === "caretaker" ? (
-                // caretaker → only show his hostel
-                <option value={currentUser.hostel}>{currentUser.hostel}</option>
-              ) : (
-                <>
-                  <option value="">All</option>
-                  {allHostels.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </>
-              )}
+              <option value="">All</option>
+              {allHostels.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
             </select>
           </div>
 
