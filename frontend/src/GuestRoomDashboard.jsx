@@ -24,8 +24,10 @@ export default function GuestRoomDashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const loadInitialHostelData = async () => {
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/bookings/all`);
-    return await res.json();
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/bookings/all`, {
+      credentials: "include",
+    });
+    return await res.json();  
   };  
 
   const [hostelData, setHostelData] = useState({});

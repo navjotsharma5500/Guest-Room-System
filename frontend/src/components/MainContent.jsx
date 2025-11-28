@@ -99,6 +99,21 @@ export default function MainContent(props) {
     }
   };
 
+  // ========== LOAD BOOKINGS FROM BACKEND ==========
+  useEffect(() => {
+    async function loadSharedBookings() {
+      try {
+        const res = await axios.get(`${API}/api/bookings/all`, {
+          withCredentials: true,
+        });
+        console.log("Backend bookings:", res.data.bookings);
+      } catch (err) {
+        console.error("Failed to load bookings:", err);
+      }
+    }
+    loadSharedBookings();
+  }, []);
+
   // ================================
   // 🔁 POLLING (Admin & Manager ONLY)
   // ================================

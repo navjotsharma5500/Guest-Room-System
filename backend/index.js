@@ -1,55 +1,46 @@
+// index.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
-import bodyParser from "body-parser";
 
 dotenv.config();
-
 const app = express();
 
-// -----------------------------
-// JSON + Cookies
-// -----------------------------
+// ---------------------------------------------------
+// MIDDLEWARE
+// ---------------------------------------------------
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
-// -----------------------------
-// FIXED CORS (Render + Vercel)
-// -----------------------------
+// ---------------------------------------------------
+// 🔥 FIXED CORS — ONLY THIS WORKS WITH COOKIES
+// ---------------------------------------------------
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://guestroom.vercel.app",   // YOUR FRONTEND
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    origin: "http://localhost:3000",  // ONLY ONE ORIGIN FOR LOCAL
+    credentials: true,                // REQUIRED FOR COOKIES
   })
 );
 
-// Required for preflight requests
-app.options("*", cors());
+// DO NOT ADD app.options("*", cors()) — breaks cookies
 
 app.use(morgan("dev"));
 
-// -----------------------------
-// Database Connection
-// -----------------------------
+// ---------------------------------------------------
+// CONNECT DB
+// ---------------------------------------------------
 connectDB();
 
-// -----------------------------
-// Routes
-// -----------------------------
-app.get("/", (req, res) => {
-    res.send("Guest Room Backend Running Successfully 🚀");
-});
+// ---------------------------------------------------
+// ROUTES
+// ---------------------------------------------------
+app.get("/", (req, res) =>
+  res.send("Guest Room Backend Running Successfully 🚀")
+);
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -67,15 +58,15 @@ app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
-// -----------------------------
-// Error Handler
-// -----------------------------
+// ---------------------------------------------------
+// GLOBAL ERROR HANDLER
+// ---------------------------------------------------
 import { errorHandler } from "./middleware/errorMiddleware.js";
 app.use(errorHandler);
 
-// -----------------------------
-// Start Server
-// -----------------------------
+// ---------------------------------------------------
+// START SERVER
+// ---------------------------------------------------
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)

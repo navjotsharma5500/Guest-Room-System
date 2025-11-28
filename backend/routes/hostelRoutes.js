@@ -1,18 +1,17 @@
 import express from "express";
-import { createHostel, getHostels, getHostel } from "../controllers/hostelController.js";
+import Hostel from "../models/Hostel.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-router.post(
-  "/create",
-  protect,
-  authorizeRoles("admin"),
-  createHostel
-);
-
-router.get("/", protect, getHostels);
-router.get("/:id", protect, getHostel);
+// GET ALL HOSTELS
+router.get("/all", protect, async (req, res) => {
+  try {
+    const hostels = await Hostel.find({});
+    res.json({ success: true, hostels });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 export default router;
