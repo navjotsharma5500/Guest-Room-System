@@ -1,0 +1,307 @@
+// controllers/enquiryController.js - COMPLETE FIXED VERSION
+import Enquiry from "../models/Enquiry.js";
+import { sendEmail } from "../emails/sendEmail.js";
+
+export const createEnquiry = async (req, res) => {
+  try {
+    console.log("📩 ========== ENQUIRY CREATE STARTED ==========");
+    console.log("📦 RAW req.body:", JSON.stringify(req.body, null, 2));
+
+    const body = req.body;
+    
+    // Parse fullData if it's stringified
+    let fullData = body.fullData;
+    
+    if (typeof fullData === "string") {
+      console.log("🔄 fullData is STRING, parsing...");
+      fullData = JSON.parse(fullData);
+    }
+
+    console.log("✅ fullData after parse:", fullData);
+
+    // ✅ Extract file URLs
+    const fileUrls = Array.isArray(fullData.files) ? fullData.files : [];
+    console.log("📂 File URLs:", fileUrls);
+
+    // ✅ Guest counts
+    const guests = Number(fullData.guests) || 1;
+    const females = Number(fullData.females) || 0;
+    const males = Number(fullData.males) || 0;
+
+    // ✅ CRITICAL FIX: Extract times with fallback
+    const checkInTime = fullData.checkInTime || "00:00";
+    const checkOutTime = fullData.checkOutTime || "23:59";
+
+    console.log("🕐 EXTRACTED TIMES:", { checkInTime, checkOutTime });
+
+    // ✅ CREATE ENQUIRY
+    const enquiryData = {
+      name: body.guestName || "",
+      email: body.guestEmail || "",
+      contact: body.guestPhone || "",
+      purpose: body.message || "",
+
+      rollno: fullData.rollno || "",
+      department: fullData.department || "",
+      gender: fullData.gender || "",
+      
+      from: new Date(fullData.from),
+      to: new Date(fullData.to),
+      
+      // ✅ DIRECT ASSIGNMENT
+      checkInTime: checkInTime,
+      checkOutTime: checkOutTime,
+      
+      guests: guests,
+      females: females,
+      males: males,
+      
+      state: fullData.state || "",
+      city: fullData.city || "",
+      reference: fullData.reference || "",
+      
+      files: fileUrls,
+      status: "pending",
+    };
+
+    console.log("📋 ENQUIRY DATA TO SAVE:", enquiryData);
+
+    const enquiry = await Enquiry.create(enquiryData);
+
+    console.log("✅ ========== ENQUIRY CREATED SUCCESSFULLY ==========");
+    console.log("✅ Enquiry ID:", enquiry._id);
+    console.log("✅ SAVED checkInTime:", enquiry.checkInTime);
+    console.log("✅ SAVED checkOutTime:", enquiry.checkOutTime);
+
+    // ✅ Return with explicit time fields
+    const response = {
+      success: true,
+      enquiry: {
+        ...enquiry.toJSON(),
+        checkInTime: enquiry.checkInTime,
+        checkOutTime: enquiry.checkOutTime,
+      }
+    };
+
+    res.status(201).json(response);
+
+    if (req.app) {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('dashboard-room').emit('enquiry-created', { 
+          enquiry: enquiry.toJSON(),
+          timestamp: Date.now()
+        });
+        console.log('📡 Emitted enquiry-created event');
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ CREATE ENQUIRY ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+// ======================================================
+//  GET ALL ENQUIRIES
+// ======================================================
+export const getAllEnquiries = async (req, res) => {
+  try {
+    console.log("🔍 GET /api/enquiry called");
+    const enquiries = await Enquiry.find().sort({ createdAt: -1 }).lean();
+
+    console.log("✅ Found enquiries:", enquiries.length);
+    
+    // ✅ Ensure times are included
+    const normalizedEnquiries = enquiries.map(e => ({
+      ...e,
+      checkInTime: e.checkInTime || "00:00",
+      checkOutTime: e.checkOutTime || "23:59",
+    }));
+
+    res.json({ success: true, enquiries: normalizedEnquiries });
+
+  } catch (error) {
+    console.error("❌ Error fetching enquiries:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching enquiries",
+      error: error.message,
+    });
+  }
+};
+
+// ======================================================
+//  GET SINGLE ENQUIRY
+// ======================================================
+export const getEnquiryById = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id).lean();
+
+    if (!enquiry) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Enquiry not found" 
+      });
+    }
+
+    // ✅ Ensure times are included
+    const normalized = {
+      ...enquiry,
+      checkInTime: enquiry.checkInTime || "00:00",
+      checkOutTime: enquiry.checkOutTime || "23:59",
+    };
+
+    res.json({ success: true, enquiry: normalized });
+
+  } catch (error) {
+    console.error("❌ Error fetching enquiry:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching enquiry",
+      error: error.message 
+    });
+  }
+};
+
+// ======================================================
+//  APPROVE ENQUIRY
+// ======================================================
+export const approveEnquiry = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    enquiry.status = "pending-approval";
+    await enquiry.save();
+
+    console.log("✅ Enquiry approved:", {
+      enquiryId: enquiry._id,
+      name: enquiry.name,
+      checkInTime: enquiry.checkInTime,
+      checkOutTime: enquiry.checkOutTime,
+    });
+
+    try {
+      await sendEmail({
+        to: enquiry.email,
+        subject: "Guest Room Booking Approved",
+        text: `Your enquiry has been approved.\n\nCheck-in Time: ${enquiry.checkInTime}\nCheck-out Time: ${enquiry.checkOutTime}\n\nThank you.`,
+      });
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr.message);
+    }
+
+    res.json({ success: true, message: "Enquiry approved", enquiry });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('enquiry-approved', { 
+        enquiry,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted enquiry-approved event');
+    }
+
+  } catch (error) {
+    console.error("❌ Approve Enquiry Error:", error);
+    res.status(500).json({ success: false, message: "Failed to approve enquiry" });
+  }
+};
+
+// ======================================================
+//  MARK ENQUIRY AS FULLY BOOKED
+// ======================================================
+export const bookEnquiry = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    enquiry.status = "booked";
+    await enquiry.save();
+
+    console.log("✅ Enquiry marked as booked:", {
+      enquiryId: enquiry._id,
+      checkInTime: enquiry.checkInTime,
+      checkOutTime: enquiry.checkOutTime,
+    });
+
+    try {
+      await sendEmail({
+        to: enquiry.email,
+        subject: "Your room booking is confirmed",
+        text: `Dear ${enquiry.name || 'Guest'},\n\nYour room booking is confirmed.\nCheck-in Time: ${enquiry.checkInTime}\nCheck-out Time: ${enquiry.checkOutTime}\n\nThank you.`,
+      });
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr.message);
+    }
+
+    res.json({ success: true, message: "Enquiry fully booked", enquiry });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('enquiry-booked', { 
+        enquiry,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted enquiry-booked event');
+    }
+
+  } catch (error) {
+    console.error("❌ Book Enquiry Error:", error);
+    res.status(500).json({ success: false, message: "Failed to book enquiry" });
+  }
+};
+
+// ======================================================
+//  REJECT ENQUIRY
+// ======================================================
+export const rejectEnquiry = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    enquiry.status = "rejected";
+    await enquiry.save();
+
+    console.log("✅ Enquiry rejected:", enquiry._id);
+
+    try {
+      await sendEmail({
+        to: enquiry.email,
+        subject: "Guest Room Booking Request",
+        text: `Your enquiry has been rejected.\n\nPlease contact the hostel office if needed.`,
+      });
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr.message);
+    }
+
+    res.json({ success: true, message: "Enquiry rejected", enquiry });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('enquiry-rejected', { 
+        enquiry,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted enquiry-rejected event');
+    }
+
+  } catch (error) {
+    console.error("❌ Reject Enquiry Error:", error);
+    res.status(500).json({ success: false, message: "Failed to reject enquiry" });
+  }
+};

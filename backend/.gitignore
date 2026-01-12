@@ -1,0 +1,20 @@
+# ENV FILES
+.env
+.env.local
+.env.production
+.env.staging
+
+# DEPENDENCIES
+node_modules/
+
+# LOGS & TEMP
+*.log
+logs/
+tmp/
+temp/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
