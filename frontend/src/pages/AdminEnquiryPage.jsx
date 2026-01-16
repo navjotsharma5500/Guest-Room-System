@@ -13,6 +13,7 @@ import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
 import { fetchEnquiries } from "../utils/api";
 import { BACKEND_URL } from '../utils/apiConfig';
+import { IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 
@@ -38,12 +39,12 @@ const normalizeImageKitUrl = (fileUrl) => {
   }
   
   if (url.startsWith("/")) {
-    const fullUrl = `https://ik.imagekit.io/7khjnlfow${url}`;
+    const fullUrl = `${IMAGEKIT_URL_ENDPOINT}${url}`;
     console.log("✅ Constructed full URL from path:", fullUrl);
     return fullUrl;
   }
   
-  const fullUrl = `https://ik.imagekit.io/7khjnlfow/${url}`;
+  const fullUrl = `${IMAGEKIT_URL_ENDPOINT}/${url}`;
   console.log("✅ Constructed full URL from filename:", fullUrl);
   return fullUrl;
 };

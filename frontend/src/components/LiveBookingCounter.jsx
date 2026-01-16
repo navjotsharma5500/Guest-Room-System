@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, TrendingUp } from "lucide-react";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 export default function LiveBookingCounter({ theme, currentUser }) {
   // ✅ ALL STATE HOOKS FIRST

@@ -12,6 +12,7 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
 import { startNoShowCronJob } from "./utils/cronJobs.js";
+import { setSocketIO } from "./socket.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -60,6 +61,7 @@ const io = new Server(server, {
 console.log("🔌 Socket.IO initialized with CORS support");
 
 app.set("io", io);
+setSocketIO(io);
 
 /* =========================================================
    ALLOWED ORIGINS

@@ -5,8 +5,9 @@ import { X, Upload, AlertCircle, Receipt, Info, CheckCircle, Trash2 } from "luci
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useToast } from "../context/ToastContext";
 import { useDashboardRefresh } from "../context/DashboardRefreshContext";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_BACKEND_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 export default function PaymentModal({ booking, onClose, onSuccess }) {
   const { showToast } = useToast();

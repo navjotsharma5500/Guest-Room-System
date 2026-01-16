@@ -20,8 +20,9 @@ import {
   formatDate,
   formatCreatedAt
 } from "./GuestDetails/utils";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 const imagekitAuthenticator = async () => {
   try {

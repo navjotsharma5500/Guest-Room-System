@@ -12,8 +12,9 @@ import {
   LogIn,
   LogOut
 } from "lucide-react";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 export default function ReportedModal({
   booking,

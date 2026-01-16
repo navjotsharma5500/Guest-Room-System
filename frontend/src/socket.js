@@ -1,18 +1,21 @@
-// frontend/src/socket.js - CREATE THIS FILE
+// frontend/src/socket.js
 import { io } from "socket.io-client";
+import { BACKEND_URL } from "../utils/apiConfig";
 
-const SOCKET_URL = process.env.REACT_APP_API_URL || "http://localhost:10000";
+if (!BACKEND_URL) {
+  throw new Error("❌ BACKEND_URL is not defined");
+}
 
-console.log("🔌 Initializing Socket.IO with URL:", SOCKET_URL);
+console.log("🔌 Initializing Socket.IO with URL:", BACKEND_URL);
 
-export const socket = io(SOCKET_URL, {
+export const socket = io(BACKEND_URL, {
   autoConnect: true,
   withCredentials: true,
   reconnection: true,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
   reconnectionAttempts: Infinity,
-  transports: ['websocket', 'polling'],
+  transports: ["websocket", "polling"], // polling fallback for safety
 });
 
 socket.on("connect", () => {
@@ -34,59 +37,50 @@ socket.on("connection-confirmed", (data) => {
 
 // Booking events
 socket.on("booking-created", (data) => {
-  console.log("📡 Booking created:", data);
   window.dispatchEvent(new CustomEvent("bookingCreated", { detail: data }));
 });
 
 socket.on("booking-cancelled", (data) => {
-  console.log("📡 Booking cancelled:", data);
   window.dispatchEvent(new CustomEvent("bookingCancelled", { detail: data }));
 });
 
 socket.on("booking-extended", (data) => {
-  console.log("📡 Booking extended:", data);
   window.dispatchEvent(new CustomEvent("bookingExtended", { detail: data }));
 });
 
 socket.on("payment-updated", (data) => {
-  console.log("📡 Payment updated:", data);
   window.dispatchEvent(new CustomEvent("paymentUpdated", { detail: data }));
 });
 
 socket.on("payment-processed", (data) => {
-  console.log("📡 Payment processed:", data);
   window.dispatchEvent(new CustomEvent("paymentProcessed", { detail: data }));
 });
 
 socket.on("guest-reported", (data) => {
-  console.log("📡 Guest reported:", data);
   window.dispatchEvent(new CustomEvent("guestReported", { detail: data }));
 });
 
 socket.on("guest-checked-out", (data) => {
-  console.log("📡 Guest checked out:", data);
   window.dispatchEvent(new CustomEvent("guestCheckedOut", { detail: data }));
 });
 
 // Enquiry events
 socket.on("enquiry-created", (data) => {
-  console.log("📡 Enquiry created:", data);
   window.dispatchEvent(new CustomEvent("enquiryCreated", { detail: data }));
-  window.dispatchEvent(new CustomEvent("guestEnquiryCreated", { detail: data }));
+  window.dispatchEvent(
+    new CustomEvent("guestEnquiryCreated", { detail: data })
+  );
 });
 
 socket.on("enquiry-approved", (data) => {
-  console.log("📡 Enquiry approved:", data);
   window.dispatchEvent(new CustomEvent("enquiryApproved", { detail: data }));
 });
 
 socket.on("enquiry-rejected", (data) => {
-  console.log("📡 Enquiry rejected:", data);
   window.dispatchEvent(new CustomEvent("enquiryRejected", { detail: data }));
 });
 
 socket.on("enquiry-booked", (data) => {
-  console.log("📡 Enquiry booked:", data);
   window.dispatchEvent(new CustomEvent("enquiryBooked", { detail: data }));
 });
 

@@ -21,9 +21,9 @@ import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-
-const API = process.env.REACT_APP_BACKEND_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 export default function GuestRoomDashboard() {
   const { currentUser, loading, logout } = useAuth();

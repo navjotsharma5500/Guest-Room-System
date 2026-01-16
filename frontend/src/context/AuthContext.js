@@ -1,7 +1,7 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { API_BASE } from "../utils/apiConfig";
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -11,8 +11,7 @@ export const useAuth = () => useContext(AuthContext);
 // =============================
 axios.defaults.withCredentials = true;
 // ✅ Use BACKEND_URL (matches your Vercel variable)
-axios.defaults.baseURL =
-  process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL;
+axios.defaults.baseURL = BACKEND_URL;
 
 if (!axios.defaults.baseURL) {
   console.error("❌ CRITICAL: BACKEND_URL not set in environment variables!");
@@ -25,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // ✅ Use BACKEND_URL
-  const API = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL;
+  const API = BACKEND_URL;
   
   if (!API) {
     console.error("❌ CRITICAL: BACKEND_URL not set!");

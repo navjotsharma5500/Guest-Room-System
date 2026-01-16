@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
+import { BACKEND_URL } from "../utils/apiConfig";
 
 export default function SettingsPage({
   theme,
@@ -123,9 +124,7 @@ export default function SettingsPage({
   const [loading, setLoading] = useState(false);
   const [backendHostels, setBackendHostels] = useState([]);
 
-  const API_BASE = process.env.REACT_APP_API_URL 
-    ? `${process.env.REACT_APP_API_URL}/api/hostels`
-    : "http://localhost:10000/api/hostels";
+  const API_BASE = `${BACKEND_URL}/api/hostels`;
   
   const getAuthHeaders = () => ({
     "Content-Type": "application/json",

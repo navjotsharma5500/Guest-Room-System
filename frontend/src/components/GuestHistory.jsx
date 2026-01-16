@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock, MapPin, CreditCard, User, FileText, X } from "lucide-react";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
   const [history, setHistory] = useState([]);

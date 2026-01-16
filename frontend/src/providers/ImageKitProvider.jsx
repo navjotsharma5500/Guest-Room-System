@@ -1,6 +1,7 @@
 import { IKContext } from "imagekitio-react";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 export default function ImageKitProvider({ children }) {
   return (

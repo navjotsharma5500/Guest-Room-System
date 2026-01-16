@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { X, Upload, CheckCircle, Trash2 } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatShortDate, formatTimeWithAMPM } from "../../utils/hostelUtils";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = process.env.REACT_APP_BACKEND_URL || "http://localhost:10000";
+const API = BACKEND_URL;
 
 const imagekitAuthenticator = async () => {
   const response = await fetch(`${API}/api/imagekit/auth`, { credentials: "include" });

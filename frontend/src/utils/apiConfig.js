@@ -5,27 +5,33 @@
  * Uses REACT_APP_BACKEND_URL
  */
 export const getBackendUrl = () => {
-  // Check for REACT_APP_BACKEND_URL
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
 
-  // Fallback for development
-  console.warn("⚠️ REACT_APP_BACKEND_URL not set, using localhost fallback");
-  return 'http://localhost:10000';
+  // 🚨 Do NOT silently fall back in production
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "❌ REACT_APP_BACKEND_URL is NOT set in production environment"
+    );
+  }
+
+  // ✅ Development-only fallback
+  console.warn("⚠️ Using localhost backend (development only)");
+  return "http://localhost:10000";
 };
 
-// ✅ MAIN EXPORT - This is what everything should use
+// ✅ MAIN EXPORT
 export const BACKEND_URL = getBackendUrl();
 
-// ✅ LEGACY ALIASES - For backward compatibility
+// ✅ LEGACY ALIASES
 export const API_URL = BACKEND_URL;
 export const getApiUrl = getBackendUrl;
 
-// Log for debugging
-console.log('🌐 Backend URL configured as:', BACKEND_URL);
+// Debug log (safe)
+console.log("🌐 Backend URL configured as:", BACKEND_URL);
 
-// ✅ DEFAULT EXPORT
+// ✅ DEFAULT EXPORT (unchanged)
 export default {
   BACKEND_URL,
   API_URL: BACKEND_URL,

@@ -10,6 +10,7 @@ import { parseISO, getMonth, getQuarter, getYear, format } from "date-fns";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Creator from "../components/Creator";
+import { BACKEND_URL } from '../utils/apiConfig';
 
 const COLORS = {
   primary: "#DC2626",
@@ -106,7 +107,7 @@ export default function AnalyticsPage({ setActiveTab }) {
     const fetchAllBookings = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API = process.env.REACT_APP_API_URL || "http://localhost:10000";
+        const API = BACKEND_URL;
         
         const response = await fetch(`${API}/api/bookings/all-for-download`, {
           headers: {
