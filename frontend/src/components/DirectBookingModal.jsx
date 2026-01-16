@@ -5,7 +5,7 @@ import AttachmentGrid from "./AttachmentGrid";
 import { isDateTimeRangeOverlapping, combineDateAndTime, formatTimeWithAMPM } from "../utils/dateUtils";
 import { IndianStates } from "../utils/indianStates";
 import { IKContext, IKUpload } from "imagekitio-react";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/7khjnlfow";

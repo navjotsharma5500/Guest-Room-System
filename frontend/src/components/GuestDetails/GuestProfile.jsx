@@ -1,7 +1,7 @@
 import React from "react";
 import { UserCircle, Phone, Mail, Camera } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
 

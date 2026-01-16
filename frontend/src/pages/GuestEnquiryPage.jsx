@@ -7,7 +7,7 @@ import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatTimeWithAMPM } from "../utils/dateUtils";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 import Creator from "../components/Creator";
 
 // ==================== CONSTANTS ====================

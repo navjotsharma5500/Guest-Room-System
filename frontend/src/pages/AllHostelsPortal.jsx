@@ -19,7 +19,7 @@ import ExtensionModal from "../components/ExtensionModal";
 // Custom Hooks
 import useBookingHandlers from "../hooks/useBookingHandlers";
 import useVacancyCheck from "../hooks/useVacancyCheck";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 

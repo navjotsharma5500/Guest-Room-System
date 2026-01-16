@@ -2,7 +2,7 @@
 import { useCallback } from "react";
 import { isDateTimeRangeOverlapping, combineDateAndTime } from "../utils/dateUtils";
 import { persistHostelData, getGuestName } from "../utils/hostelUtils";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 

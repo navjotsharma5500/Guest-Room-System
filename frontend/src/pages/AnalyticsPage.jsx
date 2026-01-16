@@ -10,7 +10,7 @@ import { parseISO, getMonth, getQuarter, getYear, format } from "date-fns";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Creator from "../components/Creator";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const COLORS = {
   primary: "#DC2626",

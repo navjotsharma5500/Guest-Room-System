@@ -1,6 +1,6 @@
 // frontend/src/socket.js
 import { io } from "socket.io-client";
-import { BACKEND_URL } from "../utils/apiConfig";
+import { BACKEND_URL } from "./utils/apiConfig";
 
 if (!BACKEND_URL) {
   throw new Error("❌ BACKEND_URL is not defined");

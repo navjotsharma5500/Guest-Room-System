@@ -21,7 +21,7 @@ import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
 

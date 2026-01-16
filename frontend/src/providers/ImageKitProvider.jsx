@@ -1,5 +1,5 @@
 import { IKContext } from "imagekitio-react";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 

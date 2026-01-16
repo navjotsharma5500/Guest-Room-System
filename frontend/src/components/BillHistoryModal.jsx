@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, CreditCard, Download, FileText, X, Receipt, TrendingUp, DollarSign } from "lucide-react";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 

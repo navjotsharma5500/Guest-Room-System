@@ -20,7 +20,7 @@ import {
   formatDate,
   formatCreatedAt
 } from "./GuestDetails/utils";
-import { BACKEND_URL } from '../utils/apiConfig';
+import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 
