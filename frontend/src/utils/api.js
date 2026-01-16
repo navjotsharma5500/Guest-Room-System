@@ -219,12 +219,10 @@ export const apiRejectEnquiry = async (id) => {
 // 🔥 IMAGEKIT – React SDK USES IKUpload, NOT JS SDK
 // ============================================================================
 export const IMAGEKIT_PUBLIC_KEY =
-  process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY ||
-  "public_D/IvtqR075bhEwQyEOFWMa15N28";
+  process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
 
 export const IMAGEKIT_URL_ENDPOINT =
-  process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT ||
-  "https://ik.imagekit.io/7khjnlfow";
+  process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT || "";
 
 export const IMAGEKIT_AUTH_ENDPOINT = `${API}/api/imagekit/auth`;
 

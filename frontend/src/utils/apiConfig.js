@@ -11,9 +11,23 @@ export const getBackendUrl = () => {
 
 export const BACKEND_URL = getBackendUrl();
 
-// ✅ ImageKit NAMED EXPORTS (THIS IS WHAT WAS MISSING)
-export const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/7khjnlfow";
+// ✅ ImageKit Configuration - ALL from environment variables
+export const IMAGEKIT_PUBLIC_KEY = 
+  process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
+
+export const IMAGEKIT_URL_ENDPOINT = 
+  process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT || "";
+
 export const IMAGEKIT_AUTH_ENDPOINT = `${BACKEND_URL}/api/imagekit/auth`;
+
+// Validation
+if (!IMAGEKIT_PUBLIC_KEY) {
+  console.error("❌ REACT_APP_IMAGEKIT_PUBLIC_KEY is not set in .env file!");
+}
+
+if (!IMAGEKIT_URL_ENDPOINT) {
+  console.error("❌ REACT_APP_IMAGEKIT_URL_ENDPOINT is not set in .env file!");
+}
 
 // Legacy aliases
 export const API_URL = BACKEND_URL;
@@ -22,10 +36,10 @@ export const getApiUrl = getBackendUrl;
 // Debug
 console.log("🌐 Backend URL configured as:", BACKEND_URL);
 
-// Default export (optional but harmless)
 export default {
   BACKEND_URL,
   API_URL: BACKEND_URL,
+  IMAGEKIT_PUBLIC_KEY,
   IMAGEKIT_URL_ENDPOINT,
   IMAGEKIT_AUTH_ENDPOINT,
 };

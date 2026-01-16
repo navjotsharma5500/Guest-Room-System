@@ -5,7 +5,11 @@ import { X, Upload, AlertCircle, Receipt, Info, CheckCircle, Trash2 } from "luci
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useToast } from "../context/ToastContext";
 import { useDashboardRefresh } from "../context/DashboardRefreshContext";
-import { BACKEND_URL } from "../utils/apiConfig";
+import { 
+  BACKEND_URL, 
+  IMAGEKIT_PUBLIC_KEY, 
+  IMAGEKIT_URL_ENDPOINT 
+} from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 
@@ -617,8 +621,8 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                 
                 {/* ImageKit Upload */}
                 <IKContext
-                  publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
-                  urlEndpoint={process.env.REACT_APP_IMAGEKIT_URL_KEY}
+                  publicKey={IMAGEKIT_PUBLIC_KEY}
+                  urlEndpoint={IMAGEKIT_URL_ENDPOINT}
                   authenticator={authenticator}
                 >
                   <div className="relative">

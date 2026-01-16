@@ -1,7 +1,11 @@
 import React from "react";
 import { UserCircle, Phone, Mail, Camera } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
-import { BACKEND_URL } from "../../utils/apiConfig";
+import { 
+  BACKEND_URL, 
+  IMAGEKIT_PUBLIC_KEY, 
+  IMAGEKIT_URL_ENDPOINT 
+} from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
 
@@ -101,8 +105,8 @@ export default function GuestProfile({
           {/* Upload Button */}
           <div className="absolute -bottom-1 -right-1">
             <IKContext
-              publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
-              urlEndpoint={process.env.REACT_APP_IMAGEKIT_URL_KEY}
+              publicKey={IMAGEKIT_PUBLIC_KEY}
+              urlEndpoint={IMAGEKIT_URL_ENDPOINT}
               authenticator={imagekitAuthenticator}
             >  
               <label

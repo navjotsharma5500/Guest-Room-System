@@ -12,8 +12,10 @@ import {
 import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
 import { fetchEnquiries } from "../utils/api";
-import { BACKEND_URL } from "../utils/apiConfig";
-import { IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
+import { 
+  BACKEND_URL, 
+  IMAGEKIT_URL_ENDPOINT 
+} from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 

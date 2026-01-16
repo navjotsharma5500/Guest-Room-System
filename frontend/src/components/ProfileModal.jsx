@@ -4,9 +4,11 @@ import { X, Lock, ChevronDown, ChevronUp, Camera, Loader2 } from "lucide-react";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { API } from "../utils/api";
-
-const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/7khjnlfow";
-const IMAGEKIT_AUTH_ENDPOINT = `${API}/api/imagekit/auth`;
+import { 
+  IMAGEKIT_PUBLIC_KEY, 
+  IMAGEKIT_URL_ENDPOINT, 
+  IMAGEKIT_AUTH_ENDPOINT 
+} from "../utils/apiConfig";
 
 // ==================== ImageKit Authenticator ====================
 const authenticator = async () => {
@@ -287,7 +289,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
 
         {/* Profile Picture */}
         <IKContext
-          publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
+          publicKey={IMAGEKIT_PUBLIC_KEY}
           urlEndpoint={IMAGEKIT_URL_ENDPOINT}
           authenticationEndpoint={IMAGEKIT_AUTH_ENDPOINT}
           authenticator={authenticator}

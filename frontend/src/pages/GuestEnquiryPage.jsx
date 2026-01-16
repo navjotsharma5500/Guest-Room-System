@@ -7,16 +7,18 @@ import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatTimeWithAMPM } from "../utils/dateUtils";
-import { BACKEND_URL } from "../utils/apiConfig";
 import Creator from "../components/Creator";
+import { 
+  BACKEND_URL,
+  IMAGEKIT_PUBLIC_KEY,
+  IMAGEKIT_URL_ENDPOINT,
+  IMAGEKIT_AUTH_ENDPOINT
+} from "../utils/apiConfig";
 
 // ==================== CONSTANTS ====================
-const API = BACKEND_URL;  // ✅ CHANGED
+const API = BACKEND_URL;
 
 console.log("🔧 Backend API URL:", API);
-
-const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/7khjnlfow";
-const IMAGEKIT_AUTH_ENDPOINT = `${API}/api/imagekit/auth`;
 
 const INITIAL_FORM_STATE = {
   name: "",
@@ -51,7 +53,7 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 const IMAGEKIT_CONFIG = {
-  PUBLIC_KEY: "public_D/IvtqR075bhEwQyEOFWMa15N28=",
+  PUBLIC_KEY: IMAGEKIT_PUBLIC_KEY,
   URL_ENDPOINT: IMAGEKIT_URL_ENDPOINT,
   AUTH_ENDPOINT: IMAGEKIT_AUTH_ENDPOINT,
   FOLDER: "/guestroom",

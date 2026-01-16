@@ -4,7 +4,11 @@ import { motion } from "framer-motion";
 import { X, Upload, CheckCircle, Trash2 } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatShortDate, formatTimeWithAMPM } from "../../utils/hostelUtils";
-import { BACKEND_URL } from "../../utils/apiConfig";
+import { 
+  BACKEND_URL, 
+  IMAGEKIT_PUBLIC_KEY, 
+  IMAGEKIT_URL_ENDPOINT 
+} from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
 
@@ -237,8 +241,8 @@ export default function ConsolidatedBookingModal({
                   Supporting Documents (Up to 5) <span className="text-red-600">*</span>
                 </label>
                 <IKContext
-                  publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
-                  urlEndpoint={process.env.REACT_APP_IMAGEKIT_URL_KEY}
+                  publicKey={IMAGEKIT_PUBLIC_KEY}
+                  urlEndpoint={IMAGEKIT_URL_ENDPOINT}
                   authenticator={imagekitAuthenticator}
                 >
                   <div className="relative">

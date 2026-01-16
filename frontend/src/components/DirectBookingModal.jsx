@@ -5,11 +5,14 @@ import AttachmentGrid from "./AttachmentGrid";
 import { isDateTimeRangeOverlapping, combineDateAndTime, formatTimeWithAMPM } from "../utils/dateUtils";
 import { IndianStates } from "../utils/indianStates";
 import { IKContext, IKUpload } from "imagekitio-react";
-import { BACKEND_URL } from "../utils/apiConfig";
+import { 
+  BACKEND_URL, 
+  IMAGEKIT_PUBLIC_KEY, 
+  IMAGEKIT_URL_ENDPOINT, 
+  IMAGEKIT_AUTH_ENDPOINT 
+} from "../utils/apiConfig";
 
 const API = BACKEND_URL;
-const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/7khjnlfow";
-const IMAGEKIT_AUTH_ENDPOINT = `${API}/api/imagekit/auth`;
 
 const authenticator = async () => {
   try {
@@ -428,7 +431,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   /* ------------------ RENDER ------------------ */
   return (
     <IKContext
-      publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
+      publicKey={IMAGEKIT_PUBLIC_KEY}
       urlEndpoint={IMAGEKIT_URL_ENDPOINT}
       authenticationEndpoint={IMAGEKIT_AUTH_ENDPOINT}
       authenticator={authenticator}
