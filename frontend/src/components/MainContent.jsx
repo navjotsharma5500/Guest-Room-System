@@ -291,9 +291,15 @@ export default function MainContent(props) {
       const bookingsData = await apiFetchAllBookingsForDownload();
       console.log("✅ Bookings fetched:", bookingsData);
 
-      // Fetch enquiries
-      const enquiriesData = await fetchEnquiries();
-      console.log("✅ Enquiries fetched:", enquiriesData);
+      // ✅ CRITICAL FIX: Only fetch enquiries for admin/manager
+      let enquiries = [];
+      if (role === "admin" || role === "manager") {
+        const enquiriesData = await fetchEnquiries();
+        enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
+        console.log("✅ Enquiries fetched:", enquiries.length);
+      } else {
+        console.log("🔒 Enquiries disabled for role:", role);
+      }
 
       if (!bookingsData.success || !bookingsData.hostels) {
         alert("❌ Failed to fetch booking data");
@@ -301,7 +307,6 @@ export default function MainContent(props) {
       }
 
       const bookings = [];
-      const enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
 
       // Extract all bookings from hostels structure
       // ✅ CRITICAL FIX: Filter by user's hostel for caretakers
@@ -405,20 +410,19 @@ export default function MainContent(props) {
           Males: b.males || 0,
           Females: b.females || 0,
           
-          // ✅ NEW: PAYMENT DETAILS (Critical Addition)
+          // ✅ FIXED: PAYMENT DETAILS WITH TRANSACTION INFO
           PaymentType: b.paymentType || "Paid",
           TotalAmount: totalAmount,
           PaidAmount: paidAmount,
           Discount_WaveOff: discount,
           BalanceAmount: balanceAmount,
           PaymentStatus: b.paymentStatus || "UNPAID",
+          
+          // ✅ CRITICAL FIX: Add missing payment transaction fields
           PaymentMode: b.paymentMode || b.paymentMethod || "",
           TransactionID: b.transactionId || "",
           TransactionDate: formatTransactionDate(b.transactionDate),
           PaymentRemarks: b.paymentRemarks || "",
-          
-          // Old Amount field (backward compatibility)
-          Amount_OLD: b.amount || 0,
           
           // Attachments
           Attachments: (b.files || []).length,
@@ -439,67 +443,69 @@ export default function MainContent(props) {
         });
       });
 
-      // Process enquiries (rejected + pending only)
-      enquiries.forEach((e) => {
-        // Apply date filter
-        if (filterFromDate && filterToDate) {
-          const enquiryDate = new Date(e.createdAt);
-          if (!isWithinDateRange(enquiryDate, enquiryDate, filterFromDate, filterToDate)) {
-            return;
+      // ✅ CRITICAL FIX: Only process enquiries for admin/manager
+      if (role === "admin" || role === "manager") {
+        // Process enquiries (rejected + pending only)
+        enquiries.forEach((e) => {
+          // Apply date filter
+          if (filterFromDate && filterToDate) {
+            const enquiryDate = new Date(e.createdAt);
+            if (!isWithinDateRange(enquiryDate, enquiryDate, filterFromDate, filterToDate)) {
+              return;
+            }
           }
-        }
 
-        if (e.status === "rejected" || e.status === "pending") {
-          rows.push({
-            Type: "Enquiry",
-            BookingID: e._id || "",
-            Guest: e.name || "",
-            Hostel: e.hostel || "",
-            RoomNo: "",
-            Contact: e.contact || "",
-            Email: e.email || "",
-            From: e.from ? new Date(e.from).toISOString().split('T')[0] : "",
-            To: e.to ? new Date(e.to).toISOString().split('T')[0] : "",
-            CheckInTime: e.checkInTime || "",
-            CheckOutTime: e.checkOutTime || "",
-            Gender: e.gender || "",
-            City: e.city || "",
-            State: e.state || "",
-            Department: e.department || "",
-            RollNo: e.rollno || "",
-            Reference: e.reference || "",
-            Purpose: e.purpose || "",
-            NumGuests: e.guests || 0,
-            Males: e.males || 0,
-            Females: e.females || 0,
-            
-            // ✅ Payment fields (empty for enquiries)
-            PaymentType: "",
-            TotalAmount: "",
-            PaidAmount: "",
-            Discount_WaveOff: "",
-            BalanceAmount: "",
-            PaymentStatus: "",
-            PaymentMode: "",
-            TransactionID: "",
-            TransactionDate: "",
-            PaymentRemarks: "",
-            Amount_OLD: "",
-            
-            Attachments: (e.files || []).length,
-            ApprovalDocuments: 0,
-            PaymentAttachments: 0,
-            Status: e.status || "pending",
-            CancelRemarks: "",
-            FreeRemarks: "",
-            RejectionReason: e.rejectionReason || "",
-            ReportedStatus: "",
-            ReportedAt: "",
-            ActualCheckInDate: "",
-            ActualCheckInTime: "",
-          });
-        }
-      });
+          if (e.status === "rejected" || e.status === "pending") {
+            rows.push({
+              Type: "Enquiry",
+              BookingID: e._id || "",
+              Guest: e.name || "",
+              Hostel: e.hostel || "",
+              RoomNo: "",
+              Contact: e.contact || "",
+              Email: e.email || "",
+              From: e.from ? new Date(e.from).toISOString().split('T')[0] : "",
+              To: e.to ? new Date(e.to).toISOString().split('T')[0] : "",
+              CheckInTime: e.checkInTime || "",
+              CheckOutTime: e.checkOutTime || "",
+              Gender: e.gender || "",
+              City: e.city || "",
+              State: e.state || "",
+              Department: e.department || "",
+              RollNo: e.rollno || "",
+              Reference: e.reference || "",
+              Purpose: e.purpose || "",
+              NumGuests: e.guests || 0,
+              Males: e.males || 0,
+              Females: e.females || 0,
+              
+              // ✅ Payment fields (empty for enquiries)
+              PaymentType: "",
+              TotalAmount: "",
+              PaidAmount: "",
+              Discount_WaveOff: "",
+              BalanceAmount: "",
+              PaymentStatus: "",
+              PaymentMode: "",
+              TransactionID: "",
+              TransactionDate: "",
+              PaymentRemarks: "",
+              
+              Attachments: (e.files || []).length,
+              ApprovalDocuments: 0,
+              PaymentAttachments: 0,
+              Status: e.status || "pending",
+              CancelRemarks: "",
+              FreeRemarks: "",
+              RejectionReason: e.rejectionReason || "",
+              ReportedStatus: "",
+              ReportedAt: "",
+              ActualCheckInDate: "",
+              ActualCheckInTime: "",
+            });
+          }
+        });
+      }
 
       console.log("📊 Total rows after filtering:", rows.length);
 
@@ -531,12 +537,18 @@ export default function MainContent(props) {
         ? `_${new Date(filterFromDate).toISOString().split('T')[0]}_to_${new Date(filterToDate).toISOString().split('T')[0]}`
         : "";
 
-      a.download = `complete_data_with_payment${dateRange}.csv`;
+      // ✅ Add role to filename for clarity
+      const rolePrefix = role === "caretaker" ? `${userHostel}_` : "";
+      a.download = `${rolePrefix}complete_data_with_payment${dateRange}.csv`;
 
       a.click();
       URL.revokeObjectURL(link);
 
-      alert(`✅ Downloaded ${rows.length} records with complete payment details.`);
+      const recordType = role === "caretaker" 
+        ? `${rows.length} booking records (${userHostel} only)` 
+        : `${rows.length} records (${rows.filter(r => r.Type === 'Booking').length} bookings, ${rows.filter(r => r.Type === 'Enquiry').length} enquiries)`;
+      
+      alert(`✅ Downloaded ${recordType} with complete payment details.`);
 
     } catch (err) {
       console.error("❌ Download error:", err);

@@ -393,7 +393,6 @@ export default function ConsolidatedBookingModal({
 
                 <IKContext
                   publicKey={IMAGEKIT_PUBLIC_KEY}
-                  urlEndpoint={IMAGEKIT_URL_ENDPOINT}
                   authenticator={imagekitAuthenticator}
                 >
                   <div className="relative">
