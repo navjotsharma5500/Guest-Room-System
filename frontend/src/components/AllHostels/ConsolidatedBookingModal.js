@@ -392,8 +392,8 @@ export default function ConsolidatedBookingModal({
                 </label>
 
                 <IKContext
-                  publicKey={process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY}
-                  urlEndpoint={process.env.REACT_APP_IMAGEKIT_URL_KEY}
+                  publicKey={IMAGEKIT_PUBLIC_KEY}
+                  urlEndpoint={IMAGEKIT_URL_ENDPOINT}
                   authenticator={imagekitAuthenticator}
                 >
                   <div className="relative">

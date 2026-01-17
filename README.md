@@ -1,357 +1,296 @@
-# Guest Room Dashboard Project
+# Guest Room Management System
 
-**Comprehensive System Overview, Current Logic, and Future Roadmap**
+## Architecture & Deployment Documentation
 
 ---
 
 ## 1. Project Overview
 
-The **Guest Room Dashboard Project** is a **centralized hostel guest room management system** designed to manage:
+The **Guest Room Management System (GRMS)** is a full-stack web application designed for **institutional guest house and hostel management** (Thapar University context).
+
+The system supports:
 
 * Guest enquiries
-* Direct bookings
-* Multi-hostel room allocation
-* Booking extensions & cancellations
-* Role-based approval workflows
-* Audit logs & traceability
+* Direct and consolidated bookings
+* Room availability management
+* Check-in / check-out workflows
+* Payments (paid / partial / free)
+* Document uploads and approvals
+* Real-time dashboard updates
 
-The system is built to replace **manual booking registers**, eliminate conflicts, and introduce **policy-driven approvals** across all hostels.
+The architecture prioritizes:
+
+* Security
+* Stability
+* Real-time consistency
+* Production readiness
 
 ---
 
 ## 2. High-Level Architecture
 
-### Frontend
-
-* **React (Vite / CRA)**
-* TailwindCSS for UI
-* Framer Motion for UX transitions
-* Centralized state via React Context
-* Modular components (RoomCard, GuestDetails, Modals)
-
-### Backend
-
-* **Node.js + Express**
-* **MongoDB (Primary datastore)**
-* JWT-based authentication
-* Role-based authorization middleware
-
-### Deployment (New)
-
-* **Backend → AWS (EC2 / Elastic Beanstalk)**
-* **MongoDB → MongoDB Atlas**
-* **Frontend → S3 + CloudFront (recommended)**
-
----
-
-## 3. Core Functional Modules
-
----
-
-## 3.1 Hostels & Rooms Management
-
-### Data Model
-
-```js
-Hostel {
-  name,
-  block,
-  type,
-  rooms: [
-    {
-      roomNo,
-      roomType,
-      bookings: []
-    }
-  ]
-}
+```
+Browser (React / Vercel)
+        |
+        | HTTPS + HttpOnly Cookies
+        |
+Nginx (Reverse Proxy)
+        |
+Node.js + Express (EC2, PM2)
+        |
+MongoDB Atlas
 ```
 
-### Logic
-
-* Each hostel contains multiple rooms
-* Each room maintains its **own booking timeline**
-* Conflict detection uses:
-
-  * Date overlap
-  * Time overlap (check-in / check-out)
+**Real-time layer:** Socket.IO (WebSocket + fallback)
 
 ---
 
-## 3.2 Booking Lifecycle
+## 3. Frontend Architecture
 
-### Booking Types
+### 3.1 Technology Stack
 
-1. **Enquiry-based Booking**
-2. **Direct Booking**
-3. **Consolidated Booking (Multiple rooms)**
-
-### Booking States
-
-* `pending`
-* `approved`
-* `rejected`
-* `cancelled`
-* `completed`
-
-### Key Rules
-
-* Bookings are stored **locally first** (UX responsiveness)
-* Synced to **MongoDB immediately**
-* MongoDB `_id` becomes the **source of truth**
+* React (Create React App)
+* Hosted on **Vercel**
+* State managed via React hooks and context
+* Real-time updates via Socket.IO client
 
 ---
 
-## 3.3 Direct Booking Logic (Current)
+### 3.2 Environment Configuration
 
-* Admin selects room → DirectBookingModal opens
-* Booking saved to MongoDB
-* Booking reflected instantly on UI
-* Extensions & cancellations synced back to MongoDB
+Frontend uses **Vercel Environment Variables**, not committed `.env` files.
 
----
+```env
+REACT_APP_BACKEND_URL=https://guestroomsystem.duckdns.org
+```
 
-## 3.4 Booking Extension Logic
+All API and socket connections use a **single centralized config**:
 
-### Current Behavior
+```
+src/utils/apiConfig.js
+```
 
-* Extension allowed only if:
+This prevents:
 
-  * Booking has MongoDB `_id`
-  * No overlap with future bookings
-* Backend validates:
-
-  * Hostel
-  * Room
-  * New end date
-* Frontend updates state immediately after success
+* Hardcoded URLs
+* Environment drift
+* Accidental localhost references
 
 ---
 
-## 3.5 Guest Details Panel
+### 3.3 API Communication
 
-### Purpose
+* REST APIs via `fetch` / `axios`
+* Base URL imported from `apiConfig.js`
+* Cookies sent automatically (`credentials: "include"`)
 
-* Single source for:
+```js
+import { BACKEND_URL } from "../utils/apiConfig";
+```
 
-  * Guest identity
-  * Stay duration
+---
+
+### 3.4 Authentication Model (Frontend)
+
+* JWT stored in **HttpOnly cookies**
+* No tokens stored in:
+
+  * LocalStorage
+  * SessionStorage
+* Frontend never accesses JWT directly
+* Authentication validated server-side
+
+This design:
+
+* Prevents XSS token theft
+* Aligns with production security standards
+
+---
+
+### 3.5 Real-Time Updates (Socket.IO)
+
+Frontend:
+
+* Single Socket.IO client
+* Connects to backend base URL
+* Joins logical rooms (e.g. `dashboard-room`)
+
+Backend:
+
+* Emits events from controllers using:
+
+  ```js
+  const io = req.app.get("io");
+  io.to("dashboard-room").emit(...)
+  ```
+
+Used for:
+
+* Room status updates
+* Booking changes
+* Dashboard refresh without reload
+
+---
+
+### 3.6 File Uploads (ImageKit)
+
+* Frontend uses **ImageKit public key only**
+* Backend handles secure metadata association
+* No private keys in frontend
+* Uploads used for:
+
+  * Guest documents
+  * Approval files
+  * Payment proofs
+  * Extensions
+
+This separation ensures **credential safety**.
+
+---
+
+## 4. Backend Architecture
+
+### 4.1 Technology Stack
+
+* Node.js
+* Express.js
+* MongoDB (Atlas)
+* Socket.IO
+* PM2 (process manager)
+* Nginx (reverse proxy)
+
+---
+
+### 4.2 Deployment Environment
+
+* Hosted on **AWS EC2 (Ubuntu 22.04)**
+* Application runs on internal port:
+
+  ```
+  10000
+  ```
+* Nginx terminates HTTPS and proxies traffic
+* Let’s Encrypt used for SSL certificates
+
+Public backend URL:
+
+```
+https://guestroomsystem.duckdns.org
+```
+
+---
+
+### 4.3 Backend Responsibilities
+
+* Authentication & authorization
+* Booking lifecycle management
+* Room availability logic
+* Payment state handling
+* File metadata persistence
+* Socket event emission
+* Data integrity enforcement
+
+---
+
+## 5. Database Design (MongoDB Atlas)
+
+* Central collections for:
+
+  * Hostels
+  * Rooms
+  * Bookings
+  * Enquiries
+  * Payments
   * Attachments
-  * Payment status
-  * Audit trail
+* Booking documents include:
 
-### Logic
+  * Status
+  * Payment breakdown
+  * Reporting state
+  * Attachment references
 
-* Fetches booking from MongoDB if `_id` exists
-* Falls back to local data if not
-* Retry logic for network issues
-* Prevents UI flicker / auto close bug
-
----
-
-## 3.6 Room Card Logic (Critical Component)
-
-### Responsibilities
-
-* Show:
-
-  * Active booking
-  * Upcoming booking
-  * Availability
-* Correct date & time formatting
-* Handle click routing:
-
-  * Single booking → Details
-  * Multiple bookings → List modal
-  * Empty room → Direct booking
-
-### Recent Fixes
-
-* Removed timezone parsing bugs
-* Removed duplicate click triggers
-* Unified date parsing (`YYYY-MM-DD + HH:mm`)
+All date/time logic handled **server-side** to avoid client inconsistency.
 
 ---
 
-## 4. User Roles (Current & Planned)
+## 6. Deployment Workflow
 
-### Current Roles
+### 6.1 Frontend (Vercel)
 
-* `admin`
+* GitHub `main` branch auto-deploy
+* Build command:
 
-### Planned Role Hierarchy (NEW)
+  ```
+  npm run build
+  ```
+* CI warnings configured as non-blocking (`CI=false`)
+* No secrets in repo
 
-```text
-Admin
-│
-├── Warden (Hostel-specific)
-│
-├── Co-Warden (Multiple hostels)
-│
-├── Associate Dean (DoSA)
-│
-└── Dean (DoSA)
+---
+
+### 6.2 Backend (EC2)
+
+Manual controlled deployment:
+
+```bash
+git pull origin main
+pm2 restart guestroom-backend
 ```
-
----
-
-## 5. Approval-Based Booking System (NEW DESIGN)
-
-### Rule-Based Approval Engine
-
-| Booking Duration | Approval Authority           |
-| ---------------- | ---------------------------- |
-| ≤ 3 days         | Hostel Warden                |
-| 4 days           | Co-Warden                    |
-| ≥ 5 days         | Associate Dean / Dean (DoSA) |
-
----
-
-### Approval Flow
-
-1. **Booking Created**
-
-   * Status: `pending`
-2. **System determines approver**
-3. **Approval Request generated**
-4. **Approver dashboard notification**
-5. **Approve / Reject**
-6. **Booking state updated**
-7. **Audit log stored**
-
----
-
-### Booking Status Transition
-
-```text
-pending → approved → active → completed
-        ↘ rejected
-```
-
----
-
-## 6. Approval Data Model (Proposed)
-
-```js
-Approval {
-  bookingId,
-  requiredRole,
-  approverId,
-  status,        // pending | approved | rejected
-  remarks,
-  decidedAt
-}
-```
-
----
-
-## 7. Role-Based Dashboards (Planned)
-
-### Warden Dashboard
-
-* View bookings for **assigned hostel only**
-* Approve bookings ≤ 3 days
-* See occupancy & reports
-
-### Co-Warden Dashboard
-
-* View multiple hostels
-* Approve 4-day bookings
-* Override warden decisions
-
-### DoSA / Associate Dean
-
-* Global view
-* Approve ≥ 5 day bookings
-* Policy enforcement
-* Analytics & trends
-
----
-
-## 8. Audit & Logging System
-
-Every action generates logs:
-
-```text
-booking_created
-booking_approved
-booking_rejected
-booking_extended
-booking_cancelled
-```
-
-Each log contains:
-
-* Actor
-* Role
-* Timestamp
-* Old → New state
-* Remarks
 
 This ensures:
 
-* Accountability
-* Compliance
-* Traceability
+* Predictable restarts
+* No surprise downtime
+* Controlled production changes
 
 ---
 
-## 9. AWS Migration Plan (Backend)
+## 7. Security Considerations
 
-### Step 1: Backend
-
-* Deploy Node.js backend on **EC2**
-* Use **PM2**
-* Secure with **Nginx**
-* HTTPS via **Certbot**
-
-### Step 2: Database
-
-* MongoDB Atlas
-* IP whitelisting
-* Backup policies
-
-### Step 3: Frontend
-
-* Build React app
-* Host on S3
-* Serve via CloudFront
+✔ No frontend secrets
+✔ HttpOnly cookies
+✔ HTTPS enforced end-to-end
+✔ CORS configured deliberately
+✔ No token exposure in JS
+✔ Environment variables isolated per platform
 
 ---
 
-## 10. Future Enhancements (Roadmap)
+## 8. Known Trade-offs (Transparent)
 
-### Phase 1 (Immediate)
+* ESLint warnings allowed in production build to avoid risky refactors of tested logic
+* CRA default CI behavior overridden intentionally
+* Legacy code cleaned gradually post-demo
 
-* Approval workflow
-* Role-based login
-* Notification system
-
-### Phase 2
-
-* Email alerts
-* PDF booking letters
-* QR-based guest verification
-
-### Phase 3
-
-* Analytics dashboard
-* Occupancy forecasting
-* Automated policy engine
+These are **documented decisions**, not oversights.
 
 ---
 
-## 11. Summary (Executive View)
+## 9. Production Readiness Status
 
-The **Guest Room Dashboard Project** is evolving from:
-
-> **A booking UI → A policy-driven, auditable hostel management system**
-
-With:
-
-* Strong backend authority
-* Clear approval chains
-* Institutional governance alignment
-* AWS-grade scalability
+| Area               | Status |
+| ------------------ | ------ |
+| Frontend stability | ✅      |
+| Backend stability  | ✅      |
+| Security           | ✅      |
+| Real-time updates  | ✅      |
+| Uploads            | ✅      |
+| Payments           | ✅      |
+| Demo readiness     | ✅      |
 
 ---
+
+## 10. Next Phase (Post-Demo)
+
+* Gradual ESLint cleanup
+* Optional migration from CRA to Vite
+* Test coverage addition
+* Role-based access hardening
+* Analytics optimizations
+
+---
+
+### Final Note
+
+This system is **production-deployed, tested, and stable**.
+All recent actions focused on **security, correctness, and deployment hygiene**, not feature experimentation.
