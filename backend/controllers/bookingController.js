@@ -777,7 +777,24 @@ export const getBookingHistory = async (req, res) => {
 // ================================
 export const downloadBookingsCSV = async (req, res) => {
   try {
-    const bookings = await Booking.find({}).lean();
+    const bookings = await Booking.find({})
+      .select(`
+        guest rollno hostel roomNo contact email department gender
+        from to checkInTime checkOutTime
+        numGuests males females
+        state city reference purpose
+        reportedStatus reportedAt
+        paymentType paidAmount discount
+        paymentMode transactionId transactionDate paymentRemarks
+        freeRemarks remarks
+        extensionDate extendRemarks
+        cancelDate cancelRemarks
+        status
+        files approvalDocuments paymentAttachments extensionAttachments
+        comments
+        createdAt updatedAt
+      `)
+      .lean();
 
     const rows = bookings.map((b) => ({
       Name: b.guest || "",

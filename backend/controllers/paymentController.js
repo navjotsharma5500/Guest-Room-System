@@ -286,6 +286,10 @@ export const processPayment = async (req, res) => {
       booking.paymentStatus = "PARTIALLY_PAID";
     }
 
+    //Update payment transaction details
+    booking.paymentMode = paymentMethod || booking.paymentMode;
+    booking.transactionId = transactionId || booking.transactionId;
+    booking.transactionDate = transactionDate ? new Date(transactionDate) : booking.transactionDate;
     booking.paymentRemarks = paymentRemarks || booking.paymentRemarks;
 
     // ✅ Append payment attachments
@@ -298,11 +302,14 @@ export const processPayment = async (req, res) => {
 
     await booking.save();
 
-    console.log("✅ Booking updated:", {
+    console.log("✅ Booking updated with transaction details:", {
       paidAmount: booking.paidAmount,
       discount: booking.discount,
-      balanceAmount: booking.balanceAmount, 
-      status: booking.paymentStatus
+      balanceAmount: booking.balanceAmount,
+      paymentStatus: booking.paymentStatus,
+      paymentMode: booking.paymentMode,
+      transactionId: booking.transactionId,
+      transactionDate: booking.transactionDate,
     });
 
     // Socket.IO
