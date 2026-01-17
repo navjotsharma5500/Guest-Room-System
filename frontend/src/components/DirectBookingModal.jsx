@@ -349,20 +349,21 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       purpose: form.purpose,
       
       // ✅ Payment Type and Amount
-      paymentType: form.paymentType, // "Paid" or "Free"
+      paymentType: form.paymentType,
       totalAmount: form.paymentType === "Paid" ? Number(form.amount) : 0,
       paidAmount: 0,
       balanceAmount: form.paymentType === "Paid" ? Number(form.amount) : 0,
       
       remarks: remarks,
       
-      // ✅ FIXED: Address Proof (always from Step 2)
-      files: form.files, // Address proof from Step 2
+      // ✅ Address Proof (always from Step 2)
+      files: form.files,
       
-      // ✅ CRITICAL FIX: Route attachments based on payment type
-      approvalDocuments: form.paymentType === "Free" ? paymentFiles : [], // Only for Free
+      // ✅ CRITICAL FIX: ALL payment attachments go to approvalDocuments
+      approvalDocuments: paymentFiles,
       
-      paymentAttachments: form.paymentType === "Paid" ? paymentFiles : [], // Only for Paid (optional)
+      // ✅ paymentAttachments should be EMPTY for new bookings
+      paymentAttachments: [],
       
       // ✅ Extension attachments should be EMPTY for new bookings
       extensionAttachments: [],
