@@ -58,7 +58,7 @@ const normalizeBooking = (b) => ({
   city: b.city || "",
   state: b.state || "",
 
-  // 💳 Payment - COMPLETE STRUCTURE
+  // 💳 Payment - COMPLETE STRUCTURE WITH TRANSACTION DETAILS
   status: b.status || "booked",
   paymentType: b.paymentType || "Paid",
   
@@ -77,8 +77,9 @@ const normalizeBooking = (b) => ({
   
   paymentStatus: b.paymentStatus || "UNPAID",
   
-  // ✅ CRITICAL FIX: Include payment transaction details
+  // ✅ CRITICAL FIX: Include ALL payment transaction details
   paymentMode: b.paymentMode || "",
+  paymentMethod: b.paymentMode || "", // Alternative field name
   transactionId: b.transactionId || "",
   transactionDate: b.transactionDate || null,
   paymentRemarks: b.paymentRemarks || "",
@@ -843,6 +844,53 @@ router.post("/verify-creation", protect, async (req, res) => {
       message: "Verification failed",
       error: err.message
     });
+  }
+});
+
+// =============================================================
+// 🔍 DEBUG ROUTE - Check Payment Fields in Database
+// =============================================================
+router.get("/debug/payment-fields/:id", protect, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .select('+paymentMode +transactionId +transactionDate +paymentRemarks')
+      .lean();
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    console.log("🔍 DEBUG - Payment Fields from DB:", {
+      _id: booking._id,
+      guest: booking.guest,
+      paymentMode: booking.paymentMode,
+      transactionId: booking.transactionId,
+      transactionDate: booking.transactionDate,
+      paymentRemarks: booking.paymentRemarks,
+      paymentStatus: booking.paymentStatus,
+      paidAmount: booking.paidAmount,
+      totalAmount: booking.totalAmount,
+    });
+
+    res.json({
+      success: true,
+      debug: {
+        bookingId: booking._id,
+        guest: booking.guest,
+        paymentMode: booking.paymentMode,
+        transactionId: booking.transactionId,
+        transactionDate: booking.transactionDate,
+        paymentRemarks: booking.paymentRemarks,
+        paymentStatus: booking.paymentStatus,
+        hasPaymentMode: !!booking.paymentMode,
+        hasTransactionId: !!booking.transactionId,
+        hasTransactionDate: !!booking.transactionDate,
+      }
+    });
+
+  } catch (err) {
+    console.error("Debug route error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
