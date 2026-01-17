@@ -41,6 +41,7 @@ export default function ReportedModal({
   const [checkingRoom, setCheckingRoom] = useState(false);
   const [roomOccupied, setRoomOccupied] = useState(false);
   const [currentOccupant, setCurrentOccupant] = useState(null);
+  const [showOccupantPaymentWarning, setShowOccupantPaymentWarning] = useState(false);
 
   useEffect(() => {
     if (open && !isAlreadyReported && !isNotReported && !isNoShow && actualCheckInDate) {
@@ -227,7 +228,46 @@ export default function ReportedModal({
     }
   };
 
+  // ============================================================================
+  // handleCheckoutCurrentOccupant function
+  // ============================================================================
   const handleCheckoutCurrentOccupant = async () => {
+    if (!currentOccupant || !currentOccupant._id) {
+      setError("❌ No occupant information available");
+      return;
+    }
+
+    // ✅ CHECK IF CURRENT OCCUPANT HAS PENDING PAYMENT
+    const occupantTotalAmount = currentOccupant.totalAmount || 0;
+    const occupantPaidAmount = currentOccupant.paidAmount || 0;
+    const occupantDiscount = currentOccupant.discount || currentOccupant.waveOff || 0;
+    const occupantBalance = occupantTotalAmount - occupantPaidAmount - occupantDiscount;
+    const occupantPaymentType = currentOccupant.paymentType || "Paid";
+    const occupantHasPendingPayment = 
+      occupantPaymentType !== "Free" && occupantBalance > 0;
+
+    console.log("🔍 Current Occupant Payment Status:", {
+      guest: currentOccupant.guest,
+      totalAmount: occupantTotalAmount,
+      paidAmount: occupantPaidAmount,
+      discount: occupantDiscount,
+      balance: occupantBalance,
+      paymentType: occupantPaymentType,
+      hasPendingPayment: occupantHasPendingPayment
+    });
+
+    // ✅ IF PENDING PAYMENT, SHOW WARNING INSTEAD OF DIRECT CHECKOUT
+    if (occupantHasPendingPayment) {
+      console.log("⚠️ Current occupant has pending payment - showing warning");
+      setShowOccupantPaymentWarning(true);
+      return;
+    }
+
+    // ✅ IF NO PENDING PAYMENT, PROCEED WITH CHECKOUT
+    await proceedOccupantCheckout();
+  };
+
+  const proceedOccupantCheckout = async () => {
     if (!currentOccupant || !currentOccupant._id) {
       setError("❌ No occupant information available");
       return;
@@ -264,9 +304,12 @@ export default function ReportedModal({
         throw new Error(errorData.message || "Failed to checkout current occupant");
       }
 
+      console.log("✅ Current occupant checked out successfully");
+
       // After successful checkout, recheck room availability
       await checkRoomAvailability();
       setError("");
+      setShowOccupantPaymentWarning(false);
       
     } catch (err) {
       console.error("❌ Checkout current occupant error:", err);
@@ -275,7 +318,6 @@ export default function ReportedModal({
       setLoading(false);
     }
   };
-
 
   const handleMarkNotReported = async () => {
     if (!window.confirm("Are you sure this guest did NOT arrive?")) {
@@ -931,6 +973,165 @@ export default function ReportedModal({
 
                           <motion.button
                             onClick={() => setShowPaymentWarning(false)}
+                            className="w-full text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                          >
+                            Cancel
+                          </motion.button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* 🆕 PAYMENT WARNING MODAL FOR CURRENT OCCUPANT CHECKOUT */}
+                {showOccupantPaymentWarning && currentOccupant && (
+                  <motion.div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[60] p-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowOccupantPaymentWarning(false)}
+                  >
+                    <motion.div
+                      className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+                      initial={{ scale: 0.9, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.9, y: 20 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Header with gradient */}
+                      <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 p-6 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
+                        
+                        <motion.div 
+                          className="relative z-10 flex items-center gap-4"
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <motion.div 
+                            className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl"
+                            animate={{ 
+                              rotate: [0, -10, 10, -10, 0],
+                              scale: [1, 1.1, 1]
+                            }}
+                            transition={{ 
+                              duration: 0.6,
+                              repeat: Infinity,
+                              repeatDelay: 3
+                            }}
+                          >
+                            <AlertCircle className="w-8 h-8" />
+                          </motion.div>
+                          <div>
+                            <h3 className="text-2xl font-bold mb-1">Payment Pending</h3>
+                            <p className="text-white/90 text-sm">{currentOccupant.guest} has unpaid balance</p>
+                          </div>
+                        </motion.div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-6 space-y-6">
+                        {/* Amount Display */}
+                        <motion.div
+                          className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-5 border-2 border-red-200"
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-600">Outstanding Balance</span>
+                            <motion.div
+                              className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold"
+                              animate={{ scale: [1, 1.05, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              UNPAID
+                            </motion.div>
+                          </div>
+                          
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-bold text-red-600">
+                              ₹{((currentOccupant.totalAmount || 0) - (currentOccupant.paidAmount || 0) - (currentOccupant.discount || currentOccupant.waveOff || 0))}
+                            </span>
+                            <span className="text-gray-500 text-sm">pending</span>
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t border-red-200">
+                            <div className="flex justify-between text-sm mb-2">
+                              <span className="text-gray-600">Total Amount:</span>
+                              <span className="font-semibold text-gray-800">₹{currentOccupant.totalAmount || 0}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Already Paid:</span>
+                              <span className="font-semibold text-green-600">₹{currentOccupant.paidAmount || 0}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Warning Message */}
+                        <motion.div
+                          className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4"
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          <div className="flex gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-amber-800">
+                              <p className="font-semibold mb-1">⚠️ Payment Required</p>
+                              <p>
+                                <strong>{currentOccupant.guest}</strong> has an outstanding balance. 
+                                We recommend collecting payment before checkout to avoid accounting issues.
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                          <motion.button
+                            onClick={() => {
+                              setShowOccupantPaymentWarning(false);
+                              onClose();
+                              // Open payment modal for current occupant
+                              onOpenPaymentModal();
+                            }}
+                            className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                          >
+                            <CreditCard className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <span>Pay ₹{((currentOccupant.totalAmount || 0) - (currentOccupant.paidAmount || 0) - (currentOccupant.discount || currentOccupant.waveOff || 0))} Now</span>
+                          </motion.button>
+
+                          <motion.button
+                            onClick={() => {
+                              setShowOccupantPaymentWarning(false);
+                              proceedOccupantCheckout();
+                            }}
+                            className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold border-2 border-gray-300 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.45 }}
+                          >
+                            <LogOut className="w-5 h-5" />
+                            <span>Checkout Without Payment</span>
+                          </motion.button>
+
+                          <motion.button
+                            onClick={() => setShowOccupantPaymentWarning(false)}
                             className="w-full text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all"
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.98 }}
