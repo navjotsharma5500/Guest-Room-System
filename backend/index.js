@@ -12,7 +12,7 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
 import { startNoShowCronJob } from "./utils/cronJobs.js";
-import { setSocketIO } from "./socket.js";
+import { setSocketIO } from "./utils/socket.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
