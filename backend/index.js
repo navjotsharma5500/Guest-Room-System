@@ -88,8 +88,8 @@ const resolveOrigin = (origin) => {
   
   // iOS Safari sometimes sends no origin
   if (!origin) {
-    console.log("✅ No origin - allowing with *");
-    return "*";
+    console.log("⚠️ No origin header - same-origin or server request");
+    return "https://guestroom.vercel.app";
   }
   
   // Check exact match
