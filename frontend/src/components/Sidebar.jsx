@@ -165,36 +165,21 @@ export default function Sidebar({
           );
         })}
 
-        {/* ✅ DEFAULTERS BUTTON - Add at bottom of nav */}
+        {/* ✅ DEFAULTERS BUTTON */}
         <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}
           whileTap={!isEnquiry ? { scale: 0.98 } : {}}
-          onClick={(e) => {
-            e.preventDefault(); // ✅ Prevent any default behavior
-            e.stopPropagation(); // ✅ Stop event bubbling
-            
-            console.log("🔴 DEFAULTERS BUTTON CLICKED!");
-            console.log("Current activeTab:", activeTab);
-            console.log("isEnquiry:", isEnquiry);
-            console.log("Setting activeTab to: Defaulters");
-            
-            // ✅ Show alert to confirm click registered
-            alert("Defaulters button clicked! Check console.");
-            
-            setActiveTab("Defaulters");
-            setActiveHostel(null);
-            setActiveRoomRef(null);
-            
-            console.log("✅ State updates called");
+          onClick={() => {
+            // Dispatch custom event that MainContent will listen to
+            window.dispatchEvent(new CustomEvent('open-defaulters-modal'));
           }}
+          disabled={isEnquiry}
           className={`
             relative group w-full text-left px-3 py-2 rounded-xl
             border bg-gradient-to-r from-red-500 to-red-600 text-white
             flex items-center gap-3 shadow-lg hover:shadow-xl transition-all
-            cursor-pointer
-            ${activeTab === "Defaulters" ? "ring-2 ring-red-300" : ""}
+            disabled:opacity-50 disabled:cursor-not-allowed
           `}
-          style={{ pointerEvents: 'auto' }} // ✅ Force enable clicks
         >
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>

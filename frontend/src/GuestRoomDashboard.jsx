@@ -23,9 +23,6 @@ import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
 import PaymentModal from "./components/PaymentModal";
 import { BACKEND_URL } from "./utils/apiConfig";
-import DefaulterManagement from "./pages/DefaulterManagement";
-console.log("📦 DefaulterManagement component imported:", DefaulterManagement);
-console.log("Type:", typeof DefaulterManagement);
 
 const API = BACKEND_URL;
 
@@ -72,10 +69,6 @@ export default function GuestRoomDashboard() {
 
   // Guest Prefill
   const [prefillGuest, setPrefillGuest] = useState(null);
-
-  // Defaulter States
-  const [showDefaultersPage, setShowDefaultersPage] = useState(false);
-  const [defaulterPaymentModal, setDefaulterPaymentModal] = useState(null);
 
   // Settings
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
@@ -145,17 +138,7 @@ export default function GuestRoomDashboard() {
     return () =>
       window.removeEventListener("lastApprovedGuestChanged", checkPrefill);
   }, []);
-
-  useEffect(() => {
-    console.log("📊 Active Tab Changed:", activeTab);
-    
-    if (activeTab === "Defaulters") {
-      console.log("🎯 Defaulters tab is ACTIVE");
-      console.log("Current User:", currentUser);
-      console.log("Should render DefaulterManagement:", true);
-    }
-  }, [activeTab, currentUser]);
-
+  
   // 🔥 CENTRALIZED REFRESH HANDLER
   const handleRefresh = useCallback((silent = false) => {
     console.log('🔄 Dashboard refresh triggered - silent:', silent);
@@ -242,18 +225,6 @@ export default function GuestRoomDashboard() {
       await logout();
     } catch {}
     setTimeout(() => (window.location.href = "/"), 300);
-  };
-
-  const handleOpenDefaulterPayment = (defaulter) => {
-    // Find the booking for this defaulter
-    const booking = Object.values(hostelData)
-      .flatMap(h => h.rooms || [])
-      .flatMap(r => r.bookings || [])
-      .find(b => b._id === defaulter._id);
-
-    if (booking) {
-      setDefaulterPaymentModal(booking);
-    }
   };
 
   const statsForHostel = (hostel) => {
@@ -859,32 +830,6 @@ export default function GuestRoomDashboard() {
             modal={extensionModal}
             onClose={() => setExtensionModal(null)}
             onExtend={handleExtensionModalExtend}
-          />
-        )}
-
-        {defaulterPaymentModal && (
-          <PaymentModal
-            booking={defaulterPaymentModal}
-            onClose={() => setDefaulterPaymentModal(null)}
-            onSuccess={(updatedBooking) => {
-              console.log("✅ Payment successful:", updatedBooking);
-              setDefaulterPaymentModal(null);
-              refresh(); // Refresh data
-            }}
-          />
-        )}
-
-        {activeTab === "Defaulters" && (
-          <DefaulterManagement
-            currentUser={currentUser}
-            onClose={() => {
-              console.log("🚪 Closing DefaulterManagement");
-              setActiveTab("Home");
-              if (currentUser?.assignedHostel) {
-                setActiveHostel(currentUser.assignedHostel);
-              }
-            }}
-            onOpenPaymentModal={handleOpenDefaulterPayment}
           />
         )}
 
