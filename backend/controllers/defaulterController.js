@@ -115,6 +115,20 @@ export const checkGuestHistory = async (req, res) => {
     if (pendingBookings.length > 0) {
       const totalPending = pendingBookings.reduce((sum, b) => sum + b.balanceAmount, 0);
 
+      // ✅ EMIT SOCKET.IO EVENT - Guest history check
+      const io = req.app.get('io');
+      if (io) {
+        io.to('dashboard-room').emit('defaulter-check', { 
+          email,
+          contact,
+          hasPendingBills: true,
+          totalPending,
+          bookingCount: pendingBookings.length,
+          timestamp: Date.now()
+        });
+        console.log('📡 Emitted defaulter-check event');
+      }
+
       return res.json({
         success: true,
         hasPendingBills: true,
@@ -152,31 +166,136 @@ export const getDefaulterStats = async (req, res) => {
       paymentType: { $ne: "Free" }
     };
 
+    // Role-based filtering
     if (userRole === "caretaker" && assignedHostel) {
       query.hostel = assignedHostel;
     }
 
     const defaulters = await Booking.find(query).lean();
 
+    // Calculate average days overdue
+    const today = new Date();
+    let totalDaysOverdue = 0;
+    let criticalCount = 0;
+
+    defaulters.forEach(booking => {
+      const checkoutDate = new Date(booking.to);
+      const daysOverdue = Math.floor((today - checkoutDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysOverdue > 0) {
+        totalDaysOverdue += daysOverdue;
+        
+        if (daysOverdue > 30) {
+          criticalCount++;
+        }
+      }
+    });
+
     const stats = {
       totalDefaulters: defaulters.length,
-      totalOutstanding: defaulters.reduce((sum, d) => sum + d.balanceAmount, 0),
-      criticalCount: defaulters.filter(d => {
-        const daysOverdue = Math.floor((new Date() - new Date(d.to)) / (1000 * 60 * 60 * 24));
-        return daysOverdue > 30;
-      }).length,
+      totalOutstanding: defaulters.reduce((sum, d) => sum + (d.balanceAmount || 0), 0),
+      criticalCount: criticalCount,
+      avgDaysOverdue: defaulters.length > 0 
+        ? Math.round(totalDaysOverdue / defaulters.length)
+        : 0,
       avgOutstanding: defaulters.length > 0 
-        ? Math.round(defaulters.reduce((sum, d) => sum + d.balanceAmount, 0) / defaulters.length)
+        ? Math.round(defaulters.reduce((sum, d) => sum + (d.balanceAmount || 0), 0) / defaulters.length)
         : 0
     };
 
-    res.json({ success: true, stats });
+    // ✅ EMIT SOCKET.IO EVENT - Stats updated
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('defaulter-stats-updated', { 
+        stats,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted defaulter-stats-updated event');
+    }
+
+    res.json({ 
+      success: true, 
+      stats 
+    });
 
   } catch (err) {
-    console.error("❌ Get stats error:", err);
+    console.error("❌ Get defaulter stats error:", err);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch stats",
+      message: "Failed to fetch defaulter statistics",
+      error: err.message
+    });
+  }
+};
+
+// ✅ NEW: Mark defaulter as resolved (when payment is made)
+export const resolveDefaulter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentAmount, paymentMode, transactionId, remarks } = req.body;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Booking not found" 
+      });
+    }
+
+    // Update payment details
+    const previousBalance = booking.balanceAmount;
+    booking.paidAmount = (booking.paidAmount || 0) + Number(paymentAmount);
+    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount);
+    
+    if (booking.balanceAmount === 0) {
+      booking.paymentStatus = "PAID";
+    }
+
+    if (paymentMode) booking.paymentMode = paymentMode;
+    if (transactionId) booking.transactionId = transactionId;
+    if (remarks) booking.paymentRemarks = remarks;
+
+    await booking.save();
+
+    console.log("✅ Defaulter resolved:", {
+      bookingId: booking._id,
+      guest: booking.guest,
+      previousBalance,
+      newBalance: booking.balanceAmount,
+      paidAmount: paymentAmount
+    });
+
+    // ✅ EMIT SOCKET.IO EVENT - Defaulter resolved
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('defaulter-resolved', { 
+        bookingId: booking._id,
+        guest: booking.guest,
+        hostel: booking.hostel,
+        previousBalance,
+        newBalance: booking.balanceAmount,
+        paidAmount: Number(paymentAmount),
+        fullyPaid: booking.balanceAmount === 0,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted defaulter-resolved event');
+    }
+
+    res.json({
+      success: true,
+      message: booking.balanceAmount === 0 
+        ? "Payment completed - defaulter cleared" 
+        : "Partial payment recorded",
+      booking,
+      previousBalance,
+      newBalance: booking.balanceAmount
+    });
+
+  } catch (err) {
+    console.error("❌ Resolve defaulter error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to resolve defaulter",
       error: err.message
     });
   }

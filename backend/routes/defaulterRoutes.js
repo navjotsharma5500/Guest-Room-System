@@ -1,17 +1,45 @@
 // backend/routes/defaulterRoutes.js
 import express from "express";
+import { 
+  getDefaulters, 
+  checkGuestHistory, 
+  getDefaulterStats,
+  resolveDefaulter 
+} from "../controllers/defaulterController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { getDefaulters, checkGuestHistory } from "../controllers/defaulterController.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-// Get all defaulters (role-based)
-router.get("/", protect, getDefaulters);
+// Get all defaulters (admin, warden, caretaker)
+router.get(
+  "/", 
+  protect, 
+  authorizeRoles("admin", "warden", "caretaker"), 
+  getDefaulters
+);
 
-// Check guest history for pending bills
-router.get("/check-history", protect, checkGuestHistory);
+// Check guest history before check-in (all authenticated users)
+router.get(
+  "/check-history", 
+  protect, 
+  checkGuestHistory
+);
 
-// Check Stats
-router.get("/stats", protect, getDefaulterStats);
+// Get defaulter statistics (admin, warden, caretaker)
+router.get(
+  "/stats", 
+  protect, 
+  authorizeRoles("admin", "warden", "caretaker"), 
+  getDefaulterStats
+);
+
+// Resolve defaulter (record payment) - admin and caretaker
+router.patch(
+  "/:id/resolve", 
+  protect, 
+  authorizeRoles("admin", "caretaker"), 
+  resolveDefaulter
+);
 
 export default router;
