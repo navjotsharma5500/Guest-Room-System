@@ -839,16 +839,8 @@ export default function GuestRoomDashboard() {
                 setActiveHostel(currentUser.assignedHostel);
               }
             }}
-            onOpenPaymentModal={(defaulter) => {
-              // Find the booking for this defaulter
-              const booking = Object.values(hostelData)
-                .flatMap(h => h.rooms || [])
-                .flatMap(r => r.bookings || [])
-                .find(b => b._id === defaulter._id);
-
-              if (booking) {
-                setDefaulterPaymentModal(booking);
-              }
+            onOpenPaymentModal={(booking) => {
+              setDefaulterPaymentModal(booking);
             }}
           />
         )}

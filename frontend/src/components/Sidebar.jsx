@@ -167,19 +167,15 @@ export default function Sidebar({
 
         {/* ✅ DEFAULTERS BUTTON */}
         <motion.button
-          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
-          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
           onClick={() => {
-            // Dispatch custom event that MainContent will listen to
-            window.dispatchEvent(new CustomEvent('open-defaulters-modal'));
+            console.log("🔴 Defaulters clicked");
+            setActiveTab("Defaulters");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
           }}
-          disabled={isEnquiry}
-          className={`
-            relative group w-full text-left px-3 py-2 rounded-xl
-            border bg-gradient-to-r from-red-500 to-red-600 text-white
-            flex items-center gap-3 shadow-lg hover:shadow-xl transition-all
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
+          className="relative group w-full text-left px-3 py-2 rounded-xl
+                    border bg-gradient-to-r from-red-500 to-red-600 text-white
+                    flex items-center gap-3 shadow-lg"
         >
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>
