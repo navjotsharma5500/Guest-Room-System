@@ -21,9 +21,11 @@ import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
-import DefaulterManagement from "./pages/DefaulterManagement";
 import PaymentModal from "./components/PaymentModal";
 import { BACKEND_URL } from "./utils/apiConfig";
+import DefaulterManagement from "./pages/DefaulterManagement";
+console.log("📦 DefaulterManagement component imported:", DefaulterManagement);
+console.log("Type:", typeof DefaulterManagement);
 
 const API = BACKEND_URL;
 
@@ -143,6 +145,16 @@ export default function GuestRoomDashboard() {
     return () =>
       window.removeEventListener("lastApprovedGuestChanged", checkPrefill);
   }, []);
+
+  useEffect(() => {
+    console.log("📊 Active Tab Changed:", activeTab);
+    
+    if (activeTab === "Defaulters") {
+      console.log("🎯 Defaulters tab is ACTIVE");
+      console.log("Current User:", currentUser);
+      console.log("Should render DefaulterManagement:", true);
+    }
+  }, [activeTab, currentUser]);
 
   // 🔥 CENTRALIZED REFRESH HANDLER
   const handleRefresh = useCallback((silent = false) => {
@@ -869,6 +881,31 @@ export default function GuestRoomDashboard() {
             onOpenPaymentModal={handleOpenDefaulterPayment}
           />
         )}
+
+        {/* ✅ DEFAULTER MANAGEMENT - WITH DEBUG LOGS */}
+        {(() => {
+          console.log("🔍 Checking if should render DefaulterManagement:", activeTab === "Defaulters");
+          
+          if (activeTab === "Defaulters") {
+            console.log("✅ RENDERING DefaulterManagement component");
+            return (
+              <DefaulterManagement
+                currentUser={currentUser}
+                onClose={() => {
+                  console.log("🚪 DefaulterManagement onClose called");
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                onOpenPaymentModal={handleOpenDefaulterPayment}
+              />
+            );
+          }
+          
+          console.log("❌ NOT rendering DefaulterManagement");
+          return null;
+        })()}
 
         <ProfileModal
           open={profileOpen}

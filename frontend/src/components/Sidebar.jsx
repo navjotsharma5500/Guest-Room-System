@@ -169,26 +169,37 @@ export default function Sidebar({
         <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}
           whileTap={!isEnquiry ? { scale: 0.98 } : {}}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault(); // ✅ Prevent any default behavior
+            e.stopPropagation(); // ✅ Stop event bubbling
+            
+            console.log("🔴 DEFAULTERS BUTTON CLICKED!");
+            console.log("Current activeTab:", activeTab);
+            console.log("isEnquiry:", isEnquiry);
+            console.log("Setting activeTab to: Defaulters");
+            
+            // ✅ Show alert to confirm click registered
+            alert("Defaulters button clicked! Check console.");
+            
             setActiveTab("Defaulters");
             setActiveHostel(null);
             setActiveRoomRef(null);
+            
+            console.log("✅ State updates called");
           }}
           className={`
             relative group w-full text-left px-3 py-2 rounded-xl
             border bg-gradient-to-r from-red-500 to-red-600 text-white
             flex items-center gap-3 shadow-lg hover:shadow-xl transition-all
+            cursor-pointer
             ${activeTab === "Defaulters" ? "ring-2 ring-red-300" : ""}
           `}
+          style={{ pointerEvents: 'auto' }} // ✅ Force enable clicks
         >
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>
-          {/* Optional: Show count badge */}
-          {/* <span className="ml-auto bg-yellow-400 text-red-900 px-2 py-0.5 rounded-full text-xs font-bold">
-            5
-          </span> */}
         </motion.button>
-      </nav>  
+        </nav>  
       
       {/* FOOTER */}
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">
