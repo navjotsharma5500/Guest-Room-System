@@ -16,7 +16,6 @@ import AdminEnquiryPage from "../pages/AdminEnquiryPage";
 import LiveBookingCounter from "./LiveBookingCounter";
 import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
-import DefaulterManagement from './DefaulterManagement';
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -99,8 +98,6 @@ export default function MainContent(props) {
   const [downloadFromDate, setDownloadFromDate] = useState("");
   const [downloadToDate, setDownloadToDate] = useState("");
   const [showCalendarPage, setShowCalendarPage] = useState(false);
-  const [showDefaultersModal, setShowDefaultersModal] = useState(false);
-  const [defaulterPaymentModal, setDefaulterPaymentModal] = useState(null);
 
   // ====================================================
   // EVENT LISTENER – RELOAD HOSTEL DATA
@@ -203,18 +200,6 @@ export default function MainContent(props) {
     document.body.classList.add(theme);
     localStorage.setItem("guestDashboardTheme", theme);
   }, [theme]);
-
-  // ====================================================
-  // DEFAULTER GUEST
-  // ====================================================
-  useEffect(() => {
-    const handleOpenDefaulters = () => {
-      setShowDefaultersModal(true);
-    };
-
-    window.addEventListener('open-defaulters-modal', handleOpenDefaulters);
-    return () => window.removeEventListener('open-defaulters-modal', handleOpenDefaulters);
-  }, []);
 
   // ====================================================
   // UPCOMING BOOKINGS LIST
@@ -650,22 +635,6 @@ export default function MainContent(props) {
       return dt ? format(dt, "dd-MMM-yyyy (hh:mm a)") : format(new Date(dateString), "dd-MMM-yyyy");
     } catch (error) {
       return dateString;
-    }
-  };
-
-  // ====================================================
-  // DEFAULTER FUNCTION HELPER
-  // ====================================================
-  const handleOpenDefaulterPayment = (defaulter) => {
-    // Find the booking for this defaulter
-    const booking = Object.values(hostelData)
-      .flatMap(h => h.rooms || [])
-      .flatMap(r => r.bookings || [])
-      .find(b => b._id === defaulter._id);
-
-    if (booking) {
-      setDefaulterPaymentModal(booking);
-      setShowDefaultersModal(false);
     }
   };
 
@@ -1731,29 +1700,6 @@ export default function MainContent(props) {
             setSearchModal(false);
           }}
           onClose={() => setSearchModal(false)}
-        />
-      )}
-
-      {/* ✅ DEFAULTERS MODAL */}
-      {showDefaultersModal && (
-        <DefaulterManagement
-          currentUser={currentUser}
-          onClose={() => setShowDefaultersModal(false)}
-          onOpenPaymentModal={handleOpenDefaulterPayment}
-        />
-      )}
-
-      {/* ✅ DEFAULTER PAYMENT MODAL */}
-      {defaulterPaymentModal && (
-        <PaymentModal
-          booking={defaulterPaymentModal}
-          onClose={() => setDefaulterPaymentModal(null)}
-          onSuccess={(updatedBooking) => {
-            console.log("✅ Payment successful:", updatedBooking);
-            setDefaulterPaymentModal(null);
-            // Refresh the defaulters list
-            setShowDefaultersModal(true);
-          }}
         />
       )}
     </main>

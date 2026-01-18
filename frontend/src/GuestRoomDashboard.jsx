@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
+import { AlertCircle } from "lucide-react";
 
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
@@ -22,6 +23,7 @@ import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
 import PaymentModal from "./components/PaymentModal";
+import DefaulterManagement from "./pages/DefaulterManagement";
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
@@ -69,6 +71,9 @@ export default function GuestRoomDashboard() {
 
   // Guest Prefill
   const [prefillGuest, setPrefillGuest] = useState(null);
+
+  // Defaulter Payment Modal
+  const [defaulterPaymentModal, setDefaulterPaymentModal] = useState(null);
 
   // Settings
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
@@ -825,11 +830,47 @@ export default function GuestRoomDashboard() {
           </main>   
         </div>  
 
+        {activeTab === "Defaulters" && (
+          <DefaulterManagement
+            currentUser={currentUser}
+            onBack={() => {
+              setActiveTab("Home");
+              if (currentUser?.assignedHostel) {
+                setActiveHostel(currentUser.assignedHostel);
+              }
+            }}
+            onOpenPaymentModal={(defaulter) => {
+              // Find the booking for this defaulter
+              const booking = Object.values(hostelData)
+                .flatMap(h => h.rooms || [])
+                .flatMap(r => r.bookings || [])
+                .find(b => b._id === defaulter._id);
+
+              if (booking) {
+                setDefaulterPaymentModal(booking);
+              }
+            }}
+          />
+        )}
+
         {extensionModal && (
           <ExtensionModal
             modal={extensionModal}
             onClose={() => setExtensionModal(null)}
             onExtend={handleExtensionModalExtend}
+          />
+        )}
+
+        {/* ✅ DEFAULTER PAYMENT MODAL */}
+        {defaulterPaymentModal && (
+          <PaymentModal
+            booking={defaulterPaymentModal}
+            onClose={() => setDefaulterPaymentModal(null)}
+            onSuccess={(updatedBooking) => {
+              console.log("✅ Payment successful:", updatedBooking);
+              setDefaulterPaymentModal(null);
+              refresh(); // Refresh data after payment
+            }}
           />
         )}
 
