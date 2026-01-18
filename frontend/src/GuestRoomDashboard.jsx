@@ -54,6 +54,9 @@ export default function GuestRoomDashboard() {
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
 
+  // 🔍 DEBUG: track active tab
+ console.log("🧭 Dashboard activeTab =", activeTab);
+
   // Modal States
   const [bookingSelectModal, setBookingSelectModal] = useState(null);
   const [directBookingModal, setDirectBookingModal] = useState(null);
@@ -719,7 +722,11 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab("Home");
+
+                    // ⚠️ Do NOT override Defaulters tab
+                    if (activeTab !== "Defaulters") {
+                      setActiveTab("Home");
+                    }
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
