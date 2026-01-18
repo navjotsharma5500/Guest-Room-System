@@ -25,6 +25,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [rollbackAttachments, setRollbackAttachments] = useState([]);
   const [uploadingRollback, setUploadingRollback] = useState(false);
   
+  const [error, setError] = useState(null);
   const ikRollbackUploadRef = useRef(null);
   const itemsPerPage = 10;
   const role = currentUser?.role || 'caretaker';
@@ -38,7 +39,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const fetchDefaulters = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching defaulters from backend...");
+      console.log("🔍 Fetching from:", `${API}/api/defaulters`);
       
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
@@ -58,9 +59,20 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       console.log("✅ Defaulters fetched:", data);
 
       if (data.success && Array.isArray(data.defaulters)) {
-        setDefaulters(data.defaulters);
-        setFilteredDefaulters(data.defaulters);
-        console.log(`📊 Found ${data.defaulters.length} defaulters`);
+        const normalized = data.defaulters.map(d => ({
+          ...d,
+          department: d.department || "",
+          rollno: d.rollno || "",
+          bills: Array.isArray(d.bills) ? d.bills : [],
+          paidAmount: Number(d.paidAmount || 0),
+          totalAmount: Number(d.totalAmount || 0),
+          totalDue: Number(d.totalDue || 0),
+          paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
+        }));
+
+        setDefaulters(normalized);
+        setFilteredDefaulters(normalized);
+        console.log(`📊 Found ${normalized.length} defaulters`);
       } else {
         console.error('❌ Invalid API response:', data);
         setDefaulters([]);
@@ -68,6 +80,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       }
     } catch (err) {
       console.error('❌ Failed to fetch defaulters:', err);
+      setError(err.message || 'Failed to fetch defaulters');
       setDefaulters([]);
       setFilteredDefaulters([]);
     } finally {
@@ -264,8 +277,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   };
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="min-h-screen p-6">
+    <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
@@ -392,7 +404,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </div>
 
           {/* Defaulters List */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-6 max-h-[calc(100vh-320px)] overflow-y-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
@@ -407,7 +419,8 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             ) : (
               <>
                 <div className="space-y-3">
-                  {paginatedDefaulters.map((defaulter, index) => (
+                  {Array.isArray(paginatedDefaulters) &&
+                   paginatedDefaulters.map((defaulter, index) => (
                     <motion.div
                       key={defaulter._id}
                       className={`bg-white rounded-2xl border-2 overflow-hidden shadow-md hover:shadow-xl transition-all ${getSeverityColor(defaulter.daysOverdue)}`}
@@ -884,7 +897,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </AnimatePresence>
         </div>
       </div>
-    </div>
   );
 };
 
