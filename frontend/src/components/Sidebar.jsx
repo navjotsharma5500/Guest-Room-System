@@ -1,5 +1,6 @@
 // src/components/Sidebar.jsx
 import React, { useEffect, useRef, useMemo } from "react";
+import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
@@ -163,6 +164,30 @@ export default function Sidebar({
             </motion.button>
           );
         })}
+
+        {/* ✅ DEFAULTERS BUTTON - Add at bottom of nav */}
+        <motion.button
+          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+          onClick={() => {
+            setActiveTab("Defaulters");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          }}
+          className={`
+            relative group w-full text-left px-3 py-2 rounded-xl
+            border bg-gradient-to-r from-red-500 to-red-600 text-white
+            flex items-center gap-3 shadow-lg hover:shadow-xl transition-all
+            ${activeTab === "Defaulters" ? "ring-2 ring-red-300" : ""}
+          `}
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm font-semibold">Defaulters</span>
+          {/* Optional: Show count badge */}
+          {/* <span className="ml-auto bg-yellow-400 text-red-900 px-2 py-0.5 rounded-full text-xs font-bold">
+            5
+          </span> */}
+        </motion.button>
       </nav>  
       
       {/* FOOTER */}

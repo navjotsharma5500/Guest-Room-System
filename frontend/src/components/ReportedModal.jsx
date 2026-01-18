@@ -147,6 +147,44 @@ export default function ReportedModal({
       setLoading(true);
       setError("");
 
+      // ✅ GET TOKEN ONCE AT THE START
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      // ✅ CHECK FOR PREVIOUS PENDING BILLS
+      const historyCheck = await fetch(
+        `${API}/api/defaulters/check-history?email=${encodeURIComponent(booking.email)}&contact=${encodeURIComponent(booking.contact)}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers
+        }
+      );
+
+      const historyData = await historyCheck.json();
+
+      if (historyData.hasPendingBills) {
+        const confirmProceed = window.confirm(
+          `⚠️ WARNING: This guest has ₹${historyData.totalPending} pending from ${historyData.bookings.length} previous booking(s).\n\n` +
+          `Previous bookings:\n${historyData.bookings.map(b => 
+            `• ${b.hostel} - Room ${b.roomNo}: ₹${b.balanceAmount}`
+          ).join('\n')}\n\n` +
+          `Guest must clear previous dues before check-in.\n\n` +
+          `Do you want to open the payment modal to clear dues?`
+        );
+
+        if (confirmProceed) {
+          // Open payment modal for previous booking
+          alert("Please clear previous pending bills first before reporting this guest.");
+          setLoading(false);
+          return;
+        } else {
+          setLoading(false);
+          return;
+        }
+      }
+
       // ✅ Check room availability first
       await checkRoomAvailability();
       
@@ -169,12 +207,6 @@ export default function ReportedModal({
         setLoading(false);
         return;
       }
-
-      // Rest of existing code remains same...
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
       
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;

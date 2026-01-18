@@ -24,6 +24,7 @@ import tokenRoutes from "./routes/tokenRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import defaulterRoutes from "./routes/defaulterRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -261,6 +262,7 @@ app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
+app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");

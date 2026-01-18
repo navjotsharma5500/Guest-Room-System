@@ -21,6 +21,8 @@ import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
+import DefaulterManagement from "./pages/DefaulterManagement";
+import PaymentModal from "./components/PaymentModal";
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
@@ -68,6 +70,10 @@ export default function GuestRoomDashboard() {
 
   // Guest Prefill
   const [prefillGuest, setPrefillGuest] = useState(null);
+
+  // Defaulter States
+  const [showDefaultersPage, setShowDefaultersPage] = useState(false);
+  const [defaulterPaymentModal, setDefaulterPaymentModal] = useState(null);
 
   // Settings
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
@@ -224,6 +230,18 @@ export default function GuestRoomDashboard() {
       await logout();
     } catch {}
     setTimeout(() => (window.location.href = "/"), 300);
+  };
+
+  const handleOpenDefaulterPayment = (defaulter) => {
+    // Find the booking for this defaulter
+    const booking = Object.values(hostelData)
+      .flatMap(h => h.rooms || [])
+      .flatMap(r => r.bookings || [])
+      .find(b => b._id === defaulter._id);
+
+    if (booking) {
+      setDefaulterPaymentModal(booking);
+    }
   };
 
   const statsForHostel = (hostel) => {
@@ -791,6 +809,14 @@ export default function GuestRoomDashboard() {
               />
             )}
 
+            {activeTab === "Defaulters" && (
+              <DefaulterManagement
+                currentUser={currentUser}
+                onClose={() => setActiveTab("Home")}
+                onOpenPaymentModal={handleOpenDefaulterPayment}
+              />
+            )}
+
             {activeTab === "AllHostelsPortal" && (
               <AllHostelsPortal
                 hostelData={hostelData}
@@ -829,6 +855,18 @@ export default function GuestRoomDashboard() {
             modal={extensionModal}
             onClose={() => setExtensionModal(null)}
             onExtend={handleExtensionModalExtend}
+          />
+        )}
+
+        {defaulterPaymentModal && (
+          <PaymentModal
+            booking={defaulterPaymentModal}
+            onClose={() => setDefaulterPaymentModal(null)}
+            onSuccess={(updatedBooking) => {
+              console.log("✅ Payment successful:", updatedBooking);
+              setDefaulterPaymentModal(null);
+              refresh(); // Refresh data
+            }}
           />
         )}
 
