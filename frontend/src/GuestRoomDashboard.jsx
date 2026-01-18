@@ -836,18 +836,20 @@ export default function GuestRoomDashboard() {
         </div>  
 
         {activeTab === "Defaulters" && (
-          <DefaulterManagement
-            currentUser={currentUser}
-            onBack={() => {
-              setActiveTab("Home");
-              if (currentUser?.assignedHostel) {
-                setActiveHostel(currentUser.assignedHostel);
-              }
-            }}
-            onOpenPaymentModal={(booking) => {
-              setDefaulterPaymentModal(booking);
-            }}
-          />
+          <div className="ml-64 mt-16">
+            <DefaulterManagement
+              currentUser={currentUser}
+              onBack={() => {
+                setActiveTab("Home");
+                if (currentUser?.assignedHostel) {
+                  setActiveHostel(currentUser.assignedHostel);
+                }
+              }}
+              onOpenPaymentModal={(booking) => {
+                setDefaulterPaymentModal(booking);
+              }}
+            />
+          </div>
         )}
 
         {extensionModal && (
