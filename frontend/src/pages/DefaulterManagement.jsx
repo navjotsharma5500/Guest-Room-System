@@ -162,7 +162,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   }, [showDetails, onBack]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* ✅ BACK BUTTON + HEADER */}
         <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
