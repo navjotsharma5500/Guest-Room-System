@@ -35,7 +35,7 @@ const imagekitAuthenticator = async () => {
   }
 };
 
-export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}, theme = "light", setExtensionModal = () => {}, hideExtendButton = false }) {
+export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}, theme = "light", setExtensionModal = () => {}, hideExtendButton = false, onClose = null }) {
   const { token } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +56,32 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [enquiryFiles, setEnquiryFiles] = useState([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
+
+  // ✅ FIXED: Close Guest Details panel on checkout
+  useEffect(() => {
+    const handleGuestCheckedOut = (event) => {
+      const { bookingId } = event.detail || {};
+      const currentBookingId = booking?._id || booking?.id;
+      
+      if (bookingId === currentBookingId) {
+        console.log("📡 Guest checked out - closing details panel...");
+        
+        // ✅ Clear the booking data (this will close the panel)
+        setBooking(null);
+        
+        // ✅ If there's a parent component managing activeRoomRef, notify it
+        if (onCancel && typeof onCancel === 'function') {
+          onCancel(); // This typically closes modals/panels in parent
+        }
+      }
+    };
+
+    window.addEventListener("guestCheckedOut", handleGuestCheckedOut);
+    
+    return () => {
+      window.removeEventListener("guestCheckedOut", handleGuestCheckedOut);
+    };
+  }, [booking, onCancel]);
 
   // Fetch enquiry files when booking has enquiryId
   useEffect(() => {
@@ -1159,18 +1185,21 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         />
 
         {/* 6. CHECK-IN / CHECK-OUT ACTION */}
-        <div className="px-6 py-4 border-t">
-          <button
-            onClick={() => setShowReportedModal(true)}
-            className={`px-5 py-2 rounded-lg font-semibold transition ${
-              b.status === "checked_in"
-                ? "bg-purple-600 hover:bg-purple-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            {b.status === "checked_in" ? "Check Out Guest" : "Report Guest"}
-          </button>
-        </div>
+        {/* ✅ FIXED: Hide button if guest is checked out */}
+        {b.status !== "checked_out" && b.status !== "cancelled" && b.status !== "no_show" && (
+          <div className="px-6 py-4 border-t">
+            <button
+              onClick={() => setShowReportedModal(true)}
+              className={`px-5 py-2 rounded-lg font-semibold transition ${
+                b.status === "checked_in"
+                  ? "bg-purple-600 hover:bg-purple-700 text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+            >
+              {b.status === "checked_in" ? "Check Out Guest" : "Report Guest"}
+            </button>
+          </div>
+        )}
 
         {/* 7. STATUS BADGE */}
         <div className={`px-6 py-3 border-t ${

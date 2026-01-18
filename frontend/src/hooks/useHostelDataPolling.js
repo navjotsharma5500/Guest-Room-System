@@ -195,6 +195,11 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    const handleGuestCheckedOut = () => {
+      console.log("📡 Guest checked out - refreshing...");
+      fetchData(true);
+    };
+
     socket.on("booking-created", handleBookingCreated);
     socket.on("booking-cancelled", handleBookingCancelled);
     socket.on("booking-extended", handleBookingExtended);
@@ -202,6 +207,7 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("guest-reported", handleGuestReported);
     socket.on("enquiry-created", handleEnquiryCreated);
     socket.on("enquiry-updated", handleEnquiryUpdated);
+    socket.on("guest-checked-out", handleGuestCheckedOut);
 
     // ✅ Fallback polling every 2 minutes (in case Socket.IO fails)
     const interval = setInterval(() => {
@@ -222,6 +228,7 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("guest-reported", handleGuestReported);
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
+      socket.off("guest-checked-out", handleGuestCheckedOut);
     };
   }, [fetchData]);
 

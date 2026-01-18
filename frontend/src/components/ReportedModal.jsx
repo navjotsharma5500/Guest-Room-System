@@ -42,6 +42,8 @@ export default function ReportedModal({
   const [roomOccupied, setRoomOccupied] = useState(false);
   const [currentOccupant, setCurrentOccupant] = useState(null);
   const [showOccupantPaymentWarning, setShowOccupantPaymentWarning] = useState(false);
+  const [checkoutSource, setCheckoutSource] = useState("normal");
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
 
   useEffect(() => {
     if (open && !isAlreadyReported && !isNotReported && !isNoShow && actualCheckInDate) {
@@ -288,10 +290,15 @@ export default function ReportedModal({
       hasPendingPayment: occupantHasPendingPayment
     });
 
-    // ✅ IF PENDING PAYMENT, SHOW WARNING INSTEAD OF DIRECT CHECKOUT
+    // ✅ IF PENDING PAYMENT, FORCE SAME PAYMENT WARNING AS NORMAL CHECKOUT
     if (occupantHasPendingPayment) {
-      console.log("⚠️ Current occupant has pending payment - showing warning");
-      setShowOccupantPaymentWarning(true);
+      console.log("⚠️ Current occupant has pending payment - redirecting to payment warning");
+
+      // Reuse normal checkout payment warning
+      setSelectedBookingForPayment(currentOccupant); // treat occupant like booking
+      setCheckoutSource("occupant");                 // mark source
+      setShowPaymentWarning(true);                   // SAME modal as normal checkout
+
       return;
     }
 

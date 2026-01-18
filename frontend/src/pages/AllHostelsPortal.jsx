@@ -28,7 +28,9 @@ const filterActiveBookingsFromHostelData = (hostelData) => {
     return hostelData;
   }
 
-  const activeStatuses = ["booked", "checked_in"]; // Only these are active
+  // ✅ CRITICAL FIX: Only "checked_in" bookings are truly active
+  // "booked" status without being reported should NOT show as active
+  const activeStatuses = ["checked_in"]; // CHANGED: Only checked_in guests are active
   
   const filtered = {};
   
@@ -46,10 +48,12 @@ const filterActiveBookingsFromHostelData = (hostelData) => {
       rooms: hostel.rooms.map(room => ({
         ...room,
         bookings: (room.bookings || []).filter(booking => {
-          const isActive = activeStatuses.includes(booking.status);
+          // ✅ NEW: Additional check for reportedStatus
+          const isReported = booking.reportedStatus === "reported" || booking.status === "checked_in";
+          const isActive = activeStatuses.includes(booking.status) && isReported;
           
           if (!isActive) {
-            console.log(`⏭️ Frontend filter: Removing ${booking.status} booking:`, {
+            console.log(`⭐️ Frontend filter: Removing ${booking.status} booking (reported: ${isReported}):`, {
               guest: booking.guest,
               room: room.roomNo,
               hostel: hostelName

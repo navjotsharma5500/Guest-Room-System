@@ -12,10 +12,11 @@ export const socket = io(BACKEND_URL, {
   autoConnect: true,
   withCredentials: true,
   reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
+  reconnectionDelay: 500, // ✅ CHANGED: 1000ms → 500ms (faster reconnection)
+  reconnectionDelayMax: 3000, // ✅ CHANGED: 5000ms → 3000ms (faster max delay)
   reconnectionAttempts: Infinity,
-  transports: ["websocket", "polling"], // polling fallback for safety
+  timeout: 3000, // ✅ NEW: 3-second timeout for faster detection
+  transports: ["websocket", "polling"],
 });
 
 socket.on("connect", () => {
