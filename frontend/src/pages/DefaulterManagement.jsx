@@ -281,7 +281,12 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   };
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 overflow-hidden">
+    <motion.main
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45 }}
+      className="flex-1 p-8 min-h-screen ml-64 bg-gradient-to-br from-gray-50 to-gray-100"
+    >
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
@@ -896,7 +901,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </motion.main>
   );
 };
 
