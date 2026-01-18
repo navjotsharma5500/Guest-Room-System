@@ -1,75 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Download, Search, Filter, AlertCircle, CreditCard, 
   User, Phone, Mail, Calendar, Building2, ChevronLeft,
   ChevronRight, FileText, Clock, TrendingUp, Ban,
-  CheckCircle, Receipt, History, DollarSign, ArrowLeft
+  CheckCircle, Receipt, History, DollarSign, ArrowLeft, Upload
 } from 'lucide-react';
-import { BACKEND_URL } from '../utils/apiConfig';
 
-const API = BACKEND_URL;
+// Mock API Configuration
+const API = 'https://api.example.com';
+const IMAGEKIT_PUBLIC_KEY = 'your_public_key';
+const IMAGEKIT_URL_ENDPOINT = 'https://ik.imagekit.io/your_id';
 
 const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [defaulters, setDefaulters] = useState([]);
   const [filteredDefaulters, setFilteredDefaulters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHostel, setSelectedHostel] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDefaulter, setSelectedDefaulter] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showRollbackModal, setShowRollbackModal] = useState(false);
+  const [rollbackAmount, setRollbackAmount] = useState(0);
+  const [rollbackRemarks, setRollbackRemarks] = useState('');
+  const [rollbackAttachments, setRollbackAttachments] = useState([]);
+  const [uploadingRollback, setUploadingRollback] = useState(false);
   
+  const ikRollbackUploadRef = useRef(null);
   const itemsPerPage = 10;
-  const role = currentUser?.role || 'caretaker';
+  const role = currentUser?.role || 'admin';
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
 
-  // Fetch defaulters
+  // Mock data for demonstration
   useEffect(() => {
-    fetchDefaulters();
+    const mockDefaulters = [
+      {
+        _id: '1',
+        guest: 'Rahul Kumar',
+        email: 'rahul@example.com',
+        contact: '9876543210',
+        hostel: 'Hostel A',
+        roomNo: '101',
+        department: 'CSE',
+        rollno: 'CSE001',
+        totalAmount: 15000,
+        paidAmount: 5000,
+        discount: 0,
+        totalDue: 10000,
+        daysOverdue: 45,
+        lastBooking: new Date('2024-12-01'),
+        checkoutDate: new Date('2024-12-15'),
+        status: 'defaulter',
+        bills: [
+          { billNumber: 'BILL001', date: new Date('2024-12-01'), amount: 10000, status: 'unpaid' }
+        ],
+        paymentRollbacks: []
+      },
+      {
+        _id: '2',
+        guest: 'Priya Singh',
+        email: 'priya@example.com',
+        contact: '9876543211',
+        hostel: 'Hostel B',
+        roomNo: '202',
+        department: 'ECE',
+        rollno: 'ECE002',
+        totalAmount: 8000,
+        paidAmount: 3000,
+        discount: 500,
+        totalDue: 4500,
+        daysOverdue: 20,
+        lastBooking: new Date('2025-01-01'),
+        checkoutDate: new Date('2025-01-10'),
+        status: 'defaulter',
+        bills: [
+          { billNumber: 'BILL002', date: new Date('2025-01-01'), amount: 4500, status: 'unpaid' }
+        ],
+        paymentRollbacks: []
+      }
+    ];
+    
+    setDefaulters(mockDefaulters);
+    setFilteredDefaulters(mockDefaulters);
   }, []);
-
-  const fetchDefaulters = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const response = await fetch(`${API}/api/defaulters`, {
-        method: "GET",
-        credentials: "include",
-        headers
-      });  
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-
-      if (data.success) {
-        setDefaulters(data.defaulters || []);
-        setFilteredDefaulters(data.defaulters || []);
-      } else {
-        console.error('API returned success: false');
-        setDefaulters([]);
-        setFilteredDefaulters([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch defaulters:', err);
-      setDefaulters([]);
-      setFilteredDefaulters([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Filter and search
   useEffect(() => {
     let filtered = [...defaulters];
 
-    // Search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(d => 
@@ -80,7 +99,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       );
     }
 
-    // Hostel filter
     if (selectedHostel !== 'All') {
       filtered = filtered.filter(d => d.hostel === selectedHostel);
     }
@@ -106,16 +124,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   // Download CSV
   const handleDownload = () => {
-    const headers = ['Guest Name', 'Email', 'Contact', 'Hostel', 'Room', 'Department', 'Roll No', 'Total Due', 'Days Overdue', 'Last Booking'];
+    const headers = [
+      'Guest Name', 'Email', 'Contact', 'Hostel', 'Room', 'Department', 'Roll No',
+      'Total Amount', 'Paid Amount', 'Discount', 'Balance Due', 'Days Overdue',
+      'Last Booking', 'Checkout Date', 'Status'
+    ];
     
-    let dataToDownload = filteredDefaulters;
-    if (role === 'caretaker' && assignedHostel) {
-      dataToDownload = dataToDownload.filter(d => d.hostel === assignedHostel);
-    }
-
     const csvContent = [
       headers.join(','),
-      ...dataToDownload.map(d => [
+      ...filteredDefaulters.map(d => [
         `"${d.guest}"`,
         `"${d.email}"`,
         d.contact,
@@ -123,9 +140,14 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         d.roomNo,
         `"${d.department}"`,
         d.rollno,
+        d.totalAmount || 0,
+        d.paidAmount || 0,
+        d.discount || 0,
         d.totalDue,
         d.daysOverdue,
-        d.lastBooking
+        new Date(d.lastBooking).toLocaleDateString(),
+        new Date(d.checkoutDate).toLocaleDateString(),
+        d.status
       ].join(','))
     ].join('\n');
 
@@ -145,30 +167,69 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     return 'bg-yellow-100 text-yellow-700 border-yellow-300';
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === 'Escape') {
-        if (showDetails) {
-          setShowDetails(false);
-        } else {
-          onBack();
-        }
-      }
-    };
+  // Mock file upload handler
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingRollback(true);
+      // Simulate upload
+      setTimeout(() => {
+        const mockUrl = `https://example.com/uploads/${file.name}`;
+        setRollbackAttachments(prev => [...prev, mockUrl]);
+        setUploadingRollback(false);
+      }, 1500);
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [showDetails, onBack]);
+  // Rollback payment handler
+  const handleRollbackPayment = async () => {
+    if (!selectedDefaulter) return;
+
+    if (!rollbackAmount || rollbackAmount <= 0) {
+      alert("⚠️ Please enter a valid rollback amount");
+      return;
+    }
+
+    if (rollbackAmount > selectedDefaulter.paidAmount) {
+      alert(`⚠️ Cannot rollback ₹${rollbackAmount}. Only ₹${selectedDefaulter.paidAmount} has been paid.`);
+      return;
+    }
+
+    if (!rollbackRemarks.trim()) {
+      alert("⚠️ Remarks are mandatory for rollback");
+      return;
+    }
+
+    if (rollbackAttachments.length === 0) {
+      alert("⚠️ At least one attachment is required for rollback");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to rollback ₹${rollbackAmount}?\n\nThis will:\n- Reduce paid amount from ₹${selectedDefaulter.paidAmount} to ₹${selectedDefaulter.paidAmount - rollbackAmount}\n- Increase balance from ₹${selectedDefaulter.totalDue} to ₹${selectedDefaulter.totalDue + rollbackAmount}`)) {
+      return;
+    }
+
+    setLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      alert(`✅ ₹${rollbackAmount} rolled back successfully!`);
+      setShowRollbackModal(false);
+      setRollbackAmount(0);
+      setRollbackRemarks('');
+      setRollbackAttachments([]);
+      setShowDetails(false);
+      setLoading(false);
+    }, 1000);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="h-screen overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* ✅ BACK BUTTON + HEADER */}
+        {/* Header */}
         <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              {/* Back Button */}
               <motion.button
                 onClick={onBack}
                 className="bg-white/10 hover:bg-white/20 rounded-full p-2 transition"
@@ -251,7 +312,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         {/* Filters & Search */}
         <div className="bg-white rounded-2xl shadow-lg p-4 mb-6 border-2 border-gray-200">
           <div className="flex gap-4 items-center flex-wrap">
-            {/* Search */}
             <div className="flex-1 min-w-[300px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -263,7 +323,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               />
             </div>
 
-            {/* Hostel Filter (Admin/Manager only) */}
             {(role === 'admin' || role === 'manager') && (
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -279,7 +338,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               </div>
             )}
 
-            {/* Download Button */}
             <motion.button
               onClick={handleDownload}
               className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg whitespace-nowrap"
@@ -319,7 +377,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   >
                     <div className="p-4">
                       <div className="flex justify-between items-start gap-4">
-                        {/* Guest Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="bg-gradient-to-br from-red-500 to-red-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-base shadow-lg flex-shrink-0">
@@ -351,7 +408,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           </div>
                         </div>
 
-                        {/* Amount & Actions */}
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
                           <div className="text-right">
                             <p className="text-[10px] text-gray-600 mb-0.5">Outstanding</p>
@@ -384,7 +440,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 ))}
               </div>
 
-              {/* Pagination */}
               {filteredDefaulters.length > itemsPerPage && (
                 <div className="mt-4 flex justify-between items-center flex-wrap gap-3">
                   <p className="text-sm text-gray-600">
@@ -434,7 +489,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           )}
         </div>
 
-        {/* Details Modal - Keep existing modal code */}
+        {/* Details Modal */}
         <AnimatePresence>
           {showDetails && selectedDefaulter && (
             <motion.div
@@ -451,7 +506,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 exit={{ scale: 0.9, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Keep your existing modal content exactly as is */}
                 <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
@@ -542,8 +596,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     <motion.button
                       onClick={() => {
                         setShowDetails(false);
-                        
-                        // ✅ CRITICAL FIX: Pass booking data with proper structure
                         const bookingData = {
                           _id: selectedDefaulter._id,
                           bookingId: selectedDefaulter._id,
@@ -559,9 +611,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           daysOverdue: selectedDefaulter.daysOverdue,
                           lastBooking: selectedDefaulter.lastBooking
                         };
-                        
-                        console.log("🔵 Opening payment modal for defaulter:", bookingData);
-                        onOpenPaymentModal(bookingData);
+                        onOpenPaymentModal?.(bookingData);
                       }}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
                       whileHover={{ scale: 1.02 }}
@@ -570,7 +620,23 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       <CreditCard size={20} />
                       Pay ₹{selectedDefaulter.totalDue} Now
                     </motion.button>
-
+                    
+                    {/* Rollback Button */}
+                    {selectedDefaulter.paidAmount > 0 && (
+                      <motion.button
+                        onClick={() => {
+                          setShowDetails(false);
+                          setShowRollbackModal(true);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <AlertCircle size={20} />
+                        Rollback Payment
+                      </motion.button>
+                    )}
+                    
                     <motion.button
                       onClick={() => setShowDetails(false)}
                       className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold"
@@ -578,6 +644,205 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       whileTap={{ scale: 0.98 }}
                     >
                       Close
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Rollback Payment Modal */}
+        <AnimatePresence>
+          {showRollbackModal && selectedDefaulter && (
+            <motion.div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRollbackModal(false)}
+            >
+              <motion.div
+                className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <motion.div
+                        className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl"
+                        animate={{ rotate: [0, -10, 10, -10, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 3 }}
+                      >
+                        <AlertCircle className="w-8 h-8" />
+                      </motion.div>
+                      <div>
+                        <h3 className="text-2xl font-bold">Rollback Payment</h3>
+                        <p className="text-white/90 text-sm">{selectedDefaulter.guest}</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={() => setShowRollbackModal(false)}
+                      className="bg-white/20 hover:bg-white/30 rounded-full p-2"
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                    >
+                      <X size={20} />
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-4">
+                  {/* Current Payment Info */}
+                  <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-gray-600">Total Amount</p>
+                        <p className="font-bold text-gray-900">₹{selectedDefaulter.totalAmount || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Paid Amount</p>
+                        <p className="font-bold text-green-600">₹{selectedDefaulter.paidAmount || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Current Balance</p>
+                        <p className="font-bold text-red-600">₹{selectedDefaulter.totalDue}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Max Rollback</p>
+                        <p className="font-bold text-orange-600">₹{selectedDefaulter.paidAmount || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rollback Amount Input */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-gray-700">
+                      Rollback Amount (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={rollbackAmount || ''}
+                      onChange={(e) => setRollbackAmount(Math.min(selectedDefaulter.paidAmount || 0, Number(e.target.value) || 0))}
+                      min="1"
+                      max={selectedDefaulter.paidAmount || 0}
+                      placeholder="Enter amount to rollback"
+                      className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maximum: ₹{selectedDefaulter.paidAmount || 0}
+                    </p>
+                  </div>
+
+                  {/* Remarks */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-gray-700">
+                      Remarks <span className="text-red-500">* (Mandatory)</span>
+                    </label>
+                    <textarea
+                      value={rollbackRemarks}
+                      onChange={(e) => setRollbackRemarks(e.target.value)}
+                      placeholder="Enter reason for rollback (mandatory)..."
+                      className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 h-24 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  {/* Attachments Upload */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-gray-700">
+                      Upload Proof <span className="text-red-500">* (Mandatory)</span>
+                    </label>
+                    
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="rollback-upload"
+                      accept="image/*,.pdf"
+                    />
+                    
+                    <label
+                      htmlFor="rollback-upload"
+                      className="w-full border-2 border-dashed border-gray-400 rounded-xl p-4 hover:border-orange-500 hover:bg-orange-50 transition text-center cursor-pointer block"
+                    >
+                      {uploadingRollback ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                          <p className="text-sm text-gray-600">Uploading...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="w-8 h-8 text-gray-400" />
+                          <p className="text-sm text-gray-600">Click to upload proof</p>
+                        </div>
+                      )}
+                    </label>
+
+                    {rollbackAttachments.length > 0 && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-xs font-semibold text-green-700 mb-2">
+                          ✅ Uploaded: {rollbackAttachments.length}
+                        </p>
+                        <ul className="space-y-1">
+                          {rollbackAttachments.map((url, i) => (
+                            <li key={i} className="flex items-center justify-between bg-white p-2 rounded">
+                              <span className="text-xs text-blue-600 truncate flex-1">File {i + 1}</span>
+                              <button
+                                onClick={() => setRollbackAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X size={16} />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview of Changes */}
+                  {rollbackAmount > 0 && (
+                    <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                      <p className="text-sm font-bold text-orange-800 mb-2">After Rollback:</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <p className="text-gray-600">New Paid Amount</p>
+                          <p className="font-bold text-green-700">
+                            ₹{(selectedDefaulter.paidAmount || 0) - rollbackAmount}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">New Balance</p>
+                          <p className="font-bold text-red-700">
+                            ₹{selectedDefaulter.totalDue + rollbackAmount}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <motion.button
+                      onClick={handleRollbackPayment}
+                      disabled={loading || !rollbackAmount || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
+                      className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {loading ? "Processing..." : `Rollback ₹${rollbackAmount}`}
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowRollbackModal(false)}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Cancel
                     </motion.button>
                   </div>
                 </div>

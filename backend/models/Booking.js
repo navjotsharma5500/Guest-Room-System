@@ -93,6 +93,17 @@ const BookingSchema = new mongoose.Schema(
     approvalDocuments: { type: [String], default: [] },          // Free booking approval docs
     paymentAttachments: { type: [String], default: [] },         // Payment proof
 
+    // Payment Rollbacks
+    paymentRollbacks: [{
+      amount: { type: Number, required: true },
+      rollbackDate: { type: Date, default: Date.now },
+      rollbackBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      remarks: { type: String, required: true },
+      attachments: { type: [String], default: [] },
+      previousPaidAmount: { type: Number },
+      previousBalanceAmount: { type: Number }
+    }],
+
     // =========================
     // ENQUIRY LINK
     // =========================

@@ -4,7 +4,8 @@ import {
   getDefaulters, 
   checkGuestHistory, 
   getDefaulterStats,
-  resolveDefaulter 
+  resolveDefaulter,
+  rollbackPayment 
 } from "../controllers/defaulterController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
@@ -40,6 +41,14 @@ router.patch(
   protect, 
   authorizeRoles("admin", "caretaker"), 
   resolveDefaulter
+);
+
+// Rollback payment - admin and caretaker
+router.post(
+  "/:id/rollback", 
+  protect, 
+  authorizeRoles("admin", "caretaker"), 
+  rollbackPayment
 );
 
 export default router;
