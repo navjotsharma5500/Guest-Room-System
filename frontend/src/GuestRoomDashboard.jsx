@@ -809,14 +809,6 @@ export default function GuestRoomDashboard() {
               />
             )}
 
-            {activeTab === "Defaulters" && (
-              <DefaulterManagement
-                currentUser={currentUser}
-                onClose={() => setActiveTab("Home")}
-                onOpenPaymentModal={handleOpenDefaulterPayment}
-              />
-            )}
-
             {activeTab === "AllHostelsPortal" && (
               <AllHostelsPortal
                 hostelData={hostelData}
@@ -867,6 +859,14 @@ export default function GuestRoomDashboard() {
               setDefaulterPaymentModal(null);
               refresh(); // Refresh data
             }}
+          />
+        )}
+
+        {activeTab === "Defaulters" && (
+          <DefaulterManagement
+            currentUser={currentUser}
+            onClose={() => setActiveTab("Home")}
+            onOpenPaymentModal={handleOpenDefaulterPayment}
           />
         )}
 
