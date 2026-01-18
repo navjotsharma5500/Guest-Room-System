@@ -877,35 +877,16 @@ export default function GuestRoomDashboard() {
         {activeTab === "Defaulters" && (
           <DefaulterManagement
             currentUser={currentUser}
-            onClose={() => setActiveTab("Home")}
+            onClose={() => {
+              console.log("🚪 Closing DefaulterManagement");
+              setActiveTab("Home");
+              if (currentUser?.assignedHostel) {
+                setActiveHostel(currentUser.assignedHostel);
+              }
+            }}
             onOpenPaymentModal={handleOpenDefaulterPayment}
           />
         )}
-
-        {/* ✅ DEFAULTER MANAGEMENT - WITH DEBUG LOGS */}
-        {(() => {
-          console.log("🔍 Checking if should render DefaulterManagement:", activeTab === "Defaulters");
-          
-          if (activeTab === "Defaulters") {
-            console.log("✅ RENDERING DefaulterManagement component");
-            return (
-              <DefaulterManagement
-                currentUser={currentUser}
-                onClose={() => {
-                  console.log("🚪 DefaulterManagement onClose called");
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) {
-                    setActiveHostel(currentUser.assignedHostel);
-                  }
-                }}
-                onOpenPaymentModal={handleOpenDefaulterPayment}
-              />
-            );
-          }
-          
-          console.log("❌ NOT rendering DefaulterManagement");
-          return null;
-        })()}
 
         <ProfileModal
           open={profileOpen}
