@@ -162,7 +162,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   }, [showDetails, onBack]);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 pt-4">
       <div className="max-w-7xl mx-auto">
         {/* ✅ BACK BUTTON + HEADER */}
         <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
@@ -249,17 +249,17 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-gray-200">
-          <div className="flex gap-4 items-center">
+        <div className="bg-white rounded-2xl shadow-lg p-4 mb-6 border-2 border-gray-200">
+          <div className="flex gap-4 items-center flex-wrap">
             {/* Search */}
-            <div className="flex-1 relative">
+            <div className="flex-1 min-w-[300px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, email, contact, or roll number..."
-                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
 
@@ -270,7 +270,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 <select
                   value={selectedHostel}
                   onChange={(e) => setSelectedHostel(e.target.value)}
-                  className="pl-10 pr-8 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
+                  className="pl-10 pr-8 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
                 >
                   {hostels.map(h => (
                     <option key={h} value={h}>{h}</option>
@@ -282,18 +282,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             {/* Download Button */}
             <motion.button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg whitespace-nowrap"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Download size={20} />
+              <Download size={18} />
               Download CSV
             </motion.button>
           </div>
         </div>
 
         {/* Defaulters List */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200">
+        <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
@@ -307,7 +307,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             </div>
           ) : (
             <>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {paginatedDefaulters.map((defaulter, index) => (
                   <motion.div
                     key={defaulter._id}
@@ -315,53 +315,53 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    whileHover={{ scale: 1.02, x: 5 }}
+                    whileHover={{ scale: 1.01, x: 5 }}
                   >
-                    <div className="p-5">
-                      <div className="flex justify-between items-start">
+                    <div className="p-4">
+                      <div className="flex justify-between items-start gap-4">
                         {/* Guest Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="bg-gradient-to-br from-red-500 to-red-700 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-gradient-to-br from-red-500 to-red-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-base shadow-lg flex-shrink-0">
                               {defaulter.guest.charAt(0)}
                             </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-900">{defaulter.guest}</h3>
-                              <p className="text-sm text-gray-600">{defaulter.department} • {defaulter.rollno}</p>
+                            <div className="min-w-0">
+                              <h3 className="text-lg font-bold text-gray-900 truncate">{defaulter.guest}</h3>
+                              <p className="text-xs text-gray-600 truncate">{defaulter.department} • {defaulter.rollno}</p>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-700">{defaulter.email}</span>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-700 truncate">{defaulter.email}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4 text-gray-400" />
+                              <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
                               <span className="text-gray-700">{defaulter.contact}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-700">{defaulter.hostel} - Room {defaulter.roomNo}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Building2 className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-700 truncate">{defaulter.hostel} - Room {defaulter.roomNo}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-700">Last: {new Date(defaulter.lastBooking).toLocaleDateString()}</span>
+                              <Calendar className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-700">{new Date(defaulter.lastBooking).toLocaleDateString()}</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Amount & Actions */}
-                        <div className="flex flex-col items-end gap-3">
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
                           <div className="text-right">
-                            <p className="text-xs text-gray-600 mb-1">Total Outstanding</p>
-                            <p className="text-3xl font-bold text-red-700">₹{defaulter.totalDue}</p>
+                            <p className="text-[10px] text-gray-600 mb-0.5">Outstanding</p>
+                            <p className="text-2xl font-bold text-red-700">₹{defaulter.totalDue}</p>
                           </div>
 
-                          <div className="flex items-center gap-2 bg-red-100 px-3 py-1.5 rounded-full border border-red-300">
-                            <Clock className="w-4 h-4 text-red-600" />
-                            <span className="text-sm font-semibold text-red-700">
-                              {defaulter.daysOverdue} days overdue
+                          <div className="flex items-center gap-1.5 bg-red-100 px-2.5 py-1 rounded-full border border-red-300">
+                            <Clock className="w-3 h-3 text-red-600" />
+                            <span className="text-xs font-semibold text-red-700">
+                              {defaulter.daysOverdue}d
                             </span>
                           </div>
 
@@ -370,12 +370,12 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                               setSelectedDefaulter(defaulter);
                               setShowDetails(true);
                             }}
-                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl font-semibold shadow-lg flex items-center gap-2"
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-1.5 rounded-xl font-semibold shadow-lg flex items-center gap-1.5 text-sm"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                           >
-                            <FileText size={16} />
-                            See Details
+                            <FileText size={14} />
+                            Details
                           </motion.button>
                         </div>
                       </div>
@@ -386,43 +386,46 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
               {/* Pagination */}
               {filteredDefaulters.length > itemsPerPage && (
-                <div className="mt-6 flex justify-between items-center">
+                <div className="mt-4 flex justify-between items-center flex-wrap gap-3">
                   <p className="text-sm text-gray-600">
-                    Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length} defaulters
+                    Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length}
                   </p>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <motion.button
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                       whileHover={{ scale: currentPage === 1 ? 1 : 1.05 }}
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={18} />
                     </motion.button>
 
-                    {[...Array(totalPages)].map((_, i) => (
-                      <motion.button
-                        key={i}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`px-4 py-2 rounded-lg font-semibold ${
-                          currentPage === i + 1
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        {i + 1}
-                      </motion.button>
-                    ))}
+                    {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <motion.button
+                          key={i}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1.5 rounded-lg font-semibold text-sm ${
+                            currentPage === pageNum
+                              ? 'bg-red-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          {pageNum}
+                        </motion.button>
+                      );
+                    })}
 
                     <motion.button
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                       whileHover={{ scale: currentPage === totalPages ? 1 : 1.05 }}
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={18} />
                     </motion.button>
                   </div>
                 </div>
@@ -431,7 +434,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           )}
         </div>
 
-        {/* Details Modal */}
+        {/* Details Modal - Keep existing modal code */}
         <AnimatePresence>
           {showDetails && selectedDefaulter && (
             <motion.div
@@ -448,7 +451,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 exit={{ scale: 0.9, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Details Header */}
+                {/* Keep your existing modal content exactly as is */}
                 <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
