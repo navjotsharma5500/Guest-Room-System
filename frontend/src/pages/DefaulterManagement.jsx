@@ -162,7 +162,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   }, [showDetails, onBack]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 pt-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* ✅ BACK BUTTON + HEADER */}
         <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
@@ -542,7 +542,26 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     <motion.button
                       onClick={() => {
                         setShowDetails(false);
-                        onOpenPaymentModal(selectedDefaulter);
+                        
+                        // ✅ CRITICAL FIX: Pass booking data with proper structure
+                        const bookingData = {
+                          _id: selectedDefaulter._id,
+                          bookingId: selectedDefaulter._id,
+                          guest: selectedDefaulter.guest,
+                          email: selectedDefaulter.email,
+                          contact: selectedDefaulter.contact,
+                          hostel: selectedDefaulter.hostel,
+                          roomNo: selectedDefaulter.roomNo,
+                          department: selectedDefaulter.department,
+                          rollno: selectedDefaulter.rollno,
+                          totalDue: selectedDefaulter.totalDue,
+                          bills: selectedDefaulter.bills,
+                          daysOverdue: selectedDefaulter.daysOverdue,
+                          lastBooking: selectedDefaulter.lastBooking
+                        };
+                        
+                        console.log("🔵 Opening payment modal for defaulter:", bookingData);
+                        onOpenPaymentModal(bookingData);
                       }}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
                       whileHover={{ scale: 1.02 }}

@@ -974,7 +974,8 @@ export default function ReportedModal({
                             onClick={() => {
                               setShowPaymentWarning(false);
                               onClose();
-                              onOpenPaymentModal();
+                              // ✅ Pass the current booking data properly
+                              onOpenPaymentModal(booking);
                             }}
                             className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
                             whileHover={{ scale: 1.02, y: -2 }}

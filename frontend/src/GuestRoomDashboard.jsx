@@ -863,7 +863,21 @@ export default function GuestRoomDashboard() {
         {/* ✅ DEFAULTER PAYMENT MODAL */}
         {defaulterPaymentModal && (
           <PaymentModal
-            booking={defaulterPaymentModal}
+            booking={{
+              ...defaulterPaymentModal,
+              _id: defaulterPaymentModal._id || defaulterPaymentModal.bookingId,
+              guest: defaulterPaymentModal.guest,
+              email: defaulterPaymentModal.email,
+              contact: defaulterPaymentModal.contact,
+              hostel: defaulterPaymentModal.hostel,
+              roomNo: defaulterPaymentModal.roomNo,
+              totalAmount: defaulterPaymentModal.totalDue || 0,
+              paidAmount: 0, // Defaulter has paid nothing yet
+              balanceAmount: defaulterPaymentModal.totalDue || 0,
+              paymentType: "Paid", // Defaulters are always paid bookings
+              discount: 0,
+              waveOff: 0
+            }}
             onClose={() => setDefaulterPaymentModal(null)}
             onSuccess={(updatedBooking) => {
               console.log("✅ Payment successful:", updatedBooking);

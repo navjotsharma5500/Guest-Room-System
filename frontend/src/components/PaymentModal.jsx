@@ -22,14 +22,24 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
   console.log("🔥 Payment Modal Opened for:", booking);
 
-  // ✅ CALCULATE BALANCE - Handle both Free and Paid bookings
-  const totalAmount = booking.totalAmount || 0;
+  // ✅ CALCULATE BALANCE - Handle both Free and Paid bookings + Defaulters
+  const totalAmount = booking.totalAmount || booking.totalDue || 0;
   const paidSoFar = booking.paidAmount || 0;
-  const previousDiscount = booking.discount || booking.waveOff || 0; // ✅ GET EXISTING DISCOUNT
-  const balance = totalAmount - paidSoFar - previousDiscount; // ✅ SUBTRACT EXISTING DISCOUNT
+  const previousDiscount = booking.discount || booking.waveOff || 0;
+  const balance = totalAmount - paidSoFar - previousDiscount;
   const paymentType = booking.paymentType || "Paid";
   const isFreeBedding = paymentType === "Free";
-  const isFullyPaid = !isFreeBedding && balance === 0;
+  const isFullyPaid = !isFreeBedding && balance <= 0;
+
+  console.log("💰 PaymentModal - Amounts:", {
+    totalAmount,
+    paidSoFar,
+    previousDiscount,
+    balance,
+    isFreeBedding,
+    isFullyPaid,
+    bookingId: booking._id || booking.bookingId
+  });
 
 
   // ✅ STATES
