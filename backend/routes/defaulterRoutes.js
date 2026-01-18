@@ -16,7 +16,7 @@ const router = express.Router();
 router.get(
   "/", 
   protect, 
-  authorizeRoles("admin", "warden", "caretaker"), 
+  authorizeRoles("admin", "manager", "caretaker"), 
   getDefaulters
 );
 
@@ -31,7 +31,7 @@ router.get(
 router.get(
   "/stats", 
   protect, 
-  authorizeRoles("admin", "warden", "caretaker"), 
+  authorizeRoles("admin", "manager", "caretaker"), 
   getDefaulterStats
 );
 
@@ -39,7 +39,7 @@ router.get(
 router.patch(
   "/:id/resolve", 
   protect, 
-  authorizeRoles("admin", "caretaker"), 
+  authorizeRoles("admin", "manager", "caretaker"), 
   resolveDefaulter
 );
 
@@ -47,7 +47,7 @@ router.patch(
 router.post(
   "/:id/rollback", 
   protect, 
-  authorizeRoles("admin", "caretaker"), 
+  authorizeRoles("admin", "manager"), 
   rollbackPayment
 );
 

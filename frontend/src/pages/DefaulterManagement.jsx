@@ -28,8 +28,12 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [error, setError] = useState(null);
   const ikRollbackUploadRef = useRef(null);
   const itemsPerPage = 10;
-  const role = currentUser?.role || 'caretaker';
+
+  const role = currentUser?.role || "caretaker";
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
+
+  // ✅ Rollback permission (single source of truth)
+  const canRollback = role === "admin" || role === "manager";
 
   // ✅ FETCH REAL DEFAULTERS FROM BACKEND
   useEffect(() => {
@@ -668,33 +672,27 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           onOpenPaymentModal?.(bookingData);
                         }}
                         className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                       >
                         <CreditCard size={20} />
                         Pay ₹{selectedDefaulter.totalDue} Now
                       </motion.button>
-                      
-                      {selectedDefaulter.paidAmount > 0 && (
+
+                      {selectedDefaulter.paidAmount > 0 && canRollback && (
                         <motion.button
                           onClick={() => {
                             setShowDetails(false);
                             setShowRollbackModal(true);
                           }}
                           className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
                         >
                           <AlertCircle size={20} />
                           Rollback Payment
                         </motion.button>
                       )}
-                      
+
                       <motion.button
                         onClick={() => setShowDetails(false)}
                         className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                       >
                         Close
                       </motion.button>
@@ -707,7 +705,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
           {/* Rollback Payment Modal */}
           <AnimatePresence>
-            {showRollbackModal && selectedDefaulter && (
+            {showRollbackModal &&
+             selectedDefaulter &&
+             (role === "admin" || role === "manager") && (
               <motion.div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
                 initial={{ opacity: 0 }}

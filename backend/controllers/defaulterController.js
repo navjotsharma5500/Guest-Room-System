@@ -315,8 +315,16 @@ export const resolveDefaulter = async (req, res) => {
   }
 };
 
+
 // ✅ NEW: Rollback Payment
 export const rollbackPayment = async (req, res) => {
+  // 🔒 ROLE-BASED ACCESS CONTROL
+if (!req.user || !["admin", "manager"].includes(req.user.role)) {
+  return res.status(403).json({
+    success: false,
+    message: "Only admin or manager can rollback payments"
+  });
+}
   try {
     const { id } = req.params;
     const { amount, remarks, attachments } = req.body;
