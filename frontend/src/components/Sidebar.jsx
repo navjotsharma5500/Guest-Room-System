@@ -74,11 +74,22 @@ export default function Sidebar({
   useEffect(() => {
     if (loading) return;
 
-    if (!didAutoSelect.current && visibleHostels.length === 1 && canSeeAllHostels) {
+    if (
+      !didAutoSelect.current &&
+      visibleHostels.length === 1 &&
+      canSeeAllHostels &&
+      activeTab !== "Defaulters"
+    ) {
       didAutoSelect.current = true;
       setActiveHostel(visibleHostels[0]);
     }
-  }, [loading, visibleHostels, setActiveHostel, canSeeAllHostels]);
+  }, [
+    loading,
+    visibleHostels,
+    setActiveHostel,
+    canSeeAllHostels,
+    activeTab
+  ]);
 
   return (
     <motion.aside

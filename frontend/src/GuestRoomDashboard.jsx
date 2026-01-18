@@ -724,9 +724,7 @@ export default function GuestRoomDashboard() {
                     setActiveHostel(hostel);
 
                     // ⚠️ Do NOT override Defaulters tab
-                    if (activeTab !== "Defaulters") {
-                      setActiveTab("Home");
-                    }
+                    setActiveTab((prev) => (prev === "Defaulters" ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
