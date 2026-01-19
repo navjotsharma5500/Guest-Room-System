@@ -289,10 +289,10 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   };
 
   return (
-    <div className="min-h-screen ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
       {/* Header - Same style as CalendarGuestsPage */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white shadow-2xl border-4 border-red-500 rounded-3xl mx-6 mt-6">
+        <div className="px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -367,8 +367,8 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white shadow-md border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
+        <div className="px-6 py-4">
           <div className="flex gap-4 items-center flex-wrap">
             <div className="flex-1 min-w-[300px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -400,7 +400,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       </div>
 
       {/* Defaulters List */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="mx-6 my-6">
         {loading ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <div className="flex flex-col items-center justify-center">
