@@ -24,6 +24,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [rollbackRemarks, setRollbackRemarks] = useState('');
   const [rollbackAttachments, setRollbackAttachments] = useState([]);
   const [uploadingRollback, setUploadingRollback] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   
   const [error, setError] = useState(null);
   const ikRollbackUploadRef = useRef(null);
@@ -72,20 +73,36 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       console.log("✅ Defaulters fetched:", data);
 
       if (data.success && Array.isArray(data.defaulters)) {
-        const normalized = data.defaulters.map(d => ({
-          ...d,
-          department: d.department || "",
-          rollno: d.rollno || "",
-          bills: Array.isArray(d.bills) ? d.bills : [],
-          paidAmount: Number(d.paidAmount || 0),
-          totalAmount: Number(d.totalAmount || 0),
-          totalDue: Number(d.totalDue || 0),
-          paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
-        }));
+        const normalized = data.defaulters
+          .map(d => ({
+            ...d,
+            department: d.department || "",
+            rollno: d.rollno || "",
+            bills: Array.isArray(d.bills) ? d.bills : [],
+            paidAmount: Number(d.paidAmount || 0),
+            totalAmount: Number(d.totalAmount || 0),
+            totalDue: Number(d.totalDue || 0),
+            paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
+          }))
+          .filter(d => {
+            // ✅ ONLY show if checkout date has passed AND amount is unpaid
+            const checkoutDate = new Date(d.checkoutDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            checkoutDate.setHours(0, 0, 0, 0);
+            
+            const hasCheckoutPassed = checkoutDate < today;
+            const hasUnpaidAmount = d.totalDue > 0;
+            
+            // Must be checked_out OR checkout date passed
+            const isCheckoutStatus = d.status === 'checked_out' || hasCheckoutPassed;
+            
+            return isCheckoutStatus && hasUnpaidAmount;
+          });
 
         setDefaulters(normalized);
         setFilteredDefaulters(normalized);
-        console.log(`📊 Found ${normalized.length} defaulters`);
+        console.log(`📊 Found ${normalized.length} real defaulters`);
       } else {
         console.error('❌ Invalid API response:', data);
         setDefaulters([]);
@@ -241,9 +258,12 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to rollback ₹${rollbackAmount}?\n\nThis will:\n- Reduce paid amount from ₹${selectedDefaulter.paidAmount} to ₹${selectedDefaulter.paidAmount - rollbackAmount}\n- Increase balance from ₹${selectedDefaulter.totalDue} to ₹${selectedDefaulter.totalDue + rollbackAmount}`)) {
-      return;
-    }
+    setConfirmAction({
+      title: "Confirm Rollback",
+      message: "Are you sure you want to rollback this payment? This action cannot be undone.",
+      onConfirm: () => handleRollbackPayment()
+    });
+    return;
 
     try {
       setLoading(true);
@@ -291,7 +311,11 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   return (
     <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
       {/* Header - Same style as CalendarGuestsPage */}
-      <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white shadow-2xl border-4 border-red-500 rounded-3xl mx-6 mt-6">
+      <div className="relative bg-gradient-to-br from-gray-900 via-red-900 to-black text-white shadow-2xl rounded-3xl mx-6 mt-6 overflow-hidden border border-red-500/30">
+        <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-orange-500/10 backdrop-blur-xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        <div className="relative z-10">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -323,7 +347,13 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-4 mt-6">
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <motion.div 
+              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              whileHover={{ y: -5 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center gap-3">
                 <DollarSign className="w-8 h-8 text-yellow-400" />
                 <div>
@@ -331,9 +361,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   <p className="text-2xl font-bold text-yellow-400">₹{totalOutstanding}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <motion.div 
+              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              whileHover={{ y: -5 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center gap-3">
                 <User className="w-8 h-8 text-blue-400" />
                 <div>
@@ -341,9 +377,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   <p className="text-2xl font-bold text-blue-400">{defaulters.length}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <motion.div 
+              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              whileHover={{ y: -5 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center gap-3">
                 <Clock className="w-8 h-8 text-orange-400" />
                 <div>
@@ -351,9 +393,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   <p className="text-2xl font-bold text-orange-400">{avgDaysOverdue}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+            <motion.div 
+              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              whileHover={{ y: -5 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center gap-3">
                 <Ban className="w-8 h-8 text-red-400" />
                 <div>
@@ -361,10 +409,11 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </div>
+        </div>
+      </div> 
 
       {/* Filters Section */}
       <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
@@ -420,11 +469,22 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               {paginatedDefaulters.map((defaulter) => (
                 <motion.div
                   key={defaulter._id}
-                  className="bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-red-500 overflow-hidden shadow-md hover:shadow-xl transition-all p-6"
+                  className="relative bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.01 }}
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  transition={{ duration: 0.3 }}
                 >
+                  {/* Animated border gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '2px' }}>
+                    <div className="h-full w-full bg-white rounded-2xl"></div>
+                  </div>
+                  
+                  {/* Border */}
+                  <div className="absolute inset-0 border-2 border-red-500/30 group-hover:border-red-500 rounded-2xl transition-all duration-300"></div>
+                  
+                  {/* Content */}
+                  <div className="relative z-10 p-6 bg-gradient-to-br from-white/95 via-gray-50/95 to-white/95 backdrop-blur-sm rounded-2xl">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
@@ -433,11 +493,24 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                             {defaulter.guest.charAt(0)}
                           </div>
                           {/* Payment Status Flag */}
-                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
-                            defaulter.paidAmount > 0 ? 'bg-green-500' : 'bg-red-500'
-                          }`} title={defaulter.paidAmount > 0 ? 'Partial Payment Made' : 'No Payment'}>
-                            {defaulter.paidAmount > 0 && defaulter.totalDue === 0 && (
-                              <CheckCircle className="w-3 h-3 text-white m-0.5" />
+                          <div 
+                            className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${
+                              defaulter.totalDue === 0 
+                                ? 'bg-green-500' 
+                                : defaulter.paidAmount > 0 
+                                  ? 'bg-orange-500' 
+                                  : 'bg-red-500'
+                            }`} 
+                            title={
+                              defaulter.totalDue === 0 
+                                ? 'Fully Paid' 
+                                : defaulter.paidAmount > 0 
+                                  ? `Partial: ₹${defaulter.paidAmount} paid` 
+                                  : 'No Payment'
+                            }
+                          >
+                            {defaulter.totalDue === 0 && (
+                              <CheckCircle className="w-4 h-4 text-white" />
                             )}
                           </div>
                         </div>
@@ -469,25 +542,34 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-1">Outstanding</p>
-                        <p className="text-3xl font-bold text-red-700">₹{defaulter.totalDue}</p>
-                        <div className="flex items-center justify-end gap-2 bg-red-100 px-3 py-1 rounded-full border border-red-300 mt-2">
-                          <Clock className="w-4 h-4 text-red-600" />
-                          <span className="text-sm font-semibold text-red-700">{defaulter.daysOverdue}d overdue</span>
+                        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Outstanding</p>
+                        <div className="relative inline-block">
+                          <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full"></div>
+                          <p className="relative text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600 drop-shadow-lg">
+                            ₹{defaulter.totalDue}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-2 rounded-full border-2 border-red-300 mt-3 shadow-sm">
+                          <Clock className="w-4 h-4 text-red-600 animate-pulse" />
+                          <span className="text-sm font-bold text-red-700">{defaulter.daysOverdue} days</span>
                         </div>
                       </div>
 
-                      <button
+                      <motion.button
                         onClick={() => {
                           setSelectedDefaulter(defaulter);
                           setShowDetails(true);
                         }}
-                        className="bg-white text-gray-900 border-2 border-red-500 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg flex items-center gap-2"
+                        className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 text-white px-8 py-4 rounded-xl font-bold shadow-xl flex items-center gap-3 group"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <FileText size={18} className="text-red-600" />
-                        See Details
-                      </button>
+                        <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <FileText size={20} className="relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                        <span className="relative z-10">View Details</span>
+                      </motion.button>
                     </div>
+                  </div>
                   </div>
                 </motion.div>
               ))}
@@ -664,6 +746,65 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     <span className="text-3xl font-bold text-red-700">₹{selectedDefaulter.totalDue}</span>
                   </div>
                 </div>
+
+                {/* Rollback History */}
+                {selectedDefaulter.paymentRollbacks && selectedDefaulter.paymentRollbacks.length > 0 && (
+                  <div className="bg-orange-50 rounded-2xl p-5 border-2 border-orange-200">
+                    <h4 className="font-bold text-orange-800 mb-4 flex items-center gap-2">
+                      <History className="w-5 h-5" />
+                      Payment Rollback History ({selectedDefaulter.paymentRollbacks.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {selectedDefaulter.paymentRollbacks.map((rollback, index) => (
+                        <div key={index} className="bg-white rounded-xl p-4 border border-orange-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-bold text-gray-900">Rollback #{selectedDefaulter.paymentRollbacks.length - index}</p>
+                              <p className="text-xs text-gray-600">
+                                Date: {new Date(rollback.rollbackDate).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                By: {rollback.rolledBackBy?.name || 'System'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-orange-700">₹{rollback.amount}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-orange-200">
+                            <p className="text-xs text-gray-600 font-semibold mb-1">Remarks:</p>
+                            <p className="text-sm text-gray-800">{rollback.remarks}</p>
+                          </div>
+                          {rollback.attachments && rollback.attachments.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-orange-200">
+                              <p className="text-xs text-gray-600 font-semibold mb-1">Attachments:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {rollback.attachments.map((att, i) => (
+                                  <a
+                                    key={i}
+                                    href={att}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <FileText size={12} />
+                                    File {i + 1}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t-2 border-orange-300 flex justify-between items-center">
+                      <span className="font-bold text-gray-800">Total Rolled Back</span>
+                      <span className="text-2xl font-bold text-orange-700">
+                        ₹{selectedDefaulter.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
@@ -868,6 +1009,51 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     </div>
                   )}
                 </div>
+
+                <AnimatePresence>
+                  {confirmAction && (
+                    <motion.div
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <motion.div
+                        className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.9, y: 20 }}
+                      >
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {confirmAction.title}
+                        </h3>
+
+                        <p className="text-gray-600 mb-6">
+                          {confirmAction.message}
+                        </p>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              confirmAction.onConfirm();
+                              setConfirmAction(null);
+                            }}
+                            className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition"
+                          >
+                            Yes, Continue
+                          </button>
+
+                          <button
+                            onClick={() => setConfirmAction(null)}
+                            className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {rollbackAmount > 0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
