@@ -44,6 +44,8 @@ export default function ReportedModal({
   const [showOccupantPaymentWarning, setShowOccupantPaymentWarning] = useState(false);
   const [checkoutSource, setCheckoutSource] = useState("normal");
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
+  const [alertModal, setAlertModal] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   useEffect(() => {
     if (open && !isAlreadyReported && !isNotReported && !isNoShow && actualCheckInDate) {
@@ -88,7 +90,22 @@ export default function ReportedModal({
     }
   };
 
+  // Find the formatTime function end, then ADD:
+  const showAlert = (message, type = "info") => {
+    setAlertModal({ message, type });
+  };
 
+  const closeAlert = () => {
+    setAlertModal(null);
+  };
+
+  const showConfirm = (message, onConfirm, title = "Confirm Action") => {
+    setConfirmModal({ message, onConfirm, title });
+  };
+
+  const closeConfirm = () => {
+    setConfirmModal(null);
+  };
 
   // Check if early check-in is possible
   const isEarlyCheckIn = () => {
@@ -149,12 +166,11 @@ export default function ReportedModal({
       setLoading(true);
       setError("");
 
-      // ✅ GET TOKEN ONCE AT THE START
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // ✅ CHECK FOR PREVIOUS PENDING BILLS
+      // Check for previous pending bills
       const historyCheck = await fetch(
         `${API}/api/defaulters/check-history?email=${encodeURIComponent(booking.email)}&contact=${encodeURIComponent(booking.contact)}`,
         {
@@ -166,28 +182,25 @@ export default function ReportedModal({
 
       const historyData = await historyCheck.json();
 
+      // ✅ REPLACED window.confirm with showConfirm
       if (historyData.hasPendingBills) {
-        const confirmProceed = window.confirm(
+        showConfirm(
           `⚠️ WARNING: This guest has ₹${historyData.totalPending} pending from ${historyData.bookings.length} previous booking(s).\n\n` +
           `Previous bookings:\n${historyData.bookings.map(b => 
             `• ${b.hostel} - Room ${b.roomNo}: ₹${b.balanceAmount}`
           ).join('\n')}\n\n` +
           `Guest must clear previous dues before check-in.\n\n` +
-          `Do you want to open the payment modal to clear dues?`
+          `Do you want to clear the dues first?`,
+          () => {
+            showAlert("Please clear previous pending bills first before reporting this guest.", "warning");
+            setLoading(false);
+          },
+          "⚠️ Pending Bills Detected"
         );
-
-        if (confirmProceed) {
-          // Open payment modal for previous booking
-          alert("Please clear previous pending bills first before reporting this guest.");
-          setLoading(false);
-          return;
-        } else {
-          setLoading(false);
-          return;
-        }
+        setLoading(false);
+        return;
       }
 
-      // ✅ Check room availability first
       await checkRoomAvailability();
       
       if (roomOccupied && currentOccupant) {
@@ -196,22 +209,16 @@ export default function ReportedModal({
         return;
       }
 
-      // ✅ Get today's date (local timezone)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       const selectedDate = new Date(actualCheckInDate);
       selectedDate.setHours(0, 0, 0, 0);
 
-      // ✅ Prevent future date reporting
       if (selectedDate > today) {
         setError("❌ Cannot report a guest for a future date. Please select today or an earlier date.");
         setLoading(false);
         return;
-      }
-      
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API}/api/bookings/${booking._id}/reported`, {
@@ -240,19 +247,20 @@ export default function ReportedModal({
         actualCheckInDate: result.booking.actualCheckInDate
       });
 
-      // ✅ CRITICAL: Pass the UPDATED booking back to parent
       if (onSuccess) {
-        onSuccess(result.booking); // Backend returns updated booking with new 'from' date
+        onSuccess(result.booking);
       }
 
-      // ✅ Show success message
+      // ✅ REPLACED window.alert with showAlert
       if (result.earlyCheckIn) {
-        alert(`✅ Guest checked in early! Check-in date updated to ${formatDate(result.booking.from)}`);
+        showAlert(`✅ Guest checked in early! Check-in date updated to ${formatDate(result.booking.from)}`, "success");
       } else {
-        alert("✅ Guest reported successfully!");
+        showAlert("✅ Guest reported successfully!", "success");
       }
 
-      onClose();
+      setTimeout(() => {
+        onClose();
+      }, 1500);
 
     } catch (err) {
       console.error("❌ Report guest error:", err);
@@ -271,7 +279,6 @@ export default function ReportedModal({
       return;
     }
 
-    // ✅ CHECK IF CURRENT OCCUPANT HAS PENDING PAYMENT
     const occupantTotalAmount = currentOccupant.totalAmount || 0;
     const occupantPaidAmount = currentOccupant.paidAmount || 0;
     const occupantDiscount = currentOccupant.discount || currentOccupant.waveOff || 0;
@@ -280,142 +287,131 @@ export default function ReportedModal({
     const occupantHasPendingPayment = 
       occupantPaymentType !== "Free" && occupantBalance > 0;
 
-    console.log("🔍 Current Occupant Payment Status:", {
-      guest: currentOccupant.guest,
-      totalAmount: occupantTotalAmount,
-      paidAmount: occupantPaidAmount,
-      discount: occupantDiscount,
-      balance: occupantBalance,
-      paymentType: occupantPaymentType,
-      hasPendingPayment: occupantHasPendingPayment
-    });
-
-    // ✅ IF PENDING PAYMENT, FORCE SAME PAYMENT WARNING AS NORMAL CHECKOUT
     if (occupantHasPendingPayment) {
-      console.log("⚠️ Current occupant has pending payment - redirecting to payment warning");
-
-      // Reuse normal checkout payment warning
-      setSelectedBookingForPayment(currentOccupant); // treat occupant like booking
-      setCheckoutSource("occupant");                 // mark source
-      setShowPaymentWarning(true);                   // SAME modal as normal checkout
-
-      return;
-    }
-
-    // ✅ IF NO PENDING PAYMENT, PROCEED WITH CHECKOUT
-    await proceedOccupantCheckout();
-  };
-
-  const proceedOccupantCheckout = async () => {
-    if (!currentOccupant || !currentOccupant._id) {
-      setError("❌ No occupant information available");
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to check out ${currentOccupant.guest}?`)) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const response = await fetch(
-        `${API}/api/bookings/${currentOccupant._id}/checkout`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({
-            checkoutDate: new Date().toISOString().split("T")[0],
-            checkoutTime: new Date().toTimeString().slice(0, 5),
-            remarks: `Checked out to accommodate incoming guest: ${booking.guest}`,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to checkout current occupant");
-      }
-
-      console.log("✅ Current occupant checked out successfully");
-
-      // After successful checkout, recheck room availability
-      await checkRoomAvailability();
-      setError("");
-      setShowOccupantPaymentWarning(false);
-      
-    } catch (err) {
-      console.error("❌ Checkout current occupant error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarkNotReported = async () => {
-    if (!window.confirm("Are you sure this guest did NOT arrive?")) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API}/api/bookings/${booking._id}/not-reported`, {
-        method: "PUT",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({
-          remarks: remarks.trim() || "Guest did not arrive",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to mark guest as not reported");
-      }
-
-      const result = await response.json();
-      
-      if (onSuccess) {
-        onSuccess(result.booking);
-      }
-      
-      onClose();
-    } catch (err) {
-      console.error("❌ Mark not reported error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (!window.confirm("Are you sure you want to check out this guest?")) {
-      return;
-    }
-
-    if (hasPendingPayment) {
+      setSelectedBookingForPayment(currentOccupant);
+      setCheckoutSource("occupant");
       setShowPaymentWarning(true);
       return;
     }
 
-    await proceedCheckout();
+    // ✅ REPLACED window.confirm with showConfirm
+    showConfirm(
+      `Are you sure you want to check out ${currentOccupant.guest}?`,
+      async () => {
+        closeConfirm();
+        try {
+          setLoading(true);
+          setError("");
+
+          const token = localStorage.getItem("token");
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          const response = await fetch(
+            `${API}/api/bookings/${currentOccupant._id}/checkout`,
+            {
+              method: "PUT",
+              credentials: "include",
+              headers,
+              body: JSON.stringify({
+                checkoutDate: new Date().toISOString().split("T")[0],
+                checkoutTime: new Date().toTimeString().slice(0, 5),
+                remarks: `Checked out to accommodate incoming guest: ${booking.guest}`,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to checkout current occupant");
+          }
+
+          showAlert("✅ Current occupant checked out successfully", "success");
+          
+          await checkRoomAvailability();
+          setError("");
+          setShowOccupantPaymentWarning(false);
+          
+        } catch (err) {
+          console.error("❌ Checkout current occupant error:", err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      },
+      "Checkout Current Occupant"
+    );
+  };
+
+  const handleMarkNotReported = async () => {
+    // ✅ REPLACED window.confirm with showConfirm
+    showConfirm(
+      "Are you sure this guest did NOT arrive?",
+      async () => {
+        closeConfirm();
+        try {
+          setLoading(true);
+          setError("");
+
+          const token = localStorage.getItem("token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+          
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          const response = await fetch(`${API}/api/bookings/${booking._id}/not-reported`, {
+            method: "PUT",
+            credentials: "include",
+            headers,
+            body: JSON.stringify({
+              remarks: remarks.trim() || "Guest did not arrive",
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to mark guest as not reported");
+          }
+
+          const result = await response.json();
+          
+          showAlert("✅ Guest marked as not reported", "info");
+          
+          if (onSuccess) {
+            onSuccess(result.booking);
+          }
+          
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        } catch (err) {
+          console.error("❌ Mark not reported error:", err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      },
+      "Mark Guest as Not Reported"
+    );
+  };
+
+  const handleCheckout = async () => {
+    // ✅ REPLACED window.confirm with showConfirm
+    showConfirm(
+      "Are you sure you want to check out this guest?",
+      async () => {
+        closeConfirm();
+        if (hasPendingPayment) {
+          setShowPaymentWarning(true);
+          return;
+        }
+        await proceedCheckout();
+      },
+      "Checkout Guest"
+    );
   };
 
   const proceedCheckout = async () => {
@@ -455,6 +451,53 @@ export default function ReportedModal({
       onClose();
     } catch (err) {
       console.error("❌ Checkout error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const proceedOccupantCheckout = async () => {
+    if (!currentOccupant || !currentOccupant._id) {
+      setError("❌ No occupant information available");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(
+        `${API}/api/bookings/${currentOccupant._id}/checkout`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            checkoutDate: new Date().toISOString().split("T")[0],
+            checkoutTime: new Date().toTimeString().slice(0, 5),
+            remarks: `Checked out to accommodate incoming guest: ${booking.guest}`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to checkout current occupant");
+      }
+
+      showAlert("✅ Current occupant checked out successfully", "success");
+      
+      await checkRoomAvailability();
+      setError("");
+      setShowOccupantPaymentWarning(false);
+      
+    } catch (err) {
+      console.error("❌ Checkout current occupant error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -1186,6 +1229,164 @@ export default function ReportedModal({
                     </motion.div>
                   </motion.div>
                 )}
+
+                {/* 🆕 CUSTOM ALERT MODAL */}
+                <AnimatePresence>
+                  {alertModal && (
+                    <motion.div
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={closeAlert}
+                    >
+                      <motion.div
+                        className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+                        initial={{ scale: 0.8, y: 50 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.8, y: 50 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className={`p-6 text-white relative overflow-hidden ${
+                          alertModal.type === "success" 
+                            ? "bg-gradient-to-br from-green-500 to-green-600" 
+                            : alertModal.type === "warning"
+                            ? "bg-gradient-to-br from-amber-500 to-orange-600"
+                            : alertModal.type === "error"
+                            ? "bg-gradient-to-br from-red-500 to-red-600"
+                            : "bg-gradient-to-br from-blue-500 to-blue-600"
+                        }`}>
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+                          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
+                          
+                          <motion.div 
+                            className="relative z-10 flex items-center gap-4"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                          >
+                            <motion.div 
+                              className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl"
+                              animate={{ scale: [1, 1.1, 1] }}
+                              transition={{ duration: 0.5, repeat: 2 }}
+                            >
+                              {alertModal.type === "success" ? (
+                                <CheckCircle className="w-8 h-8" />
+                              ) : alertModal.type === "warning" ? (
+                                <AlertCircle className="w-8 h-8" />
+                              ) : alertModal.type === "error" ? (
+                                <XCircle className="w-8 h-8" />
+                              ) : (
+                                <AlertCircle className="w-8 h-8" />
+                              )}
+                            </motion.div>
+                            <div>
+                              <h3 className="text-2xl font-bold">
+                                {alertModal.type === "success" ? "Success!" : 
+                                alertModal.type === "warning" ? "Warning" :
+                                alertModal.type === "error" ? "Error" : "Notice"}
+                              </h3>
+                            </div>
+                          </motion.div>
+                        </div>
+
+                        <div className="p-6">
+                          <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                            {alertModal.message}
+                          </p>
+                          
+                          <motion.button
+                            onClick={closeAlert}
+                            className={`w-full mt-6 py-4 rounded-xl font-bold text-white shadow-lg ${
+                              alertModal.type === "success" 
+                                ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" 
+                                : alertModal.type === "warning"
+                                ? "bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800"
+                                : alertModal.type === "error"
+                                ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                                : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                            }`}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            OK
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* 🆕 CUSTOM CONFIRM MODAL */}
+                <AnimatePresence>
+                  {confirmModal && (
+                    <motion.div
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={closeConfirm}
+                    >
+                      <motion.div
+                        className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+                        initial={{ scale: 0.8, y: 50 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.8, y: 50 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-6 text-white relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+                          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
+                          
+                          <motion.div 
+                            className="relative z-10 flex items-center gap-4"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                          >
+                            <motion.div 
+                              className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl"
+                              animate={{ rotate: [0, -5, 5, -5, 0] }}
+                              transition={{ duration: 0.5, repeat: 2 }}
+                            >
+                              <AlertCircle className="w-8 h-8" />
+                            </motion.div>
+                            <div>
+                              <h3 className="text-2xl font-bold">{confirmModal.title}</h3>
+                            </div>
+                          </motion.div>
+                        </div>
+
+                        <div className="p-6">
+                          <p className="text-gray-700 whitespace-pre-line leading-relaxed mb-6">
+                            {confirmModal.message}
+                          </p>
+                          
+                          <div className="flex gap-3">
+                            <motion.button
+                              onClick={() => {
+                                confirmModal.onConfirm();
+                                closeConfirm();
+                              }}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg hover:from-green-700 hover:to-green-800"
+                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              Yes, Continue
+                            </motion.button>
+                            
+                            <motion.button
+                              onClick={closeConfirm}
+                              className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-300"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              Cancel
+                            </motion.button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Show Checkout button only if already reported */}
                 {isAlreadyReported && (
