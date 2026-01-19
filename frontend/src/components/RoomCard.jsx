@@ -79,26 +79,26 @@ const RoomCard = memo(function RoomCard({
     [activeBookings]
   );
 
-    // ✅ FIXED: For AllHostelsPortal - ONLY show red if guest is actually checked in/reported
-    const currentActive = useMemo(() => {
-      if (isAllHostelsView) {
-        // For AllHostelsPortal: ONLY red if guest is checked in/reported
-        return activeBookings.some((b) => 
-          b.status === "checked_in" || b.reportedStatus === "reported"
-        );
+  // ✅ FIXED: For AllHostelsPortal - ONLY show active if guest is checked in/reported
+  const currentActive = useMemo(() => {
+    if (isAllHostelsView) {
+      // For AllHostelsPortal: ONLY red if guest is ACTUALLY checked in/reported
+      return activeBookings.some((b) => 
+        b.status === "checked_in" || b.reportedStatus === "reported"
+      );
+    }
+    
+    // For MainContent (sidebar): Keep original logic (date range check)
+    return activeBookings.some((b) => {
+      if (b.status === "checked_in" || b.reportedStatus === "reported") {
+        return true;
       }
-      
-      // For MainContent (sidebar): Keep original logic
-      return activeBookings.some((b) => {
-        if (b.status === "checked_in" || b.reportedStatus === "reported") {
-          return true;
-        }
-        const start = combineDateAndTime(b.from, b.checkInTime || "00:00");
-        const end = combineDateAndTime(b.to, b.checkOutTime || "23:59");
-        if (!start || !end) return false;
-        return now >= start && now <= end;
-      });
-    }, [activeBookings, now, isAllHostelsView]);
+      const start = combineDateAndTime(b.from, b.checkInTime || "00:00");
+      const end = combineDateAndTime(b.to, b.checkOutTime || "23:59");
+      if (!start || !end) return false;
+      return now >= start && now <= end;
+    });
+  }, [activeBookings, now, isAllHostelsView]);
 
   // ✅ FIXED: firstBooking should find the checked_in/reported booking first
   const firstBooking = useMemo(() => {
@@ -283,7 +283,7 @@ const RoomCard = memo(function RoomCard({
 
   const getCardStyle = () => {
     if (isAllHostelsView) {
-      // ✅ FIXED: ONLY show red if guest is actually checked in/reported
+      // ✅ ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
         return "border-red-300 bg-gradient-to-br from-red-50 to-white";
       }
@@ -362,7 +362,7 @@ const RoomCard = memo(function RoomCard({
                 <CheckCircle2 className="w-3 h-3 text-green-700" />
                 <p className="text-xs text-green-700 font-medium">
                   {isBooked ? (
-                    // ✅ Show "Upcoming booking" for booked but not checked-in rooms
+                    // ✅ Show correct status based on actual check-in
                     activeBookings.length > 1 
                       ? `${activeBookings.length} Bookings` 
                       : "Upcoming booking"

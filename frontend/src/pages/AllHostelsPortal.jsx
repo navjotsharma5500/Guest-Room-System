@@ -97,18 +97,18 @@ export default function AllHostelsPortal({
   const suppressToastRef = useRef(false);
   const hasInitializedRef = useRef(false);
 
-  // ✅ FILTER STEP: Apply safety filter to incoming data
+  // âœ… FILTER STEP: Apply safety filter to incoming data
   const filteredHostelData = useMemo(() => {
-    console.log("🔍 Applying frontend safety filter to hostelData");
+    console.log("ðŸ” Applying frontend safety filter to hostelData");
     return filterActiveBookingsFromHostelData(hostelData);
   }, [hostelData]);
 
-  // ✅ STABLE: Memoize hostelData to prevent re-render cascade
+  // âœ… STABLE: Memoize hostelData to prevent re-render cascade
   const stableHostelData = useMemo(() => {
     return filteredHostelData;
   }, [JSON.stringify(filteredHostelData)]);
 
-  // ✅ Memoize callbacks to prevent re-creating functions
+  // âœ… Memoize callbacks to prevent re-creating functions
   const stableSetSelectedRooms = useCallback(setSelectedRooms, []);
   const stableSetConsolidateModal = useCallback(setConsolidateModal, []);
   const stableSetSelectionMode = useCallback(setSelectionMode, []);
@@ -152,20 +152,20 @@ export default function AllHostelsPortal({
     showToast,
   });
 
-  // ✅ NO MORE FETCHING - Data comes from parent (GuestRoomDashboard)
+  // âœ… NO MORE FETCHING - Data comes from parent (GuestRoomDashboard)
   // Parent already handles Socket.IO + polling via useHostelDataPolling
   
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      console.log("🚀 AllHostelsPortal initialized - using parent data");
+      console.log("ðŸš€ AllHostelsPortal initialized - using parent data");
       hasInitializedRef.current = true;
     }
   }, []);
 
-  // ✅ Handle prefillGuest (NO fetch trigger)
+  // âœ… Handle prefillGuest (NO fetch trigger)
   useEffect(() => {
     if (prefillGuest && prefillGuest.from && prefillGuest.to) {
-      console.log("✅ PrefillGuest detected - activating selection mode");
+      console.log("âœ… PrefillGuest detected - activating selection mode");
       
       setSelectionMode(true);
       setBookingCompleted(false);
@@ -176,7 +176,7 @@ export default function AllHostelsPortal({
       setBookingListModal(null);
       
       if (!suppressToastRef.current) {
-        showToast("✅ Select guest rooms for booking", "info");
+        showToast("âœ… Select guest rooms for booking", "info");
         suppressToastRef.current = true;
         setTimeout(() => {
           suppressToastRef.current = false;
@@ -185,10 +185,10 @@ export default function AllHostelsPortal({
     }
   }, [prefillGuest?.from, prefillGuest?.to, showToast]);
 
-  // ✅ Listen for booking completion from other components
+  // âœ… Listen for booking completion from other components
   useEffect(() => {
     const handleBookingComplete = () => {
-      console.log("📢 Booking completed");
+      console.log("ðŸ“¢ Booking completed");
       
       setSelectionMode(false);
       setSelectedRooms([]);
@@ -208,7 +208,7 @@ export default function AllHostelsPortal({
     };
   }, []);
 
-  // ✅ Auto-exit selection mode
+  // âœ… Auto-exit selection mode
   useEffect(() => {
     if (bookingCompleted) {
       const timer = setTimeout(() => {
@@ -219,14 +219,14 @@ export default function AllHostelsPortal({
     }
   }, [bookingCompleted]);
 
-  // ✅ Memoize handlers to prevent re-creating functions
+  // âœ… Memoize handlers to prevent re-creating functions
   const openDirectBookingForVacant = useCallback(({ hostel, room, prefill = null }) => {
     setDirectBookingModal({ open: true, hostel, room, prefill });
   }, []);
 
   const onDoneSelection = useCallback(() => {
     if (!selectedRooms || selectedRooms.length === 0) {
-      showToast("⚠️ Select at least one room.", "warning");
+      showToast("âš ï¸ Select at least one room.", "warning");
       return;
     }
     setConsolidateModal(true);
@@ -254,7 +254,7 @@ export default function AllHostelsPortal({
   }, [onBackHome]);
 
   const handleRoomCardClick = useCallback((hostel, room, bookedAny) => {
-    console.log("🎯 Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny });
+    console.log("ðŸŽ¯ Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny });
     
     if (selectionMode && prefillGuest && prefillGuest.from && prefillGuest.to) {
       // In selection mode - toggle room selection
@@ -263,12 +263,12 @@ export default function AllHostelsPortal({
     }
     
     if (bookedAny) {
-      // ✅ CRITICAL FIX: Pass bookingHandlers object correctly
+      // âœ… CRITICAL FIX: Pass bookingHandlers object correctly
       if (bookingHandlers && typeof bookingHandlers.handleBookedRoomClick === 'function') {
         bookingHandlers.handleBookedRoomClick(hostel, room);
       } else {
-        console.error("❌ bookingHandlers.handleBookedRoomClick is not available");
-        showToast("⚠️ Cannot open booking details", "error");
+        console.error("âŒ bookingHandlers.handleBookedRoomClick is not available");
+        showToast("âš ï¸ Cannot open booking details", "error");
       }
     } else {
       // Empty room - open direct booking modal
@@ -276,10 +276,10 @@ export default function AllHostelsPortal({
     }
   }, [selectionMode, prefillGuest, vacancyHandlers, bookingHandlers, openDirectBookingForVacant, showToast]);
 
-  // ✅ Check if data is empty
+  // âœ… Check if data is empty
   const hasData = Object.keys(stableHostelData).length > 0;
 
-  // ✅ Filter out deactivated hostels for display
+  // âœ… Filter out deactivated hostels for display
   const activeHostelData = useMemo(() => {
     const filtered = {};
     Object.keys(stableHostelData).forEach(hostelName => {
@@ -292,7 +292,7 @@ export default function AllHostelsPortal({
     return filtered;
   }, [stableHostelData]);
 
-  // ✅ Show simple message if no data (parent is loading)
+  // âœ… Show simple message if no data (parent is loading)
   if (!hasData) {
     return (
       <AllHostelsLayout theme={theme} onBackHome={handleHomeClick}>
