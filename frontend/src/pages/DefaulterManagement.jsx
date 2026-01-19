@@ -203,7 +203,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const getSeverityColor = (days) => {
     if (days > 30) return 'bg-red-100 text-red-700 border-red-300';
     if (days > 15) return 'bg-orange-100 text-orange-700 border-orange-300';
-    return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+    return 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
   const handleFileUpload = (e) => {
@@ -420,7 +420,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               {paginatedDefaulters.map((defaulter) => (
                 <motion.div
                   key={defaulter._id}
-                  className={`bg-white rounded-xl border-2 overflow-hidden shadow-md hover:shadow-xl transition-all p-6 ${getSeverityColor(defaulter.daysOverdue)}`}
+                  className="bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-red-500 overflow-hidden shadow-md hover:shadow-xl transition-all p-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.01 }}
@@ -428,8 +428,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="bg-gradient-to-br from-red-500 to-red-700 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0">
-                          {defaulter.guest.charAt(0)}
+                        <div className="relative">
+                          <div className="bg-gradient-to-br from-gray-600 to-gray-800 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0 border-2 border-red-500">
+                            {defaulter.guest.charAt(0)}
+                          </div>
+                          {/* Payment Status Flag */}
+                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
+                            defaulter.paidAmount > 0 ? 'bg-green-500' : 'bg-red-500'
+                          }`} title={defaulter.paidAmount > 0 ? 'Partial Payment Made' : 'No Payment'}>
+                            {defaulter.paidAmount > 0 && defaulter.totalDue === 0 && (
+                              <CheckCircle className="w-3 h-3 text-white m-0.5" />
+                            )}
+                          </div>
                         </div>
                         <div className="min-w-0">
                           <h3 className="text-xl font-bold text-gray-900 truncate">{defaulter.guest}</h3>
@@ -472,9 +482,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           setSelectedDefaulter(defaulter);
                           setShowDetails(true);
                         }}
-                        className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition shadow-lg flex items-center gap-2"
+                        className="bg-white text-gray-900 border-2 border-red-500 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg flex items-center gap-2"
                       >
-                        <FileText size={18} />
+                        <FileText size={18} className="text-red-600" />
                         See Details
                       </button>
                     </div>
@@ -657,31 +667,40 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDetails(false);
-                      const bookingData = {
-                        _id: selectedDefaulter._id,
-                        bookingId: selectedDefaulter._id,
-                        guest: selectedDefaulter.guest,
-                        email: selectedDefaulter.email,
-                        contact: selectedDefaulter.contact,
-                        hostel: selectedDefaulter.hostel,
-                        roomNo: selectedDefaulter.roomNo,
-                        department: selectedDefaulter.department,
-                        rollno: selectedDefaulter.rollno,
-                        totalDue: selectedDefaulter.totalDue,
-                        bills: selectedDefaulter.bills,
-                        daysOverdue: selectedDefaulter.daysOverdue,
-                        lastBooking: selectedDefaulter.lastBooking
-                      };
-                      onOpenPaymentModal?.(bookingData);
-                    }}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
-                  >
-                    <CreditCard size={20} />
-                    Pay ₹{selectedDefaulter.totalDue} Now
-                  </button>
+                  {selectedDefaulter.totalDue > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowDetails(false);
+                        const bookingData = {
+                          _id: selectedDefaulter._id,
+                          bookingId: selectedDefaulter._id,
+                          guest: selectedDefaulter.guest,
+                          email: selectedDefaulter.email,
+                          contact: selectedDefaulter.contact,
+                          hostel: selectedDefaulter.hostel,
+                          roomNo: selectedDefaulter.roomNo,
+                          department: selectedDefaulter.department,
+                          rollno: selectedDefaulter.rollno,
+                          totalDue: selectedDefaulter.totalDue,
+                          bills: selectedDefaulter.bills,
+                          daysOverdue: selectedDefaulter.daysOverdue,
+                          lastBooking: selectedDefaulter.lastBooking
+                        };
+                        onOpenPaymentModal?.(bookingData);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
+                    >
+                      <CreditCard size={20} />
+                      Pay ₹{selectedDefaulter.totalDue} Now
+                    </button>
+                  )}
+
+                  {selectedDefaulter.totalDue === 0 && (
+                    <div className="flex-1 bg-green-100 text-green-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 border-green-500">
+                      <CheckCircle size={20} />
+                      Fully Paid
+                    </div>
+                  )}
 
                   {selectedDefaulter.paidAmount > 0 && canRollback && (
                     <button
