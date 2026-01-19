@@ -40,6 +40,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     fetchDefaulters();
   }, []);
 
+  // ✅ ADD ESC KEY HANDLER
+  useEffect(() => {
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        handleBackClick();
+      }
+    };
+
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, []);
+
   const fetchDefaulters = async () => {
     try {
       setLoading(true);
@@ -128,6 +140,17 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     ? Math.round(defaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / defaulters.length)
     : 0;
   const criticalCount = defaulters.filter(d => d.daysOverdue > 30).length;
+
+  // ✅ FIX: Proper back navigation
+  const handleBackClick = () => {
+    if (onBack && typeof onBack === 'function') {
+      onBack();
+    } else {
+      // Fallback: Navigate to dashboard/home
+      window.history.go(-2); // Go back 2 steps to skip DoSA Office
+      // OR use: window.location.href = '/dashboard';
+    }
+  };
 
   // Download CSV
   const handleDownload = () => {
@@ -285,15 +308,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="flex-1 p-8 min-h-screen ml-64 bg-gradient-to-br from-gray-50 to-gray-100"
+      className="min-h-screen ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100"
     >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Header */}
           <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white p-6 rounded-3xl shadow-2xl border-4 border-red-500 mb-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <motion.button
-                  onClick={onBack}
+                  onClick={handleBackClick}
                   className="bg-white/10 hover:bg-white/20 rounded-full p-2 transition"
                   whileHover={{ scale: 1.1, x: -5 }}
                   whileTap={{ scale: 0.9 }}
@@ -413,7 +436,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </div>
 
           {/* Defaulters List */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 mb-6 max-h-[calc(100vh-320px)] overflow-y-auto">
+           <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
@@ -427,7 +450,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               </div>
             ) : (
               <>
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[calc(100vh-480px)] overflow-y-auto pr-2">
                   {Array.isArray(paginatedDefaulters) &&
                    paginatedDefaulters.map((defaulter, index) => (
                     <motion.div
