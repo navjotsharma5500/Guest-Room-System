@@ -90,6 +90,106 @@ export default function ReportedModal({
     }
   };
 
+  // ✅ CENTRALIZED CHECKOUT HANDLER - Checks payment before any checkout
+  const initiateCheckout = async (bookingToCheckout, isOccupant = false) => {
+    if (!bookingToCheckout || !bookingToCheckout._id) {
+      setError("❌ No booking information available");
+      return;
+    }
+
+    // Calculate pending payment
+    const totalAmount = bookingToCheckout.totalAmount || 0;
+    const paidAmount = bookingToCheckout.paidAmount || 0;
+    const discount = bookingToCheckout.discount || bookingToCheckout.waveOff || 0;
+    const balanceAmount = totalAmount - paidAmount - discount;
+    const paymentType = bookingToCheckout.paymentType || "Paid";
+    const hasPendingPayment = paymentType !== "Free" && balanceAmount > 0;
+
+    // ✅ IF PAYMENT PENDING, SHOW WARNING FIRST
+    if (hasPendingPayment) {
+      setSelectedBookingForPayment(bookingToCheckout);
+      setCheckoutSource(isOccupant ? "occupant" : "normal");
+      if (isOccupant) {
+        setShowOccupantPaymentWarning(true);
+      } else {
+        setShowPaymentWarning(true);
+      }
+      return;
+    }
+
+    // ✅ NO PENDING PAYMENT - Show confirmation and proceed
+    showConfirm(
+      `Are you sure you want to check out ${bookingToCheckout.guest}?`,
+      async () => {
+        closeConfirm();
+        await executeCheckout(bookingToCheckout, isOccupant);
+      },
+      isOccupant ? "Checkout Current Occupant" : "Checkout Guest"
+    );
+  };
+
+  // ✅ EXECUTE ACTUAL CHECKOUT API CALL
+  const executeCheckout = async (bookingToCheckout, isOccupant = false) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(
+        `${API}/api/bookings/${bookingToCheckout._id}/checkout`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            checkoutDate: new Date().toISOString().split("T")[0],
+            checkoutTime: new Date().toTimeString().slice(0, 5),
+            remarks: isOccupant 
+              ? `Checked out to accommodate incoming guest: ${booking.guest}`
+              : remarks.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to checkout guest");
+      }
+
+      const result = await response.json();
+
+      showAlert(
+        isOccupant 
+          ? "✅ Current occupant checked out successfully" 
+          : "✅ Guest checked out successfully", 
+        "success"
+      );
+
+      if (isOccupant) {
+        await checkRoomAvailability();
+        setShowOccupantPaymentWarning(false);
+      } else {
+        if (onSuccess) {
+          onSuccess(result.booking);
+        }
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      }
+
+      setError("");
+      
+    } catch (err) {
+      console.error("❌ Checkout error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Find the formatTime function end, then ADD:
   const showAlert = (message, type = "info") => {
     setAlertModal({ message, type });
@@ -278,30 +378,8 @@ export default function ReportedModal({
       return;
     }
 
-    const occupantTotalAmount = currentOccupant.totalAmount || 0;
-    const occupantPaidAmount = currentOccupant.paidAmount || 0;
-    const occupantDiscount = currentOccupant.discount || currentOccupant.waveOff || 0;
-    const occupantBalance = occupantTotalAmount - occupantPaidAmount - occupantDiscount;
-    const occupantPaymentType = currentOccupant.paymentType || "Paid";
-    const occupantHasPendingPayment = 
-      occupantPaymentType !== "Free" && occupantBalance > 0;
-
-    if (occupantHasPendingPayment) {
-      setSelectedBookingForPayment(currentOccupant);
-      setCheckoutSource("occupant");
-      setShowOccupantPaymentWarning(true);
-      return;
-    }
-
-    // Only show confirm if no pending payment
-    showConfirm(
-      `Are you sure you want to check out ${currentOccupant.guest}?`,
-      async () => {
-        closeConfirm();
-        await proceedOccupantCheckout();
-      },
-      "Checkout Current Occupant"
-    );
+    // ✅ Use centralized checkout logic
+    await initiateCheckout(currentOccupant, true);
   };
 
   const handleMarkNotReported = async () => {
@@ -360,109 +438,8 @@ export default function ReportedModal({
   };
 
   const handleCheckout = async () => {
-    // ✅ REPLACED window.confirm with showConfirm
-    showConfirm(
-      "Are you sure you want to check out this guest?",
-      async () => {
-        closeConfirm();
-        if (hasPendingPayment) {
-          setShowPaymentWarning(true);
-          return;
-        }
-        await proceedCheckout();
-      },
-      "Checkout Guest"
-    );
-  };
-
-  const proceedCheckout = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const response = await fetch(
-        `${API}/api/bookings/${booking._id}/checkout`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({
-            checkoutDate: new Date().toISOString().split("T")[0],
-            checkoutTime: new Date().toTimeString().slice(0, 5),
-            remarks: remarks.trim(),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to checkout guest");
-      }
-
-      const result = await response.json();
-
-      if (onSuccess) {
-        onSuccess(result.booking);
-      }
-
-      onClose();
-    } catch (err) {
-      console.error("❌ Checkout error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const proceedOccupantCheckout = async () => {
-    if (!currentOccupant || !currentOccupant._id) {
-      setError("❌ No occupant information available");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const response = await fetch(
-        `${API}/api/bookings/${currentOccupant._id}/checkout`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({
-            checkoutDate: new Date().toISOString().split("T")[0],
-            checkoutTime: new Date().toTimeString().slice(0, 5),
-            remarks: `Checked out to accommodate incoming guest: ${booking.guest}`,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to checkout current occupant");
-      }
-
-      showAlert("✅ Current occupant checked out successfully", "success");
-      
-      await checkRoomAvailability();
-      setError("");
-      setShowOccupantPaymentWarning(false);
-      
-    } catch (err) {
-      console.error("❌ Checkout current occupant error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    // ✅ Use centralized checkout logic
+    await initiateCheckout(booking, false);
   };
 
   return (
@@ -1002,7 +979,7 @@ export default function ReportedModal({
                           <motion.button
                             onClick={() => {
                               setShowPaymentWarning(false);
-                              proceedCheckout();
+                              executeCheckout(booking, false); // ✅ New code
                             }}
                             className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold border-2 border-gray-300 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
                             whileHover={{ scale: 1.01 }}
@@ -1161,7 +1138,7 @@ export default function ReportedModal({
                           <motion.button
                             onClick={() => {
                               setShowOccupantPaymentWarning(false);
-                              proceedOccupantCheckout();
+                              executeCheckout(currentOccupant, true); // ✅ New code
                             }}
                             className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold border-2 border-gray-300 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
                             whileHover={{ scale: 1.01 }}
