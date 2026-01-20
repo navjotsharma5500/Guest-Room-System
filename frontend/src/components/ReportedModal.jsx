@@ -109,12 +109,14 @@ export default function ReportedModal({
     if (hasPendingPayment) {
       setSelectedBookingForPayment(bookingToCheckout);
       setCheckoutSource(isOccupant ? "occupant" : "normal");
+      
+      // ✅ FIX: Show correct warning modal based on checkout type
       if (isOccupant) {
         setShowOccupantPaymentWarning(true);
       } else {
         setShowPaymentWarning(true);
       }
-      return;
+      return; // ✅ STOP HERE - Don't show confirm dialog
     }
 
     // ✅ NO PENDING PAYMENT - Show confirmation and proceed
@@ -281,6 +283,24 @@ export default function ReportedModal({
       );
 
       const historyData = await historyCheck.json();
+
+      if (historyData.hasPendingBills) {
+        showConfirm(
+          `⚠️ WARNING: This guest has ₹${historyData.totalPending} pending from ${historyData.bookings.length} previous booking(s).\n\n` +
+          `Previous bookings:\n${historyData.bookings.map(b => 
+            `• ${b.hostel} - Room ${b.roomNo}: ₹${b.balanceAmount}`
+          ).join('\n')}\n\n` +
+          `Guest must clear previous dues before check-in.\n\n` +
+          `Do you want to clear the dues first?`,
+          () => {
+            showAlert("Please clear previous pending bills first before reporting this guest.", "warning");
+            setLoading(false);
+          },
+          "⚠️ Pending Bills Detected"
+        );
+        setLoading(false);
+        return;
+      }
 
       // ✅ REPLACED window.confirm with showConfirm
       if (historyData.hasPendingBills) {
@@ -1121,8 +1141,8 @@ export default function ReportedModal({
                             onClick={() => {
                               setShowOccupantPaymentWarning(false);
                               onClose();
-                              // ✅ Pass the current occupant booking data to payment modal
-                              onOpenPaymentModal(currentOccupant);
+                              // ✅ Pass the selected booking (currentOccupant) to payment modal
+                              onOpenPaymentModal(selectedBookingForPayment || currentOccupant);
                             }}
                             className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
                             whileHover={{ scale: 1.02, y: -2 }}
@@ -1132,13 +1152,17 @@ export default function ReportedModal({
                             transition={{ delay: 0.4 }}
                           >
                             <CreditCard className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            <span>Pay ₹{((currentOccupant.totalAmount || 0) - (currentOccupant.paidAmount || 0) - (currentOccupant.discount || currentOccupant.waveOff || 0))} Now</span>
+                            <span>Pay ₹{selectedBookingForPayment ? 
+                              ((selectedBookingForPayment.totalAmount || 0) - (selectedBookingForPayment.paidAmount || 0) - (selectedBookingForPayment.discount || selectedBookingForPayment.waveOff || 0)) 
+                              : 
+                              ((currentOccupant.totalAmount || 0) - (currentOccupant.paidAmount || 0) - (currentOccupant.discount || currentOccupant.waveOff || 0))
+                            } Now</span>
                           </motion.button>
 
                           <motion.button
                             onClick={() => {
                               setShowOccupantPaymentWarning(false);
-                              executeCheckout(currentOccupant, true); // ✅ New code
+                              executeCheckout(selectedBookingForPayment || currentOccupant, true);
                             }}
                             className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold border-2 border-gray-300 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
                             whileHover={{ scale: 1.01 }}

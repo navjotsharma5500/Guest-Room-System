@@ -25,6 +25,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [rollbackAttachments, setRollbackAttachments] = useState([]);
   const [uploadingRollback, setUploadingRollback] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
   
   const [error, setError] = useState(null);
   const ikRollbackUploadRef = useRef(null);
@@ -85,19 +88,16 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
           }))
           .filter(d => {
-            // ✅ ONLY show if checkout date has passed AND amount is unpaid
             const checkoutDate = new Date(d.checkoutDate);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             checkoutDate.setHours(0, 0, 0, 0);
             
             const hasCheckoutPassed = checkoutDate < today;
-            const hasUnpaidAmount = d.totalDue > 0;
-            
-            // Must be checked_out OR checkout date passed
             const isCheckoutStatus = d.status === 'checked_out' || hasCheckoutPassed;
             
-            return isCheckoutStatus && hasUnpaidAmount;
+            // ✅ Include all: pending, completed, and those with rollbacks
+            return isCheckoutStatus;
           });
 
         setDefaulters(normalized);
@@ -117,6 +117,61 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       setLoading(false);
     }
   };
+
+  // ✅ TAB FILTERING LOGIC
+  useEffect(() => {
+    let filtered = [...defaulters];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(d => 
+        d.guest.toLowerCase().includes(query) ||
+        d.email.toLowerCase().includes(query) ||
+        d.contact.includes(query) ||
+        d.rollno.toLowerCase().includes(query)
+      );
+    }
+
+    // Hostel filter (only for admin/manager)
+    if (selectedHostel !== 'All') {
+      filtered = filtered.filter(d => d.hostel === selectedHostel);
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(d => {
+        const checkoutDate = new Date(d.checkoutDate);
+        checkoutDate.setHours(0, 0, 0, 0);
+        return checkoutDate >= fromDate;
+      });
+    }
+
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(d => {
+        const checkoutDate = new Date(d.checkoutDate);
+        return checkoutDate <= toDate;
+      });
+    }
+
+    // ✅ TAB FILTERING
+    if (activeTab === 'pending') {
+      filtered = filtered.filter(d => d.totalDue > 0);
+    } else if (activeTab === 'completed') {
+      filtered = filtered.filter(d => d.totalDue === 0 && d.paidAmount > 0);
+    } else if (activeTab === 'rollbacks') {
+      filtered = filtered.filter(d => 
+        d.paymentRollbacks && d.paymentRollbacks.length > 0
+      );
+    }
+
+    setFilteredDefaulters(filtered);
+    setCurrentPage(1);
+  }, [searchQuery, selectedHostel, dateFrom, dateTo, activeTab, defaulters]);
 
   useEffect(() => {
     let filtered = [...defaulters];
@@ -145,11 +200,15 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
-  const totalOutstanding = defaulters.reduce((sum, d) => sum + d.totalDue, 0);
-  const avgDaysOverdue = defaulters.length > 0 
-    ? Math.round(defaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / defaulters.length)
+  const pendingDefaulters = defaulters.filter(d => d.totalDue > 0);
+  const completedPayments = defaulters.filter(d => d.totalDue === 0 && d.paidAmount > 0);
+  const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
+
+  const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
+  const avgDaysOverdue = pendingDefaulters.length > 0 
+    ? Math.round(pendingDefaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / pendingDefaulters.length)
     : 0;
-  const criticalCount = defaulters.filter(d => d.daysOverdue > 30).length;
+  const criticalCount = pendingDefaulters.filter(d => d.daysOverdue > 30).length;
 
   const handleBackClick = () => {
     if (onBack && typeof onBack === 'function') {
@@ -415,6 +474,39 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         </div>
       </div> 
 
+      {/* Date Range Filter */}
+      <div className="flex gap-2 items-center">
+        <div>
+          <label className="text-xs text-gray-600 mb-1 block">From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-600 mb-1 block">To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button
+            onClick={() => {
+              setDateFrom('');
+              setDateTo('');
+            }}
+            className="mt-5 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm font-semibold"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Filters Section */}
       <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
         <div className="px-6 py-4">
@@ -444,6 +536,70 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 </select>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Section */}
+      <div className="mx-6 mt-4">
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                activeTab === 'pending'
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <AlertCircle size={20} />
+                <span>Pending Payments</span>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  activeTab === 'pending' ? 'bg-white/20' : 'bg-red-100 text-red-700'
+                }`}>
+                  {pendingDefaulters.length}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                activeTab === 'completed'
+                  ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <CheckCircle size={20} />
+                <span>Completed</span>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  activeTab === 'completed' ? 'bg-white/20' : 'bg-green-100 text-green-700'
+                }`}>
+                  {completedPayments.length}
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rollbacks')}
+              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                activeTab === 'rollbacks'
+                  ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <History size={20} />
+                <span>Rollbacks</span>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  activeTab === 'rollbacks' ? 'bg-white/20' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {rollbackCount}
+                </span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -843,7 +999,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     </div>
                   )}
 
-                  {selectedDefaulter.paidAmount > 0 && canRollback && (
+                  {canRollback && (
                     <button
                       onClick={() => {
                         setShowDetails(false);
