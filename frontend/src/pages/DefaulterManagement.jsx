@@ -899,7 +899,14 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
                   <div className="mt-4 pt-4 border-t-2 border-red-300 flex justify-between items-center">
                     <span className="font-bold text-gray-800">Total Outstanding</span>
-                    <span className="text-3xl font-bold text-red-700">₹{selectedDefaulter.totalDue}</span>
+                    <span className="text-3xl font-bold text-red-700">
+                      ₹{(() => {
+                        const totalAmount = selectedDefaulter.totalAmount || 0;
+                        const paidAmount = selectedDefaulter.paidAmount || 0;
+                        const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
+                        return totalAmount - paidAmount - discount;
+                      })()}
+                    </span>
                   </div>
                 </div>
 
@@ -964,10 +971,23 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  {selectedDefaulter.totalDue > 0 && (
+                  {(() => {
+                    const totalAmount = selectedDefaulter.totalAmount || 0;
+                    const paidAmount = selectedDefaulter.paidAmount || 0;
+                    const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
+                    const currentBalance = totalAmount - paidAmount - discount;
+                    return currentBalance > 0;
+                  })() && (
                     <button
                       onClick={() => {
                         setShowDetails(false);
+                        
+                        // ✅ RECALCULATE CURRENT BALANCE
+                        const totalAmount = selectedDefaulter.totalAmount || 0;
+                        const paidAmount = selectedDefaulter.paidAmount || 0;
+                        const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
+                        const currentBalance = totalAmount - paidAmount - discount;
+                        
                         const bookingData = {
                           _id: selectedDefaulter._id,
                           bookingId: selectedDefaulter._id,
@@ -978,7 +998,11 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           roomNo: selectedDefaulter.roomNo,
                           department: selectedDefaulter.department,
                           rollno: selectedDefaulter.rollno,
-                          totalDue: selectedDefaulter.totalDue,
+                          totalAmount: selectedDefaulter.totalAmount,
+                          paidAmount: selectedDefaulter.paidAmount,
+                          discount: discount,
+                          balanceAmount: currentBalance, // ✅ Use recalculated balance
+                          totalDue: currentBalance, // ✅ Use recalculated balance
                           bills: selectedDefaulter.bills,
                           daysOverdue: selectedDefaulter.daysOverdue,
                           lastBooking: selectedDefaulter.lastBooking
@@ -988,11 +1012,22 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
                     >
                       <CreditCard size={20} />
-                      Pay ₹{selectedDefaulter.totalDue} Now
+                      Pay ₹{(() => {
+                        const totalAmount = selectedDefaulter.totalAmount || 0;
+                        const paidAmount = selectedDefaulter.paidAmount || 0;
+                        const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
+                        return totalAmount - paidAmount - discount;
+                      })()} Now
                     </button>
                   )}
 
-                  {selectedDefaulter.totalDue === 0 && (
+                  {(() => {
+                    const totalAmount = selectedDefaulter.totalAmount || 0;
+                    const paidAmount = selectedDefaulter.paidAmount || 0;
+                    const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
+                    const currentBalance = totalAmount - paidAmount - discount;
+                    return currentBalance <= 0;
+                  })() && (
                     <div className="flex-1 bg-green-100 text-green-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 border-green-500">
                       <CheckCircle size={20} />
                       Fully Paid
@@ -1090,10 +1125,23 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   </label>
                   <input
                     type="number"
-                    value={rollbackAmount || ''}
-                    onChange={(e) => setRollbackAmount(Math.min(selectedDefaulter.paidAmount || 0, Number(e.target.value) || 0))}
-                    min="1"
+                    value={rollbackAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // ✅ Allow empty string for clearing
+                      if (value === '') {
+                        setRollbackAmount(0);
+                        return;
+                      }
+                      // ✅ Convert to number and cap at max paid amount
+                      const numValue = Number(value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        setRollbackAmount(Math.min(numValue, selectedDefaulter.paidAmount || 0));
+                      }
+                    }}
+                    min="0"
                     max={selectedDefaulter.paidAmount || 0}
+                    step="1"
                     placeholder="Enter amount to rollback"
                     className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />

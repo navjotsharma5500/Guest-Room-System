@@ -99,6 +99,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
 export default function AnalyticsPage({ setActiveTab }) {
   const [range, setRange] = useState("Monthly");
   const [allBookings, setAllBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const role = currentUser?.role || "caretaker";
 
@@ -106,46 +107,95 @@ export default function AnalyticsPage({ setActiveTab }) {
   useEffect(() => {
     const fetchAllBookings = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
         const API = BACKEND_URL;
         
+        // ✅ Check if token exists
+        if (!token) {
+          console.error("❌ No authentication token found");
+          setActiveTab("Home"); // Redirect to login
+          return;
+        }
+
         const response = await fetch(`${API}/api/bookings/all-for-download`, {
+          method: "GET",
+          credentials: "include", // ✅ Include cookies
           headers: {
             "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
           },
         });
 
-        if (!response.ok) throw new Error("Failed to fetch bookings");
+        // ✅ Handle 401 Unauthorized
+        if (response.status === 401) {
+          console.error("❌ Unauthorized - Token may be expired");
+          localStorage.removeItem("token"); // Clear invalid token
+          alert("Session expired. Please login again.");
+          window.location.href = "/login"; // Or use your auth redirect
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch bookings: ${response.status} ${response.statusText}`);
+        }
         
         const data = await response.json();
         
+        // ✅ Validate response structure
+        if (!data || !data.hostels) {
+          console.warn("⚠️ No hostel data returned");
+          setAllBookings([]);
+          return;
+        }
+
+        setLoading(false);
+        
         // Extract all bookings from hostel structure
         const bookings = [];
-        if (data.hostels) {
-          data.hostels.forEach(hostel => {
-            hostel.rooms?.forEach(room => {
-              room.bookings?.forEach(booking => {
-                bookings.push({
-                  ...booking,
-                  hostel: hostel.name,
-                  roomNo: room.roomNo,
-                  from: parseISO(booking.from),
-                  to: parseISO(booking.to),
+        data.hostels.forEach(hostel => {
+          if (hostel.rooms && Array.isArray(hostel.rooms)) {
+            hostel.rooms.forEach(room => {
+              if (room.bookings && Array.isArray(room.bookings)) {
+                room.bookings.forEach(booking => {
+                  try {
+                    bookings.push({
+                      ...booking,
+                      hostel: hostel.name,
+                      roomNo: room.roomNo,
+                      from: parseISO(booking.from),
+                      to: parseISO(booking.to),
+                    });
+                  } catch (dateError) {
+                    console.error("❌ Error parsing booking dates:", dateError);
+                  }
                 });
-              });
+              }
             });
-          });
-        }
+          }
+        });
 
         console.log("📊 Total bookings fetched:", bookings.length);
         setAllBookings(bookings);
+        
       } catch (err) {
         console.error("❌ Failed to fetch analytics data:", err);
+
+        setLoading(false);
+        
+        // ✅ Show user-friendly error
+        if (err.message.includes("Failed to fetch")) {
+          alert("Network error. Please check your connection and try again.");
+        } else {
+          alert(`Error loading analytics: ${err.message}`);
+        }
+        
+        setAllBookings([]); // Set empty array to prevent crashes
       }
     };
 
     fetchAllBookings();
-  }, []);
+  }, [setActiveTab]); // ✅ Add setActiveTab to dependencies
 
   // Role-based redirect
   useEffect(() => {
@@ -406,6 +456,36 @@ export default function AnalyticsPage({ setActiveTab }) {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mb-4"></div>
+            <p className="text-gray-600 font-semibold">Loading analytics data...</p>
+          </div>
+        )}
+
+        {/* No Data State */}
+        {!loading && allBookings.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-200">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-700 mb-2">No Booking Data Available</h3>
+            <p className="text-gray-500">There are no bookings to display analytics for.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Show content only when not loading and has data */}
+        {!loading && allBookings.length > 0 && (
+          <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
@@ -648,7 +728,9 @@ export default function AnalyticsPage({ setActiveTab }) {
           </p>
           <Creator variant="default" />
         </div>
-      </div>
-    </motion.main>
-  );
+      </>
+    )} 
+    </div> 
+  </motion.main>
+);
 }
