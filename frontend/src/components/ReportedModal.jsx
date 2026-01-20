@@ -289,54 +289,16 @@ export default function ReportedModal({
     if (occupantHasPendingPayment) {
       setSelectedBookingForPayment(currentOccupant);
       setCheckoutSource("occupant");
-      setShowPaymentWarning(true);
+      setShowOccupantPaymentWarning(true);
       return;
     }
 
-    // ✅ REPLACED window.confirm with showConfirm
+    // Only show confirm if no pending payment
     showConfirm(
       `Are you sure you want to check out ${currentOccupant.guest}?`,
       async () => {
         closeConfirm();
-        try {
-          setLoading(true);
-          setError("");
-
-          const token = localStorage.getItem("token");
-          const headers = { "Content-Type": "application/json" };
-          if (token) headers["Authorization"] = `Bearer ${token}`;
-
-          const response = await fetch(
-            `${API}/api/bookings/${currentOccupant._id}/checkout`,
-            {
-              method: "PUT",
-              credentials: "include",
-              headers,
-              body: JSON.stringify({
-                checkoutDate: new Date().toISOString().split("T")[0],
-                checkoutTime: new Date().toTimeString().slice(0, 5),
-                remarks: `Checked out to accommodate incoming guest: ${booking.guest}`,
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Failed to checkout current occupant");
-          }
-
-          showAlert("✅ Current occupant checked out successfully", "success");
-          
-          await checkRoomAvailability();
-          setError("");
-          setShowOccupantPaymentWarning(false);
-          
-        } catch (err) {
-          console.error("❌ Checkout current occupant error:", err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
+        await proceedOccupantCheckout();
       },
       "Checkout Current Occupant"
     );
@@ -1182,8 +1144,8 @@ export default function ReportedModal({
                             onClick={() => {
                               setShowOccupantPaymentWarning(false);
                               onClose();
-                              // Open payment modal for current occupant
-                              onOpenPaymentModal();
+                              // ✅ Pass the current occupant booking data to payment modal
+                              onOpenPaymentModal(currentOccupant);
                             }}
                             className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 group"
                             whileHover={{ scale: 1.02, y: -2 }}

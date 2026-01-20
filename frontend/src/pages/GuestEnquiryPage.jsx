@@ -812,7 +812,7 @@ export default function GuestEnquiryPage() {
       />
       
       <h1 className="text-4xl md:text-5xl font-bold text-red-700 mb-4 text-center">
-        Guest Room Booking
+        Guest Room Booking Request
       </h1>
       
       <p className="text-lg text-gray-700 mb-12 text-center max-w-2xl">
@@ -905,13 +905,13 @@ export default function GuestEnquiryPage() {
         
         <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded-lg mb-6">
           <p className="text-gray-800 text-lg leading-relaxed">
-            Students are permitted to book guest accommodations <strong>through the caretaker of their respective hostel only</strong>. This service is available exclusively for guests visiting the student's own hostel.
+            Students are permitted to book guest accommodations through the caretaker of their respective hostel only. This service is available exclusively for guests visiting the student's own hostel.
           </p>
         </div>
 
         <div className="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg mb-6">
           <p className="text-gray-800 text-lg leading-relaxed">
-            Students may book guest stays for their <strong>parents, guardians, or immediate family members</strong>, subject to hostel rules and availability.
+            Students may book guest stays for their parents, guardians, or immediate family members, subject to hostel rules and availability.
           </p>
         </div>
 
@@ -968,7 +968,7 @@ export default function GuestEnquiryPage() {
             <>
               <motion.img src={thaparLogo} alt="Thapar Logo" className="w-40 mb-4" />
               <h1 className="text-3xl font-bold text-red-700 mb-8 text-center">
-                Guest Room Booking Request
+                Guest Room Booking Form
               </h1>
               <GuestForm
                 form={form}
