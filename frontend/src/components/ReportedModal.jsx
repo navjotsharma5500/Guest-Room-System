@@ -251,7 +251,6 @@ export default function ReportedModal({
         onSuccess(result.booking);
       }
 
-      // ✅ REPLACED window.alert with showAlert
       if (result.earlyCheckIn) {
         showAlert(`✅ Guest checked in early! Check-in date updated to ${formatDate(result.booking.from)}`, "success");
       } else {

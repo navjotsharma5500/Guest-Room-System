@@ -4,6 +4,8 @@ import { CheckCircle2 } from "lucide-react";
 import { IndianStates } from "../utils/indianStates";
 import thaparLogo from "../assets/thapar_logo.png";
 import bgImage from "../assets/ThaparBackground1.png";
+import studentImg from "../assets/Student.png";
+import employeeImg from "../assets/employee.png";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatTimeWithAMPM } from "../utils/dateUtils";
@@ -606,6 +608,7 @@ export default function GuestEnquiryPage() {
   const [dateError, setDateError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [userType, setUserType] = useState(null);
 
   const validateForm = () => {
     const { name, contact, email, from, to, checkInTime, checkOutTime, guests, state, city, purpose, files } = form;
@@ -789,6 +792,154 @@ export default function GuestEnquiryPage() {
     setUploadError("");
   };
 
+  // ==================== LANDING PAGE ====================
+  const LandingPage = () => (
+    <motion.div
+      key="landing"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -40 }}
+      transition={{ duration: 0.6 }}
+      className="w-full flex flex-col items-center px-4"
+    >
+      <motion.img 
+        src={thaparLogo} 
+        alt="Thapar Logo" 
+        className="w-48 md:w-56 mb-6"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+      />
+      
+      <h1 className="text-4xl md:text-5xl font-bold text-red-700 mb-4 text-center">
+        Guest Room Booking
+      </h1>
+      
+      <p className="text-lg text-gray-700 mb-12 text-center max-w-2xl">
+        Please select your category to proceed
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+        {/* Students Button */}
+        <motion.button
+          onClick={() => setUserType('student')}
+          whileHover={{ scale: 1.05, y: -5 }}
+          whileTap={{ scale: 0.95 }}
+          className="group relative bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-red-500 hover:border-red-600 transition-all duration-300 p-8 min-h-[320px] flex flex-col items-center justify-center"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-32 h-32 mb-6 rounded-full bg-red-100 flex items-center justify-center overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
+              <img 
+                src={studentImg} 
+                alt="Students" 
+                className="w-24 h-24 object-contain"
+              />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-red-700 mb-3 group-hover:text-red-800 transition-colors">
+              Students
+            </h2>
+            
+            <p className="text-gray-600 text-center">
+              Hostel guest booking instructions
+            </p>
+          </div>
+        </motion.button>
+
+        {/* Faculty & Employees Button */}
+        <motion.button
+          onClick={() => setUserType('faculty')}
+          whileHover={{ scale: 1.05, y: -5 }}
+          whileTap={{ scale: 0.95 }}
+          className="group relative bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-red-500 hover:border-red-600 transition-all duration-300 p-8 min-h-[320px] flex flex-col items-center justify-center"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-32 h-32 mb-6 rounded-full bg-red-100 flex items-center justify-center overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
+              <img 
+                src={employeeImg} 
+                alt="Faculty & Employees" 
+                className="w-24 h-24 object-contain"
+              />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-red-700 mb-3 group-hover:text-red-800 transition-colors">
+              Faculty & Emp.
+            </h2>
+            
+            <p className="text-gray-600 text-center">
+              Book guest room accommodation
+            </p>
+          </div>
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+
+  // ==================== STUDENT INFO PAGE ====================
+  const StudentInfoPage = () => (
+    <motion.div
+      key="student-info"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -40 }}
+      transition={{ duration: 0.6 }}
+      className="w-full flex flex-col items-center px-4"
+    >
+      <motion.img 
+        src={thaparLogo} 
+        alt="Thapar Logo" 
+        className="w-48 md:w-56 mb-8"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      />
+
+      <div className="bg-white bg-opacity-95 border-4 border-red-600 rounded-3xl shadow-2xl p-10 md:p-12 w-full max-w-3xl">
+        <h1 className="text-3xl md:text-4xl font-bold text-red-700 mb-6 text-center">
+          Hostel Guest Booking Instructions
+        </h1>
+        
+        <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded-lg mb-6">
+          <p className="text-gray-800 text-lg leading-relaxed">
+            Students are permitted to book guest accommodations <strong>through the caretaker of their respective hostel only</strong>. This service is available exclusively for guests visiting the student's own hostel.
+          </p>
+        </div>
+
+        <div className="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg mb-6">
+          <p className="text-gray-800 text-lg leading-relaxed">
+            Students may book guest stays for their <strong>parents, guardians, or immediate family members</strong>, subject to hostel rules and availability.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-8">
+          <p className="text-gray-800 text-base">
+            <strong>For any queries or feedback, please email:</strong>
+            <br />
+            <a 
+              href="mailto:navjot.sharma@thapar.edu" 
+              className="text-blue-600 hover:text-blue-800 underline font-medium mt-2 inline-block"
+            >
+              navjot.sharma@thapar.edu
+            </a>
+          </p>
+        </div>
+
+        <div className="text-center">
+          <button
+            onClick={() => setUserType(null)}
+            className="px-8 py-3 bg-red-600 text-white text-lg font-semibold rounded-full hover:bg-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            ← Back to Selection
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   return (
     <IKContext
       publicKey={IMAGEKIT_CONFIG.PUBLIC_KEY}
@@ -806,8 +957,14 @@ export default function GuestEnquiryPage() {
       >
         <AnimatePresence mode="wait">
           
+          {/* ==================== LANDING PAGE ==================== */}
+          {!userType && <LandingPage />}
+
+          {/* ==================== STUDENT INFO PAGE ==================== */}
+          {userType === 'student' && <StudentInfoPage />}
+
           {/* ==================== FORM VIEW ==================== */}
-          {!submitted && !showPreview && (
+          {userType === 'faculty' && !submitted && !showPreview && (
             <>
               <motion.img src={thaparLogo} alt="Thapar Logo" className="w-40 mb-4" />
               <h1 className="text-3xl font-bold text-red-700 mb-8 text-center">
@@ -832,7 +989,7 @@ export default function GuestEnquiryPage() {
           )}
 
           {/* ==================== PREVIEW VIEW ==================== */}
-          {showPreview && !submitted && (
+          {userType === 'faculty' && showPreview && !submitted && (
             <motion.div
               key="preview"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -938,7 +1095,7 @@ export default function GuestEnquiryPage() {
           )}
 
           {/* ==================== THANK YOU VIEW ==================== */}
-          {submitted && (
+          {userType === 'faculty' && submitted && (
             <motion.div
               key="thankyou"
               initial={{ opacity: 0, y: 40 }}
