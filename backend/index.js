@@ -73,14 +73,19 @@ setSocketIO(io);
    ALLOWED ORIGINS
 ========================================================= */
 const allowedOrigins = [
+  // Local dev
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5173",
+
+  // Old Vercel (safe to keep)
   "https://guestroom.vercel.app",
-  // Add your actual Vercel URL if different
-  // "https://your-custom-domain.com"
+
+  // ✅ NEW PRODUCTION DOMAINS
+  "https://guestapp.in",
+  "https://www.guestapp.in",
 ];
 
 console.log("🌍 Allowed origins:", allowedOrigins);
@@ -95,7 +100,7 @@ const resolveOrigin = (origin) => {
   // iOS Safari sometimes sends no origin
   if (!origin) {
     console.log("⚠️ No origin header - same-origin or server request");
-    return "https://guestroom.vercel.app";
+    return "https://www.guestapp.in";
   }
   
   // Check exact match

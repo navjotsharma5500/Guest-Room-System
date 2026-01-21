@@ -61,7 +61,7 @@ MongoDB Atlas
 Frontend uses **Vercel Environment Variables**, not committed `.env` files.
 
 ```env
-REACT_APP_BACKEND_URL=https://guestroomsystem.duckdns.org
+REACT_APP_BACKEND_URL=https://api.guestapp.in
 ```
 
 All API and socket connections use a **single centralized config**:
@@ -175,7 +175,7 @@ This separation ensures **credential safety**.
 Public backend URL:
 
 ```
-https://guestroomsystem.duckdns.org
+https://api.guestapp.in
 ```
 
 ---
