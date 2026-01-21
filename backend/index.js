@@ -1,4 +1,4 @@
-// index.js - FINAL iOS + DESKTOP SAFE VERSION
+// index.js - FINAL iOS + DESKTOP + CLOUDFLARE + SOCKET.IO SAFE VERSION
 
 import express from "express";
 import dotenv from "dotenv";
@@ -30,47 +30,7 @@ dotenv.config();
 const app = express();
 
 /* =========================================================
-   PUBLIC STATIC FILES (NO AUTH)
-========================================================= */
-app.use(express.static("public"));
-
-/* =========================================================
-   HTTP SERVER + SOCKET.IO
-========================================================= */
-const server = createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: (origin, callback) => {
-      // ✅ Use same resolveOrigin function
-      const allowedOrigin = resolveOrigin(origin);
-      console.log("🔌 Socket.IO CORS check - Origin:", origin, "→ Allowed:", allowedOrigin);
-      
-      // Allow if origin is in list or matches patterns
-      if (!origin || 
-          allowedOrigins.includes(origin) || 
-          origin.endsWith(".vercel.app") || 
-          origin.includes("localhost")) {
-        callback(null, true);
-      } else {
-        console.warn("⚠️ Socket.IO: Unknown origin (allowing):", origin);
-        callback(null, true); // Allow but log
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    credentials: true,
-  },
-  transports: ["websocket", "polling"], // ✅ Support both transports
-  allowEIO3: true, // ✅ Backward compatibility
-});
-
-console.log("🔌 Socket.IO initialized with CORS support");
-
-app.set("io", io);
-setSocketIO(io);
-
-/* =========================================================
-   ALLOWED ORIGINS
+   ALLOWED ORIGINS - ✅ CRITICAL FIX: Added API domain
 ========================================================= */
 const allowedOrigins = [
   // Local dev
@@ -80,12 +40,15 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5173",
 
-  // Old Vercel (safe to keep)
-  "https://guestroom.vercel.app",
-
-  // ✅ NEW PRODUCTION DOMAINS
+  // Frontend
   "https://guestapp.in",
   "https://www.guestapp.in",
+
+  // Backend (IMPORTANT for Socket.IO & OPTIONS)
+  "https://api.guestapp.in",
+
+  // Old Vercel (safe to keep)
+  "https://guestroom.vercel.app",
 ];
 
 console.log("🌍 Allowed origins:", allowedOrigins);
@@ -133,6 +96,66 @@ const resolveOrigin = (origin) => {
 };
 
 /* =========================================================
+   PUBLIC STATIC FILES (NO AUTH)
+========================================================= */
+app.use(express.static("public"));
+
+/* =========================================================
+   HTTP SERVER + SOCKET.IO - ✅ CRITICAL FIX: Return resolved origin
+========================================================= */
+const server = createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      const resolvedOrigin = resolveOrigin(origin);
+      console.log("🔌 Socket.IO Origin:", origin, "→", resolvedOrigin);
+      callback(null, resolvedOrigin); // ✅ CRITICAL: Return string, not boolean
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    credentials: true,
+  },
+  transports: ["websocket", "polling"], // ✅ Support both transports
+  allowEIO3: true, // ✅ Backward compatibility
+});
+
+console.log("🔌 Socket.IO initialized with CORS support");
+
+app.set("io", io);
+setSocketIO(io);
+
+/* =========================================================
+   ✅ CRITICAL FIX: Handle OPTIONS preflight FIRST
+   This MUST come before any other middleware
+========================================================= */
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    const origin = req.headers.origin;
+    const allowedOrigin = resolveOrigin(origin);
+
+    console.log("🔄 OPTIONS preflight:", req.path, "from", origin);
+
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, Accept, Cookie, X-Requested-With"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    );
+    res.setHeader(
+      "Access-Control-Expose-Headers",
+      "Content-Disposition, Content-Type, Content-Length"
+    );
+
+    return res.status(204).end();
+  }
+  next();
+});
+
+/* =========================================================
    GLOBAL CORS MIDDLEWARE (SAFE FOR iOS + LOCALHOST)
 ========================================================= */
 app.use((req, res, next) => {
@@ -153,10 +176,6 @@ app.use((req, res, next) => {
     "Access-Control-Expose-Headers",
     "Content-Disposition, Content-Type, Content-Length"
   );
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
 
   next();
 });
@@ -278,36 +297,6 @@ app.use("/api/payments", paymentRoutes);
 console.log("✅ Payment routes mounted at /api/payments");
 
 /* =========================================================
-   GLOBAL ERROR HANDLER
-========================================================= */
-app.use(errorHandler);
-
-// ==========================================
-// ENHANCED ERROR HANDLER
-// ==========================================
-app.use((err, req, res, next) => {
-  console.error("❌ Global Error Handler:");
-  console.error("❌ Path:", req.path);
-  console.error("❌ Method:", req.method);
-  console.error("❌ Error:", err.message);
-  console.error("❌ Stack:", err.stack);
-  
-  // Set CORS headers even for errors
-  const origin = req.headers.origin;
-  const allowedOrigin = resolveOrigin(origin);
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  
-  res.status(err.status || 500).json({
-    success: false,
-    error: err.message || "Internal server error",
-    details: process.env.NODE_ENV === "development" ? err.stack : undefined
-  });
-});
-
-app.use(errorHandler);
-
-/* =========================================================
    SOCKET.IO HANDLER
 ========================================================= */
 io.on("connection", (socket) => {
@@ -400,6 +389,29 @@ app.get("/api/health", (req, res) => {
 });
 
 /* =========================================================
+   ✅ SINGLE ERROR HANDLER (removed duplicate)
+========================================================= */
+app.use((err, req, res, next) => {
+  console.error("❌ Global Error Handler:");
+  console.error("❌ Path:", req.path);
+  console.error("❌ Method:", req.method);
+  console.error("❌ Error:", err.message);
+  console.error("❌ Stack:", err.stack);
+  
+  // Set CORS headers even for errors
+  const origin = req.headers.origin;
+  const allowedOrigin = resolveOrigin(origin);
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || "Internal server error",
+    details: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+});
+
+/* =========================================================
    START SERVER
 ========================================================= */
 const PORT = process.env.PORT || 10000;
@@ -411,6 +423,7 @@ const startServer = async () => {
     console.log("✅ MongoDB connected");
 
     startNoShowCronJob();
+    scheduleCleanupJob(); // ✅ Start cleanup scheduler
 
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
