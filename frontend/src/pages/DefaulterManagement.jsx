@@ -147,7 +147,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       );
     }
 
-    // Hostel filter (only for admin/manager)
+    // Hostel filter
     if (selectedHostel !== 'All') {
       filtered = filtered.filter(d => d.hostel === selectedHostel);
     }
@@ -174,19 +174,16 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
     // ✅ TAB FILTERING
     if (activeTab === 'pending') {
-      // Show only those with outstanding balance AND no rollbacks
       filtered = filtered.filter(d => {
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
         return d.totalDue > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'completed') {
-      // Show only fully paid (balance = 0) AND no rollbacks
       filtered = filtered.filter(d => {
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
         return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'rollbacks') {
-      // Show only those with rollback history
       filtered = filtered.filter(d => 
         d.paymentRollbacks && d.paymentRollbacks.length > 0
       );
@@ -195,27 +192,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     setFilteredDefaulters(filtered);
     setCurrentPage(1);
   }, [searchQuery, selectedHostel, dateFrom, dateTo, activeTab, defaulters]);
-
-  useEffect(() => {
-    let filtered = [...defaulters];
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(d => 
-        d.guest.toLowerCase().includes(query) ||
-        d.email.toLowerCase().includes(query) ||
-        d.contact.includes(query) ||
-        d.rollno.toLowerCase().includes(query)
-      );
-    }
-
-    if (selectedHostel !== 'All') {
-      filtered = filtered.filter(d => d.hostel === selectedHostel);
-    }
-
-    setFilteredDefaulters(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, selectedHostel, defaulters]);
 
   const totalPages = Math.ceil(filteredDefaulters.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -227,10 +203,12 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
     return d.totalDue > 0 && !hasRollbacks;
   });
+  
   const completedPayments = defaulters.filter(d => {
     const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
     return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
   });
+  
   const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
 
   const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
@@ -348,57 +326,57 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
     setConfirmAction({
       title: "Confirm Rollback",
-      message: "Are you sure you want to rollback this payment? This action cannot be undone.",
-      onConfirm: () => handleRollbackPayment()
-    });
-    return;
+      message: `Are you sure you want to rollback ₹${rollbackAmount}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem("token");
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+          const response = await fetch(`${API}/api/defaulters/${selectedDefaulter._id}/rollback`, {
+            method: "POST",
+            credentials: "include",
+            headers,
+            body: JSON.stringify({
+              amount: Number(rollbackAmount),
+              remarks: rollbackRemarks.trim(),
+              attachments: rollbackAttachments
+            }),
+          });
 
-      const response = await fetch(`${API}/api/defaulters/${selectedDefaulter._id}/rollback`, {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({
-          amount: Number(rollbackAmount),
-          remarks: rollbackRemarks.trim(),
-          attachments: rollbackAttachments
-        }),
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to rollback payment");
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to rollback payment");
+          const result = await response.json();
+          console.log("✅ Payment rolled back:", result);
+
+          alert(`✅ ₹${rollbackAmount} rolled back successfully!`);
+
+          setShowRollbackModal(false);
+          setRollbackAmount(0);
+          setRollbackRemarks('');
+          setRollbackAttachments([]);
+          setShowDetails(false);
+          setConfirmAction(null);
+          
+          await fetchDefaulters();
+
+        } catch (err) {
+          console.error("❌ Rollback error:", err);
+          alert(`❌ Failed to rollback payment: ${err.message}`);
+        } finally {
+          setLoading(false);
+        }
       }
-
-      const result = await response.json();
-      console.log("✅ Payment rolled back:", result);
-
-      alert(`✅ ₹${rollbackAmount} rolled back successfully!`);
-
-      setShowRollbackModal(false);
-      setRollbackAmount(0);
-      setRollbackRemarks('');
-      setRollbackAttachments([]);
-      setShowDetails(false);
-      
-      fetchDefaulters();
-
-    } catch (err) {
-      console.error("❌ Rollback error:", err);
-      alert(`❌ Failed to rollback payment: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
     <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
-      {/* Header - Same style as CalendarGuestsPage */}
+      {/* Header */}
       <div className="relative bg-gradient-to-br from-gray-900 via-red-900 to-black text-white shadow-2xl rounded-3xl mx-6 mt-6 overflow-hidden border border-red-500/30">
         <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-orange-500/10 backdrop-blur-xl"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -501,45 +479,46 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </div>
         </div>
         </div>
-      </div> 
-
-      {/* Date Range Filter */}
-      <div className="flex gap-2 items-center">
-        <div>
-          <label className="text-xs text-gray-600 mb-1 block">From</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-600 mb-1 block">To</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-          />
-        </div>
-        {(dateFrom || dateTo) && (
-          <button
-            onClick={() => {
-              setDateFrom('');
-              setDateTo('');
-            }}
-            className="mt-5 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm font-semibold"
-          >
-            Clear
-          </button>
-        )}
       </div>
 
       {/* Filters Section */}
       <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
         <div className="px-6 py-4">
           <div className="flex gap-4 items-center flex-wrap">
+            {/* Date Range Filter */}
+            <div className="flex gap-2 items-center">
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => {
+                    setDateFrom('');
+                    setDateTo('');
+                  }}
+                  className="mt-5 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm font-semibold"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Search Bar */}
             <div className="flex-1 min-w-[300px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -551,6 +530,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               />
             </div>
 
+            {/* Hostel Filter */}
             {(role === 'admin' || role === 'manager') && (
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -568,7 +548,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </div>
         </div>
       </div>
-
+      
       {/* Tabs Section */}
       <div className="mx-6 mt-4">
         <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-2">
@@ -1312,7 +1292,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       <div>
                         <p className="text-gray-600">New Balance</p>
                         <p className="font-bold text-red-700">
-                          ₹{selectedDefaulter.totalDue + rollbackAmount}
+                          ₹{(selectedDefaulter.totalAmount || 0) - ((selectedDefaulter.paidAmount || 0) - rollbackAmount) - (selectedDefaulter.discount || 0)}
                         </p>
                       </div>
                     </div>
