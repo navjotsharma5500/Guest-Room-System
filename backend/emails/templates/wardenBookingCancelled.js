@@ -1,5 +1,4 @@
-import masterTemplate from "./masterTemplate.js";
-
+// wardenBookingCancelled.js
 export default function wardenBookingCancelled(b) {
   return masterTemplate({
     title: "Guest Room Booking Cancelled",
@@ -9,7 +8,7 @@ export default function wardenBookingCancelled(b) {
       <p>
         Please be informed that the guest room booking for 
         <strong>${b.guest}</strong> has been 
-        <strong style="color:#b30000;">cancelled</strong>.
+        <strong>cancelled</strong>.
       </p>
 
       <div class="details-box">

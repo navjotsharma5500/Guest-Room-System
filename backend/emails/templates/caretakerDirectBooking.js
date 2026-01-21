@@ -1,8 +1,7 @@
-import masterTemplate from "./masterTemplate.js";
-
+// caretakerDirectBooking.js
 export default function caretakerDirectBooking(b) {
   return masterTemplate({
-    title: `Guest Room Direct Booking – ${b.guest}`,
+    title: `Guest Room Direct Booking — ${b.guest}`,
     content: `
       <p>Dear <strong>Caretaker</strong>,</p>
 
@@ -17,7 +16,6 @@ export default function caretakerDirectBooking(b) {
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p><strong>Check-in:</strong> ${b.from}</p>
         <p><strong>Check-out:</strong> ${b.to}</p>
-
         ${
           b.amount
             ? `<p><strong>Amount Payable:</strong> ₹${b.amount}</p>`
@@ -28,11 +26,12 @@ export default function caretakerDirectBooking(b) {
       ${
         b.amount
           ? `
-          <p><strong>Bank Details:</strong><br/>
-            State Bank of India<br/>
-            A/C: <strong>65181840370</strong><br/>
-            IFSC: <strong>SBIN0050244</strong>
-          </p>
+          <div class="details-box">
+            <div class="details-title">Bank Details</div>
+            <p><strong>Bank Name:</strong> State Bank of India</p>
+            <p><strong>Account No.:</strong> 65181840370</p>
+            <p><strong>IFSC Code:</strong> SBIN0050244</p>
+          </div>
           <p>The guest has been asked to upload the payment slip.</p>
         `
           : ""

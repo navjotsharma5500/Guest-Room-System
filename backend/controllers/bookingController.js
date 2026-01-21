@@ -5,6 +5,7 @@ import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendEmail } from "../emails/sendEmail.js";
 import Enquiry from "../models/Enquiry.js";
+import EmailLog from "../models/EmailLog.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -45,53 +46,91 @@ import wardenDirectBooking from "../emails/templates/wardenDirectBooking.js";
 const MANAGER_EMAIL = process.env.MANAGER_EMAIL;
 
 if (!MANAGER_EMAIL) {
-  throw new Error("MANAGER_EMAIL is not defined in environment variables");
+  console.warn("⚠️ MANAGER_EMAIL not set — manager emails will be skipped");
 }
 
-const safeSend = async (emailPayload) => {
-  if (!emailPayload?.to) return;
-  await sendEmail(emailPayload);
+const safeSend = (emailPayload) => {
+  if (!emailPayload?.to || String(emailPayload.to).trim() === "") return;
+
+  sendEmail(emailPayload)
+    .then(() => {
+      try {
+        EmailLog.create({
+          to: emailPayload.to,
+          subject: emailPayload.subject,
+          type: emailPayload.meta?.type,
+          bookingId: emailPayload.meta?.bookingId,
+          status: "sent",
+        });
+      } catch (e) {
+        console.error("EmailLog write failed:", e.message);
+      }
+    })
+    .catch((err) => {
+      try {
+        EmailLog.create({
+          to: emailPayload.to,
+          subject: emailPayload.subject,
+          type: emailPayload.meta?.type,
+          bookingId: emailPayload.meta?.bookingId,
+          status: "failed",
+          error: err.message,
+        });
+      } catch (e) {
+        console.error("EmailLog write failed:", e.message);
+      }
+    });
 };
 
-const sendBookingEmails = async (booking, role, statusType = "approved") => {
+const sendBookingEmails = (booking, role, statusType = "approved") => {
   const isPaid =
-    booking.paymentType === "PAID" || booking.amountToBePaid > 0;
+    booking.paymentType?.toUpperCase() === "PAID" ||
+    booking.amountToBePaid > 0;
 
   const caretakerEmail = booking.caretakerEmail;
   const wardenEmail = booking.wardenEmail;
   const guestEmail = booking.email;
 
   try {
-    // --------------------------------------------
-    // DIRECT BOOKING (Caretaker creates booking)
-    // --------------------------------------------
+    // DIRECT BOOKING
     if (role === "caretaker" && statusType === "created") {
-      await safeSend({
+      safeSend({
         to: guestEmail,
         subject: "Guest Room Booking Confirmation",
         html: caretakerDirectBooking(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "guest-direct-booking",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: wardenEmail,
         subject: "Caretaker Direct Booking",
         html: wardenDirectBooking(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "warden-direct-booking",
+        },
       });
 
-      await safeSend({
-        to: MANAGER_EMAIL,
-        subject: "Caretaker Direct Booking Notification",
-        html: managerDirectBooking(booking),
-      });
-
+      if (MANAGER_EMAIL) {
+        safeSend({
+          to: MANAGER_EMAIL,
+          subject: "Caretaker Direct Booking Notification",
+          html: managerDirectBooking(booking),
+          meta: {
+            bookingId: booking._id,
+            type: "manager-direct-booking",
+          },
+        });
+      }
       return;
     }
 
-    // --------------------------------------------
-    // APPROVED BOOKING
-    // --------------------------------------------
+    // APPROVED
     if (statusType === "approved") {
-      await safeSend({
+      safeSend({
         to: guestEmail,
         subject: isPaid
           ? "Paid Guest Room Booking Approved"
@@ -99,99 +138,153 @@ const sendBookingEmails = async (booking, role, statusType = "approved") => {
         html: isPaid
           ? guestBookingApprovedPaid(booking)
           : guestBookingApprovedFree(booking),
+        meta: {
+          bookingId: booking._id,
+          type: isPaid
+            ? "guest-approved-paid"
+            : "guest-approved-free",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: caretakerEmail,
         subject: "New Guest Booking Approved",
         html: isPaid
           ? caretakerBookingApprovedPaid(booking)
           : caretakerBookingApprovedFree(booking),
+        meta: {
+          bookingId: booking._id,
+          type: isPaid
+            ? "caretaker-approved-paid"
+            : "caretaker-approved-free",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: wardenEmail,
         subject: "Guest Booking Approved",
         html: isPaid
           ? wardenBookingApprovedPaid(booking)
           : wardenBookingApprovedFree(booking),
+        meta: {
+          bookingId: booking._id,
+          type: isPaid
+            ? "warden-approved-paid"
+            : "warden-approved-free",
+        },
       });
 
-      await safeSend({
-        to: MANAGER_EMAIL,
-        subject: "Booking Approved Notification",
-        html: isPaid
-          ? managerBookingApprovedPaid(booking)
-          : managerBookingApprovedFree(booking),
-      });
-
+      if (MANAGER_EMAIL) {
+        safeSend({
+          to: MANAGER_EMAIL,
+          subject: "Booking Approved Notification",
+          html: isPaid
+            ? managerBookingApprovedPaid(booking)
+            : managerBookingApprovedFree(booking),
+          meta: {
+            bookingId: booking._id,
+            type: isPaid
+              ? "manager-approved-paid"
+              : "manager-approved-free",
+          },
+        });
+      }
       return;
     }
 
-    // --------------------------------------------
-    // CANCELLED BOOKING
-    // --------------------------------------------
+    // CANCELLED
     if (statusType === "cancelled") {
-      await safeSend({
+      safeSend({
         to: guestEmail,
         subject: "Guest Room Booking Cancelled",
         html: guestBookingCancelled(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "guest-booking-cancelled",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: caretakerEmail,
         subject: "Guest Booking Cancelled",
         html: caretakerBookingCancelled(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "caretaker-booking-cancelled",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: wardenEmail,
         subject: "Guest Booking Cancelled",
         html: wardenBookingCancelled(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "warden-booking-cancelled",
+        },
       });
 
-      await safeSend({
-        to: MANAGER_EMAIL,
-        subject: "Guest Booking Cancelled",
-        html: managerBookingCancelled(booking),
-      });
-
+      if (MANAGER_EMAIL) {
+        safeSend({
+          to: MANAGER_EMAIL,
+          subject: "Guest Booking Cancelled",
+          html: managerBookingCancelled(booking),
+          meta: {
+            bookingId: booking._id,
+            type: "manager-booking-cancelled",
+          },
+        });
+      }
       return;
     }
 
-    // --------------------------------------------
-    // EXTENDED BOOKING
-    // --------------------------------------------
+    // EXTENDED
     if (statusType === "extended") {
-      await safeSend({
+      safeSend({
         to: guestEmail,
         subject: "Guest Booking Extended",
         html: guestBookingExtended(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "guest-booking-extended",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: caretakerEmail,
         subject: "Booking Extended",
         html: caretakerBookingExtended(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "caretaker-booking-extended",
+        },
       });
 
-      await safeSend({
+      safeSend({
         to: wardenEmail,
         subject: "Booking Extended",
         html: wardenBookingExtended(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "warden-booking-extended",
+        },
       });
 
-      await safeSend({
-        to: MANAGER_EMAIL,
-        subject: "Booking Extension Notification",
-        html: managerBookingExtended(booking),
-      });
-
+      if (MANAGER_EMAIL) {
+        safeSend({
+          to: MANAGER_EMAIL,
+          subject: "Booking Extension Notification",
+          html: managerBookingExtended(booking),
+          meta: {
+            bookingId: booking._id,
+            type: "manager-booking-extended",
+          },
+        });
+      }
       return;
     }
-
   } catch (err) {
-    console.error("EMAIL ERROR:", err);
+    console.error("EMAIL DISPATCH ERROR:", err);
   }
 };
 
@@ -304,6 +397,8 @@ export const createBooking = async (req, res) => {
     });
 
     const booking = await Booking.create(bookingData);
+
+    sendBookingEmails(booking, "caretaker", "created");
 
     console.log("================================================================================");
     console.log("✅ BOOKING CREATED:", booking._id);
@@ -617,7 +712,25 @@ export const updatePaymentDetails = async (req, res) => {
 // ================================
 export const extendBooking = async (req, res) => {
   try {
-    const { newTo, remarks, extensionAttachments } = req.body;
+    const { 
+      newTo, 
+      remarks, 
+      extensionAttachments,
+      // ✅ NEW: Extension payment fields
+      extensionPaymentType,
+      extensionAmount,
+      extensionPaymentRemarks,
+      extensionPaymentAttachments
+    } = req.body;
+
+    console.log("🔥 EXTENSION REQUEST:", {
+      newTo,
+      remarks,
+      extensionPaymentType,
+      extensionAmount,
+      attachmentsCount: extensionAttachments?.length || 0,
+      paymentAttachmentsCount: extensionPaymentAttachments?.length || 0
+    });
 
     const booking = await Booking.findById(req.params.id);
 
@@ -625,6 +738,7 @@ export const extendBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    // ✅ Update basic extension fields
     booking.to = new Date(newTo);
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks;
@@ -633,7 +747,42 @@ export const extendBooking = async (req, res) => {
       booking.extensionAttachments = extensionAttachments;
     }
 
+    // ✅ NEW: Update extension payment fields
+    if (extensionPaymentType) {
+      booking.extensionPaymentType = extensionPaymentType;
+      
+      if (extensionPaymentType === "Paid") {
+        booking.extensionAmount = Number(extensionAmount || 0);
+        
+        // ✅ Add extension amount to total balance
+        booking.totalAmount = (booking.totalAmount || 0) + Number(extensionAmount || 0);
+        booking.balanceAmount = booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
+        
+        console.log("💰 Extension - Paid booking:", {
+          extensionAmount,
+          newTotalAmount: booking.totalAmount,
+          newBalance: booking.balanceAmount
+        });
+      } else if (extensionPaymentType === "Free") {
+        booking.extensionAmount = 0;
+        booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
+        
+        console.log("🆓 Extension - Free booking with remarks");
+      }
+      
+      // ✅ Add payment attachments (for both Paid and Free)
+      if (Array.isArray(extensionPaymentAttachments) && extensionPaymentAttachments.length > 0) {
+        booking.extensionPaymentAttachments = extensionPaymentAttachments;
+        
+        console.log("📎 Extension payment attachments:", {
+          count: extensionPaymentAttachments.length
+        });
+      }
+    }
+
     await booking.save();
+
+    sendBookingEmails(booking, req.user.role, "extended");
 
     // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
@@ -674,6 +823,8 @@ export const cancelBooking = async (req, res) => {
     if (remarks) booking.cancelRemarks = remarks;
 
     await booking.save();
+
+    sendBookingEmails(booking, req.user.role, "cancelled");
 
     // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
@@ -904,25 +1055,39 @@ export const autoCancelNoShows = async () => {
 
         console.log(`✅ Auto-cancelled booking ${booking._id} for ${booking.guest}`);
 
-        // Send emails
+        // Send emails - NO AWAIT
         try {
-          await safeSend({
+          safeSend({
             to: booking.email,
             subject: "Booking Cancelled - No Show",
-            html: guestBookingCancelled(booking)
+            html: guestBookingCancelled(booking),
+            meta: {
+              bookingId: booking._id,
+              type: "guest-no-show-cancelled",
+            },
           });
 
-          await safeSend({
+          safeSend({
             to: booking.wardenEmail,
             subject: "Guest No-Show - Booking Auto-Cancelled",
-            html: wardenBookingCancelled(booking)
+            html: wardenBookingCancelled(booking),
+            meta: {
+              bookingId: booking._id,
+              type: "warden-no-show-cancelled",
+            },
           });
 
-          await safeSend({
-            to: MANAGER_EMAIL,
-            subject: "No-Show Auto-Cancellation",
-            html: managerBookingCancelled(booking)
-          });
+          if (MANAGER_EMAIL) {
+            safeSend({
+              to: MANAGER_EMAIL,
+              subject: "No-Show Auto-Cancellation",
+              html: managerBookingCancelled(booking),
+              meta: {
+                bookingId: booking._id,
+                type: "manager-no-show-cancelled",
+              },
+            });
+          }
 
           console.log(`📧 Cancellation emails sent for booking ${booking._id}`);
         } catch (emailErr) {
@@ -943,9 +1108,4 @@ export const autoCancelNoShows = async () => {
       error: err.message
     };
   }
-};
-
-
-
-
-
+}

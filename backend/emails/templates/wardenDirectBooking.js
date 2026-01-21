@@ -1,8 +1,7 @@
-import masterTemplate from "./masterTemplate.js";
-
+// wardenDirectBooking.js
 export default function wardenDirectBooking(b) {
   return masterTemplate({
-    title: `Direct Guest Room Booking – ${b.guest}`,
+    title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
       <p>Dear <strong>Warden</strong>,</p>
 
@@ -13,12 +12,10 @@ export default function wardenDirectBooking(b) {
 
       <div class="details-box">
         <div class="details-title">Booking Details</div>
-
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p><strong>Check-in:</strong> ${b.from}</p>
         <p><strong>Check-out:</strong> ${b.to}</p>
-
         ${
           b.amount
             ? `<p><strong>Amount:</strong> ₹${b.amount}</p>`

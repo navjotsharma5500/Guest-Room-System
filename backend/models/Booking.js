@@ -158,6 +158,33 @@ const BookingSchema = new mongoose.Schema(
       default: [],
     },
 
+    extensionAttachments: {
+      type: [String],
+      default: [],
+    },
+
+    // ✅ NEW: Extension Payment Fields
+    extensionPaymentType: {
+      type: String,
+      enum: ["Paid", "Free", ""],
+      default: "",
+    },
+
+    extensionAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    extensionPaymentRemarks: {
+      type: String,
+      default: "",
+    },
+
+    extensionPaymentAttachments: {
+      type: [String],
+      default: [],
+    },
+
     // =========================
     // CANCELLATION
     // =========================

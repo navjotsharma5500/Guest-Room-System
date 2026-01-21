@@ -1,5 +1,4 @@
-import masterTemplate from "./masterTemplate.js";
-
+// guestBookingApprovedFree.js
 export default function guestBookingApprovedFree(b) {
   return masterTemplate({
     title: "Guest Room Booking Approved",
@@ -8,7 +7,7 @@ export default function guestBookingApprovedFree(b) {
 
       <p>
         We are pleased to inform you that your guest room booking request has been 
-        <strong style="color:#b30000;">approved</strong>.
+        <strong>approved</strong>.
       </p>
 
       <div class="details-box">

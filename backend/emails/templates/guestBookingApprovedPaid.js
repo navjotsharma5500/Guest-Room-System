@@ -1,5 +1,4 @@
-import masterTemplate from "./masterTemplate.js";
-
+// guestBookingApprovedPaid.js
 export default function guestBookingApprovedPaid(b) {
   return masterTemplate({
     title: "Paid Guest Room Booking Approved",
@@ -8,7 +7,7 @@ export default function guestBookingApprovedPaid(b) {
 
       <p>
         Your paid guest room booking request has been 
-        <strong style="color:#b30000;">approved</strong>.
+        <strong>approved</strong>.
       </p>
 
       <div class="details-box">
@@ -20,12 +19,12 @@ export default function guestBookingApprovedPaid(b) {
         <p><strong>Amount to Pay:</strong> ₹${b.amount}</p>
       </div>
 
-      <p><strong>Bank Details:</strong></p>
-      <p>
-        Bank Name: State Bank of India<br/>
-        Account No.: <strong>65181840370</strong><br/>
-        IFSC Code: <strong>SBIN0050244</strong>
-      </p>
+      <div class="details-box">
+        <div class="details-title">Bank Details for Payment</div>
+        <p><strong>Bank Name:</strong> State Bank of India</p>
+        <p><strong>Account No.:</strong> 65181840370</p>
+        <p><strong>IFSC Code:</strong> SBIN0050244</p>
+      </div>
 
       <p>
         Kindly share the payment slip on this email after completing the transaction.

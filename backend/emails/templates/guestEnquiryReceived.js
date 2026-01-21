@@ -1,14 +1,16 @@
-import masterTemplate from "./masterTemplate.js";
-
+// guestEnquiryReceived.js
 export default function guestEnquiryReceived(e) {
   return masterTemplate({
-    title: "New Guest Room Enquiry Received",
+    title: "Guest Room Enquiry Received",
     content: `
-      <p><strong>New Enquiry Submitted</strong></p>
+      <p>Dear <strong>${e.name}</strong>,</p>
+
+      <p>
+        Thank you for your interest in our guest room facilities.
+      </p>
 
       <div class="details-box">
-        <div class="details-title">Guest Details</div>
-
+        <div class="details-title">Your Enquiry Details</div>
         <p><strong>Name:</strong> ${e.name}</p>
         <p><strong>Email:</strong> ${e.email}</p>
         <p><strong>Purpose:</strong> ${e.purpose}</p>
@@ -16,7 +18,12 @@ export default function guestEnquiryReceived(e) {
         <p><strong>Requested Check-out:</strong> ${e.to}</p>
       </div>
 
-      <p>Please review the enquiry and take further action.</p>
+      <p>
+        Your enquiry has been received and is being reviewed. 
+        Our team will contact you shortly.
+      </p>
+
+      <p>Thank you for your patience.</p>
     `
   });
 }

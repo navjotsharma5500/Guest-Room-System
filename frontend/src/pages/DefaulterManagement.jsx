@@ -77,16 +77,30 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
       if (data.success && Array.isArray(data.defaulters)) {
         const normalized = data.defaulters
-          .map(d => ({
-            ...d,
-            department: d.department || "",
-            rollno: d.rollno || "",
-            bills: Array.isArray(d.bills) ? d.bills : [],
-            paidAmount: Number(d.paidAmount || 0),
-            totalAmount: Number(d.totalAmount || 0),
-            totalDue: Number(d.totalDue || 0),
-            paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
-          }))
+          .map(d => {
+            const totalAmount = Number(d.totalAmount || 0);
+            const paidAmount = Number(d.paidAmount || 0);
+            const discount = Number(d.discount || d.waveOff || 0);
+            const totalRolledBack = Array.isArray(d.paymentRollbacks) 
+              ? d.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0)
+              : 0;
+            
+            // ✅ CORRECT CALCULATION: Total - Paid - Discount
+            const actualBalance = totalAmount - paidAmount - discount;
+            
+            return {
+              ...d,
+              department: d.department || "",
+              rollno: d.rollno || "",
+              bills: Array.isArray(d.bills) ? d.bills : [],
+              paidAmount: paidAmount,
+              totalAmount: totalAmount,
+              discount: discount,
+              totalDue: actualBalance, // ✅ Use calculated balance
+              totalRolledBack: totalRolledBack,
+              paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
+            };
+          })
           .filter(d => {
             const checkoutDate = new Date(d.checkoutDate);
             const today = new Date();
@@ -160,10 +174,19 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
     // ✅ TAB FILTERING
     if (activeTab === 'pending') {
-      filtered = filtered.filter(d => d.totalDue > 0);
+      // Show only those with outstanding balance AND no rollbacks
+      filtered = filtered.filter(d => {
+        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        return d.totalDue > 0 && !hasRollbacks;
+      });
     } else if (activeTab === 'completed') {
-      filtered = filtered.filter(d => d.totalDue === 0 && d.paidAmount > 0);
+      // Show only fully paid (balance = 0) AND no rollbacks
+      filtered = filtered.filter(d => {
+        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
+      });
     } else if (activeTab === 'rollbacks') {
+      // Show only those with rollback history
       filtered = filtered.filter(d => 
         d.paymentRollbacks && d.paymentRollbacks.length > 0
       );
@@ -200,8 +223,14 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
-  const pendingDefaulters = defaulters.filter(d => d.totalDue > 0);
-  const completedPayments = defaulters.filter(d => d.totalDue === 0 && d.paidAmount > 0);
+  const pendingDefaulters = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return d.totalDue > 0 && !hasRollbacks;
+  });
+  const completedPayments = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
+  });
   const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
 
   const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
@@ -972,87 +1001,98 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   {(() => {
+                    const hasRollbacks = selectedDefaulter.paymentRollbacks && selectedDefaulter.paymentRollbacks.length > 0;
                     const totalAmount = selectedDefaulter.totalAmount || 0;
                     const paidAmount = selectedDefaulter.paidAmount || 0;
                     const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
                     const currentBalance = totalAmount - paidAmount - discount;
-                    return currentBalance > 0;
-                  })() && (
-                    <button
-                      onClick={() => {
-                        setShowDetails(false);
-                        
-                        // ✅ RECALCULATE CURRENT BALANCE
-                        const totalAmount = selectedDefaulter.totalAmount || 0;
-                        const paidAmount = selectedDefaulter.paidAmount || 0;
-                        const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
-                        const currentBalance = totalAmount - paidAmount - discount;
-                        
-                        const bookingData = {
-                          _id: selectedDefaulter._id,
-                          bookingId: selectedDefaulter._id,
-                          guest: selectedDefaulter.guest,
-                          email: selectedDefaulter.email,
-                          contact: selectedDefaulter.contact,
-                          hostel: selectedDefaulter.hostel,
-                          roomNo: selectedDefaulter.roomNo,
-                          department: selectedDefaulter.department,
-                          rollno: selectedDefaulter.rollno,
-                          totalAmount: selectedDefaulter.totalAmount,
-                          paidAmount: selectedDefaulter.paidAmount,
-                          discount: discount,
-                          balanceAmount: currentBalance, // ✅ Use recalculated balance
-                          totalDue: currentBalance, // ✅ Use recalculated balance
-                          bills: selectedDefaulter.bills,
-                          daysOverdue: selectedDefaulter.daysOverdue,
-                          lastBooking: selectedDefaulter.lastBooking
-                        };
-                        onOpenPaymentModal?.(bookingData);
-                      }}
-                      className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
-                    >
-                      <CreditCard size={20} />
-                      Pay ₹{(() => {
-                        const totalAmount = selectedDefaulter.totalAmount || 0;
-                        const paidAmount = selectedDefaulter.paidAmount || 0;
-                        const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
-                        return totalAmount - paidAmount - discount;
-                      })()} Now
-                    </button>
-                  )}
+                    const isFullyPaid = currentBalance === 0 && paidAmount > 0;
 
-                  {(() => {
-                    const totalAmount = selectedDefaulter.totalAmount || 0;
-                    const paidAmount = selectedDefaulter.paidAmount || 0;
-                    const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
-                    const currentBalance = totalAmount - paidAmount - discount;
-                    return currentBalance <= 0;
-                  })() && (
-                    <div className="flex-1 bg-green-100 text-green-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 border-green-500">
-                      <CheckCircle size={20} />
-                      Fully Paid
-                    </div>
-                  )}
+                    // ✅ CASE 1: Has Rollbacks - Show ONLY close button
+                    if (hasRollbacks) {
+                      return (
+                        <button
+                          onClick={() => setShowDetails(false)}
+                          className="flex-1 px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                        >
+                          Close
+                        </button>
+                      );
+                    }
 
-                  {canRollback && (
-                    <button
-                      onClick={() => {
-                        setShowDetails(false);
-                        setShowRollbackModal(true);
-                      }}
-                      className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-orange-700 hover:to-red-700 transition"
-                    >
-                      <AlertCircle size={20} />
-                      Rollback Payment
-                    </button>
-                  )}
+                    // ✅ CASE 2: Fully Paid (no rollbacks) - Show ONLY fully paid badge + close
+                    if (isFullyPaid) {
+                      return (
+                        <>
+                          <div className="flex-1 bg-green-100 text-green-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 border-green-500">
+                            <CheckCircle size={20} />
+                            Fully Paid
+                          </div>
+                          <button
+                            onClick={() => setShowDetails(false)}
+                            className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                          >
+                            Close
+                          </button>
+                        </>
+                      );
+                    }
 
-                  <button
-                    onClick={() => setShowDetails(false)}
-                    className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
-                  >
-                    Close
-                  </button>
+                    // ✅ CASE 3: Pending/Partial Payment - Show Pay + Rollback + Close
+                    return (
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowDetails(false);
+                            const bookingData = {
+                              _id: selectedDefaulter._id,
+                              bookingId: selectedDefaulter._id,
+                              guest: selectedDefaulter.guest,
+                              email: selectedDefaulter.email,
+                              contact: selectedDefaulter.contact,
+                              hostel: selectedDefaulter.hostel,
+                              roomNo: selectedDefaulter.roomNo,
+                              department: selectedDefaulter.department,
+                              rollno: selectedDefaulter.rollno,
+                              totalAmount: totalAmount,
+                              paidAmount: paidAmount,
+                              discount: discount,
+                              balanceAmount: currentBalance,
+                              totalDue: currentBalance,
+                              bills: selectedDefaulter.bills,
+                              daysOverdue: selectedDefaulter.daysOverdue,
+                              lastBooking: selectedDefaulter.lastBooking
+                            };
+                            onOpenPaymentModal?.(bookingData);
+                          }}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
+                        >
+                          <CreditCard size={20} />
+                          Pay ₹{currentBalance} Now
+                        </button>
+
+                        {canRollback && paidAmount > 0 && (
+                          <button
+                            onClick={() => {
+                              setShowDetails(false);
+                              setShowRollbackModal(true);
+                            }}
+                            className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-orange-700 hover:to-red-700 transition"
+                          >
+                            <AlertCircle size={20} />
+                            Rollback Payment
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => setShowDetails(false)}
+                          className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                        >
+                          Close
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.div>

@@ -1,14 +1,13 @@
-import masterTemplate from "./masterTemplate.js";
-
+// wardenBookingApprovedFree.js
 export default function wardenBookingApprovedFree(b) {
   return masterTemplate({
-    title: `Guest Room Booking Approved – ${b.guest}`,
+    title: `Guest Room Booking Approved — ${b.guest}`,
     content: `
       <p>Dear <strong>Warden</strong>,</p>
 
       <p>
         This is to inform you that a guest room booking has been 
-        <strong style="color:#b30000;">approved</strong> for 
+        <strong>approved</strong> for 
         <strong>${b.guest}</strong>.
       </p>
 

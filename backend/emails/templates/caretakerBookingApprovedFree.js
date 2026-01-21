@@ -1,14 +1,15 @@
+// caretakerBookingApprovedFree.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function caretakerBookingApprovedFree(b) {
   return masterTemplate({
-    title: `Guest Room Booking Approved – ${b.guest}`,
+    title: `Guest Room Booking Approved — ${b.guest}`,
     content: `
       <p>Dear <strong>Caretaker</strong>,</p>
 
       <p>
         This is to inform you that a guest room booking has been 
-        <strong style="color:#b30000;">approved</strong> for <strong>${b.guest}</strong>.
+        <strong>approved</strong> for <strong>${b.guest}</strong>.
       </p>
 
       <div class="details-box">

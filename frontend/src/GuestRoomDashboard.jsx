@@ -431,7 +431,7 @@ export default function GuestRoomDashboard() {
     setTimeout(() => refresh(), 100);
   };
 
-  const handleExtensionModalExtend = async (extensionData, newToDate, remarks, extensionAttachments) => {
+  const handleExtensionModalExtend = async (extensionData, newToDate, remarks, extensionAttachments, paymentData) => {
     console.log("================================================================================");
     console.log("🔥 DASHBOARD: handleExtensionModalExtend called");
     console.log("📦 Parameters:", {
@@ -439,7 +439,8 @@ export default function GuestRoomDashboard() {
       hasBooking: extensionData?.booking ? "yes" : "no",
       newToDate,
       remarks,
-      filesCount: extensionAttachments?.length || 0
+      filesCount: extensionAttachments?.length || 0,
+      paymentData: paymentData || "none"
     });
     console.log("================================================================================");
 
@@ -534,7 +535,7 @@ export default function GuestRoomDashboard() {
       return;
     }
     
-    // ✅ CALL BACKEND API
+    // ✅ CALL BACKEND API WITH PAYMENT DATA
     try {
       console.log("⬆️ Extending booking in MongoDB:", mongoId);
 
@@ -547,7 +548,9 @@ export default function GuestRoomDashboard() {
         hostel,
         roomNo,
         remarks: remarks || "",
-        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : []
+        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
+        // ✅ ADD PAYMENT DATA
+        ...paymentData
       };
 
       console.log("📤 Sending payload:", JSON.stringify(payload, null, 2));

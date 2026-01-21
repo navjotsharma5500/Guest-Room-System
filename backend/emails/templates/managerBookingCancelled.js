@@ -1,5 +1,4 @@
-import masterTemplate from "./masterTemplate.js";
-
+// managerBookingCancelled.js
 export default function managerBookingCancelled(b) {
   return masterTemplate({
     title: "Guest Room Booking Cancelled",
@@ -9,11 +8,14 @@ export default function managerBookingCancelled(b) {
       <p>
         The booking for <strong>${b.guest}</strong> at 
         <strong>${b.hostel}</strong> (Room: ${b.roomNo}) has been 
-        <strong style="color:#b30000;">cancelled</strong>.
+        <strong>cancelled</strong>.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Details</div>
+        <div class="details-title">Cancellation Details</div>
+        <p><strong>Guest Name:</strong> ${b.guest}</p>
+        <p><strong>Hostel:</strong> ${b.hostel}</p>
+        <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p><strong>Reason:</strong> ${b.cancelRemarks || "Not specified"}</p>
       </div>
 

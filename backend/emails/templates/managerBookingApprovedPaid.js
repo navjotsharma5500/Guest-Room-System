@@ -1,14 +1,13 @@
-import masterTemplate from "./masterTemplate.js";
-
+// managerBookingApprovedPaid.js
 export default function managerBookingApprovedPaid(b) {
   return masterTemplate({
-    title: `Guest Room Booking Approved – ${b.guest}`,
+    title: `Guest Room Booking Approved — ${b.guest}`,
     content: `
       <p>Dear <strong>Manager</strong>,</p>
 
       <p>
         A <strong>paid</strong> guest room booking has been 
-        <strong style="color:#b30000;">approved</strong> for 
+        <strong>approved</strong> for 
         <strong>${b.guest}</strong>.
       </p>
 
