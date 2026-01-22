@@ -158,11 +158,6 @@ const BookingSchema = new mongoose.Schema(
       default: [],
     },
 
-    extensionAttachments: {
-      type: [String],
-      default: [],
-    },
-
     // ✅ NEW: Extension Payment Fields
     extensionPaymentType: {
       type: String,
