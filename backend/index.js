@@ -1,7 +1,8 @@
 // index.js - FINAL iOS + DESKTOP + CLOUDFLARE + SOCKET.IO SAFE VERSION
 
+import "dotenv/config";
+
 import express from "express";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import ImageKit from "imagekit";
@@ -26,7 +27,6 @@ import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
 
-dotenv.config();
 const app = express();
 
 /* =========================================================

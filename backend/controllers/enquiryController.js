@@ -1,7 +1,41 @@
-// controllers/enquiryController.js - COMPLETE FIXED VERSION
+// controllers/enquiryController.js - COMPLETE FIXED VERSION WITH PROPER EMAIL HANDLING
 import Enquiry from "../models/Enquiry.js";
 import { sendEmail } from "../emails/sendEmail.js";
+import EmailLog from "../models/EmailLog.js";
+import enquiryNotification from "../emails/templates/enquiryNotification.js";
+import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 
+// ======================================================
+// HELPER: SAFE EMAIL SENDING (NON-BLOCKING)
+// ======================================================
+const safeSend = (emailPayload) => {
+  if (!emailPayload?.to || String(emailPayload.to).trim() === "") return;
+
+  sendEmail(emailPayload)
+    .then(() => {
+      EmailLog.create({
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        type: emailPayload.meta?.type,
+        enquiryId: emailPayload.meta?.enquiryId,
+        status: "sent",
+      }).catch(() => {});
+    })
+    .catch((err) => {
+      EmailLog.create({
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        type: emailPayload.meta?.type,
+        enquiryId: emailPayload.meta?.enquiryId,
+        status: "failed",
+        error: err.message,
+      }).catch(() => {});
+    });
+};
+
+// ======================================================
+//  CREATE ENQUIRY
+// ======================================================
 export const createEnquiry = async (req, res) => {
   try {
     console.log("📩 ========== ENQUIRY CREATE STARTED ==========");
@@ -13,7 +47,7 @@ export const createEnquiry = async (req, res) => {
     let fullData = body.fullData;
     
     if (typeof fullData === "string") {
-      console.log("🔄 fullData is STRING, parsing...");
+      console.log("📄 fullData is STRING, parsing...");
       fullData = JSON.parse(fullData);
     }
 
@@ -73,6 +107,34 @@ export const createEnquiry = async (req, res) => {
     console.log("✅ SAVED checkInTime:", enquiry.checkInTime);
     console.log("✅ SAVED checkOutTime:", enquiry.checkOutTime);
 
+    // ======================================================
+    // 📧 ENQUIRY EMAILS (NON-BLOCKING, PRODUCTION SAFE)
+    // ======================================================
+
+    // 🔔 Admin / Manager notification (MANDATORY)
+    safeSend({
+      to: process.env.ADMIN_NOTIFICATION_EMAIL,
+      subject: "New Guest Enquiry Received",
+      html: enquiryNotification(enquiry),
+      meta: {
+        type: "new-enquiry-admin",
+        enquiryId: enquiry._id,
+      },
+    });
+
+    // 📩 Guest acknowledgement
+    safeSend({
+      to: enquiry.email,
+      subject: "We have received your enquiry",
+      html: guestEnquiryReceived(enquiry),
+      meta: {
+        type: "guest-enquiry-received",
+        enquiryId: enquiry._id,
+      },
+    });
+
+    console.log("📧 Enquiry emails dispatched (non-blocking)");
+
     // ✅ Return with explicit time fields
     const response = {
       success: true,
@@ -85,6 +147,7 @@ export const createEnquiry = async (req, res) => {
 
     res.status(201).json(response);
 
+    // ✅ EMIT SOCKET.IO EVENT
     if (req.app) {
       const io = req.app.get('io');
       if (io) {
@@ -189,18 +252,34 @@ export const approveEnquiry = async (req, res) => {
       checkOutTime: enquiry.checkOutTime,
     });
 
-    try {
-      await sendEmail({
-        to: enquiry.email,
-        subject: "Guest Room Booking Approved",
-        text: `Your enquiry has been approved.\n\nCheck-in Time: ${enquiry.checkInTime}\nCheck-out Time: ${enquiry.checkOutTime}\n\nThank you.`,
-      });
-    } catch (emailErr) {
-      console.error("Email send error:", emailErr.message);
-    }
+    // ✅ NON-BLOCKING EMAIL
+    safeSend({
+      to: enquiry.email,
+      subject: "Guest Room Booking Approved",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">Your Enquiry Has Been Approved</h2>
+          <p>Dear ${enquiry.name},</p>
+          <p>We are pleased to inform you that your guest room enquiry has been approved.</p>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Check-in Time:</strong> ${enquiry.checkInTime}</p>
+            <p style="margin: 5px 0;"><strong>Check-out Time:</strong> ${enquiry.checkOutTime}</p>
+            <p style="margin: 5px 0;"><strong>Check-in Date:</strong> ${new Date(enquiry.from).toLocaleDateString()}</p>
+            <p style="margin: 5px 0;"><strong>Check-out Date:</strong> ${new Date(enquiry.to).toLocaleDateString()}</p>
+          </div>
+          <p>Please proceed with the next steps as communicated by the administration.</p>
+          <p>Thank you!</p>
+        </div>
+      `,
+      meta: {
+        type: "enquiry-approved",
+        enquiryId: enquiry._id,
+      },
+    });
 
     res.json({ success: true, message: "Enquiry approved", enquiry });
 
+    // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('enquiry-approved', { 
@@ -236,18 +315,34 @@ export const bookEnquiry = async (req, res) => {
       checkOutTime: enquiry.checkOutTime,
     });
 
-    try {
-      await sendEmail({
-        to: enquiry.email,
-        subject: "Your room booking is confirmed",
-        text: `Dear ${enquiry.name || 'Guest'},\n\nYour room booking is confirmed.\nCheck-in Time: ${enquiry.checkInTime}\nCheck-out Time: ${enquiry.checkOutTime}\n\nThank you.`,
-      });
-    } catch (emailErr) {
-      console.error("Email send error:", emailErr.message);
-    }
+    // ✅ NON-BLOCKING EMAIL
+    safeSend({
+      to: enquiry.email,
+      subject: "Your Room Booking is Confirmed",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">Room Booking Confirmed</h2>
+          <p>Dear ${enquiry.name || 'Guest'},</p>
+          <p>Your room booking has been confirmed!</p>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Check-in Time:</strong> ${enquiry.checkInTime}</p>
+            <p style="margin: 5px 0;"><strong>Check-out Time:</strong> ${enquiry.checkOutTime}</p>
+            <p style="margin: 5px 0;"><strong>Check-in Date:</strong> ${new Date(enquiry.from).toLocaleDateString()}</p>
+            <p style="margin: 5px 0;"><strong>Check-out Date:</strong> ${new Date(enquiry.to).toLocaleDateString()}</p>
+          </div>
+          <p>Please arrive at the specified check-in time with valid identification.</p>
+          <p>Thank you for choosing our guest house!</p>
+        </div>
+      `,
+      meta: {
+        type: "enquiry-booked",
+        enquiryId: enquiry._id,
+      },
+    });
 
     res.json({ success: true, message: "Enquiry fully booked", enquiry });
 
+    // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('enquiry-booked', { 
@@ -279,18 +374,28 @@ export const rejectEnquiry = async (req, res) => {
 
     console.log("✅ Enquiry rejected:", enquiry._id);
 
-    try {
-      await sendEmail({
-        to: enquiry.email,
-        subject: "Guest Room Booking Request",
-        text: `Your enquiry has been rejected.\n\nPlease contact the hostel office if needed.`,
-      });
-    } catch (emailErr) {
-      console.error("Email send error:", emailErr.message);
-    }
+    // ✅ NON-BLOCKING EMAIL
+    safeSend({
+      to: enquiry.email,
+      subject: "Guest Room Booking Request - Update",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ef4444;">Enquiry Status Update</h2>
+          <p>Dear ${enquiry.name || 'Guest'},</p>
+          <p>We regret to inform you that your guest room enquiry has been declined.</p>
+          <p>If you have any questions or would like to discuss alternative arrangements, please contact the hostel office.</p>
+          <p>We appreciate your understanding.</p>
+        </div>
+      `,
+      meta: {
+        type: "enquiry-rejected",
+        enquiryId: enquiry._id,
+      },
+    });
 
     res.json({ success: true, message: "Enquiry rejected", enquiry });
 
+    // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('enquiry-rejected', { 
