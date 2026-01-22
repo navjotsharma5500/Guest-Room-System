@@ -5,7 +5,6 @@ import EmailLog from "../models/EmailLog.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import enquiryApproved from "../emails/templates/enquiryApproved.js";
-import enquiryBooked from "../emails/templates/enquiryBooked.js";
 import enquiryRejected from "../emails/templates/enquiryRejected.js";
 
 // ======================================================
