@@ -1,68 +1,40 @@
+// backend/emails/sendEmail.js
 import transporter from "../utils/smtpTransport.js";
-import path from "path";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-const MAX_RETRIES = 3;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-export const sendEmail = async ({
+export async function sendEmail({
   to,
   subject,
   html,
   text,
-  replyTo,
-  meta = {},
-}) => {
-  const mailOptions = {
-    from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
-    to,
-    subject,
-    html,
-    text,
-    replyTo,
-    attachments: [
-      {
-        filename: 'thapar_logo.png',
-        path: path.join(__dirname, '../../assets/thapar_logo.png'),
-        cid: 'thapar_logo' // Referenced in template as cid:thapar_logo
-      }
-    ]
-  };
+}) {
+  const maxRetries = 3;
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const info = await transporter.sendMail(mailOptions);
-
-      console.log("📧 Email sent", {
+      await transporter.sendMail({
+        from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
         to,
         subject,
-        messageId: info.messageId,
-        meta,
+        text,
+        html,
       });
 
+      console.log(`[EMAIL] Sent to ${to} (attempt ${attempt})`);
       return true;
     } catch (err) {
-      console.error(`❌ Email attempt ${attempt} failed`, {
-        to,
-        subject,
-        error: err.message,
-        meta,
-      });
+      console.error(
+        `[EMAIL] Failed attempt ${attempt} to ${to}:`,
+        err.message
+      );
 
-      if (attempt < MAX_RETRIES) {
-        await sleep(1000 * attempt);
+      if (attempt < maxRetries) {
+        await sleep(1500); // short backoff
       }
     }
   }
 
-  console.error("🚨 Email permanently failed after retries", {
-    to,
-    subject,
-    meta,
-  });
-
+  // ❗ NEVER throw
   return false;
-};
+}

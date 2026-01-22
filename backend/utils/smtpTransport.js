@@ -1,26 +1,19 @@
+// backend/utils/smtpTransport.js
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 465),
-  secure: String(process.env.SMTP_SECURE).toLowerCase() === "true", // true for 465
+  host: process.env.EMAIL_HOST,
+  port: Number(process.env.EMAIL_PORT),
+  secure: process.env.EMAIL_SECURE === "true", // true for 465
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
-  pool: true,              // reuse connections
-  maxConnections: 3,
-  maxMessages: 100,
-  rateLimit: true,
-});
 
-// Verify once at boot (non-fatal)
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ SMTP verification failed:", err.message);
-  } else {
-    console.log("✅ Gmail SMTP ready");
-  }
+  // 🔒 ABSOLUTELY REQUIRED
+  connectionTimeout: 10_000, // 10s
+  greetingTimeout: 10_000,
+  socketTimeout: 15_000,
 });
 
 export default transporter;
