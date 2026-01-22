@@ -104,7 +104,9 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
       safeSend({
         to: guestEmail,
         subject: "Guest Room Booking Confirmation",
-        html: guestDirectBooking(booking),
+        html: isPaid
+          ? guestBookingApprovedPaid(booking)
+          : guestBookingApprovedFree(booking),
         meta: {
           bookingId: booking._id,
           type: "guest-direct-booking",
