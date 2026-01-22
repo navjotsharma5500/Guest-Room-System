@@ -1,26 +1,36 @@
 // managerBookingExtended.js
+import masterTemplate from "./masterTemplate.js";
+
 export default function managerBookingExtended(b) {
   return masterTemplate({
     title: "Guest Room Booking Extended",
     content: `
-      <p>Dear <strong>Manager</strong>,</p>
+      <p>Dear Manager,</p>
 
       <p>
-        The booking for <strong>${b.guest}</strong> has been 
-        <strong>extended</strong>.
+        Please note that the guest room booking for
+        <strong>${b.guest}</strong> has been <strong>extended</strong>.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Extension Details</div>
+        <div class="details-title">Extension Summary</div>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
-        <p><strong>Old Checkout:</strong> ${b.extendRemarks || "Not available"}</p>
-        <p><strong>New Checkout:</strong> ${b.to}</p>
+        <p>
+          <strong>New Check-out:</strong>
+          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        </p>
       </div>
 
+      ${
+        b.extendRemarks
+          ? `<p><strong>Remarks:</strong> ${b.extendRemarks}</p>`
+          : ""
+      }
+
       <p>
-        This notification is for your record.
+        This update is shared for your information and records.
       </p>
-    `
+    `,
   });
 }

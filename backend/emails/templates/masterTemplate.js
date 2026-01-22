@@ -1,167 +1,88 @@
-// masterTemplate.js
 export default function masterTemplate({ title, content }) {
   return `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f5f5f5;
-        padding: 0;
-        margin: 0;
-      }
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
 
-      .email-wrapper {
-        max-width: 650px;
-        width: 100%;
-        margin: 30px auto;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
+<body style="margin:0; padding:0; background:#f2f4f7; font-family:Arial, Helvetica, sans-serif;">
 
-      .email-header {
-        background: white;
-        padding: 20px;
-        text-align: center;
-        border-bottom: 3px solid #b30000;
-      }
+  <!-- OUTER WRAPPER -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f4f7; padding:24px 0;">
+    <tr>
+      <td align="center">
 
-      .email-header img {
-        max-width: 80px;
-        height: auto;
-        margin-bottom: 10px;
-      }
+        <!-- MAIN CONTAINER -->
+        <table width="680" cellpadding="0" cellspacing="0"
+          style="background:#ffffff; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
 
-      .email-header h1 {
-        color: #b30000;
-        font-size: 18px;
-        font-weight: bold;
-        margin: 8px 0 4px 0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+          <!-- HEADER -->
+          <tr>
+            <td align="center" style="padding:24px 20px 16px;">
+              <img
+                src="https://guestapp.in/assets/thapar_logo.png"
+                alt="Thapar Institute of Engineering and Technology"
+                width="90"
+                style="display:block; margin:0 auto 12px auto;"
+              />
+              <div style="font-size:18px; font-weight:700; color:#111827;">
+                Thapar Institute of Engineering and Technology
+              </div>
+              <div style="font-size:13px; color:#6b7280; margin-top:4px;">
+                (Deemed to be University)
+              </div>
+            </td>
+          </tr>
 
-      .email-header p {
-        color: #666;
-        font-size: 13px;
-        margin: 0;
-        font-style: italic;
-      }
+          <!-- TITLE -->
+          <tr>
+            <td align="center"
+              style="padding:14px 20px; font-size:16px; font-weight:600;
+                     color:#111827; background:#f9fafb;
+                     border-top:1px solid #e5e7eb;
+                     border-bottom:1px solid #e5e7eb;">
+              ${title}
+            </td>
+          </tr>
 
-      .email-title {
-        background: #b30000;
-        color: white;
-        padding: 15px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        text-align: center;
-      }
+          <!-- CONTENT -->
+          <tr>
+            <td style="padding:22px; font-size:14.5px; line-height:1.7; color:#1f2937;">
+              ${content}
+            </td>
+          </tr>
 
-      .email-content {
-        padding: 25px;
-        font-size: 15px;
-        color: #333;
-        line-height: 1.7;
-      }
+          <!-- FOOTER -->
+          <tr>
+            <td align="center"
+              style="padding:18px; font-size:12.5px; color:#6b7280;
+                     background:#fafafa; border-top:1px solid #e5e7eb;">
+              <strong style="display:block; margin-bottom:4px; color:#111827;">
+                Thapar Institute Guest Room Management
+              </strong>
+              Thapar Institute of Engineering & Technology<br/>
+              Patiala, Punjab<br/>
+              <a href="https://thapar.edu"
+                 style="color:#2563eb; text-decoration:none;">
+                thapar.edu
+              </a>
 
-      .email-content p {
-        margin: 12px 0;
-      }
+              <div style="margin-top:10px; font-size:11px; color:#9ca3af;">
+                This is a system-generated email. Please do not reply.
+              </div>
+            </td>
+          </tr>
 
-      .details-box {
-        background: #fff5f5;
-        border-left: 4px solid #b30000;
-        padding: 15px 20px;
-        margin: 20px 0;
-        border-radius: 4px;
-      }
+        </table>
+        <!-- END MAIN CONTAINER -->
 
-      .details-title {
-        font-weight: bold;
-        color: #b30000;
-        font-size: 16px;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+      </td>
+    </tr>
+  </table>
 
-      .details-box p {
-        margin: 8px 0;
-        color: #444;
-      }
-
-      .email-footer {
-        background: #f9f9f9;
-        padding: 20px;
-        text-align: center;
-        font-size: 13px;
-        color: #666;
-        border-top: 1px solid #e0e0e0;
-      }
-
-      .email-footer strong {
-        display: block;
-        margin-bottom: 5px;
-        color: #333;
-      }
-
-      .email-footer a {
-        color: #b30000;
-        text-decoration: none;
-        font-weight: 500;
-      }
-
-      .email-footer .system-notice {
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px solid #e0e0e0;
-        font-size: 11px;
-        color: #999;
-        font-style: italic;
-      }
-
-      strong {
-        color: #b30000;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="email-wrapper">
-      <!-- Header with Logo -->
-      <div class="email-header">
-        <img src="cid:thapar_logo" alt="Thapar Institute Logo" />
-        <h1>Thapar Institute of Engineering and Technology</h1>
-        <p>(Deemed to be University)</p>
-      </div>
-
-      <!-- Title Bar -->
-      <div class="email-title">
-        ${title}
-      </div>
-
-      <!-- Main Content -->
-      <div class="email-content">
-        ${content}
-      </div>
-
-      <!-- Footer -->
-      <div class="email-footer">
-        <strong>Hostel ITMH Team</strong>
-        Thapar Institute of Engineering & Technology<br/>
-        Patiala, Punjab<br/>
-        <a href="https://thapar.edu">thapar.edu</a>
-        
-        <div class="system-notice">
-          This is a system-generated email. Please do not reply.
-        </div>
-      </div>
-    </div>
-  </body>
-  </html>
-  `;
+</body>
+</html>
+`;
 }

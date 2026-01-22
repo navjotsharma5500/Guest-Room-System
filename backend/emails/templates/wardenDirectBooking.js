@@ -1,31 +1,42 @@
 // wardenDirectBooking.js
+import masterTemplate from "./masterTemplate.js";
+
 export default function wardenDirectBooking(b) {
   return masterTemplate({
     title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
-      <p>Dear <strong>Warden</strong>,</p>
+      <p>Dear Warden,</p>
 
       <p>
-        This is to inform you that the hostel caretaker has made a 
-        <strong>direct booking</strong> for <strong>${b.guest}</strong>.
+        This is to inform you that a <strong>direct guest room booking</strong>
+        has been made by the hostel caretaker for
+        <strong>${b.guest}</strong>.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Booking Details</div>
+        <div class="details-title">Booking Summary</div>
+        <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
-        <p><strong>Check-in:</strong> ${b.from}</p>
-        <p><strong>Check-out:</strong> ${b.to}</p>
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+        </p>
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        </p>
         ${
-          b.amount
-            ? `<p><strong>Amount:</strong> ₹${b.amount}</p>`
+          b.amount && Number(b.amount) > 0
+            ? `<p><strong>Amount Payable:</strong> ₹${b.amount}</p>`
             : `<p><strong>Booking Type:</strong> Free</p>`
         }
       </div>
 
       <p>
-        This email is for your information and necessary record.
+        Kindly note this booking for your records. The caretaker has been
+        instructed to manage room readiness and guest coordination.
       </p>
-    `
+    `,
   });
 }

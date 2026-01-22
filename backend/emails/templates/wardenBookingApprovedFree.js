@@ -1,29 +1,38 @@
 // wardenBookingApprovedFree.js
+import masterTemplate from "./masterTemplate.js";
+
 export default function wardenBookingApprovedFree(b) {
   return masterTemplate({
     title: `Guest Room Booking Approved — ${b.guest}`,
     content: `
-      <p>Dear <strong>Warden</strong>,</p>
+      <p>Dear Warden,</p>
 
       <p>
-        This is to inform you that a guest room booking has been 
-        <strong>approved</strong> for 
+        A <strong>guest room booking</strong> has been approved for
         <strong>${b.guest}</strong>.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Booking Details</div>
+        <div class="details-title">Booking Summary</div>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
-        <p><strong>Check-in:</strong> ${b.from}</p>
-        <p><strong>Check-out:</strong> ${b.to}</p>
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+        </p>
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        </p>
+        <p><strong>Booking Type:</strong> Free</p>
       </div>
 
       <p>
-        The hostel caretaker has been instructed to prepare the room.
+        The hostel caretaker has been notified to prepare the room and
+        assist the guest on arrival.
       </p>
 
-      <p>This email is for your kind information.</p>
-    `
+      <p>This message is shared for your information and record.</p>
+    `,
   });
 }

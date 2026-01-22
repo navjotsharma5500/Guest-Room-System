@@ -1,29 +1,46 @@
 // guestEnquiryReceived.js
+import masterTemplate from "./masterTemplate.js";
+
 export default function guestEnquiryReceived(e) {
   return masterTemplate({
-    title: "Guest Room Enquiry Received",
+    title: "Enquiry Received — Thapar Guest Room",
     content: `
-      <p>Dear <strong>${e.name}</strong>,</p>
+      <p>Dear ${e.name},</p>
 
       <p>
-        Thank you for your interest in our guest room facilities.
+        Thank you for submitting your enquiry to the
+        <strong>Thapar Guest Room Management System</strong>.
+        We have successfully received your request.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Your Enquiry Details</div>
-        <p><strong>Name:</strong> ${e.name}</p>
-        <p><strong>Email:</strong> ${e.email}</p>
-        <p><strong>Purpose:</strong> ${e.purpose}</p>
-        <p><strong>Requested Check-in:</strong> ${e.from}</p>
-        <p><strong>Requested Check-out:</strong> ${e.to}</p>
+        <div class="details-title">Enquiry Summary</div>
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(e.from).toDateString()} ${e.checkInTime || ""}
+        </p>
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}
+        </p>
+        <p><strong>Guests:</strong> ${e.guests || 1}</p>
       </div>
 
       <p>
-        Your enquiry has been received and is being reviewed. 
-        Our team will contact you shortly.
+        Our team will review your enquiry and update you via email once a
+        decision is made.
       </p>
 
-      <p>Thank you for your patience.</p>
-    `
+      <p>
+        Kindly do not reply to this email. For any updates, please wait for
+        further communication from the Guest Room Administration.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Thapar Guest Room Management</strong><br/>
+        Thapar Institute of Engineering & Technology
+      </p>
+    `,
   });
 }

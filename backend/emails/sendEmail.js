@@ -17,12 +17,22 @@ export async function sendEmail({
         from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
         to,
         subject,
-        text,
+        text: text || "Please view this email in an HTML-compatible email client.",
         html,
+
+        // ✅ Thapar Logo (CID)
+        attachments: [
+          {
+            filename: "thapar_logo.png",
+            path: "/var/www/Guest-Room-System/backend/assets/thapar_logo.png",
+            cid: "thapar_logo",
+          },
+        ],
       });
 
       console.log(`[EMAIL] Sent to ${to} (attempt ${attempt})`);
       return true;
+
     } catch (err) {
       console.error(
         `[EMAIL] Failed attempt ${attempt} to ${to}:`,
@@ -30,11 +40,10 @@ export async function sendEmail({
       );
 
       if (attempt < maxRetries) {
-        await sleep(1500); // short backoff
+        await sleep(1500);
       }
     }
   }
 
-  // ❗ NEVER throw
-  return false;
+  return false; // never break user flow
 }

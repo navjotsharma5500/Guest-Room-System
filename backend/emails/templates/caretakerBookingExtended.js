@@ -1,28 +1,36 @@
 // caretakerBookingExtended.js
+import masterTemplate from "./masterTemplate.js";
+
 export default function caretakerBookingExtended(b) {
   return masterTemplate({
     title: "Guest Room Booking Extended",
     content: `
-      <p>Dear <strong>Caretaker</strong>,</p>
+      <p>Dear Caretaker,</p>
 
       <p>
-        The booking for <strong>${b.guest}</strong> has been 
-        <strong>extended</strong>.
+        The stay for <strong>${b.guest}</strong> has been
+        <strong>extended</strong>. Please find the updated details below.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Extension Details</div>
+      <div class="details">
+        <p><strong>Guest Name:</strong> ${b.guest}</p>
+        <p><strong>Contact Number:</strong> ${b.contact || "-"}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
-        <p><strong>Previous Checkout:</strong> ${b.extendRemarks || "Not available"}</p>
-        <p><strong>New Checkout:</strong> ${b.to}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
+        <p>
+          <strong>Previous Check-out:</strong>
+          ${b.previousTo ? new Date(b.previousTo).toDateString() : "-"}
+        </p>
+        <p>
+          <strong>New Check-out:</strong>
+          ${b.to ? new Date(b.to).toDateString() : "-"}
+        </p>
+        <p><strong>Extension Remarks:</strong> ${b.extendRemarks || "Not specified"}</p>
       </div>
 
       <p>
-        This extension update has been shared with the warden, manager, and admin.
+        Kindly ensure continued accommodation arrangements for the guest.
       </p>
-
-      <p>Thank you.</p>
-    `
+    `,
   });
 }
