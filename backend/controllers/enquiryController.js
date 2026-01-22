@@ -5,8 +5,6 @@ import EmailLog from "../models/EmailLog.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import enquiryApproved from "../emails/templates/enquiryApproved.js";
-import enquiryBooked from "../emails/templates/enquiryBooked.js";
-import enquiryRejected from "../emails/templates/enquiryRejected.js";
 
 // ======================================================
 // HELPER: SAFE EMAIL SENDING (NON-BLOCKING)
@@ -119,7 +117,7 @@ export const createEnquiry = async (req, res) => {
     // ======================================================
 
     // 🔔 Admin / Manager notification (MANDATORY, fully isolated)
-    try {
+    if (process.env.ADMIN_NOTIFICATION_EMAIL) {
       safeSend({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: "New Guest Enquiry Received",
@@ -129,24 +127,20 @@ export const createEnquiry = async (req, res) => {
           enquiryId: enquiry._id,
         },
       });
-    } catch (err) {
-      console.error("⚠️ Admin enquiry email template error:", err.message);
+    } else {
+      console.warn("⚠️ ADMIN_NOTIFICATION_EMAIL not set - skipping admin notification");
     }
 
     // 📩 Guest acknowledgement (fully isolated)
-    try {
-      safeSend({
-        to: enquiry.email,
-        subject: "We have received your enquiry",
-        html: guestEnquiryReceived(enquiry),
-        meta: {
-          type: "guest-enquiry-received",
-          enquiryId: enquiry._id,
-        },
-      });
-    } catch (err) {
-      console.error("⚠️ Guest enquiry email template error:", err.message);
-    }
+    safeSend({
+      to: enquiry.email,
+      subject: "We have received your enquiry",
+      html: guestEnquiryReceived(enquiry),
+      meta: {
+        type: "guest-enquiry-received",
+        enquiryId: enquiry._id,
+      },
+    });
 
     console.log("📧 Enquiry emails dispatched (non-blocking)");
 
@@ -260,7 +254,14 @@ export const approveEnquiry = async (req, res) => {
     enquiry.status = "pending-approval";
     await enquiry.save();
 
-    // ✅ Enquiry approved email (TEMPLATE-BASED)
+    console.log("✅ Enquiry approved:", {
+      enquiryId: enquiry._id,
+      name: enquiry.name,
+      checkInTime: enquiry.checkInTime,
+      checkOutTime: enquiry.checkOutTime,
+    });
+
+    // ✅ NON-BLOCKING EMAIL (fully isolated)
     safeSend({
       to: enquiry.email,
       subject: "Guest Room Enquiry Approved",
@@ -270,42 +271,6 @@ export const approveEnquiry = async (req, res) => {
         enquiryId: enquiry._id,
       },
     });
-
-    console.log("✅ Enquiry approved:", {
-      enquiryId: enquiry._id,
-      name: enquiry.name,
-      checkInTime: enquiry.checkInTime,
-      checkOutTime: enquiry.checkOutTime,
-    });
-
-    // ✅ NON-BLOCKING EMAIL (fully isolated)
-    try {
-      safeSend({
-        to: enquiry.email,
-        subject: "Guest Room Booking Approved",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #10b981;">Your Enquiry Has Been Approved</h2>
-            <p>Dear ${enquiry.name},</p>
-            <p>We are pleased to inform you that your guest room enquiry has been approved.</p>
-            <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 5px 0;"><strong>Check-in Time:</strong> ${enquiry.checkInTime}</p>
-              <p style="margin: 5px 0;"><strong>Check-out Time:</strong> ${enquiry.checkOutTime}</p>
-              <p style="margin: 5px 0;"><strong>Check-in Date:</strong> ${new Date(enquiry.from).toLocaleDateString()}</p>
-              <p style="margin: 5px 0;"><strong>Check-out Date:</strong> ${new Date(enquiry.to).toLocaleDateString()}</p>
-            </div>
-            <p>Please proceed with the next steps as communicated by the administration.</p>
-            <p>Thank you!</p>
-          </div>
-        `,
-        meta: {
-          type: "enquiry-approved",
-          enquiryId: enquiry._id,
-        },
-      });
-    } catch (err) {
-      console.error("⚠️ Approval email template error:", err.message);
-    }
 
     res.json({ success: true, message: "Enquiry approved", enquiry });
 
@@ -345,34 +310,16 @@ export const bookEnquiry = async (req, res) => {
       checkOutTime: enquiry.checkOutTime,
     });
 
-    // ✅ NON-BLOCKING EMAIL (fully isolated)
-    try {
-      safeSend({
-        to: enquiry.email,
-        subject: "Your Room Booking is Confirmed",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #10b981;">Room Booking Confirmed</h2>
-            <p>Dear ${enquiry.name || 'Guest'},</p>
-            <p>Your room booking has been confirmed!</p>
-            <div style="background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 5px 0;"><strong>Check-in Time:</strong> ${enquiry.checkInTime}</p>
-              <p style="margin: 5px 0;"><strong>Check-out Time:</strong> ${enquiry.checkOutTime}</p>
-              <p style="margin: 5px 0;"><strong>Check-in Date:</strong> ${new Date(enquiry.from).toLocaleDateString()}</p>
-              <p style="margin: 5px 0;"><strong>Check-out Date:</strong> ${new Date(enquiry.to).toLocaleDateString()}</p>
-            </div>
-            <p>Please arrive at the specified check-in time with valid identification.</p>
-            <p>Thank you for choosing our guest house!</p>
-          </div>
-        `,
-        meta: {
-          type: "enquiry-booked",
-          enquiryId: enquiry._id,
-        },
-      });
-    } catch (err) {
-      console.error("⚠️ Booking confirmation email template error:", err.message);
-    }
+    // ✅ NON-BLOCKING EMAIL (using existing template)
+    safeSend({
+      to: enquiry.email,
+      subject: "Your Room Booking is Confirmed",
+      html: guestEnquiryReceived(enquiry),
+      meta: {
+        type: "enquiry-booked",
+        enquiryId: enquiry._id,
+      },
+    });
 
     res.json({ success: true, message: "Enquiry fully booked", enquiry });
 
@@ -408,28 +355,24 @@ export const rejectEnquiry = async (req, res) => {
 
     console.log("✅ Enquiry rejected:", enquiry._id);
 
-    // ✅ NON-BLOCKING EMAIL (fully isolated)
-    try {
-      safeSend({
-        to: enquiry.email,
-        subject: "Guest Room Booking Request - Update",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #ef4444;">Enquiry Status Update</h2>
-            <p>Dear ${enquiry.name || 'Guest'},</p>
-            <p>We regret to inform you that your guest room enquiry has been declined.</p>
-            <p>If you have any questions or would like to discuss alternative arrangements, please contact the hostel office.</p>
-            <p>We appreciate your understanding.</p>
-          </div>
-        `,
-        meta: {
-          type: "enquiry-rejected",
-          enquiryId: enquiry._id,
-        },
-      });
-    } catch (err) {
-      console.error("⚠️ Rejection email template error:", err.message);
-    }
+    // ✅ NON-BLOCKING EMAIL (simple inline HTML)
+    safeSend({
+      to: enquiry.email,
+      subject: "Guest Room Booking Request - Update",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ef4444;">Enquiry Status Update</h2>
+          <p>Dear ${enquiry.name || 'Guest'},</p>
+          <p>We regret to inform you that your guest room enquiry has been declined.</p>
+          <p>If you have any questions or would like to discuss alternative arrangements, please contact the hostel office.</p>
+          <p>We appreciate your understanding.</p>
+        </div>
+      `,
+      meta: {
+        type: "enquiry-rejected",
+        enquiryId: enquiry._id,
+      },
+    });
 
     res.json({ success: true, message: "Enquiry rejected", enquiry });
 

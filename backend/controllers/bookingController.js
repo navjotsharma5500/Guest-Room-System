@@ -24,6 +24,7 @@ import guestBookingCancelled from "../emails/templates/guestBookingCancelled.js"
 import guestBookingExtended from "../emails/templates/guestBookingExtended.js";
 import guestBookingRejected from "../emails/templates/guestBookingRejected.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
+import guestDirectBooking from "../emails/templates/guestDirectBooking.js";
 
 import managerBookingApprovedFree from "../emails/templates/managerBookingApprovedFree.js";
 import managerBookingApprovedPaid from "../emails/templates/managerBookingApprovedPaid.js";
