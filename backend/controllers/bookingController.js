@@ -298,7 +298,7 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
 };
 
 // ================================
-// CREATE BOOKING (COMPLETE FIX WITH DEBUG)
+// CREATE BOOKING (COMPLETE FIX WITH HOSTEL EMAIL LOOKUP)
 // ================================
 export const createBooking = async (req, res) => {
   try {
@@ -315,6 +315,27 @@ export const createBooking = async (req, res) => {
     if (!payload.contact && !payload.guestPhone) throw new Error("Contact required");
     if (!payload.hostel) throw new Error("Hostel required");
     if (!payload.roomNo) throw new Error("Room number required");
+
+    // 🔹 CRITICAL FIX: Fetch hostel emails from database
+    console.log("🔍 Looking up hostel:", payload.hostel);
+    const hostelDoc = await Hostel.findOne({ name: payload.hostel }).lean();
+
+    if (!hostelDoc) {
+      throw new Error(`Hostel not found in database: ${payload.hostel}`);
+    }
+
+    const caretakerEmail = hostelDoc.caretakerEmail;
+    const wardenEmail = hostelDoc.wardenEmail;
+
+    console.log("✅ Hostel emails fetched from database:", {
+      hostel: hostelDoc.name,
+      caretakerEmail: caretakerEmail,
+      wardenEmail: wardenEmail
+    });
+
+    if (!caretakerEmail || !wardenEmail) {
+      console.warn("⚠️ Hostel missing caretaker/warden email:", hostelDoc.name);
+    }
 
     // ✅ CRITICAL FIX: Payment handling
     const paymentType = payload.paymentType || "Paid";
@@ -372,21 +393,17 @@ export const createBooking = async (req, res) => {
       freeRemarks: payload.freeRemarks || payload.remarks || "",
 
       // ✅ CRITICAL FIX: Correct attachment routing
-      // Address proof - always from DirectBookingModal Step 2
       files: Array.isArray(payload.files) ? payload.files : 
              Array.isArray(payload.addressProof) ? payload.addressProof : [],
       
-      // ✅ FIXED: Approval documents - Free initial attachments
       approvalDocuments: Array.isArray(payload.approvalDocuments) 
         ? payload.approvalDocuments 
         : [],
       
-      // ✅ FIXED: Payment attachments - Paid initial attachments
       paymentAttachments: Array.isArray(payload.paymentAttachments)
         ? payload.paymentAttachments
         : [], 
       
-      // Extension attachments - from ExtensionModal.jsx
       extensionAttachments: Array.isArray(payload.extensionAttachments) 
         ? payload.extensionAttachments 
         : [],
@@ -394,19 +411,20 @@ export const createBooking = async (req, res) => {
       enquiryId: payload.enquiryId || null,
       status: "booked",
       createdBy: req.user?._id || null,
-      caretakerEmail: payload.caretakerEmail || "",
-      wardenEmail: payload.wardenEmail || "",
+      
+      // ✅ CRITICAL FIX: Use emails from database (NOT from payload)
+      caretakerEmail: caretakerEmail,
+      wardenEmail: wardenEmail,
     };
 
-    console.log("✅ Creating booking with attachments:", {
-      files: bookingData.files.length,
-      approvalDocuments: bookingData.approvalDocuments.length,
-      paymentAttachments: bookingData.paymentAttachments.length,
-      extensionAttachments: bookingData.extensionAttachments.length,
+    console.log("✅ Creating booking with database emails:", {
+      caretakerEmail: bookingData.caretakerEmail,
+      wardenEmail: bookingData.wardenEmail
     });
 
     const booking = await Booking.create(bookingData);
 
+    console.log("✅ Booking created, sending emails...");
     sendBookingEmails(booking, "caretaker", "created");
 
     console.log("================================================================================");
@@ -414,6 +432,8 @@ export const createBooking = async (req, res) => {
     console.log("💰 Payment Type:", booking.paymentType);
     console.log("💵 Total:", booking.totalAmount);
     console.log("📊 Status:", booking.paymentStatus);
+    console.log("📧 Caretaker Email:", booking.caretakerEmail);
+    console.log("📧 Warden Email:", booking.wardenEmail);
     console.log("📎 Attachments:", {
       files: booking.files.length,
       approvalDocuments: booking.approvalDocuments.length,
