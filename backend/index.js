@@ -2,6 +2,16 @@
 
 import "dotenv/config";
 
+// ✅ DEBUG: Verify environment variables loaded
+console.log("🔍 Environment Check:");
+console.log("   NODE_ENV:", process.env.NODE_ENV);
+console.log("   PORT:", process.env.PORT);
+console.log("   MONGO_URL:", process.env.MONGO_URL ? "✓ Loaded" : "✗ Missing");
+console.log("   IMAGEKIT_PUBLIC_KEY:", process.env.IMAGEKIT_PUBLIC_KEY ? "✓ Loaded" : "✗ Missing");
+console.log("   IMAGEKIT_PRIVATE_KEY:", process.env.IMAGEKIT_PRIVATE_KEY ? "✓ Loaded" : "✗ Missing");
+console.log("   IMAGEKIT_URL_ENDPOINT:", process.env.IMAGEKIT_URL_ENDPOINT ? "✓ Loaded" : "✗ Missing");
+console.log("   MANAGER_EMAIL:", process.env.MANAGER_EMAIL ? "✓ Loaded" : "✗ Missing");
+
 import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
@@ -181,13 +191,32 @@ app.use((req, res, next) => {
 });
 
 /* =========================================================
-   IMAGEKIT CONFIG
+   IMAGEKIT CONFIG - SAFE INITIALIZATION
 ========================================================= */
-const imagekitServer = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-});
+let imagekitServer = null;
+
+try {
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
+
+  if (!publicKey || !privateKey || !urlEndpoint) {
+    console.warn("⚠️ ImageKit credentials missing - uploads will be disabled");
+    console.warn("   PUBLIC_KEY:", publicKey ? "✓" : "✗");
+    console.warn("   PRIVATE_KEY:", privateKey ? "✓" : "✗");
+    console.warn("   URL_ENDPOINT:", urlEndpoint ? "✓" : "✗");
+  } else {
+    imagekitServer = new ImageKit({
+      publicKey,
+      privateKey,
+      urlEndpoint,
+    });
+    console.log("✅ ImageKit initialized successfully");
+  }
+} catch (err) {
+  console.error("❌ ImageKit initialization failed:", err.message);
+  console.warn("⚠️ Continuing without ImageKit - file uploads disabled");
+}
 
 /* =========================================================
    IMAGEKIT AUTH ROUTE (✅ FIXED - Uses resolveOrigin)
@@ -218,12 +247,12 @@ app.get("/api/imagekit/auth", (req, res) => {
   }
 
   try {
-    // Validate ImageKit credentials
-    if (!process.env.IMAGEKIT_PUBLIC_KEY || !process.env.IMAGEKIT_PRIVATE_KEY) {
-      console.error("❌ ImageKit credentials missing!");
-      return res.status(500).json({
-        error: "ImageKit not configured",
-        message: "Server configuration error"
+    // ✅ Check if ImageKit is initialized
+    if (!imagekitServer) {
+      console.error("❌ ImageKit not initialized");
+      return res.status(503).json({
+        error: "ImageKit service unavailable",
+        message: "File upload service is not configured"
       });
     }
 
