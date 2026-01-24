@@ -51,10 +51,26 @@ if (!MANAGER_EMAIL) {
 }
 
 const safeSend = (emailPayload) => {
-  if (!emailPayload?.to || String(emailPayload.to).trim() === "") return;
+  // ✅ CRITICAL: Log what we're trying to send
+  console.log("📧 safeSend called:", {
+    to: emailPayload?.to,
+    subject: emailPayload?.subject,
+    type: emailPayload?.meta?.type,
+    bookingId: emailPayload?.meta?.bookingId
+  });
+
+  // ✅ Validate email address
+  if (!emailPayload?.to || String(emailPayload.to).trim() === "") {
+    console.warn("⚠️ safeSend SKIPPED - No recipient email:", {
+      type: emailPayload?.meta?.type,
+      bookingId: emailPayload?.meta?.bookingId
+    });
+    return;
+  }
 
   sendEmail(emailPayload)
     .then(() => {
+      console.log("✅ Email sent successfully:", emailPayload.to);
       try {
         EmailLog.create({
           to: emailPayload.to,
@@ -68,6 +84,7 @@ const safeSend = (emailPayload) => {
       }
     })
     .catch((err) => {
+      console.error("❌ Email send failed:", emailPayload.to, err.message);
       try {
         EmailLog.create({
           to: emailPayload.to,
@@ -83,7 +100,19 @@ const safeSend = (emailPayload) => {
     });
 };
 
+// ======================================================
+// PATCH 2: Fix sendBookingEmails - Add validation
+// ======================================================
 const sendBookingEmails = (booking, role, statusType = "approved") => {
+  console.log("📨 sendBookingEmails called:", {
+    bookingId: booking._id,
+    role,
+    statusType,
+    caretakerEmail: booking.caretakerEmail,
+    wardenEmail: booking.wardenEmail,
+    guestEmail: booking.email
+  });
+
   const isPaid =
     booking.paymentType?.toUpperCase() === "PAID" ||
     booking.amountToBePaid > 0;
@@ -91,16 +120,31 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
   const caretakerEmail =
     booking.caretakerEmail || process.env.DEFAULT_CARETAKER_EMAIL;
 
-    if (!caretakerEmail) {
-      console.warn("⚠️ Caretaker email missing for booking:", booking._id);
-    }
+  if (!caretakerEmail) {
+    console.error("❌ CRITICAL: Caretaker email missing for booking:", {
+      bookingId: booking._id,
+      hostel: booking.hostel,
+      caretakerEmailFromBooking: booking.caretakerEmail,
+      defaultCaretakerEmail: process.env.DEFAULT_CARETAKER_EMAIL
+    });
+  }
 
   const wardenEmail = booking.wardenEmail;
   const guestEmail = booking.email;
 
+  // ✅ Validate all emails before proceeding
+  if (!guestEmail) {
+    console.error("❌ CRITICAL: Guest email missing for booking:", booking._id);
+  }
+  if (!wardenEmail) {
+    console.error("❌ CRITICAL: Warden email missing for booking:", booking._id);
+  }
+
   try {
     // DIRECT BOOKING
     if (role === "caretaker" && statusType === "created") {
+      console.log("📤 Sending DIRECT BOOKING emails...");
+      
       safeSend({
         to: guestEmail,
         subject: "Guest Room Booking Confirmation",
@@ -110,6 +154,17 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
         meta: {
           bookingId: booking._id,
           type: "guest-direct-booking",
+        },
+      });
+
+      // ✅ FIX: Send to caretaker for direct booking
+      safeSend({
+        to: caretakerEmail,
+        subject: "New Direct Booking Created",
+        html: caretakerDirectBooking(booking),
+        meta: {
+          bookingId: booking._id,
+          type: "caretaker-direct-booking",
         },
       });
 
@@ -139,6 +194,8 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
 
     // APPROVED
     if (statusType === "approved") {
+      console.log("📤 Sending APPROVAL emails...");
+      
       safeSend({
         to: guestEmail,
         subject: isPaid
@@ -203,6 +260,8 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
 
     // CANCELLED
     if (statusType === "cancelled") {
+      console.log("📤 Sending CANCELLATION emails...");
+      
       safeSend({
         to: guestEmail,
         subject: "Guest Room Booking Cancelled",
@@ -249,6 +308,8 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
 
     // EXTENDED
     if (statusType === "extended") {
+      console.log("📤 Sending EXTENSION emails...");
+      
       safeSend({
         to: guestEmail,
         subject: "Guest Booking Extended",
@@ -293,7 +354,8 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
       return;
     }
   } catch (err) {
-    console.error("EMAIL DISPATCH ERROR:", err);
+    console.error("❌ EMAIL DISPATCH ERROR:", err);
+    console.error("Stack:", err.stack);
   }
 };
 
@@ -745,7 +807,6 @@ export const extendBooking = async (req, res) => {
       newTo, 
       remarks, 
       extensionAttachments,
-      // ✅ NEW: Extension payment fields
       extensionPaymentType,
       extensionAmount,
       extensionPaymentRemarks,
@@ -753,6 +814,7 @@ export const extendBooking = async (req, res) => {
     } = req.body;
 
     console.log("🔥 EXTENSION REQUEST:", {
+      bookingId: req.params.id,
       newTo,
       remarks,
       extensionPaymentType,
@@ -767,7 +829,30 @@ export const extendBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // ✅ Update basic extension fields
+    console.log("📍 Current booking emails:", {
+      caretakerEmail: booking.caretakerEmail,
+      wardenEmail: booking.wardenEmail,
+      hostel: booking.hostel
+    });
+
+    // ✅ CRITICAL FIX: Fetch latest hostel emails from database
+    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+    
+    if (!hostelDoc) {
+      console.error("❌ Hostel not found in database:", booking.hostel);
+    } else {
+      console.log("✅ Fetched hostel emails from database:", {
+        hostel: hostelDoc.name,
+        caretakerEmail: hostelDoc.caretakerEmail,
+        wardenEmail: hostelDoc.wardenEmail
+      });
+
+      // ✅ Update booking with latest emails from database
+      booking.caretakerEmail = hostelDoc.caretakerEmail;
+      booking.wardenEmail = hostelDoc.wardenEmail;
+    }
+
+    // Update basic extension fields
     booking.to = new Date(newTo);
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks;
@@ -776,14 +861,12 @@ export const extendBooking = async (req, res) => {
       booking.extensionAttachments = extensionAttachments;
     }
 
-    // ✅ NEW: Update extension payment fields
+    // Update extension payment fields
     if (extensionPaymentType) {
       booking.extensionPaymentType = extensionPaymentType;
       
       if (extensionPaymentType === "Paid") {
         booking.extensionAmount = Number(extensionAmount || 0);
-        
-        // ✅ Add extension amount to total balance
         booking.totalAmount = (booking.totalAmount || 0) + Number(extensionAmount || 0);
         booking.balanceAmount = booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
         
@@ -799,7 +882,6 @@ export const extendBooking = async (req, res) => {
         console.log("🆓 Extension - Free booking with remarks");
       }
       
-      // ✅ Add payment attachments (for both Paid and Free)
       if (Array.isArray(extensionPaymentAttachments) && extensionPaymentAttachments.length > 0) {
         booking.extensionPaymentAttachments = extensionPaymentAttachments;
         
@@ -811,9 +893,17 @@ export const extendBooking = async (req, res) => {
 
     await booking.save();
 
+    console.log("✅ Booking saved, sending extension emails...");
+    console.log("📧 Final email addresses:", {
+      caretakerEmail: booking.caretakerEmail,
+      wardenEmail: booking.wardenEmail,
+      guestEmail: booking.email
+    });
+
+    // ✅ CRITICAL: Send emails with updated booking object
     sendBookingEmails(booking, req.user.role, "extended");
 
-    // ✅ EMIT SOCKET.IO EVENT
+    // Emit Socket.IO event
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-extended', { 
@@ -829,7 +919,8 @@ export const extendBooking = async (req, res) => {
     res.json({ success: true, message: "Booking extended", booking });
 
   } catch (err) {
-    console.error("Extend booking error:", err);
+    console.error("❌ Extend booking error:", err);
+    console.error("Stack:", err.stack);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -847,15 +938,40 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    console.log("🚫 CANCEL BOOKING:", {
+      bookingId: booking._id,
+      hostel: booking.hostel,
+      currentCaretakerEmail: booking.caretakerEmail,
+      currentWardenEmail: booking.wardenEmail
+    });
+
+    // ✅ CRITICAL FIX: Fetch latest hostel emails from database
+    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+    
+    if (!hostelDoc) {
+      console.error("❌ Hostel not found in database:", booking.hostel);
+    } else {
+      console.log("✅ Fetched hostel emails for cancellation:", {
+        hostel: hostelDoc.name,
+        caretakerEmail: hostelDoc.caretakerEmail,
+        wardenEmail: hostelDoc.wardenEmail
+      });
+
+      // ✅ Update booking with latest emails
+      booking.caretakerEmail = hostelDoc.caretakerEmail;
+      booking.wardenEmail = hostelDoc.wardenEmail;
+    }
+
     booking.status = "cancelled";
     booking.cancelDate = new Date();
     if (remarks) booking.cancelRemarks = remarks;
 
     await booking.save();
 
+    console.log("✅ Booking cancelled, sending emails...");
     sendBookingEmails(booking, req.user.role, "cancelled");
 
-    // ✅ EMIT SOCKET.IO EVENT
+    // Emit Socket.IO event
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-cancelled', { 
@@ -870,7 +986,8 @@ export const cancelBooking = async (req, res) => {
     res.json({ success: true, message: "Booking cancelled", booking });
 
   } catch (err) {
-    console.error("Cancel booking error:", err);
+    console.error("❌ Cancel booking error:", err);
+    console.error("Stack:", err.stack);
     res.status(500).json({ success: false, message: err.message });
   }
 };
