@@ -50,8 +50,40 @@ if (!MANAGER_EMAIL) {
   console.warn("⚠️ MANAGER_EMAIL not set — manager emails will be skipped");
 }
 
+// ======================================================
+// HELPER: Fetch and update booking with latest hostel emails
+// ======================================================
+const refreshBookingEmails = async (booking) => {
+  try {
+    console.log("🔄 Refreshing emails from database for hostel:", booking.hostel);
+    
+    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+    
+    if (!hostelDoc) {
+      console.error("❌ Hostel not found in database:", booking.hostel);
+      return booking;
+    }
+
+    console.log("✅ Fetched fresh hostel emails:", {
+      hostel: hostelDoc.name,
+      caretakerEmail: hostelDoc.caretakerEmail,
+      wardenEmail: hostelDoc.wardenEmail
+    });
+
+    booking.caretakerEmail = hostelDoc.caretakerEmail;
+    booking.wardenEmail = hostelDoc.wardenEmail;
+
+    return booking;
+  } catch (error) {
+    console.error("❌ Error refreshing booking emails:", error);
+    return booking;
+  }
+};
+
+// ======================================================
+// ENHANCED safeSend with validation logging
+// ======================================================
 const safeSend = (emailPayload) => {
-  // ✅ CRITICAL: Log what we're trying to send
   console.log("📧 safeSend called:", {
     to: emailPayload?.to,
     subject: emailPayload?.subject,
@@ -59,7 +91,6 @@ const safeSend = (emailPayload) => {
     bookingId: emailPayload?.meta?.bookingId
   });
 
-  // ✅ Validate email address
   if (!emailPayload?.to || String(emailPayload.to).trim() === "") {
     console.warn("⚠️ safeSend SKIPPED - No recipient email:", {
       type: emailPayload?.meta?.type,
@@ -101,12 +132,11 @@ const safeSend = (emailPayload) => {
 };
 
 // ======================================================
-// PATCH 2: Fix sendBookingEmails - Add validation
+// ✅ FIX 1: EXPORTED - Event-driven email dispatcher
 // ======================================================
-const sendBookingEmails = (booking, role, statusType = "approved") => {
+export const sendBookingEmails = (booking, statusType) => {
   console.log("📨 sendBookingEmails called:", {
     bookingId: booking._id,
-    role,
     statusType,
     caretakerEmail: booking.caretakerEmail,
     wardenEmail: booking.wardenEmail,
@@ -117,33 +147,27 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
     booking.paymentType?.toUpperCase() === "PAID" ||
     booking.amountToBePaid > 0;
 
-  const caretakerEmail =
-    booking.caretakerEmail || process.env.DEFAULT_CARETAKER_EMAIL;
+  const caretakerEmail = booking.caretakerEmail;
+  const wardenEmail = booking.wardenEmail;
+  const guestEmail = booking.email;
 
   if (!caretakerEmail) {
     console.error("❌ CRITICAL: Caretaker email missing for booking:", {
       bookingId: booking._id,
-      hostel: booking.hostel,
-      caretakerEmailFromBooking: booking.caretakerEmail,
-      defaultCaretakerEmail: process.env.DEFAULT_CARETAKER_EMAIL
+      hostel: booking.hostel
     });
-  }
-
-  const wardenEmail = booking.wardenEmail;
-  const guestEmail = booking.email;
-
-  // ✅ Validate all emails before proceeding
-  if (!guestEmail) {
-    console.error("❌ CRITICAL: Guest email missing for booking:", booking._id);
   }
   if (!wardenEmail) {
     console.error("❌ CRITICAL: Warden email missing for booking:", booking._id);
   }
+  if (!guestEmail) {
+    console.error("❌ CRITICAL: Guest email missing for booking:", booking._id);
+  }
 
   try {
     // DIRECT BOOKING
-    if (role === "caretaker" && statusType === "created") {
-      console.log("📤 Sending DIRECT BOOKING emails...");
+    if (statusType === "created") {
+      console.log("📤 Sending DIRECT BOOKING emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -157,7 +181,6 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
         },
       });
 
-      // ✅ FIX: Send to caretaker for direct booking
       safeSend({
         to: caretakerEmail,
         subject: "New Direct Booking Created",
@@ -192,9 +215,9 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
       return;
     }
 
-    // APPROVED
+    // APPROVED BOOKING
     if (statusType === "approved") {
-      console.log("📤 Sending APPROVAL emails...");
+      console.log("📤 Sending APPROVAL emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -206,9 +229,7 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
           : guestBookingApprovedFree(booking),
         meta: {
           bookingId: booking._id,
-          type: isPaid
-            ? "guest-approved-paid"
-            : "guest-approved-free",
+          type: isPaid ? "guest-approved-paid" : "guest-approved-free",
         },
       });
 
@@ -220,9 +241,7 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
           : caretakerBookingApprovedFree(booking),
         meta: {
           bookingId: booking._id,
-          type: isPaid
-            ? "caretaker-approved-paid"
-            : "caretaker-approved-free",
+          type: isPaid ? "caretaker-approved-paid" : "caretaker-approved-free",
         },
       });
 
@@ -234,9 +253,7 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
           : wardenBookingApprovedFree(booking),
         meta: {
           bookingId: booking._id,
-          type: isPaid
-            ? "warden-approved-paid"
-            : "warden-approved-free",
+          type: isPaid ? "warden-approved-paid" : "warden-approved-free",
         },
       });
 
@@ -249,18 +266,16 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
             : managerBookingApprovedFree(booking),
           meta: {
             bookingId: booking._id,
-            type: isPaid
-              ? "manager-approved-paid"
-              : "manager-approved-free",
+            type: isPaid ? "manager-approved-paid" : "manager-approved-free",
           },
         });
       }
       return;
     }
 
-    // CANCELLED
+    // CANCELLED BOOKING
     if (statusType === "cancelled") {
-      console.log("📤 Sending CANCELLATION emails...");
+      console.log("📤 Sending CANCELLATION emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -306,9 +321,9 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
       return;
     }
 
-    // EXTENDED
+    // EXTENDED BOOKING
     if (statusType === "extended") {
-      console.log("📤 Sending EXTENSION emails...");
+      console.log("📤 Sending EXTENSION emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -353,15 +368,24 @@ const sendBookingEmails = (booking, role, statusType = "approved") => {
       }
       return;
     }
+
+    // ✅ FIX 3: Catch unknown statusType
+    console.error("❌ UNKNOWN EMAIL EVENT TYPE:", {
+      bookingId: booking._id,
+      statusType,
+      hostel: booking.hostel,
+      roomNo: booking.roomNo
+    });
+
   } catch (err) {
     console.error("❌ EMAIL DISPATCH ERROR:", err);
     console.error("Stack:", err.stack);
   }
 };
 
-// ================================
-// CREATE BOOKING (COMPLETE FIX WITH HOSTEL EMAIL LOOKUP)
-// ================================
+// ======================================================
+// CREATE BOOKING
+// ======================================================
 export const createBooking = async (req, res) => {
   try {
     console.log("================================================================================");
@@ -371,14 +395,12 @@ export const createBooking = async (req, res) => {
 
     const payload = req.body;
 
-    // ✅ Required field validation
     if (!payload.guest && !payload.guestName) throw new Error("Guest name required");
     if (!payload.email && !payload.guestEmail) throw new Error("Email required");
     if (!payload.contact && !payload.guestPhone) throw new Error("Contact required");
     if (!payload.hostel) throw new Error("Hostel required");
     if (!payload.roomNo) throw new Error("Room number required");
 
-    // 🔹 CRITICAL FIX: Fetch hostel emails from database
     console.log("🔍 Looking up hostel:", payload.hostel);
     const hostelDoc = await Hostel.findOne({ name: payload.hostel }).lean();
 
@@ -396,21 +418,19 @@ export const createBooking = async (req, res) => {
     });
 
     if (!caretakerEmail || !wardenEmail) {
-      console.warn("⚠️ Hostel missing caretaker/warden email:", hostelDoc.name);
+      console.error("❌ CRITICAL: Hostel missing required emails:", hostelDoc.name);
     }
 
-    // ✅ CRITICAL FIX: Payment handling
     const paymentType = payload.paymentType || "Paid";
     let totalAmount = 0;
     let paidAmount = 0;
     let balanceAmount = 0;
-    const paymentStatus = "UNPAID"; // ✅ NEVER use "Initiated"
+    const paymentStatus = "UNPAID";
 
     if (paymentType === "Paid") {
       totalAmount = Number(payload.totalAmount || payload.amount || 0);
       balanceAmount = totalAmount;
     }
-    // For "Free", all amounts stay 0
 
     const bookingData = {
       guest: payload.guest || payload.guestName || "",
@@ -433,15 +453,11 @@ export const createBooking = async (req, res) => {
       city: payload.city || "",
       state: payload.state || "",
       reference: payload.reference || "",
-
-      // ✅ NEW Payment Structure
       paymentType,
       totalAmount,
       paidAmount,
       balanceAmount,
-      paymentStatus, // ✅ Always "UNPAID" for new bookings
-
-      // Old fields (backward compatibility)
+      paymentStatus,
       amount: totalAmount,
       amountToBePaid: balanceAmount,
       discount: Number(payload.discount || 0),
@@ -450,31 +466,22 @@ export const createBooking = async (req, res) => {
       transactionDate: payload.transactionDate ? new Date(payload.transactionDate) : null,
       paymentRemarks: payload.paymentRemarks || "",
       billId: payload.billId || "",
-
       remarks: payload.remarks || "",
       freeRemarks: payload.freeRemarks || payload.remarks || "",
-
-      // ✅ CRITICAL FIX: Correct attachment routing
       files: Array.isArray(payload.files) ? payload.files : 
              Array.isArray(payload.addressProof) ? payload.addressProof : [],
-      
       approvalDocuments: Array.isArray(payload.approvalDocuments) 
         ? payload.approvalDocuments 
         : [],
-      
       paymentAttachments: Array.isArray(payload.paymentAttachments)
         ? payload.paymentAttachments
         : [], 
-      
       extensionAttachments: Array.isArray(payload.extensionAttachments) 
         ? payload.extensionAttachments 
         : [],
-
       enquiryId: payload.enquiryId || null,
       status: "booked",
       createdBy: req.user?._id || null,
-      
-      // ✅ CRITICAL FIX: Use emails from database (NOT from payload)
       caretakerEmail: caretakerEmail,
       wardenEmail: wardenEmail,
     };
@@ -487,7 +494,7 @@ export const createBooking = async (req, res) => {
     const booking = await Booking.create(bookingData);
 
     console.log("✅ Booking created, sending emails...");
-    sendBookingEmails(booking, "caretaker", "created");
+    sendBookingEmails(booking, "created");
 
     console.log("================================================================================");
     console.log("✅ BOOKING CREATED:", booking._id);
@@ -496,19 +503,12 @@ export const createBooking = async (req, res) => {
     console.log("📊 Status:", booking.paymentStatus);
     console.log("📧 Caretaker Email:", booking.caretakerEmail);
     console.log("📧 Warden Email:", booking.wardenEmail);
-    console.log("📎 Attachments:", {
-      files: booking.files.length,
-      approvalDocuments: booking.approvalDocuments.length,
-      paymentAttachments: booking.paymentAttachments.length,
-      extensionAttachments: booking.extensionAttachments.length,
-    });
     console.log("================================================================================");
 
     if (req.user?._id) {
       createLog("booking_created", req.user._id, { bookingId: booking._id });
     }
 
-    // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-created', { 
@@ -798,9 +798,9 @@ export const updatePaymentDetails = async (req, res) => {
   }
 };
 
-// ================================
-// EXTEND BOOKING
-// ================================
+// ======================================================
+// ✅ FIX 2: EXTEND BOOKING - Save previousTo
+// ======================================================
 export const extendBooking = async (req, res) => {
   try {
     const { 
@@ -816,52 +816,46 @@ export const extendBooking = async (req, res) => {
     console.log("🔥 EXTENSION REQUEST:", {
       bookingId: req.params.id,
       newTo,
-      remarks,
       extensionPaymentType,
-      extensionAmount,
-      attachmentsCount: extensionAttachments?.length || 0,
-      paymentAttachmentsCount: extensionPaymentAttachments?.length || 0
+      extensionAmount
     });
 
-    const booking = await Booking.findById(req.params.id);
+    let booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    console.log("📍 Current booking emails:", {
+    console.log("📍 Current booking emails BEFORE refresh:", {
       caretakerEmail: booking.caretakerEmail,
       wardenEmail: booking.wardenEmail,
       hostel: booking.hostel
     });
 
-    // ✅ CRITICAL FIX: Fetch latest hostel emails from database
-    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+    // ✅ Refresh emails from database
+    booking = await refreshBookingEmails(booking);
+
+    console.log("📍 Booking emails AFTER refresh:", {
+      caretakerEmail: booking.caretakerEmail,
+      wardenEmail: booking.wardenEmail
+    });
+
+    // ✅ FIX 2: Save previous checkout date BEFORE overwriting
+    booking.previousTo = booking.to;
     
-    if (!hostelDoc) {
-      console.error("❌ Hostel not found in database:", booking.hostel);
-    } else {
-      console.log("✅ Fetched hostel emails from database:", {
-        hostel: hostelDoc.name,
-        caretakerEmail: hostelDoc.caretakerEmail,
-        wardenEmail: hostelDoc.wardenEmail
-      });
-
-      // ✅ Update booking with latest emails from database
-      booking.caretakerEmail = hostelDoc.caretakerEmail;
-      booking.wardenEmail = hostelDoc.wardenEmail;
-    }
-
-    // Update basic extension fields
     booking.to = new Date(newTo);
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks;
+
+    console.log("📅 Extension dates:", {
+      previousTo: booking.previousTo,
+      newTo: booking.to
+    });
 
     if (Array.isArray(extensionAttachments)) {
       booking.extensionAttachments = extensionAttachments;
     }
 
-    // Update extension payment fields
     if (extensionPaymentType) {
       booking.extensionPaymentType = extensionPaymentType;
       
@@ -869,41 +863,21 @@ export const extendBooking = async (req, res) => {
         booking.extensionAmount = Number(extensionAmount || 0);
         booking.totalAmount = (booking.totalAmount || 0) + Number(extensionAmount || 0);
         booking.balanceAmount = booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
-        
-        console.log("💰 Extension - Paid booking:", {
-          extensionAmount,
-          newTotalAmount: booking.totalAmount,
-          newBalance: booking.balanceAmount
-        });
       } else if (extensionPaymentType === "Free") {
         booking.extensionAmount = 0;
         booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
-        
-        console.log("🆓 Extension - Free booking with remarks");
       }
       
       if (Array.isArray(extensionPaymentAttachments) && extensionPaymentAttachments.length > 0) {
         booking.extensionPaymentAttachments = extensionPaymentAttachments;
-        
-        console.log("📎 Extension payment attachments:", {
-          count: extensionPaymentAttachments.length
-        });
       }
     }
 
     await booking.save();
 
     console.log("✅ Booking saved, sending extension emails...");
-    console.log("📧 Final email addresses:", {
-      caretakerEmail: booking.caretakerEmail,
-      wardenEmail: booking.wardenEmail,
-      guestEmail: booking.email
-    });
+    sendBookingEmails(booking, "extended");
 
-    // ✅ CRITICAL: Send emails with updated booking object
-    sendBookingEmails(booking, req.user.role, "extended");
-
-    // Emit Socket.IO event
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-extended', { 
@@ -925,14 +899,14 @@ export const extendBooking = async (req, res) => {
   }
 };
 
-// ================================
+// ======================================================
 // CANCEL BOOKING
-// ================================
+// ======================================================
 export const cancelBooking = async (req, res) => {
   try {
     const { remarks } = req.body;
 
-    const booking = await Booking.findById(req.params.id);
+    let booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
@@ -940,27 +914,11 @@ export const cancelBooking = async (req, res) => {
 
     console.log("🚫 CANCEL BOOKING:", {
       bookingId: booking._id,
-      hostel: booking.hostel,
-      currentCaretakerEmail: booking.caretakerEmail,
-      currentWardenEmail: booking.wardenEmail
+      hostel: booking.hostel
     });
 
-    // ✅ CRITICAL FIX: Fetch latest hostel emails from database
-    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
-    
-    if (!hostelDoc) {
-      console.error("❌ Hostel not found in database:", booking.hostel);
-    } else {
-      console.log("✅ Fetched hostel emails for cancellation:", {
-        hostel: hostelDoc.name,
-        caretakerEmail: hostelDoc.caretakerEmail,
-        wardenEmail: hostelDoc.wardenEmail
-      });
-
-      // ✅ Update booking with latest emails
-      booking.caretakerEmail = hostelDoc.caretakerEmail;
-      booking.wardenEmail = hostelDoc.wardenEmail;
-    }
+    // ✅ Refresh emails from database
+    booking = await refreshBookingEmails(booking);
 
     booking.status = "cancelled";
     booking.cancelDate = new Date();
@@ -969,9 +927,8 @@ export const cancelBooking = async (req, res) => {
     await booking.save();
 
     console.log("✅ Booking cancelled, sending emails...");
-    sendBookingEmails(booking, req.user.role, "cancelled");
+    sendBookingEmails(booking, "cancelled");
 
-    // Emit Socket.IO event
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-cancelled', { 
