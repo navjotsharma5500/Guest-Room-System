@@ -1,7 +1,7 @@
 // bookingRoutes.js - FIXED VERSION
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { sendBookingEmails } from "../emails/sendBookingEmails.js";
+import { sendBookingEmails } from "../emails/sendEmail.js";
 import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
 
