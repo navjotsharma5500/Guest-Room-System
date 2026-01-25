@@ -847,6 +847,9 @@ export const extendBooking = async (req, res) => {
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks;
 
+    // ✅ THIS LINE IS MANDATORY
+    booking.status = "extended";
+
     console.log("📅 Extension dates:", {
       previousTo: booking.previousTo,
       newTo: booking.to
