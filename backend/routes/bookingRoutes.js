@@ -102,7 +102,17 @@ const normalizeBooking = (b) => ({
   // ⏳ Extension
   extensionDate: b.extensionDate || null,
   extendRemarks: b.extendRemarks || "",
-  extensionAttachments: Array.isArray(b.extensionAttachments) ? b.extensionAttachments : [],
+  extensionAttachments: Array.isArray(b.extensionAttachments)
+    ? b.extensionAttachments
+    : [],
+
+  // 💰 Extension Payment (NEW – CRITICAL)
+  extensionPaymentType: b.extensionPaymentType || "",
+  extensionAmount: b.extensionAmount || 0,
+  extensionPaymentRemarks: b.extensionPaymentRemarks || "",
+  extensionPaymentAttachments: Array.isArray(b.extensionPaymentAttachments)
+    ? b.extensionPaymentAttachments
+    : [],
 
   // 🚫 Cancellation
   cancelDate: b.status === "cancelled" ? b.updatedAt : null,
@@ -324,25 +334,36 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 
-
 // =============================================================
-// EXTEND BOOKING - COMPLETE FIXED VERSION
+// EXTEND BOOKING - UPDATED FOR EXTENSION PAYMENT + EMAIL
 // =============================================================
 router.put("/:id/extend", protect, async (req, res) => {
   try {
     const { id } = req.params;
-    const { newTo, hostel, roomNo, remarks, extensionAttachments } = req.body;
+    const {
+      newTo,
+      hostel,
+      roomNo,
+      remarks,
+      extensionAttachments,
+      extensionPaymentType,
+      extensionAmount,
+      extensionPaymentRemarks,
+      extensionPaymentAttachments
+    } = req.body;
 
     console.log("================================================================================");
     console.log("🔥 BACKEND: EXTENSION REQUEST RECEIVED");
-    console.log("📦 Body:", JSON.stringify({ 
-      id, 
-      newTo, 
-      hostel, 
-      roomNo, 
+    console.log("📦 Body:", JSON.stringify({
+      id,
+      newTo,
+      hostel,
+      roomNo,
       remarks,
       extensionAttachmentsCount: extensionAttachments?.length || 0,
-      extensionAttachments: extensionAttachments
+      extensionPaymentType,
+      extensionAmount,
+      extensionPaymentAttachmentsCount: extensionPaymentAttachments?.length || 0
     }, null, 2));
     console.log("================================================================================");
 
@@ -350,174 +371,121 @@ router.put("/:id/extend", protect, async (req, res) => {
       return res.status(400).json({ message: "New checkout date is required" });
     }
 
-    const booking = await Booking.findById(id);
+    let booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    console.log("📋 Current booking:", {
+    console.log("📋 Current booking snapshot:", {
       guest: booking.guest,
+      email: booking.email,
+      caretakerEmail: booking.caretakerEmail,
+      wardenEmail: booking.wardenEmail,
       currentTo: booking.to,
-      hostel: booking.hostel,
-      roomNo: booking.roomNo,
-      currentExtensionAttachments: booking.extensionAttachments?.length || 0
+      status: booking.status
     });
 
-    // ✅ SIMPLIFIED DATE PARSING
+    // ---------------- DATE VALIDATION ----------------
     const currentToDate = new Date(booking.to);
     const newToDateObj = new Date(newTo);
-    
-    // Set to start of day for comparison
+
     currentToDate.setHours(0, 0, 0, 0);
     newToDateObj.setHours(0, 0, 0, 0);
 
-    console.log("📅 Date comparison:", {
-      currentTo: currentToDate.toISOString(),
-      newTo: newToDateObj.toISOString(),
-      isValid: newToDateObj.getTime() > currentToDate.getTime()
-    });
-
-    // ✅ VALIDATE: New date must be after current checkout date
     if (newToDateObj.getTime() <= currentToDate.getTime()) {
-      console.log("❌ Date validation failed");
       return res.status(400).json({
         message: "New checkout date must be after current checkout date",
-        currentCheckout: currentToDate.toISOString().split('T')[0],
-        requestedCheckout: newToDateObj.toISOString().split('T')[0]
       });
     }
 
-    // ✅ CHECK FOR OVERLAPPING BOOKINGS (Exclude cancelled/completed bookings)
-    // Extension period: from current checkout to new checkout
+    // ---------------- OVERLAP CHECK ----------------
     const overlappingBookings = await Booking.find({
       _id: { $ne: id },
       hostel: hostel || booking.hostel,
       roomNo: roomNo || booking.roomNo,
-      status: { $nin: ["cancelled", "checked_out", "no_show"] }, // ✅ FIXED: Exclude completed bookings
-      // Check if extension period overlaps with other bookings
-      $or: [
-        {
-          // Other booking starts before extension ends AND ends after extension starts
-          from: { $lt: newToDateObj },
-          to: { $gt: currentToDate }
-        }
-      ]
-    });
-
-    console.log("🔍 Overlapping bookings check:", {
-      found: overlappingBookings.length,
-      bookings: overlappingBookings.map(b => ({
-        guest: b.guest,
-        from: b.from,
-        to: b.to,
-        status: b.status
-      }))
+      status: { $nin: ["cancelled", "checked_out", "no_show"] },
+      from: { $lt: newToDateObj },
+      to: { $gt: currentToDate }
     });
 
     if (overlappingBookings.length > 0) {
-      console.log("❌ Extension blocked due to overlap");
       return res.status(409).json({
-        message: "Cannot extend booking. The room is booked for the extended dates.",
-        overlaps: overlappingBookings.map(b => ({
-          guest: b.guest,
-          from: b.from,
-          to: b.to,
-          status: b.status
-        }))
+        message: "Cannot extend booking. The room is booked for the extended dates."
       });
     }
 
-    // ✅ UPDATE BOOKING FIELDS
+    // ---------------- CORE EXTENSION UPDATE ----------------
     booking.to = newToDateObj;
     booking.extensionDate = newToDateObj;
     booking.extendRemarks = remarks || booking.extendRemarks || "";
-    
-    // ✅ CRITICAL FIX: Properly handle extension attachments
-    if (Array.isArray(extensionAttachments) && extensionAttachments.length > 0) {
-      console.log("📎 Processing extension attachments:", {
-        incoming: extensionAttachments.length,
-        incomingFiles: extensionAttachments
-      });
 
-      // Get current extension attachments (ensure it's an array)
-      const currentExtensions = Array.isArray(booking.extensionAttachments) 
-        ? booking.extensionAttachments 
-        : [];
-
-      console.log("📋 Current extensions:", {
-        count: currentExtensions.length,
-        files: currentExtensions
-      });
-
-      // Filter out duplicates and append new files
-      const newFiles = extensionAttachments.filter(file => 
-        !currentExtensions.includes(file)
-      );
-
-      if (newFiles.length > 0) {
-        booking.extensionAttachments = [...currentExtensions, ...newFiles];
-        
-        console.log("✅ Extension attachments updated:", {
-          previous: currentExtensions.length,
-          new: newFiles.length,
-          total: booking.extensionAttachments.length,
-          files: booking.extensionAttachments
-        });
-      } else {
-        console.log("ℹ️ No new files to add (all duplicates)");
-      }
-    } else {
-      console.log("ℹ️ No extension attachments provided");
+    // ---------------- EXTENSION ATTACHMENTS ----------------
+    if (Array.isArray(extensionAttachments)) {
+      booking.extensionAttachments = extensionAttachments;
+      booking.markModified("extensionAttachments");
     }
 
-    // Mark as modified to ensure Mongoose saves the array
-    booking.markModified('extensionAttachments');
+    // ---------------- EXTENSION PAYMENT (NEW) ----------------
+    if (extensionPaymentType) {
+      booking.extensionPaymentType = extensionPaymentType;
+
+      if (extensionPaymentType === "Paid") {
+        booking.extensionAmount = Number(extensionAmount || 0);
+        booking.totalAmount = (booking.totalAmount || 0) + booking.extensionAmount;
+        booking.balanceAmount =
+          booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
+      }
+
+      if (extensionPaymentType === "Free") {
+        booking.extensionAmount = 0;
+        booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
+      }
+
+      if (Array.isArray(extensionPaymentAttachments)) {
+        booking.extensionPaymentAttachments = extensionPaymentAttachments;
+        booking.markModified("extensionPaymentAttachments");
+      }
+    }
+
     booking.updatedAt = new Date();
-    
-    // ✅ SAVE WITH VALIDATION
     await booking.save();
 
-    console.log("================================================================================");
-    console.log(`✅ Booking ${id} extended to ${newTo}`);
-    console.log(`📎 Total extension attachments:`, booking.extensionAttachments?.length || 0);
-    console.log(`📄 Files:`, booking.extensionAttachments);
-    console.log("================================================================================");
-
-    // ✅ Fetch the updated booking to ensure we have the latest data
-    const updatedBooking = await Booking.findById(id).lean();
-
-    console.log("🔍 Verification - Saved extensionAttachments:", {
-      count: updatedBooking.extensionAttachments?.length || 0,
-      files: updatedBooking.extensionAttachments
+    console.log("✅ Booking extension saved successfully", {
+      bookingId: booking._id,
+      extensionPaymentType: booking.extensionPaymentType,
+      extensionAmount: booking.extensionAmount
     });
 
-    res.json({
-      success: true,
-      message: "Booking extended successfully",
-      booking: updatedBooking,
+    // ---------------- EMAIL TRIGGER (CRITICAL) ----------------
+    console.log("📨 TRIGGERING EXTENSION EMAILS", {
+      guest: booking.email,
+      caretaker: booking.caretakerEmail,
+      warden: booking.wardenEmail
     });
 
-    // ✅ Socket.IO event (if available)
-    const io = req.app.get('io');
+    sendBookingEmails(booking, "extended");
+
+    // ---------------- SOCKET EVENT ----------------
+    const io = req.app.get("io");
     if (io) {
-      io.to('dashboard-room').emit('booking-extended', { 
-        booking: updatedBooking,
+      io.to("dashboard-room").emit("booking-extended", {
+        bookingId: booking._id,
+        newTo: booking.to,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted booking-extended event');
     }
 
+    return res.json({
+      success: true,
+      message: "Booking extended successfully",
+      booking
+    });
+
   } catch (error) {
-    console.error("================================================================================");
-    console.error("❌ BACKEND: Extension error:", error);
-    console.error("Message:", error.message);
-    console.error("Stack:", error.stack);
-    console.error("================================================================================");
-    
-    res.status(500).json({
+    console.error("❌ EXTENSION ERROR:", error);
+    return res.status(500).json({
       message: "Server error while extending booking",
-      error: error.message,
-      details: error.stack
+      error: error.message
     });
   }
 });

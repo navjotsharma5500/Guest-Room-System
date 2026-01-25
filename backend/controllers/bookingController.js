@@ -799,7 +799,7 @@ export const updatePaymentDetails = async (req, res) => {
 };
 
 // ======================================================
-// ✅ FIX 2: EXTEND BOOKING - Save previousTo
+// ✅ EXTEND BOOKING (Controller) — PAYMENT + EMAIL SAFE
 // ======================================================
 export const extendBooking = async (req, res) => {
   try {
@@ -827,13 +827,15 @@ export const extendBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    console.log("📍 Current booking emails BEFORE refresh:", {
+    // ==================================================
+    // REFRESH STAFF EMAILS
+    // ==================================================
+    console.log("📍 Booking emails BEFORE refresh:", {
       caretakerEmail: booking.caretakerEmail,
       wardenEmail: booking.wardenEmail,
       hostel: booking.hostel
     });
 
-    // ✅ Refresh emails from database
     booking = await refreshBookingEmails(booking);
 
     console.log("📍 Booking emails AFTER refresh:", {
@@ -841,58 +843,67 @@ export const extendBooking = async (req, res) => {
       wardenEmail: booking.wardenEmail
     });
 
-    // ✅ FIX 2: Save previous checkout date BEFORE overwriting
-    booking.previousTo = booking.to;
-    
+    // ==================================================
+    // UPDATE EXTENSION CORE FIELDS
+    // ==================================================
+    const previousTo = booking.to;
+
     booking.to = new Date(newTo);
     booking.extensionDate = new Date(newTo);
-    booking.extendRemarks = remarks || booking.extendRemarks;
+    booking.extendRemarks = remarks || booking.extendRemarks || "";
 
-    // ✅ THIS LINE IS MANDATORY
-    booking.status = "extended";
-
-    console.log("📅 Extension dates updated:", {
-      previousTo: booking.previousTo,
-      newTo: booking.to,
-      status: booking.status
+    console.log("📅 Extension applied:", {
+      previousTo,
+      newTo: booking.to
     });
 
+    // ==================================================
+    // EXTENSION ATTACHMENTS
+    // ==================================================
     if (Array.isArray(extensionAttachments)) {
       booking.extensionAttachments = extensionAttachments;
     }
 
+    // ==================================================
+    // EXTENSION PAYMENT LOGIC
+    // ==================================================
     if (extensionPaymentType) {
       booking.extensionPaymentType = extensionPaymentType;
-      
+
       if (extensionPaymentType === "Paid") {
-        booking.extensionAmount = Number(extensionAmount || 0);
-        booking.totalAmount = (booking.totalAmount || 0) + Number(extensionAmount || 0);
+        const amt = Number(extensionAmount || 0);
+
+        booking.extensionAmount = amt;
+        booking.totalAmount = (booking.totalAmount || 0) + amt;
         booking.balanceAmount =
           booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
+
       } else if (extensionPaymentType === "Free") {
         booking.extensionAmount = 0;
         booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
       }
-      
-      if (
-        Array.isArray(extensionPaymentAttachments) &&
-        extensionPaymentAttachments.length > 0
-      ) {
+
+      if (Array.isArray(extensionPaymentAttachments)) {
         booking.extensionPaymentAttachments = extensionPaymentAttachments;
       }
     }
 
+    // ==================================================
+    // SAVE
+    // ==================================================
     await booking.save();
 
-    console.log("✅ Booking saved successfully:", {
+    console.log("✅ Booking extended & saved:", {
       bookingId: booking._id,
-      status: booking.status
+      newTo: booking.to,
+      extensionPaymentType: booking.extensionPaymentType
     });
 
-    // 🔔 EMAIL TRIGGER LOG (MOST IMPORTANT)
-    console.log("📨 CALLING sendBookingEmails for EXTENSION:", {
+    // ==================================================
+    // 🔔 EMAIL DISPATCH (EVENT-BASED)
+    // ==================================================
+    console.log("📨 CALLING sendBookingEmails (EXTENDED EVENT):", {
       bookingId: booking._id,
-      statusType: "extended",
       guest: booking.email,
       caretaker: booking.caretakerEmail,
       warden: booking.wardenEmail,
@@ -901,6 +912,9 @@ export const extendBooking = async (req, res) => {
 
     sendBookingEmails(booking, "extended");
 
+    // ==================================================
+    // SOCKET EVENT
+    // ==================================================
     const io = req.app.get("io");
     if (io) {
       io.to("dashboard-room").emit("booking-extended", { 
@@ -913,12 +927,19 @@ export const extendBooking = async (req, res) => {
       console.log("📡 Emitted booking-extended socket event");
     }
 
-    res.json({ success: true, message: "Booking extended", booking });
+    return res.json({
+      success: true,
+      message: "Booking extended successfully",
+      booking
+    });
 
   } catch (err) {
     console.error("❌ Extend booking error:", err);
     console.error("Stack:", err.stack);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
