@@ -813,7 +813,7 @@ export const extendBooking = async (req, res) => {
       extensionPaymentAttachments
     } = req.body;
 
-    console.log("🔥 EXTENSION REQUEST:", {
+    console.log("🔥 EXTENSION REQUEST RECEIVED:", {
       bookingId: req.params.id,
       newTo,
       extensionPaymentType,
@@ -823,6 +823,7 @@ export const extendBooking = async (req, res) => {
     let booking = await Booking.findById(req.params.id);
 
     if (!booking) {
+      console.error("❌ EXTENSION FAILED: Booking not found", req.params.id);
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
@@ -850,9 +851,10 @@ export const extendBooking = async (req, res) => {
     // ✅ THIS LINE IS MANDATORY
     booking.status = "extended";
 
-    console.log("📅 Extension dates:", {
+    console.log("📅 Extension dates updated:", {
       previousTo: booking.previousTo,
-      newTo: booking.to
+      newTo: booking.to,
+      status: booking.status
     });
 
     if (Array.isArray(extensionAttachments)) {
@@ -865,32 +867,50 @@ export const extendBooking = async (req, res) => {
       if (extensionPaymentType === "Paid") {
         booking.extensionAmount = Number(extensionAmount || 0);
         booking.totalAmount = (booking.totalAmount || 0) + Number(extensionAmount || 0);
-        booking.balanceAmount = booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
+        booking.balanceAmount =
+          booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
       } else if (extensionPaymentType === "Free") {
         booking.extensionAmount = 0;
         booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
       }
       
-      if (Array.isArray(extensionPaymentAttachments) && extensionPaymentAttachments.length > 0) {
+      if (
+        Array.isArray(extensionPaymentAttachments) &&
+        extensionPaymentAttachments.length > 0
+      ) {
         booking.extensionPaymentAttachments = extensionPaymentAttachments;
       }
     }
 
     await booking.save();
 
-    console.log("✅ Booking saved, sending extension emails...");
+    console.log("✅ Booking saved successfully:", {
+      bookingId: booking._id,
+      status: booking.status
+    });
+
+    // 🔔 EMAIL TRIGGER LOG (MOST IMPORTANT)
+    console.log("📨 CALLING sendBookingEmails for EXTENSION:", {
+      bookingId: booking._id,
+      statusType: "extended",
+      guest: booking.email,
+      caretaker: booking.caretakerEmail,
+      warden: booking.wardenEmail,
+      manager: process.env.MANAGER_EMAIL || null
+    });
+
     sendBookingEmails(booking, "extended");
 
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     if (io) {
-      io.to('dashboard-room').emit('booking-extended', { 
+      io.to("dashboard-room").emit("booking-extended", { 
         bookingId: booking._id,
         hostel: booking.hostel,
         roomNo: booking.roomNo,
         newTo: booking.to,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted booking-extended event');
+      console.log("📡 Emitted booking-extended socket event");
     }
 
     res.json({ success: true, message: "Booking extended", booking });
@@ -901,6 +921,7 @@ export const extendBooking = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // ======================================================
 // CANCEL BOOKING
