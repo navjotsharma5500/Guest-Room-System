@@ -8,7 +8,7 @@ export default function managerBookingCancelled(b) {
       <p>Dear Manager,</p>
 
       <p>
-        Please note that the guest room booking for
+        This is to inform you that the guest room booking for
         <strong>${b.guest}</strong> has been <strong>cancelled</strong>.
       </p>
 
@@ -21,11 +21,15 @@ export default function managerBookingCancelled(b) {
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
         </p>
-        <p><strong>Reason:</strong> ${b.cancelRemarks || "Not specified"}</p>
+        ${
+          b.cancelRemarks
+            ? `<p><strong>Cancellation Reason:</strong> ${b.cancelRemarks}</p>`
+            : ""
+        }
       </div>
 
       <p>
-        This notification is shared for your information and record.
+        This email is shared for your information and official records.
       </p>
     `,
   });

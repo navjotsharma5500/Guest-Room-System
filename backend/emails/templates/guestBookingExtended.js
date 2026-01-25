@@ -8,19 +8,21 @@ export default function guestBookingExtended(b) {
       <p>Dear ${b.guest},</p>
 
       <p>
-        Your guest room booking has been <strong>successfully extended</strong>.
-        Please find the updated details below.
+        This is to inform you that your guest room booking at
+        <strong>Thapar Institute of Engineering and Technology</strong>
+        has been <strong>successfully extended</strong>.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Updated Booking Details</div>
-        <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
-        <p>
-          <strong>New Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
-        </p>
-      </div>
+      <p>
+        The updated booking details are as follows:
+      </p>
+
+      <p>
+        <strong>Hostel:</strong> ${b.hostel}<br/>
+        <strong>Room Number:</strong> ${b.roomNo}<br/>
+        <strong>Revised Check-out Date:</strong>
+        ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+      </p>
 
       ${
         b.extendRemarks
@@ -29,11 +31,20 @@ export default function guestBookingExtended(b) {
       }
 
       <p>
-        Kindly ensure that you vacate the room on or before the revised
-        check-out time. For any assistance, please contact the hostel caretaker.
+        Kindly ensure that the room is vacated on or before the revised
+        check-out time. If you require any assistance, please contact
+        the hostel caretaker.
       </p>
 
-      <p>We wish you a comfortable stay.</p>
+      <p>
+        We wish you a comfortable and pleasant stay.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
+      </p>
     `,
   });
 }

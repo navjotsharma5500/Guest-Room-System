@@ -7,7 +7,6 @@ import EmailLog from "../models/EmailLog.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
-import enquiryApproved from "../emails/templates/enquiryApproved.js";
 
 // ✅ Import event-driven email function
 import { sendBookingEmails } from "./bookingController.js";

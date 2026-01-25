@@ -14,7 +14,9 @@ import caretakerBookingApprovedFree from "../emails/templates/caretakerBookingAp
 import caretakerBookingApprovedPaid from "../emails/templates/caretakerBookingApprovedPaid.js";
 import caretakerBookingCancelled from "../emails/templates/caretakerBookingCancelled.js";
 import caretakerBookingExtended from "../emails/templates/caretakerBookingExtended.js";
+import caretakerBookingExtendedPaid from "../emails/templates/caretakerBookingExtendedPaid.js";
 import caretakerDirectBooking from "../emails/templates/caretakerDirectBooking.js";
+import caretakerDirectBookingFree from "../emails/templates/caretakerDirectBookingFree.js";
 
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 
@@ -22,15 +24,19 @@ import guestBookingApprovedFree from "../emails/templates/guestBookingApprovedFr
 import guestBookingApprovedPaid from "../emails/templates/guestBookingApprovedPaid.js";
 import guestBookingCancelled from "../emails/templates/guestBookingCancelled.js";
 import guestBookingExtended from "../emails/templates/guestBookingExtended.js";
+import guestBookingExtendedPaid from "../emails/templates/guestBookingExtendedPaid.js";
 import guestBookingRejected from "../emails/templates/guestBookingRejected.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import guestDirectBooking from "../emails/templates/guestDirectBooking.js";
+import guestDirectBookingFree from "../emails/templates/guestDirectBookingFree.js";
 
 import managerBookingApprovedFree from "../emails/templates/managerBookingApprovedFree.js";
 import managerBookingApprovedPaid from "../emails/templates/managerBookingApprovedPaid.js";
 import managerBookingCancelled from "../emails/templates/managerBookingCancelled.js";
 import managerBookingExtended from "../emails/templates/managerBookingExtended.js";
+import managerBookingExtendedPaid from "../emails/templates/managerBookingExtendedPaid.js";
 import managerDirectBooking from "../emails/templates/managerDirectBooking.js";
+import managerDirectBookingFree from "../emails/templates/managerDirectBookingFree.js";
 
 import masterTemplate from "../emails/templates/masterTemplate.js";
 
@@ -38,7 +44,9 @@ import wardenBookingApprovedFree from "../emails/templates/wardenBookingApproved
 import wardenBookingApprovedPaid from "../emails/templates/wardenBookingApprovedPaid.js";
 import wardenBookingCancelled from "../emails/templates/wardenBookingCancelled.js";
 import wardenBookingExtended from "../emails/templates/wardenBookingExtended.js";
+import wardenBookingExtendedPaid from "../emails/templates/wardenBookingExtendedPaid.js";
 import wardenDirectBooking from "../emails/templates/wardenDirectBooking.js";
+import wardenDirectBookingFree from "../emails/templates/wardenDirectBookingFree.js";
 
 
 // ======================================================
@@ -132,7 +140,7 @@ const safeSend = (emailPayload) => {
 };
 
 // ======================================================
-// ✅ FIX 1: EXPORTED - Event-driven email dispatcher
+// ✅ UPDATED - Event-driven email dispatcher
 // ======================================================
 export const sendBookingEmails = (booking, statusType) => {
   console.log("📨 sendBookingEmails called:", {
@@ -169,46 +177,64 @@ export const sendBookingEmails = (booking, statusType) => {
     if (statusType === "created") {
       console.log("📤 Sending DIRECT BOOKING emails to all recipients...");
       
+      // Guest email - use paid or free template
       safeSend({
         to: guestEmail,
-        subject: "Guest Room Booking Confirmation",
+        subject: isPaid 
+          ? "Guest Room Booking Confirmation"
+          : "Guest Room Booking Confirmation (Complimentary)",
         html: isPaid
-          ? guestBookingApprovedPaid(booking)
-          : guestBookingApprovedFree(booking),
+          ? guestDirectBooking(booking)
+          : guestDirectBookingFree(booking),
         meta: {
           bookingId: booking._id,
-          type: "guest-direct-booking",
+          type: isPaid ? "guest-direct-booking-paid" : "guest-direct-booking-free",
         },
       });
 
+      // Caretaker email - use paid or free template
       safeSend({
         to: caretakerEmail,
-        subject: "New Direct Booking Created",
-        html: caretakerDirectBooking(booking),
+        subject: isPaid 
+          ? "New Direct Booking Created"
+          : "New Direct Booking Created (Free)",
+        html: isPaid
+          ? caretakerDirectBooking(booking)
+          : caretakerDirectBookingFree(booking),
         meta: {
           bookingId: booking._id,
-          type: "caretaker-direct-booking",
+          type: isPaid ? "caretaker-direct-booking-paid" : "caretaker-direct-booking-free",
         },
       });
 
+      // Warden email - use paid or free template
       safeSend({
         to: wardenEmail,
-        subject: "Caretaker Direct Booking",
-        html: wardenDirectBooking(booking),
+        subject: isPaid 
+          ? "Caretaker Direct Booking"
+          : "Caretaker Direct Booking (Free)",
+        html: isPaid
+          ? wardenDirectBooking(booking)
+          : wardenDirectBookingFree(booking),
         meta: {
           bookingId: booking._id,
-          type: "warden-direct-booking",
+          type: isPaid ? "warden-direct-booking-paid" : "warden-direct-booking-free",
         },
       });
 
+      // Manager email - use paid or free template
       if (MANAGER_EMAIL) {
         safeSend({
           to: MANAGER_EMAIL,
-          subject: "Caretaker Direct Booking Notification",
-          html: managerDirectBooking(booking),
+          subject: isPaid 
+            ? "Caretaker Direct Booking Notification"
+            : "Caretaker Direct Booking Notification (Free)",
+          html: isPaid
+            ? managerDirectBooking(booking)
+            : managerDirectBookingFree(booking),
           meta: {
             bookingId: booking._id,
-            type: "manager-direct-booking",
+            type: isPaid ? "manager-direct-booking-paid" : "manager-direct-booking-free",
           },
         });
       }
@@ -325,51 +351,76 @@ export const sendBookingEmails = (booking, statusType) => {
     if (statusType === "extended") {
       console.log("📤 Sending EXTENSION emails to all recipients...");
       
+      // Check if extension is paid
+      const isExtensionPaid = 
+        booking.extensionPaymentType?.toUpperCase() === "PAID" ||
+        (booking.extensionAmount && booking.extensionAmount > 0);
+
+      // Guest email - use paid or free extension template
       safeSend({
         to: guestEmail,
-        subject: "Guest Booking Extended",
-        html: guestBookingExtended(booking),
+        subject: isExtensionPaid 
+          ? "Guest Booking Extended (Payment Required)"
+          : "Guest Booking Extended",
+        html: isExtensionPaid
+          ? guestBookingExtendedPaid(booking)
+          : guestBookingExtended(booking),
         meta: {
           bookingId: booking._id,
-          type: "guest-booking-extended",
+          type: isExtensionPaid ? "guest-booking-extended-paid" : "guest-booking-extended-free",
         },
       });
 
+      // Caretaker email - use paid or free extension template
       safeSend({
         to: caretakerEmail,
-        subject: "Booking Extended",
-        html: caretakerBookingExtended(booking),
+        subject: isExtensionPaid 
+          ? "Booking Extended (Paid)"
+          : "Booking Extended",
+        html: isExtensionPaid
+          ? caretakerBookingExtendedPaid(booking)
+          : caretakerBookingExtended(booking),
         meta: {
           bookingId: booking._id,
-          type: "caretaker-booking-extended",
+          type: isExtensionPaid ? "caretaker-booking-extended-paid" : "caretaker-booking-extended-free",
         },
       });
 
+      // Warden email - use paid or free extension template
       safeSend({
         to: wardenEmail,
-        subject: "Booking Extended",
-        html: wardenBookingExtended(booking),
+        subject: isExtensionPaid 
+          ? "Booking Extended (Paid)"
+          : "Booking Extended",
+        html: isExtensionPaid
+          ? wardenBookingExtendedPaid(booking)
+          : wardenBookingExtended(booking),
         meta: {
           bookingId: booking._id,
-          type: "warden-booking-extended",
+          type: isExtensionPaid ? "warden-booking-extended-paid" : "warden-booking-extended-free",
         },
       });
 
+      // Manager email - use paid or free extension template
       if (MANAGER_EMAIL) {
         safeSend({
           to: MANAGER_EMAIL,
-          subject: "Booking Extension Notification",
-          html: managerBookingExtended(booking),
+          subject: isExtensionPaid 
+            ? "Booking Extension Notification (Paid)"
+            : "Booking Extension Notification",
+          html: isExtensionPaid
+            ? managerBookingExtendedPaid(booking)
+            : managerBookingExtended(booking),
           meta: {
             bookingId: booking._id,
-            type: "manager-booking-extended",
+            type: isExtensionPaid ? "manager-booking-extended-paid" : "manager-booking-extended-free",
           },
         });
       }
       return;
     }
 
-    // ✅ FIX 3: Catch unknown statusType
+    // ✅ Catch unknown statusType
     console.error("❌ UNKNOWN EMAIL EVENT TYPE:", {
       bookingId: booking._id,
       statusType,

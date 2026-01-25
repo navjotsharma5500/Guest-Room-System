@@ -1,16 +1,14 @@
-// managerDirectBooking.js
+// managerDirectBookingFree.js
 import masterTemplate from "./masterTemplate.js";
 
-export default function managerDirectBooking(b) {
-  const amount = b.totalAmount || b.amount || 0;
-
+export default function managerDirectBookingFree(b) {
   return masterTemplate({
-    title: `Direct Guest Room Booking — ${b.guest}`,
+    title: `Direct Guest Room Booking (Free) – ${b.guest}`,
     content: `
       <p>Dear Manager,</p>
 
       <p>
-        This is to inform you that a <strong>direct guest room booking</strong>
+        This is to inform you that a <strong>complimentary direct guest room booking</strong>
         has been created by the hostel caretaker for
         <strong>${b.guest}</strong>.
       </p>
@@ -28,17 +26,28 @@ export default function managerDirectBooking(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-
-        ${
-          amount > 0
-            ? `<p><strong>Payment:</strong> Paid</p>
-               <p><strong>Amount:</strong> ₹${amount}</p>`
-            : ""
-        }
+        <p><strong>Booking Type:</strong> Free (Complimentary)</p>
       </div>
+
+      ${
+        b.freeRemarks || b.remarks
+          ? `
+          <div class="details-box">
+            <div class="details-title">Special Remarks</div>
+            <p>${b.freeRemarks || b.remarks}</p>
+          </div>
+        `
+          : ""
+      }
 
       <p>
         This notification is shared for your information and official records.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

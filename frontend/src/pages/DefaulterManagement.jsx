@@ -176,15 +176,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        // Show in pending if: has balance AND no rollbacks
         return d.totalDue > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(d => {
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
+        // Show in completed if: fully paid (0 balance) AND no rollbacks
+        return d.totalDue === 0 && !hasRollbacks;
       });
     } else if (activeTab === 'rollbacks') {
       filtered = filtered.filter(d => 
+        // Show in rollbacks if: has any rollback history
         d.paymentRollbacks && d.paymentRollbacks.length > 0
       );
     }

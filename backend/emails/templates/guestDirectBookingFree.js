@@ -1,16 +1,16 @@
-// backend/emails/templates/guestDirectBooking.js
+// guestDirectBookingFree.js
 import masterTemplate from "./masterTemplate.js";
 
-export default function guestDirectBooking(b) {
+export default function guestDirectBookingFree(b) {
   return masterTemplate({
-    title: "Guest Room Booking Confirmed",
+    title: "Guest Room Booking Confirmed (Free)",
     content: `
       <p>Dear ${b.guest},</p>
 
       <p>
         This is to confirm that your guest room booking at
         <strong>Thapar Institute of Engineering and Technology</strong>
-        has been <strong>successfully confirmed</strong>.
+        has been <strong>successfully confirmed</strong> as a complimentary booking.
       </p>
 
       <div class="details-box">
@@ -25,27 +25,15 @@ export default function guestDirectBooking(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-
-        ${
-          b.totalAmount > 0
-            ? `<p><strong>Amount Payable:</strong> ₹${b.totalAmount}</p>`
-            : ""
-        }
+        <p><strong>Booking Type:</strong> Free (No Payment Required)</p>
       </div>
 
       ${
-        b.totalAmount > 0
+        b.freeRemarks || b.remarks
           ? `
           <div class="details-box">
-            <div class="details-title">Payment Instructions</div>
-            <p>Please complete the payment using the following bank details:</p>
-            <p><strong>Bank Name:</strong> State Bank of India</p>
-            <p><strong>Account Number:</strong> 65181840370</p>
-            <p><strong>IFSC Code:</strong> SBIN0050244</p>
-            <p>
-              Kindly retain the payment receipt and present it to the hostel
-              caretaker at the time of reporting.
-            </p>
+            <div class="details-title">Special Notes</div>
+            <p>${b.freeRemarks || b.remarks}</p>
           </div>
         `
           : ""
@@ -56,11 +44,7 @@ export default function guestDirectBooking(b) {
         <li>Please report to the hostel at the specified check-in time</li>
         <li>Carry a valid government-issued photo ID</li>
         <li>Contact the hostel caretaker upon arrival for room allocation</li>
-        ${
-          b.totalAmount > 0
-            ? `<li>Carry proof of payment for verification</li>`
-            : ""
-        }
+        <li>No payment is required for this booking</li>
       </ul>
 
       <p>

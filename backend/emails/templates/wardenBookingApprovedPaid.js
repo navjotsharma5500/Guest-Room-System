@@ -2,18 +2,21 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingApprovedPaid(b) {
+  const amount = b.totalAmount || b.amount || 0;
+
   return masterTemplate({
     title: `Guest Room Booking Approved — ${b.guest}`,
     content: `
       <p>Dear Warden,</p>
 
       <p>
-        A <strong>paid guest room booking</strong> has been approved for
-        <strong>${b.guest}</strong>.
+        This is to inform you that a guest room booking has been
+        <strong>approved</strong> for <strong>${b.guest}</strong>.
       </p>
 
       <div class="details-box">
         <div class="details-title">Booking Summary</div>
+        <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p>
@@ -24,16 +27,16 @@ export default function wardenBookingApprovedPaid(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Amount Payable:</strong> ₹${b.amount}</p>
+        <p><strong>Amount:</strong> ₹${amount}</p>
       </div>
 
       <p>
-        The guest has been instructed to complete the payment and share the
-        payment slip with the hostel caretaker.
+        The hostel caretaker has been instructed to verify the payment
+        details at the time of guest reporting.
       </p>
 
       <p>
-        This notification is shared for your information and record.
+        This notification is shared for your information and official record.
       </p>
     `,
   });

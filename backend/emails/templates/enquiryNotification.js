@@ -7,33 +7,33 @@ export default function enquiryNotification(e) {
       <p>Dear Team,</p>
 
       <p>
-        A new guest room enquiry has been submitted. The details are provided below
-        for your review and necessary action.
+        A new guest room enquiry has been submitted through the Guest Room
+        Management System. The enquiry details are provided below for your
+        review and further action.
       </p>
 
-      <div class="details">
-        <p><strong>Name:</strong> ${e.name}</p>
-        <p><strong>Email:</strong> ${e.email}</p>
-        <p><strong>Contact Number:</strong> ${e.contact}</p>
-        <p><strong>Purpose of Stay:</strong> ${e.purpose || "-"}</p>
-        <p>
-          <strong>Check-in:</strong>
-          ${new Date(e.from).toDateString()} at ${e.checkInTime}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${new Date(e.to).toDateString()} at ${e.checkOutTime}
-        </p>
-        <p><strong>Reference:</strong> ${e.reference || "N/A"}</p>
-      </div>
+      <p><strong>Enquiry Details</strong></p>
 
       <p>
-        Please log in to the Guest Room Management dashboard to review and process
-        this enquiry.
+        <strong>Name:</strong> ${e.name}<br/>
+        <strong>Email:</strong> ${e.email}<br/>
+        <strong>Contact Number:</strong> ${e.contact}<br/>
+        <strong>Purpose of Stay:</strong> ${e.purpose || "—"}<br/>
+        <strong>Check-in:</strong>
+        ${new Date(e.from).toDateString()} at ${e.checkInTime}<br/>
+        <strong>Check-out:</strong>
+        ${new Date(e.to).toDateString()} at ${e.checkOutTime}<br/>
+        <strong>Reference:</strong> ${e.reference || "—"}
       </p>
 
       <p>
-        This notification has been generated automatically by the system.
+        Kindly log in to the Guest Room Management dashboard to review,
+        verify, and process this enquiry as per institute guidelines.
+      </p>
+
+      <p>
+        If no action is required at this stage, this email may be treated
+        as an informational notification.
       </p>
     `,
   });

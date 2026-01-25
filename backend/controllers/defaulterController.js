@@ -9,9 +9,12 @@ export const getDefaulters = async (req, res) => {
 
     // ✅ CRITICAL FIX: Fetch bookings with balanceAmount > 0
     let query = {
-      balanceAmount: { $gt: 0 },
       paymentType: { $ne: "Free" },
-      status: { $in: ["checked_in", "checked_out"] } // ✅ Include checked_out guests with pending payments
+      status: { $in: ["checked_in", "checked_out"] },
+      $or: [
+        { balanceAmount: { $gt: 0 } },  // Has pending balance
+        { paymentRollbacks: { $exists: true, $ne: [] } }  // Has rollback history
+      ]
     };
 
     // Role-based filtering
@@ -78,7 +81,7 @@ export const getDefaulters = async (req, res) => {
     );
 
     // ✅ CRITICAL FIX: Filter out guests with NO outstanding balance
-    const activeDefaulters = defaultersWithBills.filter(d => d.totalDue > 0);
+    const activeDefaulters = defaultersWithBills;
 
     console.log(`✅ Active defaulters after filtering: ${activeDefaulters.length}`);
 

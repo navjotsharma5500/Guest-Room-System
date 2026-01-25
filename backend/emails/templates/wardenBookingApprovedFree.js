@@ -8,12 +8,13 @@ export default function wardenBookingApprovedFree(b) {
       <p>Dear Warden,</p>
 
       <p>
-        A <strong>guest room booking</strong> has been approved for
-        <strong>${b.guest}</strong>.
+        This is to inform you that a guest room booking has been
+        <strong>approved</strong> for <strong>${b.guest}</strong>.
       </p>
 
       <div class="details-box">
         <div class="details-title">Booking Summary</div>
+        <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p>
@@ -24,15 +25,16 @@ export default function wardenBookingApprovedFree(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Booking Type:</strong> Free</p>
       </div>
 
       <p>
-        The hostel caretaker has been notified to prepare the room and
-        assist the guest on arrival.
+        The hostel caretaker has been informed to make the necessary
+        arrangements and assist the guest upon arrival.
       </p>
 
-      <p>This message is shared for your information and record.</p>
+      <p>
+        This notification is shared for your information and official record.
+      </p>
     `,
   });
 }
