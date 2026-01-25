@@ -1,9 +1,10 @@
 // bookingRoutes.js - FIXED VERSION
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { sendBookingEmails } from "../emails/sendEmail.js";
+import { sendBookingEmails } from "../controllers/bookingController.js";
 import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
+import Hostel from "../models/Hostel.js";
 
 const router = express.Router();
 
@@ -385,6 +386,24 @@ router.put("/:id/extend", protect, async (req, res) => {
       currentTo: booking.to,
       status: booking.status
     });
+
+    // ✅ REFRESH EMAILS FROM DATABASE
+    console.log("🔄 Refreshing emails from database for hostel:", booking.hostel);
+
+    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+
+    if (hostelDoc) {
+      console.log("✅ Fetched fresh hostel emails:", {
+        hostel: hostelDoc.name,
+        caretakerEmail: hostelDoc.caretakerEmail,
+        wardenEmail: hostelDoc.wardenEmail
+      });
+
+      booking.caretakerEmail = hostelDoc.caretakerEmail;
+      booking.wardenEmail = hostelDoc.wardenEmail;
+    } else {
+      console.error("❌ Hostel not found in database:", booking.hostel);
+    }
 
     // ---------------- DATE VALIDATION ----------------
     const currentToDate = new Date(booking.to);
