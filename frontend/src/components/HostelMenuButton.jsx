@@ -10,6 +10,11 @@ export default function HostelMenuButton({
   onUnblockRoom,
   theme 
 }) {
+    console.log("🔍 HostelMenuButton rendered:", { 
+        hostelName, 
+        roomsCount: rooms.length,
+        theme 
+    });
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 

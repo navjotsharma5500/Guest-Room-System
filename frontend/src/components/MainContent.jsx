@@ -2,7 +2,18 @@
 import React, { useEffect, useState, useRef } from "react";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
-import { Settings, Trash2, Filter, Building2, Search } from "lucide-react";
+import { 
+  Settings, 
+  Trash2, 
+  Filter, 
+  Building2, 
+  Search,
+  CalendarDays,
+  User2,
+  Clock,
+  CheckCircle2,
+  Phone  // ✅ Add this
+} from "lucide-react";
 import { combineDateAndTime } from "../utils/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -1342,14 +1353,16 @@ export default function MainContent(props) {
                           </div>
                         </div>
 
-                        {/* ✅ NEW: 3-Dots Menu Button */}
+                        {/* ✅ 3-DOTS MENU BUTTON - This should be visible */}
                         <HostelMenuButton 
                           hostelName={activeHostel}
                           rooms={hostelData[activeHostel]?.rooms || []}
                           onBlockRoom={(hostel, roomNo) => {
+                            console.log("🔒 Block room clicked:", hostel, roomNo);
                             setBlockRoomModal({ hostelName: hostel, roomNo });
                           }}
                           onUnblockRoom={(hostel, roomNo, blockInfo) => {
+                            console.log("🔓 Unblock room clicked:", hostel, roomNo);
                             setUnblockRoomModal({ hostelName: hostel, roomNo, blockInfo });
                           }}
                           theme={theme}
