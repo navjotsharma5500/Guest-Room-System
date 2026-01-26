@@ -9,17 +9,17 @@ import { emitEvent } from "../utils/socket.js";
 // ======================================================
 export const getAllHostelsWithBookings = async (req, res) => {
   try {
-    console.log("ðŸ” Fetching all hostels with bookings...");
+    console.log("🔍 Fetching all hostels with bookings...");
 
-    // âœ… 1) Fetch all hostels
+    // ✅ 1) Fetch all hostels
     const hostels = await Hostel.find().lean();
-    console.log("âœ… Hostels fetched:", hostels.length);
+    console.log("✅ Hostels fetched:", hostels.length);
 
-    // âœ… 2) Fetch all bookings
+    // ✅ 2) Fetch all bookings
     const bookings = await Booking.find({ status: { $ne: "cancelled" } }).lean();
-    console.log("âœ… Bookings fetched:", bookings.length);
+    console.log("✅ Bookings fetched:", bookings.length);
 
-    // âœ… 3) Build response structure
+    // ✅ 3) Build response structure
     const response = hostels.map((hostel) => {
       return {
         _id: hostel._id,
@@ -38,6 +38,14 @@ export const getAllHostelsWithBookings = async (req, res) => {
             roomType: room.roomType || "Guest Room",
             caretakerEmail: room.caretakerEmail || hostel.caretakerEmail,
             wardenEmail: room.wardenEmail || hostel.wardenEmail,
+            // ✅ Blocked status fields
+            isBlocked: room.isBlocked || false,
+            blockedTill: room.blockedTill,
+            blockRemarks: room.blockRemarks,
+            blockAttachments: room.blockAttachments || [],
+            blockedAt: room.blockedAt,
+            blockedBy: room.blockedBy,
+            
             bookings: roomBookings.map((b) => ({
               id: b._id,
               _id: b._id,
@@ -69,11 +77,11 @@ export const getAllHostelsWithBookings = async (req, res) => {
       };
     });
 
-    console.log("âœ… Response built successfully");
+    console.log("✅ Response built successfully");
     res.json({ success: true, hostels: response });
 
   } catch (error) {
-    console.error("âŒ Hostel fetch error:", error);
+    console.error("❌ Hostel fetch error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching hostels",
@@ -112,7 +120,7 @@ export const createHostel = async (req, res) => {
     res.json({ success: true, hostel: newHostel });
 
   } catch (error) {
-    console.error("âŒ Create hostel error:", error);
+    console.error("❌ Create hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error creating hostel",
@@ -129,13 +137,13 @@ export const updateHostel = async (req, res) => {
     const { id } = req.params;
     const { name, code, caretakerEmail, wardenEmail, rooms, active } = req.body;
 
-    console.log("ðŸ”„ UPDATE HOSTEL REQUEST:");
+    console.log("🔓 UPDATE HOSTEL REQUEST:");
     console.log("   ID:", id);
     console.log("   Body:", JSON.stringify(req.body, null, 2));
 
     // Validate ObjectId format
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      console.error("âŒ Invalid ObjectId format:", id);
+      console.error("❌ Invalid ObjectId format:", id);
       return res.status(400).json({
         success: false,
         message: "Invalid hostel ID format",
@@ -144,20 +152,20 @@ export const updateHostel = async (req, res) => {
 
     const hostel = await Hostel.findById(id);
     if (!hostel) {
-      console.error("âŒ Hostel not found:", id);
+      console.error("❌ Hostel not found:", id);
       return res.status(404).json({
         success: false,
         message: "Hostel not found",
       });
     }
 
-    console.log("âœ… Found hostel:", hostel.name);
+    console.log("✅ Found hostel:", hostel.name);
 
     // Check if new name conflicts with existing hostel
     if (name && name !== hostel.name) {
       const existingHostel = await Hostel.findOne({ name });
       if (existingHostel) {
-        console.error("âŒ Hostel name already exists:", name);
+        console.error("❌ Hostel name already exists:", name);
         return res.status(400).json({
           success: false,
           message: "Hostel with this name already exists",
@@ -175,15 +183,15 @@ export const updateHostel = async (req, res) => {
 
     await hostel.save();
 
-    console.log("âœ… Hostel updated successfully:", hostel.name);
+    console.log("✅ Hostel updated successfully:", hostel.name);
 
     createLog("hostel_updated", req.user?._id, { hostelId: hostel._id });
 
     res.json({ success: true, hostel });
 
   } catch (error) {
-    console.error("âŒ Update hostel error:", error);
-    console.error("âŒ Stack:", error.stack);
+    console.error("❌ Update hostel error:", error);
+    console.error("❌ Stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Error updating hostel",
@@ -227,7 +235,7 @@ export const deleteHostel = async (req, res) => {
     res.json({ success: true, message: "Hostel deleted successfully" });
 
   } catch (error) {
-    console.error("âŒ Delete hostel error:", error);
+    console.error("❌ Delete hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting hostel",
@@ -272,7 +280,7 @@ export const getHostel = async (req, res) => {
     res.json({ success: true, hostel: response });
 
   } catch (error) {
-    console.error("âŒ Get hostel error:", error);
+    console.error("❌ Get hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching hostel",
@@ -376,7 +384,8 @@ export const blockRoom = async (req, res) => {
     blockStartDate.setHours(0, 0, 0, 0);
     
     const blockEndDate = new Date(blockedTill);
-    blockEndDate.setHours(23, 59, 59, 999);
+    // Do not force end-of-day here, respect the provided time
+    // blockEndDate.setHours(23, 59, 59, 999); 
 
     const bookings = await Booking.find({
       hostel: hostelName,

@@ -568,7 +568,7 @@ const RoomCard = memo(function RoomCard({
             ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.15)" }
             : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
         }
-        onClick={isRoomBlocked ? undefined : handleCardClick}
+        onClick={isRoomBlocked ? () => onBlockedClick && onBlockedClick(hostelName, room.roomNo, blockInfo) : handleCardClick}
         className={`relative border rounded-lg p-4 mb-3 transition-all ${
           isRoomBlocked ? "cursor-not-allowed" : "cursor-pointer"
         } ${getCardStyle()}`}
@@ -595,12 +595,14 @@ const RoomCard = memo(function RoomCard({
             <CalendarDays className="w-4 h-4" /> Room {room.roomNo}
           </h3>
 
-          <button
-            onClick={handleDirectBooking}
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
-          >
-            <CalendarPlus className="w-4 h-4" /> Direct Booking
-          </button>
+          {!isRoomBlocked && (
+            <button
+              onClick={handleDirectBooking}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
+            >
+              <CalendarPlus className="w-4 h-4" /> Direct Booking
+            </button>
+          )}
         </div>
 
         <p className="text-sm mt-1">

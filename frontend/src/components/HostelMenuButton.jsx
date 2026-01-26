@@ -12,7 +12,8 @@ export default function HostelMenuButton({
 }) {
     console.log("🔍 HostelMenuButton rendered:", { 
         hostelName, 
-        roomsCount: rooms.length,
+        totalRooms: rooms.length,
+        guestRoomsOnly: rooms.filter(r => r.roomType === "Guest Room" || !r.roomType).length,
         theme 
     });
   const [isOpen, setIsOpen] = useState(false);
@@ -50,8 +51,10 @@ export default function HostelMenuButton({
     setIsOpen(false);
   };
 
-  // Filter to show only guest rooms (exclude blocked status indication here)
-  const guestRooms = rooms.filter(r => r.roomType === "Guest Room" || !r.roomType);
+  // Use all rooms passed to this component
+  const guestRooms = rooms.filter(room => 
+    room.roomType === "Guest Room" || !room.roomType
+  );
 
   // ✅ FIX: Don't return null if no rooms. Show button but with empty state.
   // This ensures the 3-dots menu always appears for authorized users.
@@ -99,12 +102,7 @@ export default function HostelMenuButton({
               <p className={`text-sm font-semibold ${
                 theme === "dark" ? "text-gray-200" : "text-gray-800"
               }`}>
-                Guest Rooms Management
-              </p>
-              <p className={`text-xs mt-1 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}>
-                {hostelName}
+                Manage Guest Rooms
               </p>
             </div>
 
@@ -114,7 +112,12 @@ export default function HostelMenuButton({
                 <div className={`p-4 text-center text-sm ${
                   theme === "dark" ? "text-gray-500" : "text-gray-400"
                 }`}>
-                  No guest rooms available
+                  No guest rooms found
+                  {rooms.length > 0 && (
+                    <p className="text-xs mt-1 opacity-60">
+                      ({rooms.length} other room types available)
+                    </p>
+                  )}
                 </div>
               ) : (
                 guestRooms.map((room) => (

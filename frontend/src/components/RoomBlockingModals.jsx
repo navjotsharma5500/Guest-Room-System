@@ -120,22 +120,22 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
             🏢 {hostelName} - Room {roomNo}
           </p>
           <p className="text-xs text-red-600 mt-1">
-            This room will be unavailable for booking until the specified date
+            This room will be unavailable for booking until the specified date and time.
           </p>
         </div>
 
         {/* Form */}
         <div className="space-y-4">
-          {/* Blocked Till Date */}
+          {/* Blocked Till Date & Time */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Blocked Till Date <span className="text-red-600">*</span>
+              Blocked Till (Date & Time) <span className="text-red-600">*</span>
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={blockedTill}
               onChange={(e) => setBlockedTill(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().slice(0, 16)}
               className={`w-full border-2 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
                 theme === "dark" 
                   ? "bg-gray-700 border-gray-600 text-gray-100" 
@@ -313,12 +313,7 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
   const [submitting, setSubmitting] = useState(false);
 
   const handleUnblock = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to unblock Room ${roomNo}?\n\nThis room will become available for booking again.`
-    );
-
-    if (!confirmed) return;
-
+    // Direct submission without extra confirm since the modal itself is the confirmation
     setSubmitting(true);
 
     try {

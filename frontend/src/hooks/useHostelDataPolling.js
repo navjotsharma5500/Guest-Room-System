@@ -1,7 +1,7 @@
 // src/hooks/useHostelDataPolling.js - FIXED WITH SOCKET.IO
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import socket from "../socket"; // âœ… FIXED: Remove curly braces, socket is default export
+import socket from "../socket"; // ✅ FIXED: Remove curly braces, socket is default export
 import {
   apiFetchHostels,
   apiFetchBookings,
@@ -25,7 +25,7 @@ export function useHostelDataPolling(initialData = {}) {
    */
   const fetchData = useCallback(async (silent = false) => {
     if (isFetchingRef.current) {
-      console.log("â­ï¸ Fetch already in progress, skipping...");
+      console.log("⏳ Fetch already in progress, skipping...");
       return;
     }
 
@@ -36,7 +36,7 @@ export function useHostelDataPolling(initialData = {}) {
     }
 
     try {
-      /* -------------------- 1ï¸âƒ£ Fetch hostels -------------------- */
+      /* -------------------- 1️⃣ Fetch hostels -------------------- */
       const hostelsRes = await apiFetchHostels();
 
       if (!hostelsRes?.success || !Array.isArray(hostelsRes.hostels)) {
@@ -54,7 +54,7 @@ export function useHostelDataPolling(initialData = {}) {
         };
       });
 
-      /* -------------------- 2ï¸âƒ£ Fetch bookings -------------------- */
+      /* -------------------- 2️⃣ Fetch bookings -------------------- */
       const bookingsRes = await apiFetchBookings();
       let bookingHostels = bookingsRes?.hostels;
 
@@ -79,7 +79,7 @@ export function useHostelDataPolling(initialData = {}) {
         });
       }
 
-      /* -------------------- 3ï¸âƒ£ Remove expired bookings -------------------- */
+      /* -------------------- 3️⃣ Remove expired bookings -------------------- */
       const now = new Date();
 
       Object.values(hostelMap).forEach((hostel) => {
@@ -97,7 +97,7 @@ export function useHostelDataPolling(initialData = {}) {
         });
       });
 
-      /* -------------------- 4ï¸âƒ£ Fetch complete booking data -------------------- */
+      /* -------------------- 4️⃣ Fetch complete booking data -------------------- */
       let completeMap = {};
       try {
         const completeRes = await apiFetchAllBookingsForDownload();
@@ -117,10 +117,10 @@ export function useHostelDataPolling(initialData = {}) {
         setHasData(true);
         setLastUpdate(Date.now());
         setError(null);
-        console.log("âœ… Data refreshed successfully");
+        console.log("✅ Data refreshed successfully");
       }
     } catch (err) {
-      console.error("ðŸ”¥ Hostel polling error:", err);
+      console.error("🔓 Hostel polling error:", err);
       if (mountedRef.current) {
         setError(err.message || "Failed to fetch hostel data");
       }
@@ -139,64 +139,64 @@ export function useHostelDataPolling(initialData = {}) {
     // Initial fetch
     fetchData(false);
 
-    // âœ… Socket.IO connection status
+    // ✅ Socket.IO connection status
     const handleConnect = () => {
-      console.log("âœ… Socket.IO connected");
+      console.log("✅ Socket.IO connected");
       setConnected(true);
       fetchData(true); // Refresh on reconnect
     };
 
     const handleDisconnect = () => {
-      console.log("âŒ Socket.IO disconnected");
+      console.log("❌ Socket.IO disconnected");
       setConnected(false);
     };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
 
-    // âœ… Initial connection check
+    // ✅ Initial connection check
     if (socket.connected) {
       setConnected(true);
     }
 
-    // âœ… Real-time event listeners
+    // ✅ Real-time event listeners
     const handleBookingCreated = () => {
-      console.log("ðŸ“¡ Booking created - refreshing...");
+      console.log("📋 Booking created - refreshing...");
       fetchData(true);
     };
 
     const handleBookingCancelled = () => {
-      console.log("ðŸ“¡ Booking cancelled - refreshing...");
+      console.log("📋 Booking cancelled - refreshing...");
       fetchData(true);
     };
 
     const handleBookingExtended = () => {
-      console.log("ðŸ“¡ Booking extended - refreshing...");
+      console.log("📋 Booking extended - refreshing...");
       fetchData(true);
     };
 
     const handlePaymentUpdated = () => {
-      console.log("ðŸ“¡ Payment updated - refreshing...");
+      console.log("📋 Payment updated - refreshing...");
       fetchData(true);
     };
 
     const handleGuestReported = () => {
-      console.log("ðŸ“¡ Guest reported - refreshing...");
+      console.log("📋 Guest reported - refreshing...");
       fetchData(true);
     };
 
     const handleEnquiryCreated = () => {
-      console.log("ðŸ“¡ Enquiry created - refreshing...");
+      console.log("📋 Enquiry created - refreshing...");
       fetchData(true);
     };
 
     const handleEnquiryUpdated = () => {
-      console.log("ðŸ“¡ Enquiry updated - refreshing...");
+      console.log("📋 Enquiry updated - refreshing...");
       fetchData(true);
     };
 
     const handleGuestCheckedOut = () => {
-      console.log("ðŸ“¡ Guest checked out - refreshing...");
+      console.log("📋 Guest checked out - refreshing...");
       fetchData(true);
     };
 
@@ -215,7 +215,7 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("guest-checked-out", handleGuestCheckedOut);
     socket.on("room-auto-unblocked", handleRoomAutoUnblocked);
 
-    // âœ… Fallback polling every 2 minutes (in case Socket.IO fails)
+    // ✅ Fallback polling every 2 minutes (in case Socket.IO fails)
     const interval = setInterval(() => {
       console.log("â° Fallback polling...");
       fetchData(true);
@@ -241,7 +241,7 @@ export function useHostelDataPolling(initialData = {}) {
 
   /* -------------------- Manual refresh -------------------- */
   const refresh = useCallback(() => {
-    console.log("ðŸ”„ Manual refresh triggered");
+    console.log("🔓 Manual refresh triggered");
     fetchData(false);
   }, [fetchData]);
 

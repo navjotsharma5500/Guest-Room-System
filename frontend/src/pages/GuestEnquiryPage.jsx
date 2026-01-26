@@ -672,7 +672,7 @@ export default function GuestEnquiryPage() {
 
   const handleConfirmSubmit = async () => {
     console.log("🔍 ========== DEBUGGING TIME FIELDS ==========");
-    console.log("ðŸ“‹ Form state (full):", form);
+    console.log("📋 Form state (full):", form);
     console.log("ðŸ• Times in form state:", {
       checkInTime: form.checkInTime,
       checkOutTime: form.checkOutTime,
@@ -682,8 +682,8 @@ export default function GuestEnquiryPage() {
       checkOutTimeEmpty: !form.checkOutTime || form.checkOutTime === "",
     });
     
-    console.log("ðŸ“Ž Files array:", form.files);
-    console.log("ðŸ“Ž Files count:", form.files.length);
+    console.log("📋Ž Files array:", form.files);
+    console.log("📋Ž Files count:", form.files.length);
 
     form.files.forEach((url, idx) => {
       console.log(`  File ${idx + 1}: ${url}`);
@@ -737,15 +737,15 @@ export default function GuestEnquiryPage() {
       },
     };
 
-    console.log("ðŸ“¤ ========== PAYLOAD ABOUT TO SEND ==========");
-    console.log("ðŸ“¤ Full payload:", JSON.stringify(payload, null, 2));
+    console.log("📋 ========== PAYLOAD ABOUT TO SEND ==========");
+    console.log("📋 Full payload:", JSON.stringify(payload, null, 2));
     console.log("ðŸ• Times in fullData:", {
       checkInTime: payload.fullData.checkInTime,
       checkOutTime: payload.fullData.checkOutTime,
     });
 
     try {
-      console.log("ðŸ“¡ Sending to backend...");
+      console.log("📋 Sending to backend...");
       await submitEnquiry(payload);
       console.log("✅ Successfully submitted!");
       setShowPreview(false);
@@ -766,7 +766,7 @@ export default function GuestEnquiryPage() {
     e.preventDefault();
 
     console.log("🔍 ========== FORM SUBMISSION DEBUG ==========");
-    console.log("ðŸ“‹ Form state at submission:", form);
+    console.log("📋 Form state at submission:", form);
     console.log("ðŸ• Times at submission:", {
       checkInTime: form.checkInTime,
       checkOutTime: form.checkOutTime,

@@ -17,7 +17,7 @@ import LiveBookingCounter from "./LiveBookingCounter";
 import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
 import HostelMenuButton from "./HostelMenuButton";
-import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
+import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBlockingModals";
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -91,6 +91,7 @@ export default function MainContent(props) {
 
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
+  const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
 
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -293,7 +294,7 @@ export default function MainContent(props) {
 
   const handleDownload = async (filterFromDate = null, filterToDate = null) => {
     try {
-      console.log("🔓¥ Starting download with date filter:", { filterFromDate, filterToDate });
+      console.log("🔓 Starting download with date filter:", { filterFromDate, filterToDate });
 
       // Fetch bookings
       const bookingsData = await apiFetchAllBookingsForDownload();
@@ -335,8 +336,8 @@ export default function MainContent(props) {
         });
       });    
 
-      console.log("ðŸ“Š Total bookings:", bookings.length);
-      console.log("ðŸ“Š Total enquiries:", enquiries.length);
+      console.log("📋 Total bookings:", bookings.length);
+      console.log("📋 Total enquiries:", enquiries.length);
 
       // Prepare CSV rows
       const rows = [];
@@ -515,10 +516,10 @@ export default function MainContent(props) {
         });
       }
 
-      console.log("ðŸ“Š Total rows after filtering:", rows.length);
+      console.log("📋 Total rows after filtering:", rows.length);
 
       if (!rows.length) {
-        alert("â„¹ï¸ No data found for the selected date range.");
+        alert("ℹ️ No data found for the selected date range.");
         return;
       }
 
@@ -626,6 +627,11 @@ export default function MainContent(props) {
   const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
     console.log("🔓 Unblock room clicked:", hostelName, roomNo);
     setUnblockRoomModal({ hostelName, roomNo, blockInfo });
+  };
+
+  const handleBlockedRoomClick = (hostelName, roomNo, blockInfo) => {
+    console.log("ℹ️ Blocked room info clicked:", hostelName, roomNo);
+    setBlockedRoomInfoModal({ hostelName, roomNo, blockInfo });
   };
 
   const handleBlockSuccess = () => {
@@ -974,7 +980,7 @@ export default function MainContent(props) {
                     <div className={`flex flex-col items-center justify-center h-full min-h-[400px] ${
                       theme === "dark" ? "text-gray-400" : "text-gray-500"
                     }`}>
-                      <div className="text-6xl mb-4">ðŸ“‹</div>
+                      <div className="text-6xl mb-4">📋</div>
                       <p className="text-lg font-medium">No Booking Selected</p>
                       <p className="text-sm mt-2 text-center max-w-md">
                         Select a booking from the upcoming bookings below or click on a room to view details
@@ -1124,7 +1130,7 @@ export default function MainContent(props) {
                             }`}>
                               {/* Check-in */}
                               <div className="flex items-center gap-2">
-                                <span className="text-sm">ðŸ“…</span>
+                                <span className="text-sm">📋…</span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs ${
                                     theme === "dark" ? "text-blue-300" : "text-blue-700"
@@ -1145,7 +1151,7 @@ export default function MainContent(props) {
 
                               {/* Check-out */}
                               <div className="flex items-center gap-2">
-                                <span className="text-sm">ðŸ“¤</span>
+                                <span className="text-sm">📋</span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs ${
                                     theme === "dark" ? "text-blue-300" : "text-blue-700"
@@ -1165,7 +1171,7 @@ export default function MainContent(props) {
                             <div className={`mt-3 pt-3 border-t flex items-center gap-2 ${
                               theme === "dark" ? "border-gray-700" : "border-gray-200"
                             }`}>
-                              <span className="text-sm">ðŸ“ž</span>
+                              <span className="text-sm">📋ž</span>
                               <p className={`text-xs truncate ${
                                 theme === "dark" ? "text-gray-400" : "text-gray-600"
                               }`}>
@@ -1192,7 +1198,7 @@ export default function MainContent(props) {
                   <div className={`flex flex-col items-center justify-center py-16 ${
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}>
-                    <div className="text-6xl mb-4">ðŸ“­</div>
+                    <div className="text-6xl mb-4">📋­</div>
                     <p className="text-xl font-semibold mb-2">No Upcoming Bookings</p>
                     <p className="text-sm">All upcoming bookings will appear here</p>
                   </div>
@@ -1328,6 +1334,7 @@ export default function MainContent(props) {
                                   prefill: null,
                                 })
                               }
+                              onBlockedClick={handleBlockedRoomClick}
                               setExtensionModal={setExtensionModal}
                               theme={theme}
                             />
@@ -1453,6 +1460,7 @@ export default function MainContent(props) {
                               prefill: null,
                             })
                           }
+                          onBlockedClick={handleBlockedRoomClick}
                           setExtensionModal={setExtensionModal}
                           theme={theme}
                         />
@@ -1635,7 +1643,7 @@ export default function MainContent(props) {
                   theme === "dark" ? "text-red-400" : "text-red-700"
                 }`}
               >
-                ðŸ“… Select Date Range for Complete Download
+                📋… Select Date Range for Complete Download
               </h3>
               <button
                 className={
@@ -1697,14 +1705,14 @@ export default function MainContent(props) {
                     : "bg-blue-50 border border-blue-200 text-blue-800"
                 }`}
               >
-                <p className="font-semibold">ðŸ“Š Download Includes:</p>
+                <p className="font-semibold">📋 Download Includes:</p>
                 <ul className="space-y-1 ml-4">
                   <li>✅ <strong>Approved Bookings</strong> - with all details</li>
                   <li>❌ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
                   <li>ðŸš« <strong>Cancelled Bookings</strong> - with cancel remarks</li>
                   <li>ðŸ†“ <strong>Free Bookings</strong> - with free remarks</li>
                   <li>ðŸ‘¤ <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>
-                  <li>ðŸ“ <strong>All Remarks</strong> - Cancel remarks, Free remarks, Rejection reasons</li>
+                  <li>📋 <strong>All Remarks</strong> - Cancel remarks, Free remarks, Rejection reasons</li>
                 </ul>
               </div>
             </div>
@@ -1775,6 +1783,17 @@ export default function MainContent(props) {
           blockInfo={unblockRoomModal.blockInfo}
           onClose={() => setUnblockRoomModal(null)}
           onSuccess={handleUnblockSuccess}
+          theme={theme}
+        />
+      )}
+
+      {/* Blocked Room Info Modal */}
+      {blockedRoomInfoModal && (
+        <BlockedRoomInfoModal
+          hostelName={blockedRoomInfoModal.hostelName}
+          roomNo={blockedRoomInfoModal.roomNo}
+          blockInfo={blockedRoomInfoModal.blockInfo}
+          onClose={() => setBlockedRoomInfoModal(null)}
           theme={theme}
         />
       )}
