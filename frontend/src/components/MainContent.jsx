@@ -1,9 +1,10 @@
-// src/components/MainContent.jsx - COMPLETE COMBINED VERSION
-import React, { useEffect, useState, useRef } from "react";
+// src/components/MainContent.jsx - COMPLETE FIXED VERSION
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
 import { Settings, Trash2, Filter, Building2, Search } from "lucide-react";
 import { combineDateAndTime } from "../utils/dateUtils";
+import { persistHostelData } from "../utils/hostelUtils";
 
 import GuestDetails from "./GuestDetails";
 import RoomCard from "./RoomCard";
@@ -32,13 +33,7 @@ import {
   apiFetchAllBookingsForDownload,
 } from "../utils/api";  
 
-// ====================================================
-// MAIN COMPONENT START
-// ====================================================
 export default function MainContent(props) {
-  // ------------------------------
-  // PROPS DESTRUCTURING
-  // ------------------------------
   const {
     activeTab,
     setActiveTab,
@@ -46,6 +41,7 @@ export default function MainContent(props) {
     setActiveHostel,
     hostelData = {},
     completeHostelData = {},
+    setHostelData,  // ✅ CRITICAL: Must be passed from parent
     setRightPanelToRoom,
     activeRoomRef,
     setActiveRoomRef,
@@ -71,34 +67,33 @@ export default function MainContent(props) {
     handleCancelModalCancel,
   } = props;
 
-  // ====================================================
-  // AUTH HOOKS MUST BE FIRST
-  // ====================================================
   const { currentUser, loadingUser } = useAuth();
   const role = currentUser?.role || "caretaker";
+  const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
-  const userHostel =
-    currentUser?.assignedHostel ||
-    currentUser?.hostel ||
-    null;
+  // ✅ STATE HELPER - Add after state declarations
+  const applyRoomBlockState = useCallback((hostelName, roomNo, updates) => {
+    setHostelData(prev => {
+      const copy = structuredClone(prev);
+      const room = copy?.[hostelName]?.rooms?.find(r => r.roomNo === roomNo);
+      if (!room) return prev;
 
-  // ====================================================
-  // UI STATES
-  // ====================================================
+      Object.assign(room, updates);
+      persistHostelData(copy);
+      return copy;
+    });
+  }, [setHostelData]);
+
   const [searchModal, setSearchModal] = useState(false);
   const [filterModal, setFilterModal] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
-
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "" });
-
   const lastPendingRef = useRef(0);
   const initRef = useRef(false);
-
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [downloadDateModal, setDownloadDateModal] = useState(false);
   const [downloadFromDate, setDownloadFromDate] = useState("");
@@ -634,19 +629,53 @@ export default function MainContent(props) {
     setBlockedRoomInfoModal({ hostelName, roomNo, blockInfo });
   };
 
-  const handleBlockSuccess = () => {
-    console.log("✅ Block successful - refreshing data");
+  const handleBlockSuccess = (result) => {
+    console.log("✅ Block successful - updating state:", result);
+    
+    if (blockRoomModal?.hostelName && blockRoomModal?.roomNo && result?.room) {
+      applyRoomBlockState(
+        blockRoomModal.hostelName,
+        blockRoomModal.roomNo,
+        {
+          isBlocked: true,
+          blockedTill: result.room.blockedTill,
+          blockRemarks: result.room.blockRemarks,
+          blockAttachments: result.room.blockAttachments,
+          blockedAt: result.room.blockedAt,
+          blockedBy: result.room.blockedBy,
+        }
+      );
+    }
+    
     if (typeof window.fetchLatestHostelData === "function") {
       window.fetchLatestHostelData();
     }
+    
     setBlockRoomModal(null);
   };
 
-  const handleUnblockSuccess = () => {
-    console.log("✅ Unblock successful - refreshing data");
+  const handleUnblockSuccess = (result) => {
+    console.log("✅ Unblock successful - updating state:", result);
+    
+    if (unblockRoomModal?.hostelName && unblockRoomModal?.roomNo) {
+      applyRoomBlockState(
+        unblockRoomModal.hostelName,
+        unblockRoomModal.roomNo,
+        {
+          isBlocked: false,
+          blockedTill: null,
+          blockRemarks: null,
+          blockAttachments: [],
+          blockedAt: null,
+          blockedBy: null,
+        }
+      );
+    }
+    
     if (typeof window.fetchLatestHostelData === "function") {
       window.fetchLatestHostelData();
     }
+    
     setUnblockRoomModal(null);
   };
 
@@ -1322,7 +1351,7 @@ export default function MainContent(props) {
                           {(h.rooms || []).map((room) => (
                             <RoomCard
                               key={room.roomNo}
-                              hostel={name}
+                              hostel={activeHostel}
                               room={room}
                               onSelect={setRightPanelToRoom}
                               onCancel={(m) => setCancelModal(m)}
@@ -1783,7 +1812,6 @@ export default function MainContent(props) {
         />
       )}
 
-      {/* Unblock Room Modal */}
       {unblockRoomModal && (
         <UnblockRoomModal
           hostelName={unblockRoomModal.hostelName}
@@ -1795,7 +1823,6 @@ export default function MainContent(props) {
         />
       )}
 
-      {/* Blocked Room Info Modal */}
       {blockedRoomInfoModal && (
         <BlockedRoomInfoModal
           hostelName={blockedRoomInfoModal.hostelName}

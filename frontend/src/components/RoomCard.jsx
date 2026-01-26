@@ -231,6 +231,16 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const handleCardClick = () => {
+    // ✅ CRITICAL: Block check MUST be first
+    if (isRoomBlocked) {
+      if (onBlockedClick) {
+        onBlockedClick(currentHostel, room.roomNo, blockInfo);
+      } else {
+        showToast?.("🚫 This room is currently blocked", "error");
+      }
+      return; // STOP HERE
+    }
+
     if (bookingCompleted) return;
 
     // ✅ AllHostelsPortal selection mode
@@ -301,6 +311,12 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const getCardStyle = () => {
+    // ✅ BLOCKED CHECK MUST BE FIRST
+    if (isRoomBlocked) {
+      return theme === "dark"
+        ? "bg-gray-800 border-gray-600 opacity-60 cursor-not-allowed"
+        : "bg-gray-300 border-gray-500 opacity-60 cursor-not-allowed";
+    }
     if (isAllHostelsView) {
       // ✅ ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {

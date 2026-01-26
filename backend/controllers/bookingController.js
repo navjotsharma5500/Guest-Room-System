@@ -459,6 +459,38 @@ export const createBooking = async (req, res) => {
       throw new Error(`Hostel not found in database: ${payload.hostel}`);
     }
 
+    // ✅ ADD THIS BLOCK CHECK HERE (BEFORE any other validation):
+    const targetRoom = hostelDoc.rooms?.find(r => r.roomNo === payload.roomNo);
+
+    if (!targetRoom) {
+      throw new Error(`Room ${payload.roomNo} not found in ${payload.hostel}`);
+    }
+
+    // ✅ CRITICAL: Check if room is blocked
+    if (targetRoom.isBlocked && targetRoom.blockedTill) {
+      const now = new Date();
+      const blockedUntil = new Date(targetRoom.blockedTill);
+      
+      if (blockedUntil >= now) {
+        console.error("❌ BOOKING BLOCKED:", {
+          hostel: payload.hostel,
+          room: payload.roomNo,
+          blockedTill: targetRoom.blockedTill,
+          reason: targetRoom.blockRemarks
+        });
+        
+        return res.status(400).json({
+          success: false,
+          message: `❌ Room ${payload.roomNo} is currently blocked until ${blockedUntil.toLocaleDateString()}. Reason: ${targetRoom.blockRemarks || 'Not specified'}`,
+          blocked: true
+        });
+      }
+    }
+
+    if (!hostelDoc) {
+      throw new Error(`Hostel not found in database: ${payload.hostel}`);
+    }
+
     const caretakerEmail = hostelDoc.caretakerEmail;
     const wardenEmail = hostelDoc.wardenEmail;
 
