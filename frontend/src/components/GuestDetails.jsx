@@ -1,6 +1,7 @@
 /* GuestDetails.jsx - FIXED VERSION */
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../context/ToastContext";
 import { Info, Save, X } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import GuestHistory from "./GuestHistory";
@@ -36,6 +37,7 @@ const imagekitAuthenticator = async () => {
 };
 
 export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}, theme = "light", setExtensionModal = () => {}, hideExtendButton = false, onClose = null }) {
+  const { showToast } = useToast();
   const { token } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -427,13 +429,13 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         setBooking(normalizeBooking({ ...b, status: "cancelled", cancelRemarks: remarks }));
         setShowCancelModal(false);
         setCancelRemarks("");
-        alert("✅ Booking cancelled successfully!");
+        showToast("✅ Booking cancelled successfully!", "success");
       } else {
         throw new Error(data.message || "Failed to cancel booking");
       }
     } catch (err) {
       console.error("Cancel error:", err);
-      alert(err.message || "Failed to cancel booking");
+      showToast(err.message || "Failed to cancel booking", "error");
     }
   };
   

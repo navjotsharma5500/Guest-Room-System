@@ -1,7 +1,7 @@
 // GuestHistory.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, MapPin, CreditCard, User, FileText, X } from "lucide-react";
+import { Calendar, Clock, MapPin, CreditCard, User, FileText, X, Star } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
@@ -186,11 +186,59 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
                       "{booking.purpose}"
                     </div>
                   )}
+
+                  {/* ✅ FEEDBACK DISPLAY */}
+                  {booking.feedback && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Star size={16} className="text-yellow-500" />
+                        <span className="text-sm font-semibold">Guest Rating:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={14}
+                              className={star <= booking.feedback.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-300 text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-bold">
+                          {booking.feedback.ratingLabel}
+                        </span>
+                      </div>
+                      
+                      {booking.feedback.remarks && (
+                        <div className="text-sm italic bg-purple-50 dark:bg-purple-900/20 p-2 rounded border border-purple-200 dark:border-purple-700 mt-2">
+                          "{booking.feedback.remarks}"
+                        </div>
+                      )}
+                      
+                      {booking.feedback.attachments?.length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {booking.feedback.attachments.map((url, idx) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-12 h-12"
+                            >
+                              <img
+                                src={url}
+                                alt={`Feedback ${idx + 1}`}
+                                className="w-full h-full object-cover rounded border-2 border-purple-300 hover:border-purple-500 transition"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </div>    
 
         {/* Footer */}
         <div className={`p-4 border-t flex justify-end shrink-0 ${

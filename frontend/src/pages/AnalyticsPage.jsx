@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Creator from "../components/Creator";
 import { BACKEND_URL } from "../utils/apiConfig";
+import { useToast } from "../context/ToastContext";
 
 const COLORS = {
   primary: "#DC2626",
@@ -97,6 +98,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
 );
 
 export default function AnalyticsPage({ setActiveTab }) {
+  const { showToast } = useToast();
   const [range, setRange] = useState("Monthly");
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -364,7 +366,7 @@ export default function AnalyticsPage({ setActiveTab }) {
   // CSV Download
   const handleDownloadCSV = () => {
     if (allBookings.length === 0) {
-      alert("No booking data available.");
+      showToast("No booking data available.", "info");
       return;
     }
 

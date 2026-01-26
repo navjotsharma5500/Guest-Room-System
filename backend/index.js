@@ -299,6 +299,7 @@ app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");

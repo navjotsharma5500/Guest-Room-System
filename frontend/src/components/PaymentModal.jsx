@@ -113,8 +113,8 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Download error:", err);
-      alert("Failed to download bill");
+      console.error("❌ Download Bill Error:", err);
+      showToast("Failed to download bill", "error");
     }
   };
 

@@ -7,15 +7,25 @@ export const getDefaulters = async (req, res) => {
     const userRole = req.user.role;
     const assignedHostel = req.user.assignedHostel || req.user.hostel;
 
-    // ✅ CRITICAL FIX: Fetch bookings with balanceAmount > 0
+    // ✅ CRITICAL FIX: Fetch bookings based on tab
     let query = {
       paymentType: { $ne: "Free" },
-      status: { $in: ["checked_in", "checked_out"] },
-      $or: [
-        { balanceAmount: { $gt: 0 } },  // Has pending balance
-        { paymentRollbacks: { $exists: true, $ne: [] } }  // Has rollback history
-      ]
+      status: { $in: ["checked_in", "checked_out"] }
     };
+
+    // Check for 'completed' status query param
+    const status = req.query.status;
+
+    if (status === 'completed') {
+      // Completed = No pending balance (Fully Paid or Fully Waived)
+      query.balanceAmount = 0;
+    } else if (status === 'all') {
+      // Fetch all (both pending and completed)
+      delete query.balanceAmount;
+    } else {
+      // Default: Active = Has pending balance
+      query.balanceAmount = { $gt: 0 };
+    }
 
     // Role-based filtering
     if (userRole === "caretaker" && assignedHostel) {
@@ -80,16 +90,11 @@ export const getDefaulters = async (req, res) => {
       })
     );
 
-    // ✅ CRITICAL FIX: Filter out guests with NO outstanding balance
-    const activeDefaulters = defaultersWithBills;
-
-    console.log(`✅ Active defaulters after filtering: ${activeDefaulters.length}`);
-
     res.json({
       success: true,
-      defaulters: activeDefaulters,
-      total: activeDefaulters.length,
-      totalOutstanding: activeDefaulters.reduce((sum, d) => sum + d.totalDue, 0)
+      defaulters: defaultersWithBills,
+      total: defaultersWithBills.length,
+      totalOutstanding: defaultersWithBills.reduce((sum, d) => sum + d.totalDue, 0)
     });
 
   } catch (err) {
@@ -369,15 +374,15 @@ if (!req.user || !["admin", "manager"].includes(req.user.role)) {
       });
     }
 
-    // ✅ Validate: Cannot rollback more than paid amount
-    if (amount > booking.paidAmount) {
+    // ✅ Validate: Cannot rollback (waive) more than balance amount
+    if (amount > booking.balanceAmount) {
       return res.status(400).json({
         success: false,
-        message: `Cannot rollback ₹${amount}. Only ₹${booking.paidAmount} has been paid.`
+        message: `Cannot waive ₹${amount}. Current pending balance is only ₹${booking.balanceAmount}.`
       });
     }
 
-    // ✅ Store rollback history
+    // ✅ Store rollback (waiver) history
     const rollbackRecord = {
       amount: Number(amount),
       rollbackDate: new Date(),
@@ -395,16 +400,19 @@ if (!req.user || !["admin", "manager"].includes(req.user.role)) {
 
     booking.paymentRollbacks.push(rollbackRecord);
 
-    // ✅ Update payment amounts
+    // ✅ Update payment amounts (Waive Logic: Increase Discount, Decrease Balance)
     const previousPaidAmount = booking.paidAmount;
     const previousBalance = booking.balanceAmount;
 
-    booking.paidAmount = Math.max(0, booking.paidAmount - Number(amount));
-    booking.balanceAmount = booking.totalAmount - booking.paidAmount - (booking.discount || 0);
+    // Increase discount/waive amount
+    booking.discount = (booking.discount || 0) + Number(amount);
+    
+    // Recalculate balance
+    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - booking.discount);
 
     // ✅ Update payment status
     if (booking.balanceAmount === 0) {
-      booking.paymentStatus = "PAID";
+      booking.paymentStatus = "PAID"; // Treated as cleared/paid
     } else if (booking.paidAmount > 0) {
       booking.paymentStatus = "PARTIALLY_PAID";
     } else {
@@ -413,7 +421,7 @@ if (!req.user || !["admin", "manager"].includes(req.user.role)) {
 
     await booking.save();
 
-    console.log("✅ Payment rolled back successfully:", {
+    console.log("✅ Payment rolled back (waived) successfully:", {
       bookingId: booking._id,
       guest: booking.guest,
       previousPaidAmount,

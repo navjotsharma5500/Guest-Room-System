@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useCallback, useRef } from 'react';
+import { useToast, showToast } from "./ToastContext";
 
 /**
  * 🔄 CENTRALIZED DASHBOARD REFRESH SYSTEM
@@ -212,7 +213,7 @@ export function ExampleModalWithRefresh({ booking, onClose, onSuccess }) {
 
     } catch (err) {
       console.error('❌ Action error:', err);
-      alert(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }

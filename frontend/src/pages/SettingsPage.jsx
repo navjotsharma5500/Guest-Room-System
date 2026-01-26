@@ -11,6 +11,7 @@ import {
   PlusCircle,
   Edit3,
   Trash2,
+  Settings,
 } from "lucide-react";
 import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
@@ -455,12 +456,8 @@ export default function SettingsPage({
       <div className="max-w-6xl mx-auto">
         {/* HEADER */}
         <div className="flex items-center justify-between mb-8">
-          <h1
-            className={`text-4xl font-extrabold ${
-              theme === "dark" ? "text-red-400" : "text-red-700"
-            }`}
-          >
-            ⚙️ Settings
+          <h1 className={`text-4xl font-extrabold ${theme === "dark" ? "text-red-400" : "text-red-700"} flex items-center gap-3`}>
+            <Settings className="w-10 h-10" /> Settings
           </h1>
 
           <button

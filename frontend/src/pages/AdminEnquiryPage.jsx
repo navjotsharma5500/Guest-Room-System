@@ -1,6 +1,7 @@
 // src/pages/AdminEnquiryPage.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../context/ToastContext";
 import {
   Home,
   FileText,
@@ -296,8 +297,10 @@ export default function AdminEnquiryPage({ setActiveTab }) {
       e.status === "rejected"
     );
     
-    if (toDownload.length === 0)
-      return alert("No enquiries to download.");
+    if (toDownload.length === 0) {
+      showToast("No enquiries to download.", "red");
+      return;
+    }
 
     const headers = [
       "Name", "Contact", "Email", "Gender", "From", "To", "Guests",

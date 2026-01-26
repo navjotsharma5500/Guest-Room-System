@@ -1,6 +1,7 @@
 // GuestActions.jsx - FIXED VERSION (Download Bill button removed)
 import React from "react";
 import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function GuestActions({
@@ -17,6 +18,7 @@ export default function GuestActions({
   onExtendBooking,
   onCancelBooking,
 }) {
+  const { showToast } = useToast();
   // Check if booking exists and isn't cancelled/checked out
   const canExtend = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
   const canCancel = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
@@ -31,7 +33,7 @@ export default function GuestActions({
       window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
       setShowActionsDropdown(false);
     } else {
-      alert("No contact number available");
+      showToast("No contact number available", "error");
     }
   };
 
@@ -44,7 +46,7 @@ export default function GuestActions({
       window.location.href = `mailto:${booking.email}?subject=${subject}&body=${body}`;
       setShowActionsDropdown(false);
     } else {
-      alert("No email address available");
+      showToast("No email address available", "error");
     }
   };
 

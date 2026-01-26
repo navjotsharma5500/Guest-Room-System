@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
@@ -202,6 +202,25 @@ export default function Sidebar({
         >
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>
+        </motion.button>
+
+        {/* ✅ FEEDBACK BUTTON */}
+        <motion.button
+          onClick={() => {
+            console.log("⭐ Feedback clicked");
+            setActiveTab("Feedback");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          }}
+          className={`relative group w-full text-left px-3 py-2 rounded-xl
+                    border flex items-center gap-3 shadow-lg
+                    ${activeTab === "Feedback" 
+                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white border-purple-500" 
+                      : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
+                    }`}
+        >
+          <Star className="w-4 h-4" />
+          <span className="text-sm font-semibold">Guest Feedback</span>
         </motion.button>
         </nav>  
       

@@ -1,7 +1,8 @@
 // src/components/RoomBlockingModals.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Upload, CheckCircle, Trash2, AlertTriangle, Lock, Unlock } from "lucide-react";
+import { useToast, showToast } from "../context/ToastContext";
+import { X, Upload, CheckCircle, Trash2, AlertTriangle, Lock, Unlock, Building, FileText } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
 
@@ -17,6 +18,7 @@ const imagekitAuthenticator = async () => {
 // BLOCK ROOM MODAL
 // ========================================
 export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }) {
+  const { showToast } = useToast();
   const [blockedTill, setBlockedTill] = useState("");
   const [remarks, setRemarks] = useState("");
   const [attachments, setAttachments] = useState([]);
@@ -30,17 +32,17 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
   const handleSubmit = async () => {
     // Validation
     if (!blockedTill) {
-      alert("⚠️ Please select blocked till date");
+      showToast("⚠️ Please select blocked till date", "error");
       return;
     }
 
     if (!remarks.trim()) {
-      alert("⚠️ Remarks are required");
+      showToast("⚠️ Remarks are required", "error");
       return;
     }
 
     if (attachments.length === 0) {
-      alert("⚠️ At least one attachment is required");
+      showToast("⚠️ At least one attachment is required", "error");
       return;
     }
 
@@ -72,14 +74,14 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
       }
 
       console.log("✅ Room blocked:", result);
-      alert("✅ Room blocked successfully!");
+      showToast("✅ Room blocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
 
     } catch (err) {
       console.error("❌ Block room error:", err);
-      alert(`❌ Failed to block room: ${err.message}`);
+      showToast(`❌ Failed to block room: ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -247,9 +249,9 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-green-700 font-semibold truncate">
-                          📄 {file.name}
-                        </p>
+                        <p className="text-sm text-green-700 font-semibold truncate flex items-center gap-2">
+                        <FileText className="w-4 h-4" /> {file.name}
+                      </p>
                         <a
                           href={file.url}
                           target="_blank"
@@ -337,14 +339,14 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
       }
 
       console.log("✅ Room unblocked:", result);
-      alert("✅ Room unblocked successfully!");
+      showToast("✅ Room unblocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
 
     } catch (err) {
       console.error("❌ Unblock room error:", err);
-      alert(`❌ Failed to unblock room: ${err.message}`);
+      showToast(`❌ Failed to unblock room: ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }

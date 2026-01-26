@@ -1,6 +1,7 @@
 // src/components/AllHostels/ConsolidatedBookingModal.jsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useToast } from "../../context/ToastContext";
 import { X, Upload, CheckCircle, Trash2 } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatShortDate, formatTimeWithAMPM } from "../../utils/hostelUtils";
@@ -27,6 +28,7 @@ export default function ConsolidatedBookingModal({
   onClose,
   onSubmit,
 }) {
+  const { showToast } = useToast();
   const [paymentType, setPaymentType] = useState("Free");
   const [amount, setAmount] = useState(0);
   const [remarks, setRemarks] = useState("");
@@ -255,7 +257,7 @@ export default function ConsolidatedBookingModal({
                       onError={(err) => {
                         console.error("Upload failed:", err);
                         setUploading(false);
-                        alert("Failed to upload document");
+                        showToast("Failed to upload document", "error");
                       }}
                       onSuccess={(res) => {
                         const fileData = {
@@ -268,11 +270,11 @@ export default function ConsolidatedBookingModal({
                       }}
                       validateFile={(file) => {
                         if (uploadedFiles.length >= 5) {
-                          alert("Maximum 5 files allowed");
+                          showToast("Maximum 5 files allowed", "error");
                           return false;
                         }
                         if (file.size > 5 * 1024 * 1024) {
-                          alert("Maximum file size is 5 MB");
+                          showToast("Maximum file size is 5 MB", "error");
                           return false;
                         }
                         const allowedTypes = [
@@ -282,7 +284,7 @@ export default function ConsolidatedBookingModal({
                           "application/pdf",
                         ];
                         if (!allowedTypes.includes(file.type)) {
-                          alert("Only JPG, PNG, WEBP or PDF files allowed");
+                          showToast("Only JPG, PNG, WEBP or PDF files allowed", "error");
                           return false;
                         }
                         return true;
@@ -405,7 +407,7 @@ export default function ConsolidatedBookingModal({
                       onError={(err) => {
                         console.error("Upload failed:", err);
                         setUploading(false);
-                        alert("Failed to upload document");
+                        showToast("Failed to upload document", "error");
                       }}
                       onSuccess={(res) => {
                         const fileData = {
@@ -418,11 +420,11 @@ export default function ConsolidatedBookingModal({
                       }}
                       validateFile={(file) => {
                         if (uploadedFiles.length >= 5) {
-                          alert("Maximum 5 files allowed");
+                          showToast("Maximum 5 files allowed", "error");
                           return false;
                         }
                         if (file.size > 5 * 1024 * 1024) {
-                          alert("Maximum file size is 5 MB");
+                          showToast("Maximum file size is 5 MB", "error");
                           return false;
                         }
                         const allowedTypes = [
@@ -432,7 +434,7 @@ export default function ConsolidatedBookingModal({
                           "application/pdf",
                         ];
                         if (!allowedTypes.includes(file.type)) {
-                          alert("Only JPG, PNG, WEBP or PDF files allowed");
+                          showToast("Only JPG, PNG, WEBP or PDF files allowed", "error");
                           return false;
                         }
                         return true;

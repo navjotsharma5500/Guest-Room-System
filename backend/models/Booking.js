@@ -217,6 +217,11 @@ const BookingSchema = new mongoose.Schema(
       default: "booked",
     },
 
+    feedback: {
+     type: mongoose.Schema.Types.ObjectId,
+     ref: "Feedback"
+   },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

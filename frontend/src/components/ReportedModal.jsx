@@ -284,10 +284,20 @@ export default function ReportedModal({
 
       const historyData = await historyCheck.json();
 
-      if (historyData.hasPendingBills) {
+      // ✅ FILTER: Only consider bookings that have balance > 0
+      // This allows guests with fully rolled back payments (balance = 0) to report
+      // And blocks guests with pending balance (balance > 0)
+      let realPendingBookings = [];
+      if (historyData.bookings && Array.isArray(historyData.bookings)) {
+        realPendingBookings = historyData.bookings.filter(b => b.balanceAmount > 0);
+      }
+
+      if (realPendingBookings.length > 0) {
+        const totalPending = realPendingBookings.reduce((sum, b) => sum + (b.balanceAmount || 0), 0);
+
         showConfirm(
-          `⚠️ WARNING: This guest has ₹${historyData.totalPending} pending from ${historyData.bookings.length} previous booking(s).\n\n` +
-          `Previous bookings:\n${historyData.bookings.map(b => 
+          `⚠️ WARNING: This guest has ₹${totalPending} pending from ${realPendingBookings.length} previous booking(s).\n\n` +
+          `Previous bookings:\n${realPendingBookings.map(b => 
             `• ${b.hostel} - Room ${b.roomNo}: ₹${b.balanceAmount}`
           ).join('\n')}\n\n` +
           `Guest must clear previous dues before check-in.\n\n` +

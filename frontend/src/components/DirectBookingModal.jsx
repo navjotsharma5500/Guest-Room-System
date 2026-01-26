@@ -799,7 +799,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                     onSuccess={handleAddressProofSuccess}
                     validateFile={(file) => {
                       if (form.files.length >= 5) {
-                        alert("Max 5 files allowed");
+                        showToast("Max 5 files allowed", "error");
                         return false;
                       }
 
@@ -815,12 +815,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                       ];
 
                       if (!allowedTypes.includes(file.type)) {
-                        alert("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed");
+                        showToast("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed", "error");
                         return false;
                       }
 
                       if (file.size > 5 * 1024 * 1024) {
-                        alert("File size must be under 5MB");
+                        showToast("File size must be under 5MB", "error");
                         return false;
                       }
 
@@ -1004,7 +1004,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         onSuccess={handlePaymentFileSuccess}
                         validateFile={(file) => {
                           if (paymentFiles.length >= 5) {
-                            alert("Max 5 files allowed");
+                            showToast("Max 5 files allowed", "warning");
                             return false;
                           }
 
@@ -1020,12 +1020,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                           ];
 
                           if (!allowedTypes.includes(file.type)) {
-                            alert("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed");
+                            showToast("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed", "warning");
                             return false;
                           }
 
                           if (file.size > 5 * 1024 * 1024) {
-                            alert("File size must be under 5MB");
+                            showToast("File size must be under 5MB", "warning");
                             return false;
                           }
 
@@ -1133,7 +1133,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         onSuccess={handlePaymentFileSuccess}
                         validateFile={(file) => {
                           if (paymentFiles.length >= 5) {
-                            alert("Max 5 files allowed");
+                            showToast("Max 5 files allowed", "warning");
                             return false;
                           }
 
@@ -1149,12 +1149,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                           ];
 
                           if (!allowedTypes.includes(file.type)) {
-                            alert("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed");
+                            showToast("Only JPG, PNG, GIF, WEBP, HEIC, or PDF allowed", "warning");
                             return false;
                           }
 
                           if (file.size > 5 * 1024 * 1024) {
-                            alert("File size must be under 5MB");
+                            showToast("File size must be under 5MB", "warning");
                             return false;
                           }
 

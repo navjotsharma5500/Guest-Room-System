@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
+import { User, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 
 // Images
 import logo from "../assets/thapar_logo.png";
@@ -165,9 +166,9 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-4 text-gray-200"
+                className="absolute right-3 top-4 text-gray-200 hover:text-white transition-colors"
               >
-                👁
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>

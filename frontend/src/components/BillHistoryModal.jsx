@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, CreditCard, Download, FileText, X, Receipt, TrendingUp, DollarSign } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 
 const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
+  const { showToast } = useToast();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,8 +112,8 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
       }
       
     } catch (err) {
-      console.error("❌ Error opening bill:", err);
-      alert(`Failed to open bill: ${err.message}`);
+      console.error("Error opening bill:", err);
+      showToast(`Failed to open bill: ${err.message}`, "error");
     }
   };
 

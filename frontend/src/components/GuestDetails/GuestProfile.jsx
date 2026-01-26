@@ -1,5 +1,6 @@
 import React from "react";
 import { UserCircle, Phone, Mail, Camera } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { 
   BACKEND_URL, 
@@ -18,6 +19,7 @@ export default function GuestProfile({
   setUploadedProfileUrl,
   imagekitAuthenticator 
 }) {
+  const { showToast } = useToast();
   const b = booking;
 
   // Handle profile picture upload validation
@@ -27,12 +29,12 @@ export default function GuestProfile({
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
-      alert("Only JPG, PNG, or WEBP images allowed");
+      showToast("Only JPG, PNG, or WEBP images allowed", "error");
       return false;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Maximum file size is 2 MB");
+      showToast("Maximum file size is 2 MB", "error");
       return false;
     }
 
@@ -66,13 +68,13 @@ export default function GuestProfile({
         });
         
         if (apiResponse.ok) {
-          alert("✅ Profile picture uploaded successfully!");
+          showToast("✅ Profile picture uploaded successfully!", "success");
         } else {
           throw new Error("Failed to update profile picture in database");
         }
       } catch (err) {
         console.error("❌ Failed to update profile picture:", err);
-        alert("Failed to update profile picture in database");
+        showToast("Failed to update profile picture in database", "error");
       }
     }
     
@@ -81,7 +83,7 @@ export default function GuestProfile({
   
   const handleProfileUploadError = (err) => {
     console.error("❌ ImageKit upload error:", err);
-    alert("Failed to upload profile picture");
+    showToast("Failed to upload profile picture", "error");
     setIsUploadingProfile(false);
   };
 

@@ -24,6 +24,7 @@ import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
 
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import hotelIcon from "../assets/hotelIcon.png";
 import CalendarGuestsPage from "../pages/CalendarGuestsPage";
 import { 
@@ -91,7 +92,7 @@ export default function MainContent(props) {
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [toast, setToast] = useState({ show: false, message: "" });
+  const { showToast } = useToast();
   const lastPendingRef = useRef(0);
   const initRef = useRef(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -170,14 +171,12 @@ export default function MainContent(props) {
       if (pending.length > lastPendingRef.current && notificationsEnabled) {
         const newest = pending[pending.length - 1];
 
-        setToast({
-          show: true,
-          message: `New enquiry: ${newest.name} (${newest.city || ""}, ${
+        showToast(
+          `New enquiry: ${newest.name} (${newest.city || ""}, ${
             newest.state || ""
           })`,
-        });
-
-        setTimeout(() => setToast({ show: false, message: "" }), 4000);
+          "info"
+        );
       }
 
       lastPendingRef.current = pending.length;
@@ -268,7 +267,7 @@ export default function MainContent(props) {
 
   const handleDownloadWithDates = () => {
     if (!downloadFromDate || !downloadToDate) {
-      alert("⚠️ Please select both From and To dates.");
+      showToast("⚠️ Please select both From and To dates.", "warning");
       return;
     }
 
@@ -276,7 +275,7 @@ export default function MainContent(props) {
     const toDate = new Date(downloadToDate);
 
     if (fromDate > toDate) {
-      alert("⚠️ From date cannot be after To date.");
+      showToast("⚠️ From date cannot be after To date.", "warning");
       return;
     }
 
@@ -306,7 +305,7 @@ export default function MainContent(props) {
       }
 
       if (!bookingsData.success || !bookingsData.hostels) {
-        alert("❌ Failed to fetch booking data");
+        showToast("❌ Failed to fetch booking data", "error");
         return;
       }
 
@@ -552,11 +551,11 @@ export default function MainContent(props) {
         ? `${rows.length} booking records (${userHostel} only)` 
         : `${rows.length} records (${rows.filter(r => r.Type === 'Booking').length} bookings, ${rows.filter(r => r.Type === 'Enquiry').length} enquiries)`;
       
-      alert(`✅ Downloaded ${recordType} with complete payment details.`);
+      showToast(`✅ Downloaded ${recordType} with complete payment details.`, "success");
 
     } catch (err) {
       console.error("❌ Download error:", err);
-      alert("Failed to download data. Please try again.");
+      showToast("Failed to download data. Please try again.", "error");
     }
   };
 
@@ -1639,29 +1638,6 @@ export default function MainContent(props) {
             setCancelModal(null);
           }}
         />
-      )}
-
-      {/* TOAST */}
-      {toast.show && (
-        <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
-          <div className="max-w-xs w-full bg-white border border-red-200 shadow-xl rounded-xl p-4 flex items-start gap-3">
-            <div className="text-2xl">🔓”</div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-700">
-                {toast.message}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Click the bell to view.
-              </p>
-            </div>
-            <button
-              onClick={() => setToast({ show: false, message: "" })}
-              className="text-gray-400 hover:text-gray-600 ml-2"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
       )}
 
       {/* DOWNLOAD DATE FILTER MODAL */}

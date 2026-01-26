@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../context/ToastContext";
 import { CheckCircle2 } from "lucide-react";
 import { IndianStates } from "../utils/indianStates";
 import thaparLogo from "../assets/thapar_logo.png";
@@ -174,6 +175,7 @@ function GuestForm({
   dateError, setDateError, uploading, setUploading,
   uploadError, setUploadError, onIKSuccess, onIKError,
 }) {
+  const { showToast } = useToast();
   const [cities, setCities] = useState([]);
 
   const cityMap = useMemo(
@@ -520,20 +522,20 @@ function GuestForm({
 
                 if (form.files.length >= IMAGEKIT_CONFIG.MAX_FILES) {
                   console.error("❌ Maximum files exceeded");
-                  alert("You can upload up to 5 files.");
+                  showToast("You can upload up to 5 files.", "warning");
                   return false;
                 }
 
                 // ✅ CHANGE THIS LINE - use isValidFileType instead
                 if (!isValidFileType(file)) {
                   console.error("❌ File type not allowed:", file.type);
-                  alert("Allowed file types: JPG, PNG, GIF, WEBP, HEIC, PDF.");
+                  showToast("Allowed file types: JPG, PNG, GIF, WEBP, HEIC, PDF.", "warning");
                   return false;
                 }
 
                 if (file.size > IMAGEKIT_CONFIG.MAX_FILE_SIZE) {
                   console.error("❌ File too large:", file.size);
-                  alert("Maximum file size is 5 MB");
+                  showToast("Maximum file size is 5 MB", "warning");
                   return false;
                 }
 
@@ -601,6 +603,7 @@ function GuestForm({
 
 // ==================== MAIN COMPONENT ====================
 export default function GuestEnquiryPage() {
+  const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [submitted, setSubmitted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -695,9 +698,9 @@ export default function GuestEnquiryPage() {
     const validFiles = form.files.filter((url) => url && isValidUrl(url));
 
     if (validFiles.length === 0) {
-      alert("⚠️ Please upload at least one valid file.");
-      return;
-    }
+        showToast("⚠️ Please upload at least one valid file.", "error");
+        return;
+      }
 
     if (validFiles.length !== form.files.length) {
       console.error("❌ Some files are invalid:");
@@ -754,10 +757,10 @@ export default function GuestEnquiryPage() {
       console.error("❌ Submission error:", err);
       if (err.response) {
         console.error("❌ Backend error:", err.response.data);
-        alert("❌ Failed to submit: No response from server. Please check your connection.");
+        showToast("❌ Failed to submit: Server error. Please try again.", "error");
       } else {
         console.error("❌ Request setup error:", err.message);
-        alert(`❌ Failed to submit: ${err.message}`);
+        showToast("❌ Failed to submit: No response from server. Please check your connection.", "error");
       }
     }
   };
@@ -777,7 +780,7 @@ export default function GuestEnquiryPage() {
     });
 
     if (!validateForm()) {
-      alert("⚠️ Please fill all fields correctly.");
+      showToast("⚠️ Please fill all fields correctly.", "warning");
       return;
     }
     setShowPreview(true);

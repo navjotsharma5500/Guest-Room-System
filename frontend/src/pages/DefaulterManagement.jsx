@@ -7,6 +7,7 @@ import {
   CheckCircle, Receipt, History, DollarSign, ArrowLeft, Upload
 } from 'lucide-react';
 import { BACKEND_URL } from '../utils/apiConfig';
+import { useToast } from "../context/ToastContext";
 
 const API = BACKEND_URL;
 
@@ -32,6 +33,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [error, setError] = useState(null);
   const ikRollbackUploadRef = useRef(null);
   const itemsPerPage = 10;
+  const { showToast } = useToast();
 
   const role = currentUser?.role || "caretaker";
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
@@ -62,7 +64,8 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const response = await fetch(`${API}/api/defaulters`, {
+      // ✅ Fetch ALL defaulters (pending + completed + rollbacks) to support all tabs
+      const response = await fetch(`${API}/api/defaulters?status=all`, {
         method: "GET",
         credentials: "include",
         headers
@@ -176,14 +179,16 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        // Show in pending if: has balance AND no rollbacks
-        return d.totalDue > 0 && !hasRollbacks;
+        // Show in pending if: has balance AND no rollbacks (or partial rollbacks?)
+        // User said: "if the guest has a rollback amount... it means it is wavered"
+        // But if balance > 0, they are still pending.
+        return d.totalDue > 0; 
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(d => {
-        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        // Show in completed if: fully paid (0 balance) AND no rollbacks
-        return d.totalDue === 0 && !hasRollbacks;
+        // Show in completed if: fully paid (0 balance)
+        // This INCLUDES fully rolled back (waived) guests
+        return d.totalDue === 0;
       });
     } else if (activeTab === 'rollbacks') {
       filtered = filtered.filter(d => 
@@ -202,15 +207,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
-  const pendingDefaulters = defaulters.filter(d => {
-    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-    return d.totalDue > 0 && !hasRollbacks;
-  });
+  const pendingDefaulters = defaulters.filter(d => d.totalDue > 0);
   
-  const completedPayments = defaulters.filter(d => {
-    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-    return d.totalDue === 0 && d.paidAmount > 0 && !hasRollbacks;
-  });
+  const completedPayments = defaulters.filter(d => d.totalDue === 0);
   
   const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
 
@@ -356,7 +355,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           const result = await response.json();
           console.log("✅ Payment rolled back:", result);
 
-          alert(`✅ ₹${rollbackAmount} rolled back successfully!`);
+          showToast(`✅ ₹${rollbackAmount} rolled back successfully!`, "success");
 
           setShowRollbackModal(false);
           setRollbackAmount(0);
@@ -369,7 +368,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
         } catch (err) {
           console.error("❌ Rollback error:", err);
-          alert(`❌ Failed to rollback payment: ${err.message}`);
+          showToast(`❌ Failed to rollback payment: ${err.message}`, "error");
         } finally {
           setLoading(false);
         }
@@ -991,25 +990,13 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     const currentBalance = totalAmount - paidAmount - discount;
                     const isFullyPaid = currentBalance === 0 && paidAmount > 0;
 
-                    // ✅ CASE 1: Has Rollbacks - Show ONLY close button
-                    if (hasRollbacks) {
-                      return (
-                        <button
-                          onClick={() => setShowDetails(false)}
-                          className="flex-1 px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
-                        >
-                          Close
-                        </button>
-                      );
-                    }
-
-                    // ✅ CASE 2: Fully Paid (no rollbacks) - Show ONLY fully paid badge + close
-                    if (isFullyPaid) {
+                    // ✅ CASE 1: Fully Paid OR Zero Balance (includes fully rolled back if balance is 0)
+                    if (currentBalance <= 0) {
                       return (
                         <>
-                          <div className="flex-1 bg-green-100 text-green-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 border-green-500">
-                            <CheckCircle size={20} />
-                            Fully Paid
+                          <div className={`flex-1 ${hasRollbacks ? 'bg-orange-100 text-orange-700 border-orange-500' : 'bg-green-100 text-green-700 border-green-500'} py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2`}>
+                            {hasRollbacks ? <History size={20} /> : <CheckCircle size={20} />}
+                            {hasRollbacks ? 'Rolled Back / Cleared' : 'Fully Paid'}
                           </div>
                           <button
                             onClick={() => setShowDetails(false)}
@@ -1021,7 +1008,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       );
                     }
 
-                    // ✅ CASE 3: Pending/Partial Payment - Show Pay + Rollback + Close
+                    // ✅ CASE 2: Pending/Partial Payment - Show Pay + Rollback + Close
                     return (
                       <>
                         <button
@@ -1054,7 +1041,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                           Pay ₹{currentBalance} Now
                         </button>
 
-                        {canRollback && paidAmount > 0 && (
+                        {canRollback && currentBalance > 0 && (
                           <button
                             onClick={() => {
                               setShowDetails(false);
@@ -1063,7 +1050,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                             className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-orange-700 hover:to-red-700 transition"
                           >
                             <AlertCircle size={20} />
-                            Rollback Payment
+                            Rollback / Waive
                           </button>
                         )}
 
@@ -1284,18 +1271,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
                 {rollbackAmount > 0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-                    <p className="text-sm font-bold text-orange-800 mb-2">After Rollback:</p>
+                    <p className="text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <p className="text-gray-600">New Paid Amount</p>
+                        <p className="text-gray-600">New Discount/Waiver</p>
                         <p className="font-bold text-green-700">
-                          ₹{(selectedDefaulter.paidAmount || 0) - rollbackAmount}
+                          ₹{(selectedDefaulter.discount || 0) + rollbackAmount}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-600">New Balance</p>
                         <p className="font-bold text-red-700">
-                          ₹{(selectedDefaulter.totalAmount || 0) - ((selectedDefaulter.paidAmount || 0) - rollbackAmount) - (selectedDefaulter.discount || 0)}
+                          ₹{(selectedDefaulter.totalDue || 0) - rollbackAmount}
                         </p>
                       </div>
                     </div>
@@ -1308,7 +1295,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     disabled={loading || !rollbackAmount || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
                     className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
                   >
-                    {loading ? "Processing..." : `Rollback ₹${rollbackAmount}`}
+                    {loading ? "Processing..." : `Waive ₹${rollbackAmount}`}
                   </button>
                   <button
                     onClick={() => setShowRollbackModal(false)}

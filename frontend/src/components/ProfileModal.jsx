@@ -1,6 +1,7 @@
 // src/components/ProfileModal.jsx
 import React, { useState, useEffect } from "react";
 import { X, Lock, ChevronDown, ChevronUp, Camera, Loader2 } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { API } from "../utils/api";
@@ -37,6 +38,7 @@ const isValidUrl = (url) => {
 };
 
 export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
+  const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(currentUser || {});
   const [showPasswordBox, setShowPasswordBox] = useState(false);
@@ -196,7 +198,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
       console.log("✅ Profile updated:", res.data);
       onUpdate && onUpdate(res.data.user);
       setEditing(false);
-      alert("Profile updated successfully!");
+      showToast("Profile updated successfully!", "success");
     } catch (err) {
       const unauth =
         err?.response?.status === 401 ||
@@ -225,11 +227,11 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
           );
         } catch {}
         setEditing(false);
-        alert("Profile updated locally. Please log in to sync with server.");
+        showToast("Profile updated locally. Please log in to sync with server.", "info");
         return;
       }
       console.error("❌ Failed to update profile:", err);
-      alert("Failed to update profile.");
+      showToast("Failed to update profile.", "error");
     }
   };
 

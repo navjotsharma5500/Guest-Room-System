@@ -1,7 +1,7 @@
 // src/components/RoomCard.jsx - FIXED & OPTIMIZED
 import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } from "lucide-react";
+import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X, Lock } from "lucide-react";
 import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
 
 const RoomCard = memo(function RoomCard({
@@ -603,7 +603,7 @@ const RoomCard = memo(function RoomCard({
         {/* ✅ Blocked Badge */}
         {isRoomBlocked && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-600 text-white font-bold flex items-center gap-1">
-            🔒 BLOCKED
+            <Lock className="w-3 h-3" /> BLOCKED
           </span>
         )}
 

@@ -14,6 +14,7 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
+import FeedbackPage from "./pages/FeedbackPage";
 
 import { ToastProvider } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
@@ -852,6 +853,18 @@ export default function GuestRoomDashboard() {
             }}
           />
         )}
+
+        {activeTab === "Feedback" && (
+            <FeedbackPage
+              onBack={() => {
+                setActiveTab("Home");
+                if (currentUser?.assignedHostel) {
+                  setActiveHostel(currentUser.assignedHostel);
+                }
+              }}
+              theme={theme}
+            />
+          )}
 
         {extensionModal && (
           <ExtensionModal

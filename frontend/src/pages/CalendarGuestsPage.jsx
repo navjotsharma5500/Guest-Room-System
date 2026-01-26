@@ -4,6 +4,7 @@ import {
   Users, Clock, FileText, XCircle, User, Phone, Mail, 
   Building2, CheckCircle, DollarSign, MapPin, X
 } from 'lucide-react';
+import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Guest Details Modal Component
@@ -360,6 +361,7 @@ export default function CalendarGuestsPage({
   theme = "light",
   currentUser
 }) {
+  const { showToast } = useToast();
   const user = currentUser;
   const role = user?.role || "caretaker";
   const userHostel = user?.assignedHostel || user?.hostel || null;
@@ -575,7 +577,7 @@ export default function CalendarGuestsPage({
   const handleDownload = () => {
     // ✅ FIX: Only check if there's data WHEN download is clicked
     if (filteredGuests.length === 0) {
-      alert("No data to download for the selected filters");
+      showToast("No data to download for the selected filters", "info");
       return; // ✅ CRITICAL: Stop execution here
     }
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useToast } from "../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
 import AttachmentGrid from "./AttachmentGrid";
 import { 
@@ -34,6 +35,7 @@ export default function ExtensionModalWrapper(props) {
 }
 
 function ExtensionModal({ modal, onClose, onExtend }) {
+  const { showToast } = useToast();
   const [step, setStep] = useState(1); // ✅ NEW: Multi-step form
   const [newTo, setNewTo] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -295,11 +297,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                     onSuccess={handleIKSuccess}
                     validateFile={(file) => {
                       if (files.length >= 5) {
-                        alert("Max 5 files allowed");
+                        showToast("Max 5 files allowed", "error");
                         return false;
                       }
                       if (file.size > 5 * 1024 * 1024) {
-                        alert("File size must be under 5MB");
+                        showToast("File size must be under 5MB", "error");
                         return false;
                       }
                       return true;
