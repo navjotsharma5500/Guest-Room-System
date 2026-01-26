@@ -53,14 +53,13 @@ export default function HostelMenuButton({
   // Filter to show only guest rooms (exclude blocked status indication here)
   const guestRooms = rooms.filter(r => r.roomType === "Guest Room" || !r.roomType);
 
-  if (guestRooms.length === 0) {
-    return null; // Don't show button if no guest rooms
-  }
-
+  // ✅ FIX: Don't return null if no rooms. Show button but with empty state.
+  // This ensures the 3-dots menu always appears for authorized users.
+  
   return (
     <div
       ref={menuRef}
-      className="relative flex-shrink-0 z-30"
+      className="relative flex-shrink-0 z-50" 
       style={{ minWidth: "32px" }}
     >
       {/* Three Dots Button */}
@@ -69,14 +68,14 @@ export default function HostelMenuButton({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`p-1 rounded-full transition-colors ${
+        className={`p-2 rounded-full transition-colors ${
           theme === "dark"
             ? "hover:bg-gray-700 text-gray-400 hover:text-gray-200"
             : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
         }`}
         title="Room Management"
       >
-        <MoreVertical className="w-4 h-4" />
+        <MoreVertical className="w-5 h-5" />
       </button>
 
       {/* Dropdown Menu */}
@@ -87,50 +86,66 @@ export default function HostelMenuButton({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className={`absolute left-0 top-full mt-1 w-56 rounded-lg shadow-xl border z-50 ${
+            className={`absolute right-0 top-full mt-1 w-64 rounded-lg shadow-xl border z-50 ${
               theme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"
             }`}
           >
             {/* Header */}
-            <div className={`px-3 py-2 border-b ${
+            <div className={`px-4 py-3 border-b ${
               theme === "dark" ? "border-gray-700" : "border-gray-200"
             }`}>
-              <p className={`text-xs font-semibold ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              <p className={`text-sm font-semibold ${
+                theme === "dark" ? "text-gray-200" : "text-gray-800"
               }`}>
-                Guest Rooms
+                Guest Rooms Management
+              </p>
+              <p className={`text-xs mt-1 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}>
+                {hostelName}
               </p>
             </div>
 
             {/* Room List */}
-            <div className="max-h-64 overflow-y-auto">
-              {guestRooms.map((room) => (
-                <button
-                  key={room.roomNo}
-                  onClick={() => handleRoomClick(room)}
-                  className={`w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between ${
-                    theme === "dark"
-                      ? "hover:bg-gray-700 text-gray-200"
-                      : "hover:bg-gray-50 text-gray-900"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    {room.isBlocked && (
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" 
-                            title="Blocked" />
-                    )}
-                    Room {room.roomNo}
-                  </span>
-                  
-                  {room.isBlocked && (
-                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
-                      Blocked
+            <div className="max-h-80 overflow-y-auto">
+              {guestRooms.length === 0 ? (
+                <div className={`p-4 text-center text-sm ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-400"
+                }`}>
+                  No guest rooms available
+                </div>
+              ) : (
+                guestRooms.map((room) => (
+                  <button
+                    key={room.roomNo}
+                    onClick={() => handleRoomClick(room)}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between ${
+                      theme === "dark"
+                        ? "hover:bg-gray-700 text-gray-300"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {room.isBlocked ? (
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" 
+                              title="Blocked" />
+                      ) : (
+                        <span className="w-2 h-2 bg-green-500 rounded-full" 
+                              title="Available" />
+                      )}
+                      Room {room.roomNo}
                     </span>
-                  )}
-                </button>
-              ))}
+                    
+                    {room.isBlocked && (
+                      <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
+                        Blocked
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </motion.div>
         )}

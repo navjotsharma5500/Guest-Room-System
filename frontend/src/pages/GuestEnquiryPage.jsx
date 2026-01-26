@@ -120,7 +120,7 @@ const authenticator = async () => {
 };
 
 const formatShortDate = (d) => {
-  if (!d) return "â€”";
+  if (!d) return "—";
   const dt = new Date(d);
   if (isNaN(dt)) return d;
   return dt.toLocaleDateString("en-GB", {
@@ -152,9 +152,9 @@ const submitEnquiry = async (payload) => {
       timeout: 20000,
     });
     
-    console.log("âœ… Enquiry submitted successfully:", res.data);
+    console.log("✅ Enquiry submitted successfully:", res.data);
     
-    // âœ… Notify admin enquiry page instantly (AFTER DB SAVE)
+    // ✅ Notify admin enquiry page instantly (AFTER DB SAVE)
     window.dispatchEvent(
       new CustomEvent("guestEnquiryCreated", {
         detail: res.data?.enquiry || null,
@@ -163,7 +163,7 @@ const submitEnquiry = async (payload) => {
     
     return res.data;
   } catch (err) {
-    console.error("âŒ Submit Error:", err);
+    console.error("❌ Submit Error:", err);
     throw err;
   }
 };
@@ -497,7 +497,7 @@ function GuestForm({
               overwriteAITags={false}
               accept="image/*,application/pdf,.heic,.heif"  // ✅ ADD THIS LINE
               onUploadStart={() => {
-                console.log("ðŸš€ Starting ImageKit upload...");
+                console.log("🚀 Starting ImageKit upload...");
                 setUploading(true);
                 setUploadError("");
               }}
@@ -562,13 +562,13 @@ function GuestForm({
           {form.files.length > 0 && (
             <div className="col-span-1 md:col-span-2 mt-4">
               <p className="text-sm font-medium text-gray-700 mb-2">
-                âœ… {form.files.length} file(s) uploaded
+                ✅ {form.files.length} file(s) uploaded
               </p>
               <div className="space-y-2">
                 {form.files.map((url, i) => (
                   <div key={i} className="flex justify-between items-center bg-green-50 border border-green-300 px-3 py-2 rounded">
                     <div className="flex-1">
-                      <span className="text-green-700 font-medium">ðŸ“„ File {i + 1}</span>
+                      <span className="text-green-700 font-medium">📄 File {i + 1}</span>
                       <p className="text-xs text-gray-500 truncate" title={url}>
                         {url.split('/').pop()}
                       </p>
@@ -579,7 +579,7 @@ function GuestForm({
                       className="text-red-600 hover:text-red-800 text-lg font-bold ml-2"
                       title="Remove file"
                     >
-                      âœ•
+                      ✕
                     </button>
                   </div>
                 ))}
@@ -664,14 +664,14 @@ export default function GuestEnquiryPage() {
   };
 
   const handleIKError = (err) => {
-    console.error("âŒ ImageKit Upload Error:", err);
+    console.error("❌ ImageKit Upload Error:", err);
     setUploading(false);
     const msg = err?.message || err?.details || "Upload failed. Please try again.";
     setUploadError(msg);
   };
 
   const handleConfirmSubmit = async () => {
-    console.log("ðŸ” ========== DEBUGGING TIME FIELDS ==========");
+    console.log("🔍 ========== DEBUGGING TIME FIELDS ==========");
     console.log("ðŸ“‹ Form state (full):", form);
     console.log("ðŸ• Times in form state:", {
       checkInTime: form.checkInTime,
@@ -695,22 +695,22 @@ export default function GuestEnquiryPage() {
     const validFiles = form.files.filter((url) => url && isValidUrl(url));
 
     if (validFiles.length === 0) {
-      alert("âš ï¸ Please upload at least one valid file.");
+      alert("⚠️ Please upload at least one valid file.");
       return;
     }
 
     if (validFiles.length !== form.files.length) {
-      console.error("âŒ Some files are invalid:");
+      console.error("❌ Some files are invalid:");
       form.files.forEach((url, idx) => {
         if (!isValidUrl(url)) {
           console.error(`  File ${idx + 1} is invalid: ${url}`);
         }
       });
-      alert("âš ï¸ Some files are invalid. Please remove and re-upload them.");
+      alert("⚠️ Some files are invalid. Please remove and re-upload them.");
       return;
     }
 
-    console.log("ðŸš€ Submitting enquiry with valid files:", validFiles);
+    console.log("🚀 Submitting enquiry with valid files:", validFiles);
 
     const payload = {
       guestName: form.name,
@@ -747,17 +747,17 @@ export default function GuestEnquiryPage() {
     try {
       console.log("ðŸ“¡ Sending to backend...");
       await submitEnquiry(payload);
-      console.log("âœ… Successfully submitted!");
+      console.log("✅ Successfully submitted!");
       setShowPreview(false);
       setSubmitted(true);
     } catch (err) {
-      console.error("âŒ Submission error:", err);
+      console.error("❌ Submission error:", err);
       if (err.response) {
-        console.error("âŒ Backend error:", err.response.data);
-        alert("âŒ Failed to submit: No response from server. Please check your connection.");
+        console.error("❌ Backend error:", err.response.data);
+        alert("❌ Failed to submit: No response from server. Please check your connection.");
       } else {
-        console.error("âŒ Request setup error:", err.message);
-        alert(`âŒ Failed to submit: ${err.message}`);
+        console.error("❌ Request setup error:", err.message);
+        alert(`❌ Failed to submit: ${err.message}`);
       }
     }
   };
@@ -765,7 +765,7 @@ export default function GuestEnquiryPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    console.log("ðŸ” ========== FORM SUBMISSION DEBUG ==========");
+    console.log("🔍 ========== FORM SUBMISSION DEBUG ==========");
     console.log("ðŸ“‹ Form state at submission:", form);
     console.log("ðŸ• Times at submission:", {
       checkInTime: form.checkInTime,
@@ -777,7 +777,7 @@ export default function GuestEnquiryPage() {
     });
 
     if (!validateForm()) {
-      alert("âš ï¸ Please fill all fields correctly.");
+      alert("⚠️ Please fill all fields correctly.");
       return;
     }
     setShowPreview(true);

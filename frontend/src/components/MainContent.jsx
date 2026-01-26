@@ -105,7 +105,7 @@ export default function MainContent(props) {
   const [showCalendarPage, setShowCalendarPage] = useState(false);
 
   // ====================================================
-  // EVENT LISTENER â€“ RELOAD HOSTEL DATA
+  // EVENT LISTENER – RELOAD HOSTEL DATA
   // ====================================================
   useEffect(() => {
     const reload = () => {
@@ -136,9 +136,9 @@ export default function MainContent(props) {
   // ENQUIRY POLLING FROM BACKEND
   // ====================================================
   useEffect(() => {
-    // âœ… CRITICAL FIX: Only admin and manager should receive enquiry notifications
+    // ✅ CRITICAL FIX: Only admin and manager should receive enquiry notifications
     if (role !== "admin" && role !== "manager") {
-      console.log("ðŸ”’ Enquiry notifications disabled for role:", role);
+      console.log("🔒 Enquiry notifications disabled for role:", role);
       setNotifications([]);
       return; // Exit early for caretakers
     }
@@ -170,7 +170,7 @@ export default function MainContent(props) {
         return;
       }
 
-      // âœ… Only show toast for admin/manager
+      // ✅ Only show toast for admin/manager
       if (pending.length > lastPendingRef.current && notificationsEnabled) {
         const newest = pending[pending.length - 1];
 
@@ -225,22 +225,22 @@ export default function MainContent(props) {
 
   const upcoming = allBookings
     .filter((b) => {
-      // âœ… Filter by user role
+      // ✅ Filter by user role
       if (role === "admin" || role === "manager") return true;
       return b.hostel === userHostel;
     })
     .filter((b) => {
-      // âœ… CRITICAL FIX: Exclude cancelled, checked_out, no_show, and REPORTED/CHECKED_IN bookings
+      // ✅ CRITICAL FIX: Exclude cancelled, checked_out, no_show, and REPORTED/CHECKED_IN bookings
       if (["cancelled", "checked_out", "no_show", "checked_in"].includes(b.booking.status)) {
         return false;
       }
       
-      // âœ… ALSO exclude if reportedStatus is "reported" (additional safety check)
+      // ✅ ALSO exclude if reportedStatus is "reported" (additional safety check)
       if (b.booking.reportedStatus === "reported") {
         return false;
       }
       
-      // âœ… Use actualCheckInDate if guest reported early
+      // ✅ Use actualCheckInDate if guest reported early
       const fromDate = b.booking.actualCheckInDate || b.booking.from;
       const checkInDateTime = new Date(fromDate);
       
@@ -251,13 +251,13 @@ export default function MainContent(props) {
       
       const now = new Date();
       
-      // âœ… Show only FUTURE bookings (not currently checked in)
+      // ✅ Show only FUTURE bookings (not currently checked in)
       return checkInDateTime >= now;
     })
     .slice(0, 5);
 
     const getEffectiveCheckInDate = (booking) => {
-      // âœ… Use actualCheckInDate if guest reported early, otherwise use 'from'
+      // ✅ Use actualCheckInDate if guest reported early, otherwise use 'from'
       return booking.actualCheckInDate || booking.from;
     };
 
@@ -272,7 +272,7 @@ export default function MainContent(props) {
 
   const handleDownloadWithDates = () => {
     if (!downloadFromDate || !downloadToDate) {
-      alert("âš ï¸ Please select both From and To dates.");
+      alert("⚠️ Please select both From and To dates.");
       return;
     }
 
@@ -280,7 +280,7 @@ export default function MainContent(props) {
     const toDate = new Date(downloadToDate);
 
     if (fromDate > toDate) {
-      alert("âš ï¸ From date cannot be after To date.");
+      alert("⚠️ From date cannot be after To date.");
       return;
     }
 
@@ -293,31 +293,31 @@ export default function MainContent(props) {
 
   const handleDownload = async (filterFromDate = null, filterToDate = null) => {
     try {
-      console.log("ðŸ”¥ Starting download with date filter:", { filterFromDate, filterToDate });
+      console.log("🔓¥ Starting download with date filter:", { filterFromDate, filterToDate });
 
       // Fetch bookings
       const bookingsData = await apiFetchAllBookingsForDownload();
-      console.log("âœ… Bookings fetched:", bookingsData);
+      console.log("✅ Bookings fetched:", bookingsData);
 
-      // âœ… CRITICAL FIX: Only fetch enquiries for admin/manager
+      // ✅ CRITICAL FIX: Only fetch enquiries for admin/manager
       let enquiries = [];
       if (role === "admin" || role === "manager") {
         const enquiriesData = await fetchEnquiries();
         enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
-        console.log("âœ… Enquiries fetched:", enquiries.length);
+        console.log("✅ Enquiries fetched:", enquiries.length);
       } else {
-        console.log("ðŸ”’ Enquiries disabled for role:", role);
+        console.log("🔒 Enquiries disabled for role:", role);
       }
 
       if (!bookingsData.success || !bookingsData.hostels) {
-        alert("âŒ Failed to fetch booking data");
+        alert("❌ Failed to fetch booking data");
         return;
       }
 
       const bookings = [];
 
       // Extract all bookings from hostels structure
-      // âœ… CRITICAL FIX: Filter by user's hostel for caretakers
+      // ✅ CRITICAL FIX: Filter by user's hostel for caretakers
       (bookingsData.hostels || []).forEach((hostel) => {
         // Skip this hostel if caretaker and it's not their assigned hostel
         if (role === "caretaker" && userHostel && hostel.name !== userHostel) {
@@ -363,7 +363,7 @@ export default function MainContent(props) {
         }
       };
 
-      // âœ… Helper function to format transaction date
+      // ✅ Helper function to format transaction date
       const formatTransactionDate = (dateStr) => {
         if (!dateStr) return "";
         try {
@@ -382,7 +382,7 @@ export default function MainContent(props) {
           }
         }
 
-        // âœ… PAYMENT DETAILS EXTRACTION
+        // ✅ PAYMENT DETAILS EXTRACTION
         const totalAmount = Number(b.totalAmount) || Number(b.amount) || 0;
         const paidAmount = Number(b.paidAmount) || 0;
         const discount = Number(b.discount) || Number(b.waveOff) || 0;
@@ -418,7 +418,7 @@ export default function MainContent(props) {
           Males: b.males || 0,
           Females: b.females || 0,
           
-          // âœ… FIXED: PAYMENT DETAILS WITH TRANSACTION INFO
+          // ✅ FIXED: PAYMENT DETAILS WITH TRANSACTION INFO
           PaymentType: b.paymentType || "Paid",
           TotalAmount: totalAmount,
           PaidAmount: paidAmount,
@@ -426,7 +426,7 @@ export default function MainContent(props) {
           BalanceAmount: balanceAmount,
           PaymentStatus: b.paymentStatus || "UNPAID",
           
-          // âœ… CRITICAL FIX: Add missing payment transaction fields
+          // ✅ CRITICAL FIX: Add missing payment transaction fields
           PaymentMode: b.paymentMode || b.paymentMethod || "",
           TransactionID: b.transactionId || "",
           TransactionDate: formatTransactionDate(b.transactionDate),
@@ -451,7 +451,7 @@ export default function MainContent(props) {
         });
       });
 
-      // âœ… CRITICAL FIX: Only process enquiries for admin/manager
+      // ✅ CRITICAL FIX: Only process enquiries for admin/manager
       if (role === "admin" || role === "manager") {
         // Process enquiries (rejected + pending only)
         enquiries.forEach((e) => {
@@ -487,7 +487,7 @@ export default function MainContent(props) {
               Males: e.males || 0,
               Females: e.females || 0,
               
-              // âœ… Payment fields (empty for enquiries)
+              // ✅ Payment fields (empty for enquiries)
               PaymentType: "",
               TotalAmount: "",
               PaidAmount: "",
@@ -545,7 +545,7 @@ export default function MainContent(props) {
         ? `_${new Date(filterFromDate).toISOString().split('T')[0]}_to_${new Date(filterToDate).toISOString().split('T')[0]}`
         : "";
 
-      // âœ… Add role to filename for clarity
+      // ✅ Add role to filename for clarity
       const rolePrefix = role === "caretaker" ? `${userHostel}_` : "";
       a.download = `${rolePrefix}complete_data_with_payment${dateRange}.csv`;
 
@@ -556,10 +556,10 @@ export default function MainContent(props) {
         ? `${rows.length} booking records (${userHostel} only)` 
         : `${rows.length} records (${rows.filter(r => r.Type === 'Booking').length} bookings, ${rows.filter(r => r.Type === 'Enquiry').length} enquiries)`;
       
-      alert(`âœ… Downloaded ${recordType} with complete payment details.`);
+      alert(`✅ Downloaded ${recordType} with complete payment details.`);
 
     } catch (err) {
-      console.error("âŒ Download error:", err);
+      console.error("❌ Download error:", err);
       alert("Failed to download data. Please try again.");
     }
   };
@@ -612,7 +612,7 @@ export default function MainContent(props) {
         hostelData={hostelData}
         completeHostelData={completeHostelData}
         theme={theme}
-        currentUser={currentUser}  // âœ… ADD THIS
+        currentUser={currentUser}  // ✅ ADD THIS
         onBack={() => setShowCalendarPage(false)}
       />
     );
@@ -659,7 +659,7 @@ export default function MainContent(props) {
   // DATE FORMATTER HELPER
   // ====================================================
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "â€”";
+    if (!dateString) return "—";
     try {
       const normalizedTime = timeString && timeString.trim() ? timeString : "00:00";
       const dt = combineDateAndTime(dateString, normalizedTime);
@@ -679,7 +679,7 @@ export default function MainContent(props) {
       } ${theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
     >
       {/* ========================================================= */}
-      {/* TOP HEADER â€“ BACK BUTTON, HOME, SEARCH, ANALYTICS */}
+      {/* TOP HEADER – BACK BUTTON, HOME, SEARCH, ANALYTICS */}
       {/* ========================================================= */}
 
       {activeTab !== "Enquiry" && (
@@ -804,7 +804,7 @@ export default function MainContent(props) {
                       : "bg-white border-gray-200 hover:bg-red-50"
                   }`}
                 >
-                  ðŸ””
+                  🔓”
                   {notifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5">
                       {notifications.length}
@@ -888,7 +888,7 @@ export default function MainContent(props) {
                           setShowNotifDropdown(false);
                         }}
                       >
-                        View all enquiries â†’
+                        View all enquiries →
                       </div>
                     )}
                   </div>
@@ -920,7 +920,7 @@ export default function MainContent(props) {
       ) : (
         <>
           {/* ========================================================= */}
-          {/* HOME DASHBOARD â€“ NO HOSTEL SELECTED */}
+          {/* HOME DASHBOARD – NO HOSTEL SELECTED */}
           {/* ========================================================= */}
           {activeTab === "Home" && !activeHostel && (
             <>
@@ -992,7 +992,7 @@ export default function MainContent(props) {
                   <h3 className={`text-2xl font-semibold flex items-center gap-3 ${
                     theme === "dark" ? "text-red-400" : "text-red-700"
                   }`}>
-                    <span className="text-3xl">ðŸ—“ï¸</span>
+                    <span className="text-3xl">🗓️</span>
                     Upcoming Bookings
                     <span className={`text-base px-3 py-1 rounded-full ${
                       theme === "dark" 
@@ -1080,7 +1080,7 @@ export default function MainContent(props) {
                                 ? "bg-gray-800/50" 
                                 : "bg-gray-50"
                             }`}>
-                              <span className="text-xl">ðŸ¢</span>
+                              <span className="text-xl">🏢</span>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-600"
@@ -1202,13 +1202,13 @@ export default function MainContent(props) {
           )}  
 
           {/* ========================================================= */}
-          {/* HOME DASHBOARD â€“ HOSTEL SELECTED (Room List + Details) */}
+          {/* HOME DASHBOARD – HOSTEL SELECTED (Room List + Details) */}
           {/* ========================================================= */}
           {activeHostel && activeTab === "Home" && (
             <div className="grid grid-cols-2 gap-6 flex-grow">
 
               {/* ------------------------ */}
-              {/* LEFT PANEL â€“ ROOM LIST */}
+              {/* LEFT PANEL – ROOM LIST */}
               {/* ------------------------ */}
               <div
                 className={`shadow-md rounded-2xl overflow-hidden border ${
@@ -1219,7 +1219,7 @@ export default function MainContent(props) {
               >
                 {activeHostel === "All Hostels" ? (
                   <>
-                    {/* âœ… ENHANCED HEADER FOR ALL HOSTELS */}
+                    {/* ✅ ENHANCED HEADER FOR ALL HOSTELS */}
                     <div className={`p-5 border-b-4 border-red-500 ${
                       theme === "dark" 
                         ? "bg-gradient-to-r from-gray-900 to-gray-700" 
@@ -1463,7 +1463,7 @@ export default function MainContent(props) {
               </div>
 
               {/* ------------------------ */}
-              {/* RIGHT PANEL â€“ BOOKING DETAILS */}
+              {/* RIGHT PANEL – BOOKING DETAILS */}
               {/* ------------------------ */}
               <div
                 className={`shadow-md rounded-2xl p-6 ${
@@ -1577,12 +1577,12 @@ export default function MainContent(props) {
           setRemarksText={(v) => setRemarksText(v)}
           onClose={() => setCancelModal(null)}
           onDone={async (remarks) => {
-            // âœ… Use MongoDB-integrated handler from props
+            // ✅ Use MongoDB-integrated handler from props
             if (typeof props.handleCancelModalCancel === "function") {
               await props.handleCancelModalCancel(remarks);
             } else {
-              // âš ï¸ Fallback to local-only cancellation (not recommended)
-              console.warn("âš ï¸ handleCancelModalCancel not provided, using local-only cancel");  
+              // ⚠️ Fallback to local-only cancellation (not recommended)
+              console.warn("⚠️ handleCancelModalCancel not provided, using local-only cancel");  
               cancelBooking(
                 cancelModal.hostel,
                 cancelModal.room.roomNo,
@@ -1600,7 +1600,7 @@ export default function MainContent(props) {
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
           <div className="max-w-xs w-full bg-white border border-red-200 shadow-xl rounded-xl p-4 flex items-start gap-3">
-            <div className="text-2xl">ðŸ””</div>
+            <div className="text-2xl">🔓”</div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-red-700">
                 {toast.message}
@@ -1613,7 +1613,7 @@ export default function MainContent(props) {
               onClick={() => setToast({ show: false, message: "" })}
               className="text-gray-400 hover:text-gray-600 ml-2"
             >
-              âœ•
+              ✕
             </button>
           </div>
         </div>
@@ -1649,7 +1649,7 @@ export default function MainContent(props) {
                   setDownloadToDate("");
                 }}
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -1699,8 +1699,8 @@ export default function MainContent(props) {
               >
                 <p className="font-semibold">ðŸ“Š Download Includes:</p>
                 <ul className="space-y-1 ml-4">
-                  <li>âœ… <strong>Approved Bookings</strong> - with all details</li>
-                  <li>âŒ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
+                  <li>✅ <strong>Approved Bookings</strong> - with all details</li>
+                  <li>❌ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
                   <li>ðŸš« <strong>Cancelled Bookings</strong> - with cancel remarks</li>
                   <li>ðŸ†“ <strong>Free Bookings</strong> - with free remarks</li>
                   <li>ðŸ‘¤ <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>

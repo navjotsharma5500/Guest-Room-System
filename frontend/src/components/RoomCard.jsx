@@ -36,7 +36,7 @@ const RoomCard = memo(function RoomCard({
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
 
-  // âœ… Check if this is AllHostelsPortal view
+  // ✅ Check if this is AllHostelsPortal view
   const isAllHostelsView = selectionMode !== undefined || consolidateModal !== undefined;
 
   /**
@@ -72,7 +72,7 @@ const RoomCard = memo(function RoomCard({
   };
 
   const isActiveBooking = (b) => {
-    // âœ… FIXED: Check if guest is reported (checked_in status OR reportedStatus = "reported")
+    // ✅ FIXED: Check if guest is reported (checked_in status OR reportedStatus = "reported")
     return b.status === "checked_in" || b.reportedStatus === "reported";
   };
 
@@ -87,7 +87,7 @@ const RoomCard = memo(function RoomCard({
     [activeBookings]
   );
 
-  // âœ… FIXED: For AllHostelsPortal - ONLY show active if guest is checked in/reported
+  // ✅ FIXED: For AllHostelsPortal - ONLY show active if guest is checked in/reported
   const currentActive = useMemo(() => {
     if (isAllHostelsView) {
       // For AllHostelsPortal: ONLY red if guest is ACTUALLY checked in/reported
@@ -108,7 +108,7 @@ const RoomCard = memo(function RoomCard({
     });
   }, [activeBookings, now, isAllHostelsView]);
 
-  // âœ… FIXED: firstBooking should find the checked_in/reported booking first
+  // ✅ FIXED: firstBooking should find the checked_in/reported booking first
   const firstBooking = useMemo(() => {
     // First, try to find a checked_in/reported booking
     const reportedBooking = activeBookings.find((b) => 
@@ -167,7 +167,7 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "â€”";
+    if (!dateString) return "—";
 
     try {
       let dateObj;
@@ -206,7 +206,7 @@ const RoomCard = memo(function RoomCard({
   };
 
   const formatShortDate = (dateString) => {
-    if (!dateString) return "â€”";
+    if (!dateString) return "—";
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
@@ -222,10 +222,10 @@ const RoomCard = memo(function RoomCard({
   const handleCardClick = () => {
     if (bookingCompleted) return;
 
-    // Ã¢Å“â€¦ AllHostelsPortal selection mode
+    // ✅ AllHostelsPortal selection mode
     if (prefillGuest && prefillGuest.from && prefillGuest.to && selectionMode) {
       if (hasConflict && showToast) {
-        showToast("Ã¢Å¡ Ã¯Â¸ This room is unavailable - booking times conflict with existing reservation.", "warning");
+        showToast("⚠️ This room is unavailable - booking times conflict with existing reservation.", "warning");
         return;
       }
       if (onToggleSelect) {
@@ -234,7 +234,7 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // Ã¢Å“â€¦ FIXED: For AllHostelsPortal, NEVER use internal modal
+    // ✅ FIXED: For AllHostelsPortal, NEVER use internal modal
     // Always delegate to parent via onClick
     if (isAllHostelsView) {
       if (onClick) {
@@ -243,13 +243,13 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // Ã¢Å“â€¦ MainContent: Handle multiple bookings with internal modal
+    // ✅ MainContent: Handle multiple bookings with internal modal
     if (activeBookings.length > 1) {
       setShowBookings(true);
       return;
     }
 
-    // Ã¢Å“â€¦ MainContent: Handle single booking
+    // ✅ MainContent: Handle single booking
     if (activeBookings.length === 1) {
       const bookingId = activeBookings[0]._id || activeBookings[0].id;
       
@@ -259,7 +259,7 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // Ã¢Å“â€¦ MainContent: No bookings - open direct booking
+    // ✅ MainContent: No bookings - open direct booking
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
     }
@@ -291,7 +291,7 @@ const RoomCard = memo(function RoomCard({
 
   const getCardStyle = () => {
     if (isAllHostelsView) {
-      // âœ… ONLY show red if guest is ACTUALLY checked in/reported
+      // ✅ ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
         return "border-red-300 bg-gradient-to-br from-red-50 to-white";
       }
@@ -345,7 +345,7 @@ const RoomCard = memo(function RoomCard({
           onClick={handleCardClick}
           aria-label={`Room ${room.roomNo} at ${currentHostel}`}
         >
-          {/* âœ… REMOVED BOOK BUTTON - Click on card to book available rooms */}
+          {/* ✅ REMOVED BOOK BUTTON - Click on card to book available rooms */}
 
           <div className="flex items-center justify-center gap-2">
             <p className="font-semibold text-base">Room {room.roomNo}</p>
@@ -372,7 +372,7 @@ const RoomCard = memo(function RoomCard({
                     <span>{formatShortDate(firstBooking.from)}</span>
                   </div>
                   <p className="text-gray-500">
-                    â†’ {formatShortDate(firstBooking.to)}
+                    → {formatShortDate(firstBooking.to)}
                   </p>
                 </div>
               )}
@@ -383,7 +383,7 @@ const RoomCard = memo(function RoomCard({
                 <CheckCircle2 className="w-3 h-3 text-green-700" />
                 <p className="text-xs text-green-700 font-medium">
                   {isBooked ? (
-                    // âœ… Show correct status based on actual check-in
+                    // ✅ Show correct status based on actual check-in
                     activeBookings.length > 1 
                       ? `${activeBookings.length} Bookings` 
                       : "Upcoming booking"
@@ -426,13 +426,13 @@ const RoomCard = memo(function RoomCard({
             <div className="absolute inset-0 rounded-xl pointer-events-none">
               <div className="absolute inset-0 bg-red-500/15 rounded-xl" />
               <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow">
-                âš ï¸ CONFLICT
+                ⚠️ CONFLICT
               </div>
             </div>
           )}
         </div>
 
-        {/* âœ… BOOKINGS MODAL - Works for AllHostelsPortal */}
+        {/* ✅ BOOKINGS MODAL - Works for AllHostelsPortal */}
         <AnimatePresence>
           {showBookings && (
             <motion.div
@@ -573,7 +573,7 @@ const RoomCard = memo(function RoomCard({
           isRoomBlocked ? "cursor-not-allowed" : "cursor-pointer"
         } ${getCardStyle()}`}
       >
-        {/* âœ… Blocked Badge */}
+        {/* ✅ Blocked Badge */}
         {isRoomBlocked && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-600 text-white font-bold flex items-center gap-1">
             🔒 BLOCKED
@@ -630,7 +630,7 @@ const RoomCard = memo(function RoomCard({
           </div>
         )}
 
-        {/* âœ… Show block info if blocked */}
+        {/* ✅ Show block info if blocked */}
         {isRoomBlocked && blockInfo && (
           <div className={`text-xs mt-2 p-2 rounded ${
             theme === "dark" ? "bg-gray-700" : "bg-gray-200"

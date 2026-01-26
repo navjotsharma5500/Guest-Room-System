@@ -55,7 +55,7 @@ export default function Sidebar({
     return hostelName.charAt(0).toUpperCase();
   };
 
-  // Convert hostel object â†’ array and sort alphabetically by initial in parentheses
+  // Convert hostel object → array and sort alphabetically by initial in parentheses
   const hostelNames = useMemo(() => {
     return Object.keys(hostelData || {}).sort((a, b) => {
       const initialA = extractInitial(a);
@@ -79,7 +79,7 @@ export default function Sidebar({
     console.warn("Caretaker has no assigned hostel");
   }
 
-  // â­ FIX caretaker double-navigation bug
+  // ⭐ FIX caretaker double-navigation bug
   // Auto-select hostel ONLY once after login
   const didAutoSelect = useRef(false);
 
@@ -131,7 +131,7 @@ export default function Sidebar({
           isEnquiry ? "pointer-events-none opacity-60" : ""
         }`}
       >
-        {/* â­ ALL HOSTELS BUTTON (Admin + Manager only) */}
+        {/* ⭐ ALL HOSTELS BUTTON (Admin + Manager only) */}
         {canSeeAllHostels && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
@@ -156,7 +156,7 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* â­ HOSTEL LIST (Admin sees all, manager too, caretaker one hostel) */}
+        {/* ⭐ HOSTEL LIST (Admin sees all, manager too, caretaker one hostel) */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
 
@@ -188,10 +188,10 @@ export default function Sidebar({
           );
         })}
 
-        {/* âœ… DEFAULTERS BUTTON */}
+        {/* ✅ DEFAULTERS BUTTON */}
         <motion.button
           onClick={() => {
-            console.log("ðŸ”´ Defaulters clicked");
+            console.log("🔴 Defaulters clicked");
             setActiveTab("Defaulters");
             setActiveHostel(null);
             setActiveRoomRef(null);
