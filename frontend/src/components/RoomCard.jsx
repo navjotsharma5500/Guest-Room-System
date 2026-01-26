@@ -744,38 +744,6 @@ const RoomCard = memo(function RoomCard({
                           )}
                         </div>
 
-                        <motion.div
-                          whileHover={{ scale: isRoomBlocked ? 1 : 1.02 }}
-                          animate={
-                            isRoomBlocked
-                              ? { boxShadow: "0 0 0 3px rgba(107,114,128,0.15)" }
-                              : hasActive
-                              ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.15)" }
-                              : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
-                          }
-                          onClick={isRoomBlocked ? undefined : handleCardClick}
-                          className={`relative border rounded-lg p-4 mb-3 transition-all ${
-                            isRoomBlocked ? "cursor-not-allowed" : "cursor-pointer"
-                          } ${getCardStyle()}`}
-                        >
-                          {/* ✅ Blocked Badge */}
-                          {isRoomBlocked && (
-                            <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-600 text-white font-bold flex items-center gap-1">
-                              🔒 BLOCKED
-                            </span>
-                          )}
-
-                          {/* ✅ Show block info if blocked */}
-                          {isRoomBlocked && blockInfo && (
-                            <div className={`text-xs mt-2 p-2 rounded ${
-                              theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                            }`}>
-                              <p className="font-semibold text-red-600">Blocked till: {new Date(blockInfo.blockedTill).toLocaleDateString()}</p>
-                              <p className="text-gray-600 mt-1">{blockInfo.blockRemarks}</p>
-                            </div>
-                          )}
-                        </motion.div>
-
                         <div className="pr-20">
                           <p className={`text-sm font-bold flex items-center gap-1.5 mb-2 ${
                             isActive ? "text-red-700" : "text-green-700"
