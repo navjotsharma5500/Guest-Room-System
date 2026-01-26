@@ -90,7 +90,7 @@ export default function Sidebar({
       !didAutoSelect.current &&
       visibleHostels.length === 1 &&
       canSeeAllHostels &&
-      activeTab !== "Defaulters"
+      !["Defaulters", "Feedback"].includes(activeTab)
     ) {
       didAutoSelect.current = true;
       setActiveHostel(visibleHostels[0]);
@@ -168,7 +168,9 @@ export default function Sidebar({
               onClick={() => {
                 setActiveHostel(hostelName);
                 setActiveRoomRef(null);
-                setActiveTab("Home");
+                setActiveTab((prev) =>
+                  ["Defaulters", "Feedback"].includes(prev) ? prev : "Home"
+                );
               }}
               className={`
                 relative group w-full text-left px-3 py-2 rounded-xl border
