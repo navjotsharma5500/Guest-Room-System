@@ -10,12 +10,14 @@ export default function HostelMenuButton({
   onUnblockRoom,
   theme 
 }) {
-    console.log("🔍 HostelMenuButton rendered:", { 
-        hostelName, 
-        totalRooms: rooms.length,
-        guestRoomsOnly: rooms.filter(r => r.roomType === "Guest Room" || !r.roomType).length,
-        theme 
-    });
+  console.log("🔍 HostelMenuButton DEBUG:", { 
+    hostelName, 
+    roomsReceived: rooms,
+    roomsCount: rooms?.length || 0,
+    roomsIsArray: Array.isArray(rooms),
+    firstRoom: rooms?.[0]
+  });
+
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -38,23 +40,32 @@ export default function HostelMenuButton({
 
   const handleRoomClick = (room) => {
     if (room.isBlocked) {
-      // Open unblock modal
       onUnblockRoom(hostelName, room.roomNo, {
         blockedTill: room.blockedTill,
         blockRemarks: room.blockRemarks,
         blockAttachments: room.blockAttachments
       });
     } else {
-      // Open block modal
       onBlockRoom(hostelName, room.roomNo);
     }
     setIsOpen(false);
   };
 
-  // Use all rooms passed to this component
+  // ✅ Filter for Guest Rooms only
   const guestRooms = rooms.filter(room => 
-    room.roomType === "Guest Room" || !room.roomType
+    room.roomNo && room.roomNo.toLowerCase().includes("guest room")
   );
+
+  console.log("✅ Guest Rooms After Filter:", {
+    hostelName,
+    totalRooms: rooms.length,
+    guestRoomsFound: guestRooms.length,
+    guestRoomDetails: guestRooms.map(r => ({
+      roomNo: r.roomNo,
+      roomType: r.roomType,
+      isBlocked: r.isBlocked
+    }))
+  });
 
   // ✅ FIX: Don't return null if no rooms. Show button but with empty state.
   // This ensures the 3-dots menu always appears for authorized users.

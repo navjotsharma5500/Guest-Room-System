@@ -1381,13 +1381,21 @@ export default function MainContent(props) {
                           role === "manager" ||
                           (role === "caretaker" && activeHostel === userHostel)
                         ) && (
-                          <HostelMenuButton
-                            hostelName={activeHostel}
-                            rooms={hostelData[activeHostel]?.rooms || []}
-                            onBlockRoom={handleBlockRoom}
-                            onUnblockRoom={handleUnblockRoom}
-                            theme={theme}
-                          />
+                          <>
+                            {console.log("🔍 Passing rooms to HostelMenuButton:", {
+                              activeHostel,
+                              hostelData: hostelData[activeHostel],
+                              rooms: hostelData[activeHostel]?.rooms,
+                              roomsCount: hostelData[activeHostel]?.rooms?.length
+                            })}
+                            <HostelMenuButton
+                              hostelName={activeHostel}
+                              rooms={hostelData[activeHostel]?.rooms || []}
+                              onBlockRoom={handleBlockRoom}
+                              onUnblockRoom={handleUnblockRoom}
+                              theme={theme}
+                            />
+                          </>
                         )}
                       </div>
 
