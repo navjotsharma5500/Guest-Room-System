@@ -2,6 +2,8 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function guestBookingExtendedPaid(b) {
+  const balance = Number(b.balanceAmount || 0);
+
   return masterTemplate({
     title: "Guest Room Booking Extended (Paid)",
     content: `
@@ -24,18 +26,18 @@ export default function guestBookingExtendedPaid(b) {
       </div>
 
       <div class="details-box">
-        <div class="details-title">Payment Details</div>
+        <div class="details-title">Payment Summary</div>
         <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
-        <p><strong>Total Amount:</strong> ₹${b.totalAmount || 0}</p>
+        <p><strong>Total Booking Amount (including extension):</strong> ₹${b.totalAmount || 0}</p>
         ${
-          b.balanceAmount > 0
-            ? `<p><strong>Balance Due:</strong> ₹${b.balanceAmount}</p>`
+          balance > 0
+            ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
             : ""
         }
       </div>
 
       ${
-        b.balanceAmount > 0
+        balance > 0
           ? `
           <div class="details-box">
             <div class="details-title">Payment Instructions</div>
@@ -60,8 +62,7 @@ export default function guestBookingExtendedPaid(b) {
 
       <p>
         Kindly ensure that the room is vacated on or before the revised
-        check-out time. If you require any assistance, please contact
-        the hostel caretaker.
+        check-out time. For any assistance, please contact the hostel caretaker.
       </p>
 
       <p>

@@ -3,7 +3,7 @@ import masterTemplate from "./masterTemplate.js";
 
 export default function caretakerDirectBookingFree(b) {
   return masterTemplate({
-    title: `Direct Guest Room Booking (Free) – ${b.guest}`,
+    title: `Direct Guest Room Booking – ${b.guest}`,
     content: `
       <p>Dear Caretaker,</p>
 
@@ -27,7 +27,6 @@ export default function caretakerDirectBookingFree(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Booking Type:</strong> Free (Complimentary)</p>
       </div>
 
       ${

@@ -3,14 +3,14 @@ import masterTemplate from "./masterTemplate.js";
 
 export default function guestDirectBookingFree(b) {
   return masterTemplate({
-    title: "Guest Room Booking Confirmed (Free)",
+    title: "Guest Room Booking Confirmed",
     content: `
       <p>Dear ${b.guest},</p>
 
       <p>
         This is to confirm that your guest room booking at
         <strong>Thapar Institute of Engineering and Technology</strong>
-        has been <strong>successfully confirmed</strong> as a complimentary booking.
+        has been <strong>successfully confirmed</strong> as a complimentary stay.
       </p>
 
       <div class="details-box">
@@ -25,7 +25,6 @@ export default function guestDirectBookingFree(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Booking Type:</strong> Free (No Payment Required)</p>
       </div>
 
       ${
@@ -44,7 +43,6 @@ export default function guestDirectBookingFree(b) {
         <li>Please report to the hostel at the specified check-in time</li>
         <li>Carry a valid government-issued photo ID</li>
         <li>Contact the hostel caretaker upon arrival for room allocation</li>
-        <li>No payment is required for this booking</li>
       </ul>
 
       <p>

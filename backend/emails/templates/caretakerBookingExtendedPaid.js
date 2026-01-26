@@ -2,6 +2,8 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function caretakerBookingExtendedPaid(b) {
+  const balance = Number(b.balanceAmount || 0);
+
   return masterTemplate({
     title: "Guest Room Booking Extended (Paid)",
     content: `
@@ -9,7 +11,8 @@ export default function caretakerBookingExtendedPaid(b) {
 
       <p>
         The stay for the following guest has been
-        <strong>extended with additional payment</strong>. Please note the updated details below.
+        <strong>extended with additional payment</strong>.
+        Please note the updated details below.
       </p>
 
       <div class="details-box">
@@ -31,22 +34,22 @@ export default function caretakerBookingExtendedPaid(b) {
       <div class="details-box">
         <div class="details-title">Payment Information</div>
         <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
-        <p><strong>Total Amount:</strong> ₹${b.totalAmount || 0}</p>
+        <p><strong>Total Booking Amount:</strong> ₹${b.totalAmount || 0}</p>
         <p><strong>Amount Paid:</strong> ₹${b.paidAmount || 0}</p>
         ${
-          b.balanceAmount > 0
-            ? `<p><strong>Balance Due:</strong> ₹${b.balanceAmount}</p>`
+          balance > 0
+            ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
             : ""
         }
       </div>
 
       ${
-        b.balanceAmount > 0
+        balance > 0
           ? `
           <div class="details-box">
             <div class="details-title">Action Required</div>
             <p>
-              Please verify payment receipt from the guest upon submission.
+              Please verify the payment receipt from the guest upon submission.
               The guest has been instructed to complete the payment and share
               proof with you.
             </p>
@@ -57,12 +60,7 @@ export default function caretakerBookingExtendedPaid(b) {
 
       ${
         b.extendRemarks
-          ? `
-            <p>
-              <strong>Extension Remarks:</strong>
-              ${b.extendRemarks}
-            </p>
-          `
+          ? `<p><strong>Extension Remarks:</strong> ${b.extendRemarks}</p>`
           : ""
       }
 

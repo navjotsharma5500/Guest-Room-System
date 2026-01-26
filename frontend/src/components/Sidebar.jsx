@@ -1,11 +1,13 @@
 // src/components/Sidebar.jsx
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
 import Creator from "./Creator";
+import HostelMenuButton from "./HostelMenuButton";
+import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 
 export default function Sidebar({
   activeHostel,
@@ -16,6 +18,8 @@ export default function Sidebar({
   setActiveTab,
 }) {
   const { currentUser, loading } = useAuth();
+  const [blockRoomModal, setBlockRoomModal] = useState(null);
+  const [unblockRoomModal, setUnblockRoomModal] = useState(null);
 
   const logoPublicPath = "/Logo.jpg";
   const isEnquiry = activeTab === "Enquiry";
@@ -26,12 +30,19 @@ export default function Sidebar({
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const canSeeHostels = hasPermission(currentUser, "sidebar.hostels");
   
-
-
   const assignedHostel =
     currentUser?.assignedHostel ||
     currentUser?.hostel ||
     null;
+
+  // ✅ Block/Unblock handlers
+  const handleBlockRoom = (hostelName, roomNo) => {
+    setBlockRoomModal({ hostelName, roomNo });
+  };
+
+  const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
+    setUnblockRoomModal({ hostelName, roomNo, blockInfo });
+  };  
 
   // Helper function to extract initial/letter from parentheses (e.g., "Agita Hall (A)" -> "A")
   const extractInitial = (hostelName) => {
@@ -147,6 +158,7 @@ export default function Sidebar({
         {/* ⭐ HOSTEL LIST (Admin sees all, manager too, caretaker one hostel) */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
+          const rooms = hostelData[hostelName]?.rooms || [];
 
           return (
             <motion.button
@@ -160,7 +172,7 @@ export default function Sidebar({
               }}
               className={`
                 relative group w-full text-left px-3 py-2 rounded-xl border
-                bg-white/30 backdrop-blur-xl flex items-center gap-3
+                bg-white/30 backdrop-blur-xl
                 ${
                   isActive
                     ? "border-red-500 shadow-md"
@@ -168,10 +180,27 @@ export default function Sidebar({
                 }
               `}
             >
-              <Building2 className="w-4 h-4 text-slate-600" />
-              <span className={`text-sm ${isActive ? "font-semibold" : ""}`}>
-                {hostelName}
-              </span>
+              {/* ✅ NEW: Flex container for hostel name and three dots */}
+              <div className="flex items-center justify-between w-full gap-2">
+                {/* Left side: Icon and Name */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <Building2 className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                  <span className={`text-sm truncate ${isActive ? "font-semibold" : ""}`}>
+                    {hostelName}
+                  </span>
+                </div>
+                
+                {/* Right side: Three dots menu */}
+                <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <HostelMenuButton
+                    hostelName={hostelName}
+                    rooms={rooms}
+                    onBlockRoom={handleBlockRoom}
+                    onUnblockRoom={handleUnblockRoom}
+                    theme="light"
+                  />
+                </div>
+              </div>
             </motion.button>
           );
         })}
@@ -191,12 +220,41 @@ export default function Sidebar({
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>
         </motion.button>
-        </nav>  
+      </nav>  
       
       {/* FOOTER */}
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">
         <Creator variant="sidebar" />
       </div>
+
+      {/* ✅ NEW: Block Room Modal */}
+      {blockRoomModal && (
+        <BlockRoomModal
+          hostelName={blockRoomModal.hostelName}
+          roomNo={blockRoomModal.roomNo}
+          onClose={() => setBlockRoomModal(null)}
+          onSuccess={() => {
+            setBlockRoomModal(null);
+            window.dispatchEvent(new Event('hostelDataUpdated'));
+          }}
+          theme="light"
+        />
+      )}
+
+      {/* ✅ NEW: Unblock Room Modal */}
+      {unblockRoomModal && (
+        <UnblockRoomModal
+          hostelName={unblockRoomModal.hostelName}
+          roomNo={unblockRoomModal.roomNo}
+          blockInfo={unblockRoomModal.blockInfo}
+          onClose={() => setUnblockRoomModal(null)}
+          onSuccess={() => {
+            setUnblockRoomModal(null);
+            window.dispatchEvent(new Event('hostelDataUpdated'));
+          }}
+          theme="light"
+        />
+      )}
     </motion.aside>
   );
 }

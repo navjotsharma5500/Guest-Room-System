@@ -3,7 +3,7 @@ import masterTemplate from "./masterTemplate.js";
 
 export default function wardenDirectBookingFree(b) {
   return masterTemplate({
-    title: `Direct Guest Room Booking (Free) – ${b.guest}`,
+    title: `Direct Guest Room Booking – ${b.guest}`,
     content: `
       <p>Dear Warden,</p>
 
@@ -26,7 +26,6 @@ export default function wardenDirectBookingFree(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Booking Type:</strong> Free (Complimentary)</p>
       </div>
 
       ${

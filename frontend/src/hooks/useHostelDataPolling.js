@@ -200,6 +200,19 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    // ✅ NEW: Room blocking events
+    const handleRoomBlocked = (data) => {
+      console.log("🔒 Room blocked event:", data);
+      fetchData(true); // Silent refresh
+    };
+
+    const handleRoomUnblocked = (data) => {
+      console.log("🔓 Room unblocked event:", data);
+      fetchData(true); // Silent refresh
+    };
+
+    socket.on("room-blocked", handleRoomBlocked);
+    socket.on("room-unblocked", handleRoomUnblocked);
     socket.on("booking-created", handleBookingCreated);
     socket.on("booking-cancelled", handleBookingCancelled);
     socket.on("booking-extended", handleBookingExtended);
@@ -229,6 +242,8 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
+      socket.off("room-blocked", handleRoomBlocked);
+      socket.off("room-unblocked", handleRoomUnblocked);
     };
   }, [fetchData]);
 

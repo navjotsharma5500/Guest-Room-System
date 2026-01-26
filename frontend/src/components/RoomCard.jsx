@@ -1,8 +1,9 @@
-// src/components/RoomCard.jsx - FIXED & OPTIMIZED
+// src/components/RoomCard.jsx - WITH BLOCKED ROOM SUPPORT
 import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } from "lucide-react";
 import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
+import { BlockedRoomInfoModal } from "./RoomBlockingModals";
 
 const RoomCard = memo(function RoomCard({
   hostel,
@@ -24,11 +25,18 @@ const RoomCard = memo(function RoomCard({
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
+  const [blockedInfoModal, setBlockedInfoModal] = useState(false);
+
+  // ✅ Blocking properties
+  const isBlocked = room?.isBlocked === true;
+  const blockedTill = room?.blockedTill;
+  const blockRemarks = room?.blockRemarks;
+  const blockAttachments = room?.blockAttachments || [];
 
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
 
-  // ✅ Check if this is AllHostelsPortal view
+  // Check if this is AllHostelsPortal view
   const isAllHostelsView = selectionMode !== undefined || consolidateModal !== undefined;
 
   /**
@@ -64,7 +72,6 @@ const RoomCard = memo(function RoomCard({
   };
 
   const isActiveBooking = (b) => {
-    // ✅ FIXED: Check if guest is reported (checked_in status OR reportedStatus = "reported")
     return b.status === "checked_in" || b.reportedStatus === "reported";
   };
 
@@ -79,16 +86,13 @@ const RoomCard = memo(function RoomCard({
     [activeBookings]
   );
 
-  // ✅ FIXED: For AllHostelsPortal - ONLY show active if guest is checked in/reported
   const currentActive = useMemo(() => {
     if (isAllHostelsView) {
-      // For AllHostelsPortal: ONLY red if guest is ACTUALLY checked in/reported
       return activeBookings.some((b) => 
         b.status === "checked_in" || b.reportedStatus === "reported"
       );
     }
     
-    // For MainContent (sidebar): Keep original logic (date range check)
     return activeBookings.some((b) => {
       if (b.status === "checked_in" || b.reportedStatus === "reported") {
         return true;
@@ -100,15 +104,12 @@ const RoomCard = memo(function RoomCard({
     });
   }, [activeBookings, now, isAllHostelsView]);
 
-  // ✅ FIXED: firstBooking should find the checked_in/reported booking first
   const firstBooking = useMemo(() => {
-    // First, try to find a checked_in/reported booking
     const reportedBooking = activeBookings.find((b) => 
       b.status === "checked_in" || b.reportedStatus === "reported"
     );
     if (reportedBooking) return reportedBooking;
     
-    // Otherwise, find booking within date range
     if (!currentActive) return null;
     return activeBookings.find((b) => {
       const start = combineDateAndTime(b.from, b.checkInTime || "00:00");
@@ -212,12 +213,18 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const handleCardClick = () => {
+    // ✅ If blocked, show info modal
+    if (isBlocked) {
+      setBlockedInfoModal(true);
+      return;
+    }
+
     if (bookingCompleted) return;
 
-    // âœ… AllHostelsPortal selection mode
+    // AllHostelsPortal selection mode
     if (prefillGuest && prefillGuest.from && prefillGuest.to && selectionMode) {
       if (hasConflict && showToast) {
-        showToast("âš ï¸ This room is unavailable - booking times conflict with existing reservation.", "warning");
+        showToast("⚠️ This room is unavailable - booking times conflict with existing reservation.", "warning");
         return;
       }
       if (onToggleSelect) {
@@ -226,8 +233,7 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // âœ… FIXED: For AllHostelsPortal, NEVER use internal modal
-    // Always delegate to parent via onClick
+    // For AllHostelsPortal, always delegate to parent
     if (isAllHostelsView) {
       if (onClick) {
         onClick(isBooked);
@@ -235,13 +241,13 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // âœ… MainContent: Handle multiple bookings with internal modal
+    // MainContent: Handle multiple bookings with internal modal
     if (activeBookings.length > 1) {
       setShowBookings(true);
       return;
     }
 
-    // âœ… MainContent: Handle single booking
+    // MainContent: Handle single booking
     if (activeBookings.length === 1) {
       const bookingId = activeBookings[0]._id || activeBookings[0].id;
       
@@ -251,7 +257,7 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // âœ… MainContent: No bookings - open direct booking
+    // MainContent: No bookings - open direct booking
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
     }
@@ -259,18 +265,16 @@ const RoomCard = memo(function RoomCard({
 
   const handleDirectBooking = (e) => {
     e.stopPropagation();
-    if (bookingCompleted) return;
+    if (bookingCompleted || isBlocked) return;
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
     }
   };
 
   const handleBookingSelect = (bookingId) => {
-    // For MainContent
     if (onSelect) {
       onSelect(currentHostel, room.roomNo, bookingId);
     }
-    // For AllHostelsPortal - trigger onClick to open BookingDetailsModal
     else if (onClick) {
       onClick(isBooked);
     }
@@ -283,7 +287,11 @@ const RoomCard = memo(function RoomCard({
 
   const getCardStyle = () => {
     if (isAllHostelsView) {
-      // ✅ ONLY show red if guest is ACTUALLY checked in/reported
+      // ✅ Blocked rooms get highest priority
+      if (isBlocked) {
+        return "border-red-600 bg-red-100 dark:bg-red-900/20";
+      }
+
       if (currentActive) {
         return "border-red-300 bg-gradient-to-br from-red-50 to-white";
       }
@@ -297,6 +305,11 @@ const RoomCard = memo(function RoomCard({
     }
 
     // MainContent styles
+    if (isBlocked) {
+      return theme === "dark"
+        ? "bg-red-900 border-red-600"
+        : "bg-red-100 border-red-600";
+    }
     if (hasActive) {
       return theme === "dark"
         ? "bg-red-700 border-red-500"
@@ -322,9 +335,14 @@ const RoomCard = memo(function RoomCard({
         <div
           className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
           onClick={handleCardClick}
-          aria-label={`Room ${room.roomNo} at ${currentHostel}`}
+          aria-label={`Room ${room.roomNo} at ${currentHostel}${isBlocked ? ' - Blocked' : ''}`}
         >
-          {/* ✅ REMOVED BOOK BUTTON - Click on card to book available rooms */}
+          {/* ✅ Blocked indicator badge */}
+          {isBlocked && (
+            <div className="absolute top-2 right-2 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1 animate-pulse z-10">
+              🔒 BLOCKED
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-2">
             <p className="font-semibold text-base">Room {room.roomNo}</p>
@@ -333,7 +351,23 @@ const RoomCard = memo(function RoomCard({
             </span>
           </div>
 
-          {currentActive ? (
+          {/* ✅ Room number with blocked indicator */}
+          <p className={`text-2xl font-bold ${
+            isBlocked ? 'text-red-600 dark:text-red-400' : 'text-red-700'
+          }`}>
+            {room.roomNo}
+            {isBlocked && ' 🔒'}
+          </p>
+
+          {/* ✅ Blocked till date */}
+          {isBlocked && blockedTill && (
+            <p className="text-xs font-semibold text-red-600 mt-1">
+              Blocked till: {new Date(blockedTill).toLocaleDateString()}
+            </p>
+          )}
+          
+          {/* Status display - only if not blocked */}
+          {!isBlocked && currentActive ? (
             <div className="mt-2">
               <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -356,13 +390,12 @@ const RoomCard = memo(function RoomCard({
                 </div>
               )}
             </div>
-          ) : (
+          ) : !isBlocked ? (
             <div className="mt-2">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <CheckCircle2 className="w-3 h-3 text-green-700" />
                 <p className="text-xs text-green-700 font-medium">
                   {isBooked ? (
-                    // ✅ Show correct status based on actual check-in
                     activeBookings.length > 1 
                       ? `${activeBookings.length} Bookings` 
                       : "Upcoming booking"
@@ -370,17 +403,22 @@ const RoomCard = memo(function RoomCard({
                 </p>
               </div>
               
-              {/* Show multiple bookings indicator */}
               {activeBookings.length > 1 && (
                 <p className="text-xs text-gray-500 italic">
                   Click to view all bookings
                 </p>
               )}
             </div>
+          ) : (
+            <div className="mt-2">
+              <p className="text-xs text-red-600 font-medium">
+                Click to view details
+              </p>
+            </div>
           )}
 
-          {/* Selection checkbox */}
-          {selectionMode &&
+          {/* Selection checkbox - hide for blocked rooms */}
+          {!isBlocked && selectionMode &&
             !bookingCompleted &&
             !consolidateModal &&
             availableForNewDates &&
@@ -411,7 +449,7 @@ const RoomCard = memo(function RoomCard({
           )}
         </div>
 
-        {/* ✅ BOOKINGS MODAL - Works for AllHostelsPortal */}
+        {/* Bookings Modal */}
         <AnimatePresence>
           {showBookings && (
             <motion.div
@@ -528,6 +566,21 @@ const RoomCard = memo(function RoomCard({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ✅ Blocked Room Info Modal */}
+        {blockedInfoModal && isBlocked && (
+          <BlockedRoomInfoModal
+            hostelName={hostelName || hostel}
+            roomNo={room.roomNo}
+            blockInfo={{
+              blockedTill,
+              blockRemarks,
+              blockAttachments
+            }}
+            onClose={() => setBlockedInfoModal(false)}
+            theme={theme}
+          />
+        )}
       </>
     );
   }
@@ -539,16 +592,25 @@ const RoomCard = memo(function RoomCard({
   return (
     <>
       <motion.div
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: isBlocked ? 1 : 1.02 }}
         animate={
-          hasActive
+          isBlocked
+            ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.3)" }
+            : hasActive
             ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.15)" }
             : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
         }
         onClick={handleCardClick}
         className={`relative border rounded-lg p-4 mb-3 cursor-pointer transition-all ${getCardStyle()}`}
       >
-        {hasPastOnly && (
+        {/* ✅ Blocked badge for MainContent */}
+        {isBlocked && (
+          <span className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 text-white font-bold flex items-center gap-1">
+            🔒 BLOCKED
+          </span>
+        )}
+
+        {hasPastOnly && !isBlocked && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-500 text-white">
             PAST
           </span>
@@ -557,45 +619,68 @@ const RoomCard = memo(function RoomCard({
         <div className="flex justify-between items-center">
           <h3
             className={`text-lg font-semibold flex items-center gap-1 ${
-              theme === "dark" ? "text-red-400" : "text-red-700"
+              isBlocked 
+                ? (theme === "dark" ? "text-red-400" : "text-red-700")
+                : (theme === "dark" ? "text-red-400" : "text-red-700")
             }`}
           >
             <CalendarDays className="w-4 h-4" /> Room {room.roomNo}
+            {isBlocked && ' 🔒'}
           </h3>
 
-          <button
-            onClick={handleDirectBooking}
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
-          >
-            <CalendarPlus className="w-4 h-4" /> Direct Booking
-          </button>
+          {!isBlocked && (
+            <button
+              onClick={handleDirectBooking}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
+            >
+              <CalendarPlus className="w-4 h-4" /> Direct Booking
+            </button>
+          )}
         </div>
 
-        <p className="text-sm mt-1">
-          Status:{" "}
-          {hasActive ? (
-            <span className="font-semibold text-red-600">Active (Checked-in)</span>
-          ) : hasPastOnly ? (
-            <span className="font-semibold text-gray-600">Past</span>
-          ) : hasUpcoming ? (
-            <span className="font-semibold text-green-600">Upcoming</span>
-          ) : (
-            <span className="font-semibold text-green-600">Available</span>
-          )}
-        </p>
-
-        {isBooked && !hasActive && !hasPastOnly && (
-          <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-            {activeBookings.length === 1 ? (
-              <>
-                <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
-                <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
-                <p>→ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
-              </>
-            ) : (
-              <p className="italic">{activeBookings.length} upcoming bookings — click to view list</p>
+        {isBlocked ? (
+          <div className="mt-2">
+            <p className="text-sm font-semibold text-red-600">
+              Status: <span className="font-bold">BLOCKED</span>
+            </p>
+            {blockedTill && (
+              <p className="text-xs text-red-600 mt-1">
+                Until: {new Date(blockedTill).toLocaleDateString()}
+              </p>
             )}
+            <p className="text-xs text-gray-600 mt-1 italic">
+              Click for details
+            </p>
           </div>
+        ) : (
+          <>
+            <p className="text-sm mt-1">
+              Status:{" "}
+              {hasActive ? (
+                <span className="font-semibold text-red-600">Active (Checked-in)</span>
+              ) : hasPastOnly ? (
+                <span className="font-semibold text-gray-600">Past</span>
+              ) : hasUpcoming ? (
+                <span className="font-semibold text-green-600">Upcoming</span>
+              ) : (
+                <span className="font-semibold text-green-600">Available</span>
+              )}
+            </p>
+
+            {isBooked && !hasActive && !hasPastOnly && (
+              <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                {activeBookings.length === 1 ? (
+                  <>
+                    <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
+                    <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
+                    <p>→ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
+                  </>
+                ) : (
+                  <p className="italic">{activeBookings.length} upcoming bookings — click to view list</p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </motion.div>
 
@@ -713,6 +798,21 @@ const RoomCard = memo(function RoomCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Blocked Room Info Modal */}
+      {blockedInfoModal && isBlocked && (
+        <BlockedRoomInfoModal
+          hostelName={hostelName || hostel}
+          roomNo={room.roomNo}
+          blockInfo={{
+            blockedTill,
+            blockRemarks,
+            blockAttachments
+          }}
+          onClose={() => setBlockedInfoModal(false)}
+          theme={theme}
+        />
+      )}
     </>
   );
 });

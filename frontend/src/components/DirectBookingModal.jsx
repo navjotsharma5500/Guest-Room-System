@@ -315,6 +315,22 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
   /* ------------------ FINAL SUBMIT FUNCTION ------------------ */
   const handleSubmit = async () => {
+
+    // ✅ NEW: Check if room is blocked
+    if (modal.room?.isBlocked) {
+      const blockedTill = modal.room.blockedTill 
+        ? new Date(modal.room.blockedTill).toLocaleDateString()
+        : "unknown date";
+      
+      alert(
+        `❌ Cannot book this room!\n\n` +
+        `Room ${modal.room.roomNo} is currently BLOCKED until ${blockedTill}.\n\n` +
+        `Reason: ${modal.room.blockRemarks || "No reason provided"}\n\n` +
+        `Please unblock the room first or select a different room.`
+      );
+      return;
+    }
+    
     if (!validateDateRange()) {
       showToast(
         "⚠️ The selected date/time overlaps with an existing booking.",

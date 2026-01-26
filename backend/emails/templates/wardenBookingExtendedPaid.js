@@ -2,6 +2,8 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingExtendedPaid(b) {
+  const balance = Number(b.balanceAmount || 0);
+
   return masterTemplate({
     title: "Guest Room Booking Extended (Paid)",
     content: `
@@ -9,7 +11,8 @@ export default function wardenBookingExtendedPaid(b) {
 
       <p>
         Please note that the guest room booking for
-        <strong>${b.guest}</strong> has been <strong>extended with additional payment</strong>.
+        <strong>${b.guest}</strong> has been
+        <strong>extended with additional payment</strong>.
       </p>
 
       <div class="details-box">
@@ -32,8 +35,8 @@ export default function wardenBookingExtendedPaid(b) {
         <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
         <p><strong>Total Amount:</strong> ₹${b.totalAmount || 0}</p>
         ${
-          b.balanceAmount > 0
-            ? `<p><strong>Balance Due:</strong> ₹${b.balanceAmount}</p>`
+          balance > 0
+            ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
             : `<p><strong>Payment Status:</strong> Fully Paid</p>`
         }
       </div>
@@ -45,7 +48,7 @@ export default function wardenBookingExtendedPaid(b) {
       }
 
       <p>
-        Kindly take note of the revised checkout date and payment details. 
+        Kindly take note of the revised checkout date and payment details.
         The caretaker and management have been informed.
       </p>
 

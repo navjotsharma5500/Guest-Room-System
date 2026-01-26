@@ -5,7 +5,18 @@ const RoomSchema = new mongoose.Schema({
   roomType: { type: String, default: "Guest Room" },
   caretakerEmail: { type: String },
   wardenEmail: { type: String },
-  // bookings stay in Booking collection (not embedded)
+  
+  // ✅ NEW: Blocking fields
+  isBlocked: { type: Boolean, default: false },
+  blockedTill: { type: Date, default: null },
+  blockRemarks: { type: String, default: "" },
+  blockAttachments: { type: [String], default: [] },
+  blockedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User",
+    default: null 
+  },
+  blockedAt: { type: Date, default: null },
 });
 
 const HostelSchema = new mongoose.Schema(
