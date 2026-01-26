@@ -26,6 +26,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
+import feedbackRoutes from "./routes/feedbackRoutes.js";
 
 const app = express();
 
