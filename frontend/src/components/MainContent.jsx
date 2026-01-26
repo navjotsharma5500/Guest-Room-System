@@ -16,6 +16,8 @@ import AdminEnquiryPage from "../pages/AdminEnquiryPage";
 import LiveBookingCounter from "./LiveBookingCounter";
 import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
+import HostelMenuButton from "./HostelMenuButton";
+import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -98,6 +100,8 @@ export default function MainContent(props) {
   const [downloadFromDate, setDownloadFromDate] = useState("");
   const [downloadToDate, setDownloadToDate] = useState("");
   const [showCalendarPage, setShowCalendarPage] = useState(false);
+  const [blockRoomModal, setBlockRoomModal] = useState(null);
+  const [unblockRoomModal, setUnblockRoomModal] = useState(null);
 
   // ====================================================
   // EVENT LISTENER – RELOAD HOSTEL DATA
@@ -612,6 +616,16 @@ export default function MainContent(props) {
       />
     );
   }
+
+  const handleBlockRoom = (hostelName, roomNo) => {
+    console.log("🔒 Block room clicked:", hostelName, roomNo);
+    setBlockRoomModal({ hostelName, roomNo });
+  };
+
+  const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
+    console.log("🔓 Unblock room clicked:", hostelName, roomNo);
+    setUnblockRoomModal({ hostelName, roomNo, blockInfo });
+  };
 
   // ====================================================
   // LOADING STATE
@@ -1264,24 +1278,29 @@ export default function MainContent(props) {
                     {/* Room List Content */}
                     <div className="p-6 overflow-y-auto max-h-[calc(100vh-350px)]">
                       {Object.entries(hostelData || {}).map(([name, h]) => (
-                        <div
-                          key={name}
-                          className={`border-b pb-3 mb-3 last:border-0 ${
-                            theme === "dark"
-                              ? "border-gray-700"
-                              : "border-gray-200"
-                          }`}
-                        >
-                          <h3
-                            className={`text-md font-semibold mb-2 ${
-                              theme === "dark"
-                                ? "text-red-400"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {name}
-                          </h3>
+                        <div key={name} className={`border-b pb-3 mb-3 last:border-0 ...`}>
+                          
+                          {/* ✅ NEW - Hostel name with three dots button */}
+                          <div className="flex items-center justify-between mb-2">
+                            <h3
+                              className={`text-md font-semibold ${
+                                theme === "dark" ? "text-red-400" : "text-red-600"
+                              }`}
+                            >
+                              {name}
+                            </h3>
+                            
+                            {/* ✅ THREE DOTS MENU */}
+                            <HostelMenuButton
+                              hostelName={name}
+                              rooms={h.rooms || []}
+                              onBlockRoom={handleBlockRoom}
+                              onUnblockRoom={handleUnblockRoom}
+                              theme={theme}
+                            />
+                          </div>
 
+                          {/* Room cards */}
                           {(h.rooms || []).map((room) => (
                             <RoomCard
                               key={room.roomNo}
@@ -1700,6 +1719,41 @@ export default function MainContent(props) {
             setSearchModal(false);
           }}
           onClose={() => setSearchModal(false)}
+        />
+      )}
+
+      {/* ✅ Block Room Modal */}
+      {blockRoomModal && (
+        <BlockRoomModal
+          hostelName={blockRoomModal.hostelName}
+          roomNo={blockRoomModal.roomNo}
+          onClose={() => setBlockRoomModal(null)}
+          onSuccess={() => {
+            setBlockRoomModal(null);
+            // Trigger data refresh
+            if (typeof window.fetchLatestHostelData === "function") {
+              window.fetchLatestHostelData();
+            }
+          }}
+          theme={theme}
+        />
+      )}
+
+      {/* ✅ Unblock Room Modal */}
+      {unblockRoomModal && (
+        <UnblockRoomModal
+          hostelName={unblockRoomModal.hostelName}
+          roomNo={unblockRoomModal.roomNo}
+          blockInfo={unblockRoomModal.blockInfo}
+          onClose={() => setUnblockRoomModal(null)}
+          onSuccess={() => {
+            setUnblockRoomModal(null);
+            // Trigger data refresh
+            if (typeof window.fetchLatestHostelData === "function") {
+              window.fetchLatestHostelData();
+            }
+          }}
+          theme={theme}
         />
       )}
     </main>

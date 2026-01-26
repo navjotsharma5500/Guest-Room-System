@@ -330,43 +330,43 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   if (isAllHostelsView) {
-    return (
-      <>
-        <div
-          className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
-          onClick={handleCardClick}
-          aria-label={`Room ${room.roomNo} at ${currentHostel}${isBlocked ? ' - Blocked' : ''}`}
-        >
-          {/* ✅ Blocked indicator badge */}
-          {isBlocked && (
-            <div className="absolute top-2 right-2 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1 animate-pulse z-10">
-              🔒 BLOCKED
-            </div>
-          )}
+  return (
+    <>
+      <div
+        className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
+        onClick={handleCardClick}
+        aria-label={`Room ${room.roomNo} at ${currentHostel}${isBlocked ? ' - Blocked' : ''}`}
+      >
+        {/* Blocked indicator badge */}
+        {isBlocked && (
+          <div className="absolute top-2 right-2 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1 animate-pulse z-10">
+            🔒 BLOCKED
+          </div>
+        )}
 
-          {/* ✅ Room number with blocked indicator */}
-          <p className={`text-2xl font-bold ${
-            isBlocked ? 'text-red-600 dark:text-red-400' : 'text-red-700'
-          }`}>
-            {room.roomNo}
-            {isBlocked && ' 🔒'}
+        {/* ✅ FIXED: Just room number - no bold "Guest Room" text */}
+        <p className={`text-2xl font-bold ${
+          isBlocked ? 'text-red-600 dark:text-red-400' : 'text-red-700'
+        }`}>
+          {room.roomNo}
+          {isBlocked && ' 🔒'}
+        </p>
+
+        {/* Optional: Room type in small text (NOT BOLD) */}
+        {room.roomType && room.roomType !== "Guest Room" && (
+          <p className="text-xs text-gray-500 mt-1">
+            ({room.roomType})
           </p>
+        )}
 
-          {/* ✅ OPTIONAL: Show room type in small text below room number */}
-          {room.roomType && (
-            <p className="text-xs text-gray-500 mt-1">
-              ({room.roomType})
-            </p>
-          )}
-
-          {/* ✅ Blocked till date */}
-          {isBlocked && blockedTill && (
-            <p className="text-xs font-semibold text-red-600 mt-1">
-              Blocked till: {new Date(blockedTill).toLocaleDateString()}
-            </p>
-          )}
-          
-          {/* Status display - only if not blocked */}
+        {/* Blocked till date */}
+        {isBlocked && blockedTill && (
+          <p className="text-xs font-semibold text-red-600 mt-1">
+            Blocked till: {new Date(blockedTill).toLocaleDateString()}
+          </p>
+        )}
+        
+        {/* Status display */}
         {!isBlocked && currentActive ? (
           <div className="mt-2">
             <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
@@ -417,7 +417,7 @@ const RoomCard = memo(function RoomCard({
           </div>
         )}
 
-        {/* Selection checkbox - hide for blocked rooms */}
+        {/* Selection checkbox */}
         {!isBlocked && selectionMode &&
           !bookingCompleted &&
           !consolidateModal &&
