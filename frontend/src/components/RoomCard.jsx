@@ -560,15 +560,26 @@ const RoomCard = memo(function RoomCard({
   return (
     <>
       <motion.div
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: isRoomBlocked ? 1 : 1.02 }}
         animate={
-          hasActive
+          isRoomBlocked
+            ? { boxShadow: "0 0 0 3px rgba(107,114,128,0.15)" }
+            : hasActive
             ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.15)" }
             : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
         }
-        onClick={handleCardClick}
-        className={`relative border rounded-lg p-4 mb-3 cursor-pointer transition-all ${getCardStyle()}`}
+        onClick={isRoomBlocked ? undefined : handleCardClick}
+        className={`relative border rounded-lg p-4 mb-3 transition-all ${
+          isRoomBlocked ? "cursor-not-allowed" : "cursor-pointer"
+        } ${getCardStyle()}`}
       >
+        {/* âœ… Blocked Badge */}
+        {isRoomBlocked && (
+          <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-600 text-white font-bold flex items-center gap-1">
+            🔒 BLOCKED
+          </span>
+        )}
+
         {hasPastOnly && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-500 text-white">
             PAST
@@ -611,11 +622,23 @@ const RoomCard = memo(function RoomCard({
               <>
                 <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
                 <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
-                <p>â†’ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
+                <p>→ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
               </>
             ) : (
-              <p className="italic">{activeBookings.length} upcoming bookings â€” click to view list</p>
+              <p className="italic">{activeBookings.length} upcoming bookings – click to view list</p>
             )}
+          </div>
+        )}
+
+        {/* âœ… Show block info if blocked */}
+        {isRoomBlocked && blockInfo && (
+          <div className={`text-xs mt-2 p-2 rounded ${
+            theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+          }`}>
+            <p className="font-semibold text-red-600">
+              Blocked till: {new Date(blockInfo.blockedTill).toLocaleDateString()}
+            </p>
+            <p className="text-gray-600 mt-1">{blockInfo.blockRemarks}</p>
           </div>
         )}
       </motion.div>

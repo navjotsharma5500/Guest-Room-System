@@ -1368,7 +1368,7 @@ export default function MainContent(props) {
                           </div>
                         </div>
 
-                        {/* ✅ Right side - Three dots menu */}
+                        {/* âœ… RIGHT SIDE - THREE DOTS MENU */}
                         <HostelMenuButton
                           hostelName={activeHostel}
                           rooms={hostelData[activeHostel]?.rooms || []}
