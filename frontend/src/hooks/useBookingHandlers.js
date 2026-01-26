@@ -84,17 +84,6 @@ export default function useBookingHandlers({
             return;
           }
 
-          // ✅ NEW: Check if room is blocked
-          if (room.isBlocked) {
-            const blockedTillDate = room.blockedTill 
-              ? new Date(room.blockedTill).toLocaleDateString()
-              : "unknown date";
-            conflicts.push(
-              `${hostel} Room ${roomNo} (BLOCKED until ${blockedTillDate})`
-            );
-            return;
-          }
-
           const hasConflict = (room.bookings || []).some((b) => {
             // Skip cancelled, checked_out, or no_show bookings
             if (["cancelled", "checked_out", "no_show"].includes(b.status)) {

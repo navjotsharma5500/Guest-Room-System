@@ -8,17 +8,17 @@ import { createLog } from "../middleware/logMiddleware.js";
 // ======================================================
 export const getAllHostelsWithBookings = async (req, res) => {
   try {
-    console.log("🔍 Fetching all hostels with bookings...");
+    console.log("ðŸ” Fetching all hostels with bookings...");
 
-    // ✅ 1) Fetch all hostels
+    // âœ… 1) Fetch all hostels
     const hostels = await Hostel.find().lean();
-    console.log("✅ Hostels fetched:", hostels.length);
+    console.log("âœ… Hostels fetched:", hostels.length);
 
-    // ✅ 2) Fetch all bookings
+    // âœ… 2) Fetch all bookings
     const bookings = await Booking.find({ status: { $ne: "cancelled" } }).lean();
-    console.log("✅ Bookings fetched:", bookings.length);
+    console.log("âœ… Bookings fetched:", bookings.length);
 
-    // ✅ 3) Build response structure
+    // âœ… 3) Build response structure
     const response = hostels.map((hostel) => {
       return {
         _id: hostel._id,
@@ -68,11 +68,11 @@ export const getAllHostelsWithBookings = async (req, res) => {
       };
     });
 
-    console.log("✅ Response built successfully");
+    console.log("âœ… Response built successfully");
     res.json({ success: true, hostels: response });
 
   } catch (error) {
-    console.error("❌ Hostel fetch error:", error);
+    console.error("âŒ Hostel fetch error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching hostels",
@@ -111,7 +111,7 @@ export const createHostel = async (req, res) => {
     res.json({ success: true, hostel: newHostel });
 
   } catch (error) {
-    console.error("❌ Create hostel error:", error);
+    console.error("âŒ Create hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error creating hostel",
@@ -128,13 +128,13 @@ export const updateHostel = async (req, res) => {
     const { id } = req.params;
     const { name, code, caretakerEmail, wardenEmail, rooms, active } = req.body;
 
-    console.log("🔄 UPDATE HOSTEL REQUEST:");
+    console.log("ðŸ”„ UPDATE HOSTEL REQUEST:");
     console.log("   ID:", id);
     console.log("   Body:", JSON.stringify(req.body, null, 2));
 
     // Validate ObjectId format
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      console.error("❌ Invalid ObjectId format:", id);
+      console.error("âŒ Invalid ObjectId format:", id);
       return res.status(400).json({
         success: false,
         message: "Invalid hostel ID format",
@@ -143,20 +143,20 @@ export const updateHostel = async (req, res) => {
 
     const hostel = await Hostel.findById(id);
     if (!hostel) {
-      console.error("❌ Hostel not found:", id);
+      console.error("âŒ Hostel not found:", id);
       return res.status(404).json({
         success: false,
         message: "Hostel not found",
       });
     }
 
-    console.log("✅ Found hostel:", hostel.name);
+    console.log("âœ… Found hostel:", hostel.name);
 
     // Check if new name conflicts with existing hostel
     if (name && name !== hostel.name) {
       const existingHostel = await Hostel.findOne({ name });
       if (existingHostel) {
-        console.error("❌ Hostel name already exists:", name);
+        console.error("âŒ Hostel name already exists:", name);
         return res.status(400).json({
           success: false,
           message: "Hostel with this name already exists",
@@ -174,15 +174,15 @@ export const updateHostel = async (req, res) => {
 
     await hostel.save();
 
-    console.log("✅ Hostel updated successfully:", hostel.name);
+    console.log("âœ… Hostel updated successfully:", hostel.name);
 
     createLog("hostel_updated", req.user?._id, { hostelId: hostel._id });
 
     res.json({ success: true, hostel });
 
   } catch (error) {
-    console.error("❌ Update hostel error:", error);
-    console.error("❌ Stack:", error.stack);
+    console.error("âŒ Update hostel error:", error);
+    console.error("âŒ Stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Error updating hostel",
@@ -226,7 +226,7 @@ export const deleteHostel = async (req, res) => {
     res.json({ success: true, message: "Hostel deleted successfully" });
 
   } catch (error) {
-    console.error("❌ Delete hostel error:", error);
+    console.error("âŒ Delete hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting hostel",
@@ -271,155 +271,11 @@ export const getHostel = async (req, res) => {
     res.json({ success: true, hostel: response });
 
   } catch (error) {
-    console.error("❌ Get hostel error:", error);
+    console.error("âŒ Get hostel error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching hostel",
       error: error.message,
-    });
-  }
-};
-
-// ======================================================
-// BLOCK ROOM
-// ======================================================
-export const blockRoom = async (req, res) => {
-  try {
-    const { hostelName, roomNo } = req.params;
-    const { blockedTill, blockRemarks, blockAttachments } = req.body;
-
-    console.log("🔒 BLOCK ROOM REQUEST:", { hostelName, roomNo, blockedTill });
-
-    // Validation
-    if (!blockedTill || !blockRemarks || !blockAttachments || blockAttachments.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "blockedTill, blockRemarks, and at least one attachment are required"
-      });
-    }
-
-    // Find hostel
-    const hostel = await Hostel.findOne({ name: hostelName });
-    if (!hostel) {
-      return res.status(404).json({ success: false, message: "Hostel not found" });
-    }
-
-    // Find room
-    const room = hostel.rooms.find(r => r.roomNo === roomNo);
-    if (!room) {
-      return res.status(404).json({ success: false, message: "Room not found" });
-    }
-
-    // Check if room has active bookings
-    const activeBookings = await Booking.find({
-      hostel: hostelName,
-      roomNo: roomNo,
-      status: { $in: ["booked", "checked_in"] }
-    });
-
-    if (activeBookings.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot block room with active bookings. Please cancel or complete existing bookings first."
-      });
-    }
-
-    // Check if blocking period conflicts with upcoming bookings
-    const blockedTillDate = new Date(blockedTill);
-    const conflictingBookings = await Booking.find({
-      hostel: hostelName,
-      roomNo: roomNo,
-      status: { $in: ["booked", "checked_in"] },
-      from: { $lte: blockedTillDate }
-    });
-
-    if (conflictingBookings.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot block room until ${blockedTillDate.toLocaleDateString()}. There are upcoming bookings in this period.`
-      });
-    }
-
-    // Block the room
-    room.isBlocked = true;
-    room.blockedTill = blockedTillDate;
-    room.blockRemarks = blockRemarks;
-    room.blockAttachments = blockAttachments;
-    room.blockedAt = new Date();
-    room.blockedBy = req.user?._id || null;
-
-    await hostel.save();
-
-    console.log("✅ Room blocked successfully:", roomNo);
-
-    res.json({
-      success: true,
-      message: "Room blocked successfully",
-      room
-    });
-
-  } catch (error) {
-    console.error("❌ Block room error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to block room",
-      error: error.message
-    });
-  }
-};
-
-// ======================================================
-// UNBLOCK ROOM
-// ======================================================
-export const unblockRoom = async (req, res) => {
-  try {
-    const { hostelName, roomNo } = req.params;
-
-    console.log("🔓 UNBLOCK ROOM REQUEST:", { hostelName, roomNo });
-
-    // Find hostel
-    const hostel = await Hostel.findOne({ name: hostelName });
-    if (!hostel) {
-      return res.status(404).json({ success: false, message: "Hostel not found" });
-    }
-
-    // Find room
-    const room = hostel.rooms.find(r => r.roomNo === roomNo);
-    if (!room) {
-      return res.status(404).json({ success: false, message: "Room not found" });
-    }
-
-    if (!room.isBlocked) {
-      return res.status(400).json({
-        success: false,
-        message: "Room is not blocked"
-      });
-    }
-
-    // Unblock the room
-    room.isBlocked = false;
-    room.blockedTill = null;
-    room.blockRemarks = null;
-    room.blockAttachments = [];
-    room.blockedAt = null;
-    room.blockedBy = null;
-
-    await hostel.save();
-
-    console.log("✅ Room unblocked successfully:", roomNo);
-
-    res.json({
-      success: true,
-      message: "Room unblocked successfully",
-      room
-    });
-
-  } catch (error) {
-    console.error("❌ Unblock room error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to unblock room",
-      error: error.message
     });
   }
 };

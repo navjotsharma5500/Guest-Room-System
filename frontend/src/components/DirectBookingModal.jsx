@@ -323,18 +323,6 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return;
     }
 
-    // ✅ NEW: Check if room is blocked
-    if (room?.isBlocked) {
-      const blockedTillDate = room.blockedTill 
-        ? new Date(room.blockedTill).toLocaleDateString()
-        : "unknown date";
-      showToast(
-        `🚫 Cannot book - Room ${room.roomNo} is BLOCKED until ${blockedTillDate}`,
-        "error"
-      );
-      return;
-    }
-
     const toISO = (dateStr, timeStr) => {
       try {
         const iso = combineDateAndTime(dateStr, timeStr || "00:00");

@@ -5,9 +5,7 @@ import {
   createHostel,
   getHostel,
   updateHostel,
-  deleteHostel,
-  blockRoom,     
-  unblockRoom,    
+  deleteHostel,   
 } from "../controllers/hostelController.js";
 
 const router = express.Router();
@@ -26,8 +24,5 @@ router.put("/:id", protect, updateHostel);
 
 // DELETE hostel
 router.delete("/:id", protect, deleteHostel);
-
-router.put("/:hostelName/rooms/:roomNo/block", protect, blockRoom);
-router.put("/:hostelName/rooms/:roomNo/unblock", protect, unblockRoom);
 
 export default router;

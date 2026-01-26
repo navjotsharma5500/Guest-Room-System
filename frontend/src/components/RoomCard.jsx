@@ -212,20 +212,6 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const handleCardClick = () => {
-    // ✅ CRITICAL: Prevent interaction with blocked rooms
-    if (room.isBlocked) {
-      if (showToast) {
-        const blockedTillDate = room.blockedTill 
-          ? new Date(room.blockedTill).toLocaleDateString()
-          : "unknown date";
-        showToast(
-          `🚫 Room ${room.roomNo} is BLOCKED until ${blockedTillDate}. Reason: ${room.blockRemarks || "No reason provided"}`,
-          "error"
-        );
-      }
-      return; // ✅ Stop here - no booking allowed
-    }
-
     if (bookingCompleted) return;
 
     // Ã¢Å“â€¦ AllHostelsPortal selection mode
@@ -296,12 +282,6 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const getCardStyle = () => {
-    // ✅ CRITICAL: Check if room is blocked FIRST
-    if (room.isBlocked) {
-      return theme === "dark"
-        ? "bg-red-900/40 border-red-600 cursor-not-allowed opacity-75"
-        : "bg-red-200 border-red-600 cursor-not-allowed opacity-75";
-    }
     if (isAllHostelsView) {
       // âœ… ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
@@ -344,21 +324,6 @@ const RoomCard = memo(function RoomCard({
           onClick={handleCardClick}
           aria-label={`Room ${room.roomNo} at ${currentHostel}`}
         >
-          {/* ✅ NEW: Blocked Room Indicator */}
-          {room.isBlocked && (
-            <div className="absolute inset-0 rounded-xl pointer-events-none z-10">
-              <div className="absolute inset-0 bg-red-500/20 rounded-xl backdrop-blur-sm" />
-              <div className="absolute top-2 left-2 right-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                BLOCKED
-                {room.blockedTill && (
-                  <span className="text-[10px] opacity-90">
-                    until {new Date(room.blockedTill).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
           {/* âœ… REMOVED BOOK BUTTON - Click on card to book available rooms */}
 
           <div className="flex items-center justify-center gap-2">
