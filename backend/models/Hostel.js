@@ -6,17 +6,13 @@ const RoomSchema = new mongoose.Schema({
   caretakerEmail: { type: String },
   wardenEmail: { type: String },
   
-  // ✅ NEW: Blocking fields
+  // ✅ NEW: Room blocking fields
   isBlocked: { type: Boolean, default: false },
   blockedTill: { type: Date, default: null },
-  blockRemarks: { type: String, default: "" },
+  blockRemarks: { type: String, default: null },
   blockAttachments: { type: [String], default: [] },
-  blockedBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "User",
-    default: null 
-  },
   blockedAt: { type: Date, default: null },
+  blockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 });
 
 const HostelSchema = new mongoose.Schema(

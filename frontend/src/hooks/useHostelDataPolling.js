@@ -1,7 +1,7 @@
 // src/hooks/useHostelDataPolling.js - FIXED WITH SOCKET.IO
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import socket from "../socket"; // ✅ FIXED: Remove curly braces, socket is default export
+import socket from "../socket"; // âœ… FIXED: Remove curly braces, socket is default export
 import {
   apiFetchHostels,
   apiFetchBookings,
@@ -25,7 +25,7 @@ export function useHostelDataPolling(initialData = {}) {
    */
   const fetchData = useCallback(async (silent = false) => {
     if (isFetchingRef.current) {
-      console.log("⏭️ Fetch already in progress, skipping...");
+      console.log("â­ï¸ Fetch already in progress, skipping...");
       return;
     }
 
@@ -36,7 +36,7 @@ export function useHostelDataPolling(initialData = {}) {
     }
 
     try {
-      /* -------------------- 1️⃣ Fetch hostels -------------------- */
+      /* -------------------- 1ï¸âƒ£ Fetch hostels -------------------- */
       const hostelsRes = await apiFetchHostels();
 
       if (!hostelsRes?.success || !Array.isArray(hostelsRes.hostels)) {
@@ -54,7 +54,7 @@ export function useHostelDataPolling(initialData = {}) {
         };
       });
 
-      /* -------------------- 2️⃣ Fetch bookings -------------------- */
+      /* -------------------- 2ï¸âƒ£ Fetch bookings -------------------- */
       const bookingsRes = await apiFetchBookings();
       let bookingHostels = bookingsRes?.hostels;
 
@@ -79,7 +79,7 @@ export function useHostelDataPolling(initialData = {}) {
         });
       }
 
-      /* -------------------- 3️⃣ Remove expired bookings -------------------- */
+      /* -------------------- 3ï¸âƒ£ Remove expired bookings -------------------- */
       const now = new Date();
 
       Object.values(hostelMap).forEach((hostel) => {
@@ -97,7 +97,7 @@ export function useHostelDataPolling(initialData = {}) {
         });
       });
 
-      /* -------------------- 4️⃣ Fetch complete booking data -------------------- */
+      /* -------------------- 4ï¸âƒ£ Fetch complete booking data -------------------- */
       let completeMap = {};
       try {
         const completeRes = await apiFetchAllBookingsForDownload();
@@ -110,17 +110,17 @@ export function useHostelDataPolling(initialData = {}) {
         completeMap = hostelMap;
       }
 
-      /* -------------------- 5️⃣ Commit state -------------------- */
+      /* -------------------- 5ï¸âƒ£ Commit state -------------------- */
       if (mountedRef.current) {
         setHostelData(hostelMap);
         setCompleteHostelData(completeMap);
         setHasData(true);
         setLastUpdate(Date.now());
         setError(null);
-        console.log("✅ Data refreshed successfully");
+        console.log("âœ… Data refreshed successfully");
       }
     } catch (err) {
-      console.error("🔥 Hostel polling error:", err);
+      console.error("ðŸ”¥ Hostel polling error:", err);
       if (mountedRef.current) {
         setError(err.message || "Failed to fetch hostel data");
       }
@@ -139,80 +139,67 @@ export function useHostelDataPolling(initialData = {}) {
     // Initial fetch
     fetchData(false);
 
-    // ✅ Socket.IO connection status
+    // âœ… Socket.IO connection status
     const handleConnect = () => {
-      console.log("✅ Socket.IO connected");
+      console.log("âœ… Socket.IO connected");
       setConnected(true);
       fetchData(true); // Refresh on reconnect
     };
 
     const handleDisconnect = () => {
-      console.log("❌ Socket.IO disconnected");
+      console.log("âŒ Socket.IO disconnected");
       setConnected(false);
     };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
 
-    // ✅ Initial connection check
+    // âœ… Initial connection check
     if (socket.connected) {
       setConnected(true);
     }
 
-    // ✅ Real-time event listeners
+    // âœ… Real-time event listeners
     const handleBookingCreated = () => {
-      console.log("📡 Booking created - refreshing...");
+      console.log("ðŸ“¡ Booking created - refreshing...");
       fetchData(true);
     };
 
     const handleBookingCancelled = () => {
-      console.log("📡 Booking cancelled - refreshing...");
+      console.log("ðŸ“¡ Booking cancelled - refreshing...");
       fetchData(true);
     };
 
     const handleBookingExtended = () => {
-      console.log("📡 Booking extended - refreshing...");
+      console.log("ðŸ“¡ Booking extended - refreshing...");
       fetchData(true);
     };
 
     const handlePaymentUpdated = () => {
-      console.log("📡 Payment updated - refreshing...");
+      console.log("ðŸ“¡ Payment updated - refreshing...");
       fetchData(true);
     };
 
     const handleGuestReported = () => {
-      console.log("📡 Guest reported - refreshing...");
+      console.log("ðŸ“¡ Guest reported - refreshing...");
       fetchData(true);
     };
 
     const handleEnquiryCreated = () => {
-      console.log("📡 Enquiry created - refreshing...");
+      console.log("ðŸ“¡ Enquiry created - refreshing...");
       fetchData(true);
     };
 
     const handleEnquiryUpdated = () => {
-      console.log("📡 Enquiry updated - refreshing...");
+      console.log("ðŸ“¡ Enquiry updated - refreshing...");
       fetchData(true);
     };
 
     const handleGuestCheckedOut = () => {
-      console.log("📡 Guest checked out - refreshing...");
+      console.log("ðŸ“¡ Guest checked out - refreshing...");
       fetchData(true);
     };
 
-    // ✅ NEW: Room blocking events
-    const handleRoomBlocked = (data) => {
-      console.log("🔒 Room blocked event:", data);
-      fetchData(true); // Silent refresh
-    };
-
-    const handleRoomUnblocked = (data) => {
-      console.log("🔓 Room unblocked event:", data);
-      fetchData(true); // Silent refresh
-    };
-
-    socket.on("room-blocked", handleRoomBlocked);
-    socket.on("room-unblocked", handleRoomUnblocked);
     socket.on("booking-created", handleBookingCreated);
     socket.on("booking-cancelled", handleBookingCancelled);
     socket.on("booking-extended", handleBookingExtended);
@@ -222,9 +209,9 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("enquiry-updated", handleEnquiryUpdated);
     socket.on("guest-checked-out", handleGuestCheckedOut);
 
-    // ✅ Fallback polling every 2 minutes (in case Socket.IO fails)
+    // âœ… Fallback polling every 2 minutes (in case Socket.IO fails)
     const interval = setInterval(() => {
-      console.log("⏰ Fallback polling...");
+      console.log("â° Fallback polling...");
       fetchData(true);
     }, 2 * 60 * 1000);
 
@@ -242,14 +229,12 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
-      socket.off("room-blocked", handleRoomBlocked);
-      socket.off("room-unblocked", handleRoomUnblocked);
     };
   }, [fetchData]);
 
   /* -------------------- Manual refresh -------------------- */
   const refresh = useCallback(() => {
-    console.log("🔄 Manual refresh triggered");
+    console.log("ðŸ”„ Manual refresh triggered");
     fetchData(false);
   }, [fetchData]);
 

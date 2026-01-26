@@ -76,14 +76,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   });
 
   /* ------------------ VALIDATIONS ------------------ */
-  // ✅ Get today's date at midnight
+  // âœ… Get today's date at midnight
   const getTodayMidnight = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   };
 
-  // ✅ Calculate date difference in days
+  // âœ… Calculate date difference in days
   const getDaysDifference = (fromDate, toDate) => {
     const from = new Date(fromDate);
     const to = new Date(toDate);
@@ -94,7 +94,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     return diffDays;
   };
 
-  // ✅ Validate booking dates (no past dates, max 3 days)
+  // âœ… Validate booking dates (no past dates, max 3 days)
   const validateBookingDates = (fromDate, toDate) => {
     const errors = {};
     const today = getTodayMidnight();
@@ -111,57 +111,57 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
     // Validation 1: Cannot select past dates
     if (checkInDate < today) {
-      errors.dates = "❌ Check-in date cannot be in the past";
+      errors.dates = "âŒ Check-in date cannot be in the past";
       return errors;
     }
 
     if (checkOutDate < today) {
-      errors.dates = "❌ Check-out date cannot be in the past";
+      errors.dates = "âŒ Check-out date cannot be in the past";
       return errors;
     }
 
     if (checkOutDate <= checkInDate) {
-      errors.dates = "❌ Check-out date must be after check-in date";
+      errors.dates = "âŒ Check-out date must be after check-in date";
       return errors;
     }
 
     // Validation 2: Maximum 3 days booking
     const daysDiff = getDaysDifference(fromDate, toDate);
     if (daysDiff > 3) {
-      errors.dates = `❌ Maximum booking duration is 3 days. You selected ${daysDiff} days.`;
+      errors.dates = `âŒ Maximum booking duration is 3 days. You selected ${daysDiff} days.`;
       return errors;
     }
 
     return errors;
   };
 
-  // ✅ Validate Roll No format (numeric only, max 12 digits)
+  // âœ… Validate Roll No format (numeric only, max 12 digits)
   const validateRollNo = (value) => {
     if (!value || value.trim() === "") return "";
     
     if (!/^\d+$/.test(value)) {
-      return "❌ Roll No/Emp ID must contain only numbers";
+      return "âŒ Roll No/Emp ID must contain only numbers";
     }
     
     if (value.length > 12) {
-      return "❌ Roll No/Emp ID cannot exceed 12 digits";
+      return "âŒ Roll No/Emp ID cannot exceed 12 digits";
     }
     
     return "";
   };
 
-  // ✅ Validate guest counts (males + females = total)
+  // âœ… Validate guest counts (males + females = total)
   const validateGuestCounts = (total, males, females) => {
     const totalGuests = Number(total) || 0;
     const maleCount = Number(males) || 0;
     const femaleCount = Number(females) || 0;
 
     if (totalGuests <= 0) {
-      return "❌ Total guests must be at least 1";
+      return "âŒ Total guests must be at least 1";
     }
 
     if (maleCount + femaleCount !== totalGuests) {
-      return `❌ Male (${maleCount}) + Female (${femaleCount}) guests must equal Total (${totalGuests})`;
+      return `âŒ Male (${maleCount}) + Female (${femaleCount}) guests must equal Total (${totalGuests})`;
     }
 
     return "";
@@ -170,7 +170,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   const validateDateRange = () => {
     if (!from || !to || !checkInTime || !checkOutTime) return false;
 
-    // ✅ Check date validations but DON'T update state here
+    // âœ… Check date validations but DON'T update state here
     const dateErrors = validateBookingDates(from, to);
     if (Object.keys(dateErrors).length > 0) {
       return false;
@@ -205,17 +205,17 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     if (!validateEmail(form.email)) return false;
     if (form.files.length === 0) return false;
 
-    // ✅ NEW: Validate dates
+    // âœ… NEW: Validate dates
     const dateErrors = validateBookingDates(from, to);
     if (Object.keys(dateErrors).length > 0) return false;
 
-    // ✅ NEW: Validate Roll No
+    // âœ… NEW: Validate Roll No
     if (form.rollno && form.rollno.trim() !== "") {
       const rollnoError = validateRollNo(form.rollno);
       if (rollnoError) return false;
     }
 
-    // ✅ NEW: Validate guest counts
+    // âœ… NEW: Validate guest counts
     const guestCountError = validateGuestCounts(form.numGuests, form.males, form.females);
     if (guestCountError) return false;
 
@@ -236,7 +236,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
   /* ------------------ ADDRESS PROOF FILE UPLOAD (Step 2) ------------------ */
   const handleAddressProofSuccess = (response) => {
-    console.log("✅ Address Proof Upload Success:", response);
+    console.log("âœ… Address Proof Upload Success:", response);
 
     let finalUrl =
       response.url ||
@@ -248,16 +248,16 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     }
 
     if (!finalUrl) {
-      console.error("❌ No URL received from ImageKit:", response);
-      showToast("❌ Upload failed - no URL received", "error");
+      console.error("âŒ No URL received from ImageKit:", response);
+      showToast("âŒ Upload failed - no URL received", "error");
       setUploading(false);
       setUploadError("Upload failed: Could not get file URL");
       return;
     }
 
-    console.log("📎 Address Proof URL:", finalUrl);
+    console.log("ðŸ“Ž Address Proof URL:", finalUrl);
     setUploading(false);
-    showToast("📎 Address proof uploaded successfully", "success");
+    showToast("ðŸ“Ž Address proof uploaded successfully", "success");
 
     setForm((prev) => ({
       ...prev,
@@ -274,7 +274,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
   /* ------------------ PAYMENT FILE UPLOAD (Step 3) ------------------ */
   const handlePaymentFileSuccess = (response) => {
-    console.log("✅ Payment File Upload Success:", response);
+    console.log("âœ… Payment File Upload Success:", response);
 
     let finalUrl =
       response.url ||
@@ -286,16 +286,16 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     }
 
     if (!finalUrl) {
-      console.error("❌ No URL received from ImageKit:", response);
-      showToast("❌ Upload failed - no URL received", "error");
+      console.error("âŒ No URL received from ImageKit:", response);
+      showToast("âŒ Upload failed - no URL received", "error");
       setUploading(false);
       setUploadError("Upload failed: Could not get file URL");
       return;
     }
 
-    console.log("📎 Payment File URL:", finalUrl);
+    console.log("ðŸ“Ž Payment File URL:", finalUrl);
     setUploading(false);
-    showToast("📎 Payment file uploaded successfully", "success");
+    showToast("ðŸ“Ž Payment file uploaded successfully", "success");
 
     setPaymentFiles((prev) => [...prev, finalUrl]);
   };
@@ -306,34 +306,30 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
   /* ------------------ COMMON ERROR HANDLER ------------------ */
   const handleIKError = (err) => {
-    console.error("❌ ImageKit Upload Error:", err);
+    console.error("âŒ ImageKit Upload Error:", err);
     setUploading(false);
     const msg = err?.message || err?.details || "Upload failed. Please try again.";
     setUploadError(msg);
-    showToast("❌ Upload failed", "error");
+    showToast("âŒ Upload failed", "error");
   };
 
   /* ------------------ FINAL SUBMIT FUNCTION ------------------ */
   const handleSubmit = async () => {
-
-    // ✅ NEW: Check if room is blocked
-    if (modal.room?.isBlocked) {
-      const blockedTill = modal.room.blockedTill 
-        ? new Date(modal.room.blockedTill).toLocaleDateString()
-        : "unknown date";
-      
-      alert(
-        `❌ Cannot book this room!\n\n` +
-        `Room ${modal.room.roomNo} is currently BLOCKED until ${blockedTill}.\n\n` +
-        `Reason: ${modal.room.blockRemarks || "No reason provided"}\n\n` +
-        `Please unblock the room first or select a different room.`
-      );
-      return;
-    }
-    
     if (!validateDateRange()) {
       showToast(
         "⚠️ The selected date/time overlaps with an existing booking.",
+        "error"
+      );
+      return;
+    }
+
+    // ✅ NEW: Check if room is blocked
+    if (room?.isBlocked) {
+      const blockedTillDate = room.blockedTill 
+        ? new Date(room.blockedTill).toLocaleDateString()
+        : "unknown date";
+      showToast(
+        `🚫 Cannot book - Room ${room.roomNo} is BLOCKED until ${blockedTillDate}`,
         "error"
       );
       return;
@@ -348,7 +344,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       }
     };
 
-    // ✅ CRITICAL FIX: Proper attachment routing based on payment type
+    // âœ… CRITICAL FIX: Proper attachment routing based on payment type
     const bookingPayload = {
       guest: form.guest,
       rollno: form.rollno,
@@ -364,7 +360,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       reference: form.reference,
       purpose: form.purpose,
       
-      // ✅ Payment Type and Amount
+      // âœ… Payment Type and Amount
       paymentType: form.paymentType,
       totalAmount: form.paymentType === "Paid" ? Number(form.amount) : 0,
       paidAmount: 0,
@@ -372,16 +368,16 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       
       remarks: remarks,
       
-      // ✅ Address Proof (always from Step 2)
+      // âœ… Address Proof (always from Step 2)
       files: form.files,
       
-      // ✅ CRITICAL FIX: ALL payment attachments go to approvalDocuments
+      // âœ… CRITICAL FIX: ALL payment attachments go to approvalDocuments
       approvalDocuments: paymentFiles,
       
-      // ✅ paymentAttachments should be EMPTY for new bookings
+      // âœ… paymentAttachments should be EMPTY for new bookings
       paymentAttachments: [],
       
-      // ✅ Extension attachments should be EMPTY for new bookings
+      // âœ… Extension attachments should be EMPTY for new bookings
       extensionAttachments: [],
       
       from: toISO(from, "00:00"),
@@ -396,7 +392,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     };
 
     try {
-      console.log("⬆️ Uploading booking to MongoDB:", bookingPayload);
+      console.log("â¬†ï¸ Uploading booking to MongoDB:", bookingPayload);
 
       const token = localStorage.getItem("token");
       const bookingHeaders = {
@@ -416,13 +412,13 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
       if (!res.ok) {
         const errText = await res.text();
-        console.error("❌ Booking upload failed:", res.status, errText);
-        showToast("❌ Failed to save booking", "error");
+        console.error("âŒ Booking upload failed:", res.status, errText);
+        showToast("âŒ Failed to save booking", "error");
         return;
       }
 
       const saved = await res.json();
-      console.log("✅ Booking saved to MongoDB:", saved);
+      console.log("âœ… Booking saved to MongoDB:", saved);
 
       const savedBooking = saved?.booking ? {
         ...bookingPayload,
@@ -432,11 +428,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       } : bookingPayload;
 
       onSubmit(savedBooking);
-      showToast("✅ Booking saved successfully!", "success");
+      showToast("âœ… Booking saved successfully!", "success");
       onClose();
     } catch (err) {
-      console.error("🔥 Direct booking error:", err);
-      showToast("❌ Server error while saving booking", "error");
+      console.error("ðŸ”¥ Direct booking error:", err);
+      showToast("âŒ Server error while saving booking", "error");
     }
   };
 
@@ -465,7 +461,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
         >
           {/* HEADER */}
           <h2 className="text-xl font-bold text-red-700 mb-4">
-            Direct Booking — {hostel} / Room {room?.roomNo}
+            Direct Booking â€” {hostel} / Room {room?.roomNo}
           </h2>
 
           {/* ------------------ STEP 1: DATE SELECTION ------------------ */}
@@ -555,7 +551,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
               {validationErrors.dates && (
                 <div className="col-span-2 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-600 font-medium flex items-center gap-2">
-                    <span>⚠️</span>
+                    <span>âš ï¸</span>
                     {validationErrors.dates}
                   </p>
                 </div>
@@ -563,7 +559,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
               {!isDateValid && (
                 <p className="text-sm text-red-600 mt-2">
-                  ⚠️ This date and time range conflicts with an existing booking.
+                  âš ï¸ This date and time range conflicts with an existing booking.
                 </p>
               )}
 
@@ -770,7 +766,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 {/* Validation Guidelines */}
                 <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                  <p className="font-semibold mb-2">📋 Input Guidelines:</p>
+                  <p className="font-semibold mb-2">ðŸ“‹ Input Guidelines:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong>Roll No/Emp ID:</strong> Numbers only, maximum 12 digits</li>
                     <li><strong>Guest Counts:</strong> Male + Female must equal Total Guests</li>
@@ -782,7 +778,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 {/* ADDRESS PROOF UPLOAD */}
                 <div className="col-span-2">
                   <label className="text-sm font-medium block mb-1">
-                    Upload Address Proof (up to 5 files) * — {form.files.length} file(s) uploaded
+                    Upload Address Proof (up to 5 files) * â€” {form.files.length} file(s) uploaded
                   </label>
 
                   <IKUpload
@@ -870,14 +866,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                           className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded text-sm"
                         >
                           <div className="flex items-center gap-2">
-                            📄 Address Proof {i + 1}
+                            ðŸ“„ Address Proof {i + 1}
                           </div>
                           <button
                             type="button"
                             onClick={() => removeAddressProof(i)}
                             className="text-gray-500 hover:text-red-600 text-lg font-bold transition-colors"
                           >
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ))}
@@ -958,7 +954,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <>
                     <div>
                       <label className="text-sm font-medium block mb-2">
-                        Total Bill Amount (₹) <span className="text-red-600">*</span>
+                        Total Bill Amount (â‚¹) <span className="text-red-600">*</span>
                       </label>
                       <input
                         className="border p-2 rounded w-full"
@@ -986,7 +982,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                     <div>
                       <label className="text-sm font-medium block mb-2">
-                        Attachments (Optional) — {paymentFiles.length} file(s) uploaded
+                        Attachments (Optional) â€” {paymentFiles.length} file(s) uploaded
                       </label>
                       <p className="text-xs text-gray-600 mb-2">Upload additional payment documents if needed (up to 5 files)</p>
 
@@ -1075,14 +1071,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                               className="flex items-center justify-between bg-green-50 border border-green-200 px-3 py-1.5 rounded text-sm"
                             >
                               <div className="flex items-center gap-2">
-                                📄 Payment File {i + 1}
+                                ðŸ“„ Payment File {i + 1}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => removePaymentFile(i)}
                                 className="text-gray-500 hover:text-red-600 text-lg font-bold transition-colors"
                               >
-                                ✕
+                                âœ•
                               </button>
                             </div>
                           ))}
@@ -1115,7 +1111,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                     <div>
                       <label className="text-sm font-medium block mb-2">
-                        Upload Approval Documents <span className="text-red-600">*</span> — {paymentFiles.length} file(s) uploaded
+                        Upload Approval Documents <span className="text-red-600">*</span> â€” {paymentFiles.length} file(s) uploaded
                       </label>
                       <p className="text-xs text-gray-600 mb-2">Required for free bookings (up to 5 files)</p>
 
@@ -1204,14 +1200,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                               className="flex items-center justify-between bg-red-50 border border-red-200 px-3 py-1.5 rounded text-sm"
                             >
                               <div className="flex items-center gap-2">
-                                📄 Approval Doc {i + 1}
+                                ðŸ“„ Approval Doc {i + 1}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => removePaymentFile(i)}
                                 className="text-gray-500 hover:text-red-600 text-lg font-bold transition-colors"
                               >
-                                ✕
+                                âœ•
                               </button>
                             </div>
                           ))}
@@ -1277,7 +1273,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <strong>Gender:</strong> {form.gender}
                 </p>
                 <p>
-                  <strong>Stay:</strong> {from} → {to}
+                  <strong>Stay:</strong> {from} â†’ {to}
                 </p>
                 <p>
                   <strong>Check-in:</strong> {formatTimeWithAMPM(checkInTime)}
@@ -1289,10 +1285,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <strong>Total Guests:</strong> {form.numGuests}
                 </p>
                 <p>
-                  <strong>Females:</strong> {form.females || "—"}
+                  <strong>Females:</strong> {form.females || "â€”"}
                 </p>
                 <p>
-                  <strong>Males:</strong> {form.males || "—"}
+                  <strong>Males:</strong> {form.males || "â€”"}
                 </p>
                 <p>
                   <strong>City:</strong> {form.city}
@@ -1301,7 +1297,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <strong>State:</strong> {form.state}
                 </p>
                 <p>
-                  <strong>Reference:</strong> {form.reference || "—"}
+                  <strong>Reference:</strong> {form.reference || "â€”"}
                 </p>
                 <p>
                   <strong>Purpose:</strong> {form.purpose}
@@ -1311,7 +1307,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </p>
                 {form.paymentType === "Paid" && (
                   <p>
-                    <strong>Total Bill Amount:</strong> ₹{form.amount}
+                    <strong>Total Bill Amount:</strong> â‚¹{form.amount}
                   </p>
                 )}
                 {remarks && (

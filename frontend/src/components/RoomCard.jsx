@@ -1,9 +1,8 @@
-// src/components/RoomCard.jsx - WITH BLOCKED ROOM SUPPORT
+// src/components/RoomCard.jsx - FIXED & OPTIMIZED
 import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } from "lucide-react";
 import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
-import { BlockedRoomInfoModal } from "./RoomBlockingModals";
 
 const RoomCard = memo(function RoomCard({
   hostel,
@@ -25,18 +24,11 @@ const RoomCard = memo(function RoomCard({
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
-  const [blockedInfoModal, setBlockedInfoModal] = useState(false);
-
-  // ✅ Blocking properties
-  const isBlocked = room?.isBlocked === true;
-  const blockedTill = room?.blockedTill;
-  const blockRemarks = room?.blockRemarks;
-  const blockAttachments = room?.blockAttachments || [];
 
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
 
-  // Check if this is AllHostelsPortal view
+  // âœ… Check if this is AllHostelsPortal view
   const isAllHostelsView = selectionMode !== undefined || consolidateModal !== undefined;
 
   /**
@@ -72,6 +64,7 @@ const RoomCard = memo(function RoomCard({
   };
 
   const isActiveBooking = (b) => {
+    // âœ… FIXED: Check if guest is reported (checked_in status OR reportedStatus = "reported")
     return b.status === "checked_in" || b.reportedStatus === "reported";
   };
 
@@ -86,13 +79,16 @@ const RoomCard = memo(function RoomCard({
     [activeBookings]
   );
 
+  // âœ… FIXED: For AllHostelsPortal - ONLY show active if guest is checked in/reported
   const currentActive = useMemo(() => {
     if (isAllHostelsView) {
+      // For AllHostelsPortal: ONLY red if guest is ACTUALLY checked in/reported
       return activeBookings.some((b) => 
         b.status === "checked_in" || b.reportedStatus === "reported"
       );
     }
     
+    // For MainContent (sidebar): Keep original logic (date range check)
     return activeBookings.some((b) => {
       if (b.status === "checked_in" || b.reportedStatus === "reported") {
         return true;
@@ -104,12 +100,15 @@ const RoomCard = memo(function RoomCard({
     });
   }, [activeBookings, now, isAllHostelsView]);
 
+  // âœ… FIXED: firstBooking should find the checked_in/reported booking first
   const firstBooking = useMemo(() => {
+    // First, try to find a checked_in/reported booking
     const reportedBooking = activeBookings.find((b) => 
       b.status === "checked_in" || b.reportedStatus === "reported"
     );
     if (reportedBooking) return reportedBooking;
     
+    // Otherwise, find booking within date range
     if (!currentActive) return null;
     return activeBookings.find((b) => {
       const start = combineDateAndTime(b.from, b.checkInTime || "00:00");
@@ -160,7 +159,7 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "—";
+    if (!dateString) return "â€”";
 
     try {
       let dateObj;
@@ -199,7 +198,7 @@ const RoomCard = memo(function RoomCard({
   };
 
   const formatShortDate = (dateString) => {
-    if (!dateString) return "—";
+    if (!dateString) return "â€”";
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
@@ -213,18 +212,26 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const handleCardClick = () => {
-    // ✅ If blocked, show info modal
-    if (isBlocked) {
-      setBlockedInfoModal(true);
-      return;
+    // ✅ CRITICAL: Prevent interaction with blocked rooms
+    if (room.isBlocked) {
+      if (showToast) {
+        const blockedTillDate = room.blockedTill 
+          ? new Date(room.blockedTill).toLocaleDateString()
+          : "unknown date";
+        showToast(
+          `🚫 Room ${room.roomNo} is BLOCKED until ${blockedTillDate}. Reason: ${room.blockRemarks || "No reason provided"}`,
+          "error"
+        );
+      }
+      return; // ✅ Stop here - no booking allowed
     }
 
     if (bookingCompleted) return;
 
-    // AllHostelsPortal selection mode
+    // Ã¢Å“â€¦ AllHostelsPortal selection mode
     if (prefillGuest && prefillGuest.from && prefillGuest.to && selectionMode) {
       if (hasConflict && showToast) {
-        showToast("⚠️ This room is unavailable - booking times conflict with existing reservation.", "warning");
+        showToast("Ã¢Å¡ Ã¯Â¸ This room is unavailable - booking times conflict with existing reservation.", "warning");
         return;
       }
       if (onToggleSelect) {
@@ -233,7 +240,8 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // For AllHostelsPortal, always delegate to parent
+    // Ã¢Å“â€¦ FIXED: For AllHostelsPortal, NEVER use internal modal
+    // Always delegate to parent via onClick
     if (isAllHostelsView) {
       if (onClick) {
         onClick(isBooked);
@@ -241,13 +249,13 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // MainContent: Handle multiple bookings with internal modal
+    // Ã¢Å“â€¦ MainContent: Handle multiple bookings with internal modal
     if (activeBookings.length > 1) {
       setShowBookings(true);
       return;
     }
 
-    // MainContent: Handle single booking
+    // Ã¢Å“â€¦ MainContent: Handle single booking
     if (activeBookings.length === 1) {
       const bookingId = activeBookings[0]._id || activeBookings[0].id;
       
@@ -257,7 +265,7 @@ const RoomCard = memo(function RoomCard({
       return;
     }
 
-    // MainContent: No bookings - open direct booking
+    // Ã¢Å“â€¦ MainContent: No bookings - open direct booking
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
     }
@@ -265,16 +273,18 @@ const RoomCard = memo(function RoomCard({
 
   const handleDirectBooking = (e) => {
     e.stopPropagation();
-    if (bookingCompleted || isBlocked) return;
+    if (bookingCompleted) return;
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
     }
   };
 
   const handleBookingSelect = (bookingId) => {
+    // For MainContent
     if (onSelect) {
       onSelect(currentHostel, room.roomNo, bookingId);
     }
+    // For AllHostelsPortal - trigger onClick to open BookingDetailsModal
     else if (onClick) {
       onClick(isBooked);
     }
@@ -286,12 +296,14 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const getCardStyle = () => {
+    // ✅ CRITICAL: Check if room is blocked FIRST
+    if (room.isBlocked) {
+      return theme === "dark"
+        ? "bg-red-900/40 border-red-600 cursor-not-allowed opacity-75"
+        : "bg-red-200 border-red-600 cursor-not-allowed opacity-75";
+    }
     if (isAllHostelsView) {
-      // ✅ Blocked rooms get highest priority
-      if (isBlocked) {
-        return "border-red-600 bg-red-100 dark:bg-red-900/20";
-      }
-
+      // âœ… ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
         return "border-red-300 bg-gradient-to-br from-red-50 to-white";
       }
@@ -305,11 +317,6 @@ const RoomCard = memo(function RoomCard({
     }
 
     // MainContent styles
-    if (isBlocked) {
-      return theme === "dark"
-        ? "bg-red-900 border-red-600"
-        : "bg-red-100 border-red-600";
-    }
     if (hasActive) {
       return theme === "dark"
         ? "bg-red-700 border-red-500"
@@ -330,126 +337,116 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   if (isAllHostelsView) {
-  return (
-    <>
-      <div
-        className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
-        onClick={handleCardClick}
-        aria-label={`Room ${room.roomNo} at ${currentHostel}${isBlocked ? ' - Blocked' : ''}`}
-      >
-        {/* Blocked indicator badge */}
-        {isBlocked && (
-          <div className="absolute top-2 right-2 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1 animate-pulse z-10">
-            🔒 BLOCKED
+    return (
+      <>
+        <div
+          className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
+          onClick={handleCardClick}
+          aria-label={`Room ${room.roomNo} at ${currentHostel}`}
+        >
+          {/* ✅ NEW: Blocked Room Indicator */}
+          {room.isBlocked && (
+            <div className="absolute inset-0 rounded-xl pointer-events-none z-10">
+              <div className="absolute inset-0 bg-red-500/20 rounded-xl backdrop-blur-sm" />
+              <div className="absolute top-2 left-2 right-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                BLOCKED
+                {room.blockedTill && (
+                  <span className="text-[10px] opacity-90">
+                    until {new Date(room.blockedTill).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {/* âœ… REMOVED BOOK BUTTON - Click on card to book available rooms */}
+
+          <div className="flex items-center justify-center gap-2">
+            <p className="font-semibold text-base">Room {room.roomNo}</p>
+            <span className="text-xs text-gray-500">
+              ({room.roomType || "Guest Room"})
+            </span>
           </div>
-        )}
 
-        {/* ✅ FIXED: Just room number - no bold "Guest Room" text */}
-        <p className={`text-2xl font-bold ${
-          isBlocked ? 'text-red-600 dark:text-red-400' : 'text-red-700'
-        }`}>
-          {room.roomNo}
-          {isBlocked && ' 🔒'}
-        </p>
+          {currentActive ? (
+            <div className="mt-2">
+              <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
+                <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                Booking Active
+              </p>
 
-        {/* Optional: Room type in small text (NOT BOLD) */}
-        {room.roomType && room.roomType !== "Guest Room" && (
-          <p className="text-xs text-gray-500 mt-1">
-            ({room.roomType})
-          </p>
-        )}
-
-        {/* Blocked till date */}
-        {isBlocked && blockedTill && (
-          <p className="text-xs font-semibold text-red-600 mt-1">
-            Blocked till: {new Date(blockedTill).toLocaleDateString()}
-          </p>
-        )}
-        
-        {/* Status display */}
-        {!isBlocked && currentActive ? (
-          <div className="mt-2">
-            <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
-              <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              Booking Active
-            </p>
-
-            {firstBooking && (
-              <div className="text-xs text-gray-600 mt-1 space-y-0.5">
-                <p className="font-medium truncate flex items-center justify-center gap-1">
-                  <User2 className="w-3 h-3" />
-                  {firstBooking.guest || "Guest"}
-                </p>
-                <div className="flex items-center justify-center gap-1 text-gray-500">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatShortDate(firstBooking.from)}</span>
+              {firstBooking && (
+                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                  <p className="font-medium truncate flex items-center justify-center gap-1">
+                    <User2 className="w-3 h-3" />
+                    {firstBooking.guest || "Guest"}
+                  </p>
+                  <div className="flex items-center justify-center gap-1 text-gray-500">
+                    <Clock className="w-3 h-3" />
+                    <span>{formatShortDate(firstBooking.from)}</span>
+                  </div>
+                  <p className="text-gray-500">
+                    â†’ {formatShortDate(firstBooking.to)}
+                  </p>
                 </div>
-                <p className="text-gray-500">
-                  → {formatShortDate(firstBooking.to)}
+              )}
+            </div>
+          ) : (
+            <div className="mt-2">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <CheckCircle2 className="w-3 h-3 text-green-700" />
+                <p className="text-xs text-green-700 font-medium">
+                  {isBooked ? (
+                    // âœ… Show correct status based on actual check-in
+                    activeBookings.length > 1 
+                      ? `${activeBookings.length} Bookings` 
+                      : "Upcoming booking"
+                  ) : "Available - Click to book"}
                 </p>
               </div>
-            )}
-          </div>
-        ) : !isBlocked ? (
-          <div className="mt-2">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <CheckCircle2 className="w-3 h-3 text-green-700" />
-              <p className="text-xs text-green-700 font-medium">
-                {isBooked ? (
-                  activeBookings.length > 1 
-                    ? `${activeBookings.length} Bookings` 
-                    : "Upcoming booking"
-                ) : "Available - Click to book"}
-              </p>
-            </div>
-            
-            {activeBookings.length > 1 && (
-              <p className="text-xs text-gray-500 italic">
-                Click to view all bookings
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="mt-2">
-            <p className="text-xs text-red-600 font-medium">
-              Click to view details
-            </p>
-          </div>
-        )}
-
-        {/* Selection checkbox */}
-        {!isBlocked && selectionMode &&
-          !bookingCompleted &&
-          !consolidateModal &&
-          availableForNewDates &&
-          prefillGuest?.from &&
-          prefillGuest?.to &&
-          !hasConflict && (
-            <div className="absolute top-2 right-2">
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  if (onToggleSelect) onToggleSelect();
-                }}
-                className="w-5 h-5 accent-blue-600 cursor-pointer"
-              />
+              
+              {/* Show multiple bookings indicator */}
+              {activeBookings.length > 1 && (
+                <p className="text-xs text-gray-500 italic">
+                  Click to view all bookings
+                </p>
+              )}
             </div>
           )}
 
-        {/* Conflict overlay */}
-        {hasConflict && selectionMode && (
-          <div className="absolute inset-0 rounded-xl pointer-events-none">
-            <div className="absolute inset-0 bg-red-500/15 rounded-xl" />
-            <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow">
-              ⚠️ CONFLICT
-            </div>
-          </div>
-        )}
-      </div>
+          {/* Selection checkbox */}
+          {selectionMode &&
+            !bookingCompleted &&
+            !consolidateModal &&
+            availableForNewDates &&
+            prefillGuest?.from &&
+            prefillGuest?.to &&
+            !hasConflict && (
+              <div className="absolute top-2 right-2">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    if (onToggleSelect) onToggleSelect();
+                  }}
+                  className="w-5 h-5 accent-blue-600 cursor-pointer"
+                />
+              </div>
+            )}
 
-        {/* Bookings Modal */}
+          {/* Conflict overlay */}
+          {hasConflict && selectionMode && (
+            <div className="absolute inset-0 rounded-xl pointer-events-none">
+              <div className="absolute inset-0 bg-red-500/15 rounded-xl" />
+              <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow">
+                âš ï¸ CONFLICT
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* âœ… BOOKINGS MODAL - Works for AllHostelsPortal */}
         <AnimatePresence>
           {showBookings && (
             <motion.div
@@ -566,21 +563,6 @@ const RoomCard = memo(function RoomCard({
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ✅ Blocked Room Info Modal */}
-        {blockedInfoModal && isBlocked && (
-          <BlockedRoomInfoModal
-            hostelName={hostelName || hostel}
-            roomNo={room.roomNo}
-            blockInfo={{
-              blockedTill,
-              blockRemarks,
-              blockAttachments
-            }}
-            onClose={() => setBlockedInfoModal(false)}
-            theme={theme}
-          />
-        )}
       </>
     );
   }
@@ -592,25 +574,16 @@ const RoomCard = memo(function RoomCard({
   return (
     <>
       <motion.div
-        whileHover={{ scale: isBlocked ? 1 : 1.02 }}
+        whileHover={{ scale: 1.02 }}
         animate={
-          isBlocked
-            ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.3)" }
-            : hasActive
+          hasActive
             ? { boxShadow: "0 0 0 3px rgba(220,38,38,0.15)" }
             : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
         }
         onClick={handleCardClick}
         className={`relative border rounded-lg p-4 mb-3 cursor-pointer transition-all ${getCardStyle()}`}
       >
-        {/* ✅ Blocked badge for MainContent */}
-        {isBlocked && (
-          <span className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 text-white font-bold flex items-center gap-1">
-            🔒 BLOCKED
-          </span>
-        )}
-
-        {hasPastOnly && !isBlocked && (
+        {hasPastOnly && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded bg-gray-500 text-white">
             PAST
           </span>
@@ -619,68 +592,45 @@ const RoomCard = memo(function RoomCard({
         <div className="flex justify-between items-center">
           <h3
             className={`text-lg font-semibold flex items-center gap-1 ${
-              isBlocked 
-                ? (theme === "dark" ? "text-red-400" : "text-red-700")
-                : (theme === "dark" ? "text-red-400" : "text-red-700")
+              theme === "dark" ? "text-red-400" : "text-red-700"
             }`}
           >
             <CalendarDays className="w-4 h-4" /> Room {room.roomNo}
-            {isBlocked && ' 🔒'}
           </h3>
 
-          {!isBlocked && (
-            <button
-              onClick={handleDirectBooking}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
-            >
-              <CalendarPlus className="w-4 h-4" /> Direct Booking
-            </button>
-          )}
+          <button
+            onClick={handleDirectBooking}
+            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
+          >
+            <CalendarPlus className="w-4 h-4" /> Direct Booking
+          </button>
         </div>
 
-        {isBlocked ? (
-          <div className="mt-2">
-            <p className="text-sm font-semibold text-red-600">
-              Status: <span className="font-bold">BLOCKED</span>
-            </p>
-            {blockedTill && (
-              <p className="text-xs text-red-600 mt-1">
-                Until: {new Date(blockedTill).toLocaleDateString()}
-              </p>
-            )}
-            <p className="text-xs text-gray-600 mt-1 italic">
-              Click for details
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="text-sm mt-1">
-              Status:{" "}
-              {hasActive ? (
-                <span className="font-semibold text-red-600">Active (Checked-in)</span>
-              ) : hasPastOnly ? (
-                <span className="font-semibold text-gray-600">Past</span>
-              ) : hasUpcoming ? (
-                <span className="font-semibold text-green-600">Upcoming</span>
-              ) : (
-                <span className="font-semibold text-green-600">Available</span>
-              )}
-            </p>
+        <p className="text-sm mt-1">
+          Status:{" "}
+          {hasActive ? (
+            <span className="font-semibold text-red-600">Active (Checked-in)</span>
+          ) : hasPastOnly ? (
+            <span className="font-semibold text-gray-600">Past</span>
+          ) : hasUpcoming ? (
+            <span className="font-semibold text-green-600">Upcoming</span>
+          ) : (
+            <span className="font-semibold text-green-600">Available</span>
+          )}
+        </p>
 
-            {isBooked && !hasActive && !hasPastOnly && (
-              <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                {activeBookings.length === 1 ? (
-                  <>
-                    <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
-                    <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
-                    <p>→ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
-                  </>
-                ) : (
-                  <p className="italic">{activeBookings.length} upcoming bookings — click to view list</p>
-                )}
-              </div>
+        {isBooked && !hasActive && !hasPastOnly && (
+          <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+            {activeBookings.length === 1 ? (
+              <>
+                <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
+                <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
+                <p>â†’ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
+              </>
+            ) : (
+              <p className="italic">{activeBookings.length} upcoming bookings â€” click to view list</p>
             )}
-          </>
+          </div>
         )}
       </motion.div>
 
@@ -798,21 +748,6 @@ const RoomCard = memo(function RoomCard({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ✅ Blocked Room Info Modal */}
-      {blockedInfoModal && isBlocked && (
-        <BlockedRoomInfoModal
-          hostelName={hostelName || hostel}
-          roomNo={room.roomNo}
-          blockInfo={{
-            blockedTill,
-            blockRemarks,
-            blockAttachments
-          }}
-          onClose={() => setBlockedInfoModal(false)}
-          theme={theme}
-        />
-      )}
     </>
   );
 });

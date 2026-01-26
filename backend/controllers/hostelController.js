@@ -279,3 +279,147 @@ export const getHostel = async (req, res) => {
     });
   }
 };
+
+// ======================================================
+// BLOCK ROOM
+// ======================================================
+export const blockRoom = async (req, res) => {
+  try {
+    const { hostelName, roomNo } = req.params;
+    const { blockedTill, blockRemarks, blockAttachments } = req.body;
+
+    console.log("🔒 BLOCK ROOM REQUEST:", { hostelName, roomNo, blockedTill });
+
+    // Validation
+    if (!blockedTill || !blockRemarks || !blockAttachments || blockAttachments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "blockedTill, blockRemarks, and at least one attachment are required"
+      });
+    }
+
+    // Find hostel
+    const hostel = await Hostel.findOne({ name: hostelName });
+    if (!hostel) {
+      return res.status(404).json({ success: false, message: "Hostel not found" });
+    }
+
+    // Find room
+    const room = hostel.rooms.find(r => r.roomNo === roomNo);
+    if (!room) {
+      return res.status(404).json({ success: false, message: "Room not found" });
+    }
+
+    // Check if room has active bookings
+    const activeBookings = await Booking.find({
+      hostel: hostelName,
+      roomNo: roomNo,
+      status: { $in: ["booked", "checked_in"] }
+    });
+
+    if (activeBookings.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot block room with active bookings. Please cancel or complete existing bookings first."
+      });
+    }
+
+    // Check if blocking period conflicts with upcoming bookings
+    const blockedTillDate = new Date(blockedTill);
+    const conflictingBookings = await Booking.find({
+      hostel: hostelName,
+      roomNo: roomNo,
+      status: { $in: ["booked", "checked_in"] },
+      from: { $lte: blockedTillDate }
+    });
+
+    if (conflictingBookings.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot block room until ${blockedTillDate.toLocaleDateString()}. There are upcoming bookings in this period.`
+      });
+    }
+
+    // Block the room
+    room.isBlocked = true;
+    room.blockedTill = blockedTillDate;
+    room.blockRemarks = blockRemarks;
+    room.blockAttachments = blockAttachments;
+    room.blockedAt = new Date();
+    room.blockedBy = req.user?._id || null;
+
+    await hostel.save();
+
+    console.log("✅ Room blocked successfully:", roomNo);
+
+    res.json({
+      success: true,
+      message: "Room blocked successfully",
+      room
+    });
+
+  } catch (error) {
+    console.error("❌ Block room error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to block room",
+      error: error.message
+    });
+  }
+};
+
+// ======================================================
+// UNBLOCK ROOM
+// ======================================================
+export const unblockRoom = async (req, res) => {
+  try {
+    const { hostelName, roomNo } = req.params;
+
+    console.log("🔓 UNBLOCK ROOM REQUEST:", { hostelName, roomNo });
+
+    // Find hostel
+    const hostel = await Hostel.findOne({ name: hostelName });
+    if (!hostel) {
+      return res.status(404).json({ success: false, message: "Hostel not found" });
+    }
+
+    // Find room
+    const room = hostel.rooms.find(r => r.roomNo === roomNo);
+    if (!room) {
+      return res.status(404).json({ success: false, message: "Room not found" });
+    }
+
+    if (!room.isBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: "Room is not blocked"
+      });
+    }
+
+    // Unblock the room
+    room.isBlocked = false;
+    room.blockedTill = null;
+    room.blockRemarks = null;
+    room.blockAttachments = [];
+    room.blockedAt = null;
+    room.blockedBy = null;
+
+    await hostel.save();
+
+    console.log("✅ Room unblocked successfully:", roomNo);
+
+    res.json({
+      success: true,
+      message: "Room unblocked successfully",
+      room
+    });
+
+  } catch (error) {
+    console.error("❌ Unblock room error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to unblock room",
+      error: error.message
+    });
+  }
+};

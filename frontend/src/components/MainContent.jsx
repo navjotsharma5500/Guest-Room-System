@@ -4,6 +4,7 @@ import Calendar from "react-calendar";
 import { format } from "date-fns";
 import { Settings, Trash2, Filter, Building2, Search } from "lucide-react";
 import { combineDateAndTime } from "../utils/dateUtils";
+import { motion, AnimatePresence } from "framer-motion";
 
 import GuestDetails from "./GuestDetails";
 import RoomCard from "./RoomCard";
@@ -17,7 +18,7 @@ import LiveBookingCounter from "./LiveBookingCounter";
 import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
 import HostelMenuButton from "./HostelMenuButton";
-import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
+import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBlockingModals";
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -102,9 +103,10 @@ export default function MainContent(props) {
   const [showCalendarPage, setShowCalendarPage] = useState(false);
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
+  const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
 
   // ====================================================
-  // EVENT LISTENER – RELOAD HOSTEL DATA
+  // EVENT LISTENER â€“ RELOAD HOSTEL DATA
   // ====================================================
   useEffect(() => {
     const reload = () => {
@@ -135,9 +137,9 @@ export default function MainContent(props) {
   // ENQUIRY POLLING FROM BACKEND
   // ====================================================
   useEffect(() => {
-    // ✅ CRITICAL FIX: Only admin and manager should receive enquiry notifications
+    // âœ… CRITICAL FIX: Only admin and manager should receive enquiry notifications
     if (role !== "admin" && role !== "manager") {
-      console.log("🔒 Enquiry notifications disabled for role:", role);
+      console.log("ðŸ”’ Enquiry notifications disabled for role:", role);
       setNotifications([]);
       return; // Exit early for caretakers
     }
@@ -169,7 +171,7 @@ export default function MainContent(props) {
         return;
       }
 
-      // ✅ Only show toast for admin/manager
+      // âœ… Only show toast for admin/manager
       if (pending.length > lastPendingRef.current && notificationsEnabled) {
         const newest = pending[pending.length - 1];
 
@@ -224,22 +226,22 @@ export default function MainContent(props) {
 
   const upcoming = allBookings
     .filter((b) => {
-      // ✅ Filter by user role
+      // âœ… Filter by user role
       if (role === "admin" || role === "manager") return true;
       return b.hostel === userHostel;
     })
     .filter((b) => {
-      // ✅ CRITICAL FIX: Exclude cancelled, checked_out, no_show, and REPORTED/CHECKED_IN bookings
+      // âœ… CRITICAL FIX: Exclude cancelled, checked_out, no_show, and REPORTED/CHECKED_IN bookings
       if (["cancelled", "checked_out", "no_show", "checked_in"].includes(b.booking.status)) {
         return false;
       }
       
-      // ✅ ALSO exclude if reportedStatus is "reported" (additional safety check)
+      // âœ… ALSO exclude if reportedStatus is "reported" (additional safety check)
       if (b.booking.reportedStatus === "reported") {
         return false;
       }
       
-      // ✅ Use actualCheckInDate if guest reported early
+      // âœ… Use actualCheckInDate if guest reported early
       const fromDate = b.booking.actualCheckInDate || b.booking.from;
       const checkInDateTime = new Date(fromDate);
       
@@ -250,13 +252,13 @@ export default function MainContent(props) {
       
       const now = new Date();
       
-      // ✅ Show only FUTURE bookings (not currently checked in)
+      // âœ… Show only FUTURE bookings (not currently checked in)
       return checkInDateTime >= now;
     })
     .slice(0, 5);
 
     const getEffectiveCheckInDate = (booking) => {
-      // ✅ Use actualCheckInDate if guest reported early, otherwise use 'from'
+      // âœ… Use actualCheckInDate if guest reported early, otherwise use 'from'
       return booking.actualCheckInDate || booking.from;
     };
 
@@ -271,7 +273,7 @@ export default function MainContent(props) {
 
   const handleDownloadWithDates = () => {
     if (!downloadFromDate || !downloadToDate) {
-      alert("⚠️ Please select both From and To dates.");
+      alert("âš ï¸ Please select both From and To dates.");
       return;
     }
 
@@ -279,7 +281,7 @@ export default function MainContent(props) {
     const toDate = new Date(downloadToDate);
 
     if (fromDate > toDate) {
-      alert("⚠️ From date cannot be after To date.");
+      alert("âš ï¸ From date cannot be after To date.");
       return;
     }
 
@@ -292,31 +294,31 @@ export default function MainContent(props) {
 
   const handleDownload = async (filterFromDate = null, filterToDate = null) => {
     try {
-      console.log("🔥 Starting download with date filter:", { filterFromDate, filterToDate });
+      console.log("ðŸ”¥ Starting download with date filter:", { filterFromDate, filterToDate });
 
       // Fetch bookings
       const bookingsData = await apiFetchAllBookingsForDownload();
-      console.log("✅ Bookings fetched:", bookingsData);
+      console.log("âœ… Bookings fetched:", bookingsData);
 
-      // ✅ CRITICAL FIX: Only fetch enquiries for admin/manager
+      // âœ… CRITICAL FIX: Only fetch enquiries for admin/manager
       let enquiries = [];
       if (role === "admin" || role === "manager") {
         const enquiriesData = await fetchEnquiries();
         enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
-        console.log("✅ Enquiries fetched:", enquiries.length);
+        console.log("âœ… Enquiries fetched:", enquiries.length);
       } else {
-        console.log("🔒 Enquiries disabled for role:", role);
+        console.log("ðŸ”’ Enquiries disabled for role:", role);
       }
 
       if (!bookingsData.success || !bookingsData.hostels) {
-        alert("❌ Failed to fetch booking data");
+        alert("âŒ Failed to fetch booking data");
         return;
       }
 
       const bookings = [];
 
       // Extract all bookings from hostels structure
-      // ✅ CRITICAL FIX: Filter by user's hostel for caretakers
+      // âœ… CRITICAL FIX: Filter by user's hostel for caretakers
       (bookingsData.hostels || []).forEach((hostel) => {
         // Skip this hostel if caretaker and it's not their assigned hostel
         if (role === "caretaker" && userHostel && hostel.name !== userHostel) {
@@ -334,8 +336,8 @@ export default function MainContent(props) {
         });
       });    
 
-      console.log("📊 Total bookings:", bookings.length);
-      console.log("📊 Total enquiries:", enquiries.length);
+      console.log("ðŸ“Š Total bookings:", bookings.length);
+      console.log("ðŸ“Š Total enquiries:", enquiries.length);
 
       // Prepare CSV rows
       const rows = [];
@@ -362,7 +364,7 @@ export default function MainContent(props) {
         }
       };
 
-      // ✅ Helper function to format transaction date
+      // âœ… Helper function to format transaction date
       const formatTransactionDate = (dateStr) => {
         if (!dateStr) return "";
         try {
@@ -381,7 +383,7 @@ export default function MainContent(props) {
           }
         }
 
-        // ✅ PAYMENT DETAILS EXTRACTION
+        // âœ… PAYMENT DETAILS EXTRACTION
         const totalAmount = Number(b.totalAmount) || Number(b.amount) || 0;
         const paidAmount = Number(b.paidAmount) || 0;
         const discount = Number(b.discount) || Number(b.waveOff) || 0;
@@ -417,7 +419,7 @@ export default function MainContent(props) {
           Males: b.males || 0,
           Females: b.females || 0,
           
-          // ✅ FIXED: PAYMENT DETAILS WITH TRANSACTION INFO
+          // âœ… FIXED: PAYMENT DETAILS WITH TRANSACTION INFO
           PaymentType: b.paymentType || "Paid",
           TotalAmount: totalAmount,
           PaidAmount: paidAmount,
@@ -425,7 +427,7 @@ export default function MainContent(props) {
           BalanceAmount: balanceAmount,
           PaymentStatus: b.paymentStatus || "UNPAID",
           
-          // ✅ CRITICAL FIX: Add missing payment transaction fields
+          // âœ… CRITICAL FIX: Add missing payment transaction fields
           PaymentMode: b.paymentMode || b.paymentMethod || "",
           TransactionID: b.transactionId || "",
           TransactionDate: formatTransactionDate(b.transactionDate),
@@ -450,7 +452,7 @@ export default function MainContent(props) {
         });
       });
 
-      // ✅ CRITICAL FIX: Only process enquiries for admin/manager
+      // âœ… CRITICAL FIX: Only process enquiries for admin/manager
       if (role === "admin" || role === "manager") {
         // Process enquiries (rejected + pending only)
         enquiries.forEach((e) => {
@@ -486,7 +488,7 @@ export default function MainContent(props) {
               Males: e.males || 0,
               Females: e.females || 0,
               
-              // ✅ Payment fields (empty for enquiries)
+              // âœ… Payment fields (empty for enquiries)
               PaymentType: "",
               TotalAmount: "",
               PaidAmount: "",
@@ -514,10 +516,10 @@ export default function MainContent(props) {
         });
       }
 
-      console.log("📊 Total rows after filtering:", rows.length);
+      console.log("ðŸ“Š Total rows after filtering:", rows.length);
 
       if (!rows.length) {
-        alert("ℹ️ No data found for the selected date range.");
+        alert("â„¹ï¸ No data found for the selected date range.");
         return;
       }
 
@@ -544,7 +546,7 @@ export default function MainContent(props) {
         ? `_${new Date(filterFromDate).toISOString().split('T')[0]}_to_${new Date(filterToDate).toISOString().split('T')[0]}`
         : "";
 
-      // ✅ Add role to filename for clarity
+      // âœ… Add role to filename for clarity
       const rolePrefix = role === "caretaker" ? `${userHostel}_` : "";
       a.download = `${rolePrefix}complete_data_with_payment${dateRange}.csv`;
 
@@ -555,10 +557,10 @@ export default function MainContent(props) {
         ? `${rows.length} booking records (${userHostel} only)` 
         : `${rows.length} records (${rows.filter(r => r.Type === 'Booking').length} bookings, ${rows.filter(r => r.Type === 'Enquiry').length} enquiries)`;
       
-      alert(`✅ Downloaded ${recordType} with complete payment details.`);
+      alert(`âœ… Downloaded ${recordType} with complete payment details.`);
 
     } catch (err) {
-      console.error("❌ Download error:", err);
+      console.error("âŒ Download error:", err);
       alert("Failed to download data. Please try again.");
     }
   };
@@ -611,21 +613,11 @@ export default function MainContent(props) {
         hostelData={hostelData}
         completeHostelData={completeHostelData}
         theme={theme}
-        currentUser={currentUser}  // ✅ ADD THIS
+        currentUser={currentUser}  // âœ… ADD THIS
         onBack={() => setShowCalendarPage(false)}
       />
     );
   }
-
-  const handleBlockRoom = (hostelName, roomNo) => {
-    console.log("🔒 Block room clicked:", hostelName, roomNo);
-    setBlockRoomModal({ hostelName, roomNo });
-  };
-
-  const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
-    console.log("🔓 Unblock room clicked:", hostelName, roomNo);
-    setUnblockRoomModal({ hostelName, roomNo, blockInfo });
-  };
 
   // ====================================================
   // LOADING STATE
@@ -642,7 +634,7 @@ export default function MainContent(props) {
   // DATE FORMATTER HELPER
   // ====================================================
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "—";
+    if (!dateString) return "â€”";
     try {
       const normalizedTime = timeString && timeString.trim() ? timeString : "00:00";
       const dt = combineDateAndTime(dateString, normalizedTime);
@@ -662,7 +654,7 @@ export default function MainContent(props) {
       } ${theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
     >
       {/* ========================================================= */}
-      {/* TOP HEADER – BACK BUTTON, HOME, SEARCH, ANALYTICS */}
+      {/* TOP HEADER â€“ BACK BUTTON, HOME, SEARCH, ANALYTICS */}
       {/* ========================================================= */}
 
       {activeTab !== "Enquiry" && (
@@ -787,7 +779,7 @@ export default function MainContent(props) {
                       : "bg-white border-gray-200 hover:bg-red-50"
                   }`}
                 >
-                  🔔
+                  ðŸ””
                   {notifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5">
                       {notifications.length}
@@ -871,7 +863,7 @@ export default function MainContent(props) {
                           setShowNotifDropdown(false);
                         }}
                       >
-                        View all enquiries →
+                        View all enquiries â†’
                       </div>
                     )}
                   </div>
@@ -903,7 +895,7 @@ export default function MainContent(props) {
       ) : (
         <>
           {/* ========================================================= */}
-          {/* HOME DASHBOARD – NO HOSTEL SELECTED */}
+          {/* HOME DASHBOARD â€“ NO HOSTEL SELECTED */}
           {/* ========================================================= */}
           {activeTab === "Home" && !activeHostel && (
             <>
@@ -957,7 +949,7 @@ export default function MainContent(props) {
                     <div className={`flex flex-col items-center justify-center h-full min-h-[400px] ${
                       theme === "dark" ? "text-gray-400" : "text-gray-500"
                     }`}>
-                      <div className="text-6xl mb-4">📋</div>
+                      <div className="text-6xl mb-4">ðŸ“‹</div>
                       <p className="text-lg font-medium">No Booking Selected</p>
                       <p className="text-sm mt-2 text-center max-w-md">
                         Select a booking from the upcoming bookings below or click on a room to view details
@@ -975,7 +967,7 @@ export default function MainContent(props) {
                   <h3 className={`text-2xl font-semibold flex items-center gap-3 ${
                     theme === "dark" ? "text-red-400" : "text-red-700"
                   }`}>
-                    <span className="text-3xl">🗓️</span>
+                    <span className="text-3xl">ðŸ—“ï¸</span>
                     Upcoming Bookings
                     <span className={`text-base px-3 py-1 rounded-full ${
                       theme === "dark" 
@@ -1041,7 +1033,7 @@ export default function MainContent(props) {
                               <div className={`text-2xl ${
                                 theme === "dark" ? "text-red-400" : "text-red-600"
                               }`}>
-                                👤
+                                ðŸ‘¤
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className={`font-bold text-lg truncate ${
@@ -1063,7 +1055,7 @@ export default function MainContent(props) {
                                 ? "bg-gray-800/50" 
                                 : "bg-gray-50"
                             }`}>
-                              <span className="text-xl">🏢</span>
+                              <span className="text-xl">ðŸ¢</span>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-600"
@@ -1084,7 +1076,7 @@ export default function MainContent(props) {
                                 ? "bg-gray-800/50" 
                                 : "bg-gray-50"
                             }`}>
-                              <span className="text-xl">🚪</span>
+                              <span className="text-xl">ðŸšª</span>
                               <div className="flex-1">
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-600"
@@ -1107,7 +1099,7 @@ export default function MainContent(props) {
                             }`}>
                               {/* Check-in */}
                               <div className="flex items-center gap-2">
-                                <span className="text-sm">📅</span>
+                                <span className="text-sm">ðŸ“…</span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs ${
                                     theme === "dark" ? "text-blue-300" : "text-blue-700"
@@ -1128,7 +1120,7 @@ export default function MainContent(props) {
 
                               {/* Check-out */}
                               <div className="flex items-center gap-2">
-                                <span className="text-sm">📤</span>
+                                <span className="text-sm">ðŸ“¤</span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs ${
                                     theme === "dark" ? "text-blue-300" : "text-blue-700"
@@ -1148,7 +1140,7 @@ export default function MainContent(props) {
                             <div className={`mt-3 pt-3 border-t flex items-center gap-2 ${
                               theme === "dark" ? "border-gray-700" : "border-gray-200"
                             }`}>
-                              <span className="text-sm">📞</span>
+                              <span className="text-sm">ðŸ“ž</span>
                               <p className={`text-xs truncate ${
                                 theme === "dark" ? "text-gray-400" : "text-gray-600"
                               }`}>
@@ -1175,7 +1167,7 @@ export default function MainContent(props) {
                   <div className={`flex flex-col items-center justify-center py-16 ${
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}>
-                    <div className="text-6xl mb-4">📭</div>
+                    <div className="text-6xl mb-4">ðŸ“­</div>
                     <p className="text-xl font-semibold mb-2">No Upcoming Bookings</p>
                     <p className="text-sm">All upcoming bookings will appear here</p>
                   </div>
@@ -1185,13 +1177,13 @@ export default function MainContent(props) {
           )}  
 
           {/* ========================================================= */}
-          {/* HOME DASHBOARD – HOSTEL SELECTED (Room List + Details) */}
+          {/* HOME DASHBOARD â€“ HOSTEL SELECTED (Room List + Details) */}
           {/* ========================================================= */}
           {activeHostel && activeTab === "Home" && (
             <div className="grid grid-cols-2 gap-6 flex-grow">
 
               {/* ------------------------ */}
-              {/* LEFT PANEL – ROOM LIST */}
+              {/* LEFT PANEL â€“ ROOM LIST */}
               {/* ------------------------ */}
               <div
                 className={`shadow-md rounded-2xl overflow-hidden border ${
@@ -1202,7 +1194,7 @@ export default function MainContent(props) {
               >
                 {activeHostel === "All Hostels" ? (
                   <>
-                    {/* ✅ ENHANCED HEADER FOR ALL HOSTELS */}
+                    {/* âœ… ENHANCED HEADER FOR ALL HOSTELS */}
                     <div className={`p-5 border-b-4 border-red-500 ${
                       theme === "dark" 
                         ? "bg-gradient-to-r from-gray-900 to-gray-700" 
@@ -1278,29 +1270,24 @@ export default function MainContent(props) {
                     {/* Room List Content */}
                     <div className="p-6 overflow-y-auto max-h-[calc(100vh-350px)]">
                       {Object.entries(hostelData || {}).map(([name, h]) => (
-                        <div key={name} className={`border-b pb-3 mb-3 last:border-0 ...`}>
-                          
-                          {/* ✅ NEW - Hostel name with three dots button */}
-                          <div className="flex items-center justify-between mb-2">
-                            <h3
-                              className={`text-md font-semibold ${
-                                theme === "dark" ? "text-red-400" : "text-red-600"
-                              }`}
-                            >
-                              {name}
-                            </h3>
-                            
-                            {/* ✅ THREE DOTS MENU */}
-                            <HostelMenuButton
-                              hostelName={name}
-                              rooms={h.rooms || []}
-                              onBlockRoom={handleBlockRoom}
-                              onUnblockRoom={handleUnblockRoom}
-                              theme={theme}
-                            />
-                          </div>
+                        <div
+                          key={name}
+                          className={`border-b pb-3 mb-3 last:border-0 ${
+                            theme === "dark"
+                              ? "border-gray-700"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <h3
+                            className={`text-md font-semibold mb-2 ${
+                              theme === "dark"
+                                ? "text-red-400"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {name}
+                          </h3>
 
-                          {/* Room cards */}
                           {(h.rooms || []).map((room) => (
                             <RoomCard
                               key={room.roomNo}
@@ -1332,26 +1319,41 @@ export default function MainContent(props) {
                         ? "bg-gradient-to-r from-gray-900 to-gray-700" 
                         : "bg-gradient-to-r from-gray-200 to-gray-100"
                     }`}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`p-2 rounded-lg ${
-                          theme === "dark" ? "bg-red-900/30" : "bg-red-100"
-                        }`}>
-                          <Building2 className={`w-6 h-6 ${
-                            theme === "dark" ? "text-red-400" : "text-red-600"
-                          }`} />
-                        </div>
-                        <div>
-                          <h2 className={`text-2xl font-bold ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            theme === "dark" ? "bg-red-900/30" : "bg-red-100"
                           }`}>
-                            {activeHostel}
-                          </h2>
-                          <p className={`text-sm ${
-                            theme === "dark" ? "text-gray-300" : "text-gray-700"
-                          }`}>
-                            Guest room management and booking overview
-                          </p>
+                            <Building2 className={`w-6 h-6 ${
+                              theme === "dark" ? "text-red-400" : "text-red-600"
+                            }`} />
+                          </div>
+                          <div>
+                            <h2 className={`text-2xl font-bold ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {activeHostel}
+                            </h2>
+                            <p className={`text-sm ${
+                              theme === "dark" ? "text-gray-300" : "text-gray-700"
+                            }`}>
+                              Guest room management and booking overview
+                            </p>
+                          </div>
                         </div>
+
+                        {/* ✅ NEW: 3-Dots Menu Button */}
+                        <HostelMenuButton 
+                          hostelName={activeHostel}
+                          rooms={hostelData[activeHostel]?.rooms || []}
+                          onBlockRoom={(hostel, roomNo) => {
+                            setBlockRoomModal({ hostelName: hostel, roomNo });
+                          }}
+                          onUnblockRoom={(hostel, roomNo, blockInfo) => {
+                            setUnblockRoomModal({ hostelName: hostel, roomNo, blockInfo });
+                          }}
+                          theme={theme}
+                        />
                       </div>
 
                       {/* Stats Bar */}
@@ -1433,7 +1435,7 @@ export default function MainContent(props) {
               </div>
 
               {/* ------------------------ */}
-              {/* RIGHT PANEL – BOOKING DETAILS */}
+              {/* RIGHT PANEL â€“ BOOKING DETAILS */}
               {/* ------------------------ */}
               <div
                 className={`shadow-md rounded-2xl p-6 ${
@@ -1547,12 +1549,12 @@ export default function MainContent(props) {
           setRemarksText={(v) => setRemarksText(v)}
           onClose={() => setCancelModal(null)}
           onDone={async (remarks) => {
-            // ✅ Use MongoDB-integrated handler from props
+            // âœ… Use MongoDB-integrated handler from props
             if (typeof props.handleCancelModalCancel === "function") {
               await props.handleCancelModalCancel(remarks);
             } else {
-              // ⚠️ Fallback to local-only cancellation (not recommended)
-              console.warn("⚠️ handleCancelModalCancel not provided, using local-only cancel");  
+              // âš ï¸ Fallback to local-only cancellation (not recommended)
+              console.warn("âš ï¸ handleCancelModalCancel not provided, using local-only cancel");  
               cancelBooking(
                 cancelModal.hostel,
                 cancelModal.room.roomNo,
@@ -1570,7 +1572,7 @@ export default function MainContent(props) {
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
           <div className="max-w-xs w-full bg-white border border-red-200 shadow-xl rounded-xl p-4 flex items-start gap-3">
-            <div className="text-2xl">🔔</div>
+            <div className="text-2xl">ðŸ””</div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-red-700">
                 {toast.message}
@@ -1583,7 +1585,7 @@ export default function MainContent(props) {
               onClick={() => setToast({ show: false, message: "" })}
               className="text-gray-400 hover:text-gray-600 ml-2"
             >
-              ✕
+              âœ•
             </button>
           </div>
         </div>
@@ -1605,7 +1607,7 @@ export default function MainContent(props) {
                   theme === "dark" ? "text-red-400" : "text-red-700"
                 }`}
               >
-                📅 Select Date Range for Complete Download
+                ðŸ“… Select Date Range for Complete Download
               </h3>
               <button
                 className={
@@ -1619,7 +1621,7 @@ export default function MainContent(props) {
                   setDownloadToDate("");
                 }}
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1667,14 +1669,14 @@ export default function MainContent(props) {
                     : "bg-blue-50 border border-blue-200 text-blue-800"
                 }`}
               >
-                <p className="font-semibold">📊 Download Includes:</p>
+                <p className="font-semibold">ðŸ“Š Download Includes:</p>
                 <ul className="space-y-1 ml-4">
-                  <li>✅ <strong>Approved Bookings</strong> - with all details</li>
-                  <li>❌ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
-                  <li>🚫 <strong>Cancelled Bookings</strong> - with cancel remarks</li>
-                  <li>🆓 <strong>Free Bookings</strong> - with free remarks</li>
-                  <li>👤 <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>
-                  <li>📝 <strong>All Remarks</strong> - Cancel remarks, Free remarks, Rejection reasons</li>
+                  <li>âœ… <strong>Approved Bookings</strong> - with all details</li>
+                  <li>âŒ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
+                  <li>ðŸš« <strong>Cancelled Bookings</strong> - with cancel remarks</li>
+                  <li>ðŸ†“ <strong>Free Bookings</strong> - with free remarks</li>
+                  <li>ðŸ‘¤ <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>
+                  <li>ðŸ“ <strong>All Remarks</strong> - Cancel remarks, Free remarks, Rejection reasons</li>
                 </ul>
               </div>
             </div>
@@ -1722,40 +1724,57 @@ export default function MainContent(props) {
         />
       )}
 
-      {/* ✅ Block Room Modal */}
-      {blockRoomModal && (
-        <BlockRoomModal
-          hostelName={blockRoomModal.hostelName}
-          roomNo={blockRoomModal.roomNo}
-          onClose={() => setBlockRoomModal(null)}
-          onSuccess={() => {
-            setBlockRoomModal(null);
-            // Trigger data refresh
-            if (typeof window.fetchLatestHostelData === "function") {
-              window.fetchLatestHostelData();
-            }
-          }}
-          theme={theme}
-        />
-      )}
+      {/* ✅ ROOM BLOCKING MODALS */}
+      <AnimatePresence mode="wait">
+        {blockRoomModal && (
+          <BlockRoomModal
+            hostelName={blockRoomModal.hostelName}
+            roomNo={blockRoomModal.roomNo}
+            onClose={() => setBlockRoomModal(null)}
+            onSuccess={(result) => {
+              console.log("✅ Room blocked:", result);
+              setBlockRoomModal(null);
+              // Trigger data refresh
+              if (typeof window.fetchLatestHostelData === "function") {
+                window.fetchLatestHostelData();
+              }
+            }}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* ✅ Unblock Room Modal */}
-      {unblockRoomModal && (
-        <UnblockRoomModal
-          hostelName={unblockRoomModal.hostelName}
-          roomNo={unblockRoomModal.roomNo}
-          blockInfo={unblockRoomModal.blockInfo}
-          onClose={() => setUnblockRoomModal(null)}
-          onSuccess={() => {
-            setUnblockRoomModal(null);
-            // Trigger data refresh
-            if (typeof window.fetchLatestHostelData === "function") {
-              window.fetchLatestHostelData();
-            }
-          }}
-          theme={theme}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {unblockRoomModal && (
+          <UnblockRoomModal
+            hostelName={unblockRoomModal.hostelName}
+            roomNo={unblockRoomModal.roomNo}
+            blockInfo={unblockRoomModal.blockInfo}
+            onClose={() => setUnblockRoomModal(null)}
+            onSuccess={(result) => {
+              console.log("✅ Room unblocked:", result);
+              setUnblockRoomModal(null);
+              // Trigger data refresh
+              if (typeof window.fetchLatestHostelData === "function") {
+                window.fetchLatestHostelData();
+              }
+            }}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {blockedRoomInfoModal && (
+          <BlockedRoomInfoModal
+            hostelName={blockedRoomInfoModal.hostelName}
+            roomNo={blockedRoomInfoModal.roomNo}
+            blockInfo={blockedRoomInfoModal.blockInfo}
+            onClose={() => setBlockedRoomInfoModal(null)}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );          
 }
