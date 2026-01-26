@@ -1,7 +1,7 @@
 // src/components/RoomBlockingModals.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useToast, showToast } from "../context/ToastContext";
+import { useToast } from "../context/ToastContext";
 import { X, Upload, CheckCircle, Trash2, AlertTriangle, Lock, Unlock, Building, FileText } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
@@ -312,6 +312,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
 // UNBLOCK ROOM MODAL
 // ========================================
 export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuccess, theme }) {
+  const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
   const handleUnblock = async () => {

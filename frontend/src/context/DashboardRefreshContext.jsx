@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useRef } from 'react';
-import { useToast, showToast } from "./ToastContext";
+import { useToast } from "./ToastContext";
 
 /**
  * 🔄 CENTRALIZED DASHBOARD REFRESH SYSTEM
@@ -179,6 +179,7 @@ export function DashboardRefreshProvider({ children, onRefresh }) {
 // Example Modal Implementation
 export function ExampleModalWithRefresh({ booking, onClose, onSuccess }) {
   const { refreshDashboard } = useDashboardRefresh();
+  const { showToast } = useToast();
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async () => {
