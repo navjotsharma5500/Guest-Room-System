@@ -286,7 +286,31 @@ export const getHostel = async (req, res) => {
 // ======================================================
 export const blockRoom = async (req, res) => {
   try {
+    // ==================================================
+    // 🔒 ROLE & HOSTEL AUTHORIZATION
+    // ==================================================
+    const { role, assignedHostel } = req.user;
     const { hostelName, roomNo } = req.params;
+
+    // Admin / Manager → allowed everywhere
+    if (role === "admin" || role === "manager") {
+      // allowed
+    }
+    // Caretaker → only own hostel
+    else if (role === "caretaker") {
+      if (assignedHostel !== hostelName) {
+        return res.status(403).json({
+          message: "Caretaker can block rooms only in their assigned hostel",
+        });
+      }
+    }
+    // Everyone else → forbidden
+    else {
+      return res.status(403).json({
+        message: "You are not authorized to block or unblock rooms",
+      });
+    }
+
     const { blockedTill, blockRemarks, blockAttachments } = req.body;
 
     console.log("🔒 BLOCK ROOM REQUEST:", {
@@ -441,7 +465,30 @@ export const blockRoom = async (req, res) => {
 // ======================================================
 export const unblockRoom = async (req, res) => {
   try {
+    // ==================================================
+    // 🔒 ROLE & HOSTEL AUTHORIZATION
+    // ==================================================
+    const { role, assignedHostel } = req.user;
     const { hostelName, roomNo } = req.params;
+
+    // Admin / Manager → allowed everywhere
+    if (role === "admin" || role === "manager") {
+      // allowed
+    }
+    // Caretaker → only own hostel
+    else if (role === "caretaker") {
+      if (assignedHostel !== hostelName) {
+        return res.status(403).json({
+          message: "Caretaker can block rooms only in their assigned hostel",
+        });
+      }
+    }
+    // Everyone else → forbidden
+    else {
+      return res.status(403).json({
+        message: "You are not authorized to block or unblock rooms",
+      });
+    }
 
     console.log("🔓 UNBLOCK ROOM REQUEST:", {
       hostelName,

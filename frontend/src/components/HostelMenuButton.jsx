@@ -58,7 +58,11 @@ export default function HostelMenuButton({
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div
+      ref={menuRef}
+      className="relative flex-shrink-0 z-30"
+      style={{ minWidth: "32px" }}
+    >
       {/* Three Dots Button */}
       <button
         onClick={(e) => {

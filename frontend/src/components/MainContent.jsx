@@ -1368,14 +1368,20 @@ export default function MainContent(props) {
                           </div>
                         </div>
 
-                        {/* âœ… RIGHT SIDE - THREE DOTS MENU */}
-                        <HostelMenuButton
-                          hostelName={activeHostel}
-                          rooms={hostelData[activeHostel]?.rooms || []}
-                          onBlockRoom={handleBlockRoom}
-                          onUnblockRoom={handleUnblockRoom}
-                          theme={theme}
-                        />
+                        {/* ✅ RIGHT SIDE - THREE DOTS MENU (Role + Hostel scoped) */}
+                        {(
+                          role === "admin" ||
+                          role === "manager" ||
+                          (role === "caretaker" && activeHostel === userHostel)
+                        ) && (
+                          <HostelMenuButton
+                            hostelName={activeHostel}
+                            rooms={hostelData[activeHostel]?.rooms || []}
+                            onBlockRoom={handleBlockRoom}
+                            onUnblockRoom={handleUnblockRoom}
+                            theme={theme}
+                          />
+                        )}
                       </div>
 
                       {/* Stats Bar */}
