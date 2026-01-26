@@ -50,6 +50,13 @@ export function useHostelDataPolling(initialData = {}) {
           rooms: (h.rooms || []).map((r) => ({
             ...r,
             bookings: [],
+            // ✅ CRITICAL FIX: Preserve blocked status from backend
+            isBlocked: r.isBlocked || false,
+            blockedTill: r.blockedTill || null,
+            blockRemarks: r.blockRemarks || "",
+            blockAttachments: r.blockAttachments || [],
+            blockedAt: r.blockedAt || null,
+            blockedBy: r.blockedBy || null,
           })),
         };
       });
@@ -73,7 +80,18 @@ export function useHostelDataPolling(initialData = {}) {
             );
 
             if (targetRoom) {
+              // ✅ CRITICAL FIX: Only update bookings, preserve blocked status
               targetRoom.bookings = room.bookings || [];
+              
+              // ✅ Update blocked status if present in booking response
+              if (room.isBlocked !== undefined) {
+                targetRoom.isBlocked = room.isBlocked;
+                targetRoom.blockedTill = room.blockedTill;
+                targetRoom.blockRemarks = room.blockRemarks;
+                targetRoom.blockAttachments = room.blockAttachments;
+                targetRoom.blockedAt = room.blockedAt;
+                targetRoom.blockedBy = room.blockedBy;
+              }
             }
           });
         });
@@ -205,6 +223,19 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    // ✅ NEW: Listen for room blocking events
+    const handleRoomBlocked = () => {
+      console.log("🔒 Room blocked - refreshing...");
+      fetchData(true);
+    };
+
+    const handleRoomUnblocked = () => {
+      console.log("🔓 Room unblocked - refreshing...");
+      fetchData(true);
+    };
+
+    socket.on("room-blocked", handleRoomBlocked);
+    socket.on("room-unblocked", handleRoomUnblocked);
     socket.on("booking-created", handleBookingCreated);
     socket.on("booking-cancelled", handleBookingCancelled);
     socket.on("booking-extended", handleBookingExtended);
@@ -236,6 +267,8 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
       socket.off("room-auto-unblocked", handleRoomAutoUnblocked);
+      socket.off("room-blocked", handleRoomBlocked);
+      socket.off("room-unblocked", handleRoomUnblocked);
     };
   }, [fetchData]);
 

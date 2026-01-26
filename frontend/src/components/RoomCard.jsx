@@ -28,6 +28,16 @@ const RoomCard = memo(function RoomCard({
 
   // ✅ Check if room is blocked
   const isRoomBlocked = room.isBlocked || false;
+
+  // ✅ DEBUG: Log blocked status
+  console.log("🔍 RoomCard blocked check:", {
+    hostel: hostelName || hostel,
+    roomNo: room.roomNo,
+    isBlocked: room.isBlocked,
+    blockedTill: room.blockedTill,
+    blockRemarks: room.blockRemarks,
+    hasAttachments: room.blockAttachments?.length || 0
+  });
   const blockInfo = isRoomBlocked ? {
     blockedTill: room.blockedTill,
     blockRemarks: room.blockRemarks,
