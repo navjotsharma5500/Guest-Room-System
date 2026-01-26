@@ -462,7 +462,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const response = await fetch(`${API}/api/feedbacks?limit=1000`, {
+      const response = await fetch(`${API}/api/feedback?limit=1000`, {
         method: "GET",
         credentials: "include",
         headers,
@@ -510,7 +510,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
         "Authorization": `Bearer ${token}`
       };
 
-      const response = await fetch(`${API}/api/feedbacks`, {
+      const response = await fetch(`${API}/api/feedback`, {
         method: "POST",
         credentials: "include",
         headers,
