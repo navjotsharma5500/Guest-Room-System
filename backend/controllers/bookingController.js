@@ -55,7 +55,7 @@ import wardenDirectBookingFree from "../emails/templates/wardenDirectBookingFree
 const MANAGER_EMAIL = process.env.MANAGER_EMAIL;
 
 if (!MANAGER_EMAIL) {
-  console.warn("⚠️ MANAGER_EMAIL not set — manager emails will be skipped");
+  console.warn("âš ï¸ MANAGER_EMAIL not set â€” manager emails will be skipped");
 }
 
 // ======================================================
@@ -63,16 +63,16 @@ if (!MANAGER_EMAIL) {
 // ======================================================
 const refreshBookingEmails = async (booking) => {
   try {
-    console.log("🔄 Refreshing emails from database for hostel:", booking.hostel);
+    console.log("ðŸ”„ Refreshing emails from database for hostel:", booking.hostel);
     
     const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
     
     if (!hostelDoc) {
-      console.error("❌ Hostel not found in database:", booking.hostel);
+      console.error("âŒ Hostel not found in database:", booking.hostel);
       return booking;
     }
 
-    console.log("✅ Fetched fresh hostel emails:", {
+    console.log("âœ… Fetched fresh hostel emails:", {
       hostel: hostelDoc.name,
       caretakerEmail: hostelDoc.caretakerEmail,
       wardenEmail: hostelDoc.wardenEmail
@@ -83,7 +83,7 @@ const refreshBookingEmails = async (booking) => {
 
     return booking;
   } catch (error) {
-    console.error("❌ Error refreshing booking emails:", error);
+    console.error("âŒ Error refreshing booking emails:", error);
     return booking;
   }
 };
@@ -92,7 +92,7 @@ const refreshBookingEmails = async (booking) => {
 // ENHANCED safeSend with validation logging
 // ======================================================
 const safeSend = (emailPayload) => {
-  console.log("📧 safeSend called:", {
+  console.log("ðŸ“§ safeSend called:", {
     to: emailPayload?.to,
     subject: emailPayload?.subject,
     type: emailPayload?.meta?.type,
@@ -100,7 +100,7 @@ const safeSend = (emailPayload) => {
   });
 
   if (!emailPayload?.to || String(emailPayload.to).trim() === "") {
-    console.warn("⚠️ safeSend SKIPPED - No recipient email:", {
+    console.warn("âš ï¸ safeSend SKIPPED - No recipient email:", {
       type: emailPayload?.meta?.type,
       bookingId: emailPayload?.meta?.bookingId
     });
@@ -109,7 +109,7 @@ const safeSend = (emailPayload) => {
 
   sendEmail(emailPayload)
     .then(() => {
-      console.log("✅ Email sent successfully:", emailPayload.to);
+      console.log("âœ… Email sent successfully:", emailPayload.to);
       try {
         EmailLog.create({
           to: emailPayload.to,
@@ -123,7 +123,7 @@ const safeSend = (emailPayload) => {
       }
     })
     .catch((err) => {
-      console.error("❌ Email send failed:", emailPayload.to, err.message);
+      console.error("âŒ Email send failed:", emailPayload.to, err.message);
       try {
         EmailLog.create({
           to: emailPayload.to,
@@ -140,10 +140,10 @@ const safeSend = (emailPayload) => {
 };
 
 // ======================================================
-// ✅ UPDATED - Event-driven email dispatcher
+// âœ… UPDATED - Event-driven email dispatcher
 // ======================================================
 export const sendBookingEmails = (booking, statusType) => {
-  console.log("📨 sendBookingEmails called:", {
+  console.log("ðŸ“¨ sendBookingEmails called:", {
     bookingId: booking._id,
     statusType,
     caretakerEmail: booking.caretakerEmail,
@@ -160,22 +160,22 @@ export const sendBookingEmails = (booking, statusType) => {
   const guestEmail = booking.email;
 
   if (!caretakerEmail) {
-    console.error("❌ CRITICAL: Caretaker email missing for booking:", {
+    console.error("âŒ CRITICAL: Caretaker email missing for booking:", {
       bookingId: booking._id,
       hostel: booking.hostel
     });
   }
   if (!wardenEmail) {
-    console.error("❌ CRITICAL: Warden email missing for booking:", booking._id);
+    console.error("âŒ CRITICAL: Warden email missing for booking:", booking._id);
   }
   if (!guestEmail) {
-    console.error("❌ CRITICAL: Guest email missing for booking:", booking._id);
+    console.error("âŒ CRITICAL: Guest email missing for booking:", booking._id);
   }
 
   try {
     // DIRECT BOOKING
     if (statusType === "created") {
-      console.log("📤 Sending DIRECT BOOKING emails to all recipients...");
+      console.log("ðŸ“¤ Sending DIRECT BOOKING emails to all recipients...");
       
       // Guest email - use paid or free template
       safeSend({
@@ -243,7 +243,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
     // APPROVED BOOKING
     if (statusType === "approved") {
-      console.log("📤 Sending APPROVAL emails to all recipients...");
+      console.log("ðŸ“¤ Sending APPROVAL emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -301,7 +301,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
     // CANCELLED BOOKING
     if (statusType === "cancelled") {
-      console.log("📤 Sending CANCELLATION emails to all recipients...");
+      console.log("ðŸ“¤ Sending CANCELLATION emails to all recipients...");
       
       safeSend({
         to: guestEmail,
@@ -349,7 +349,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
     // EXTENDED BOOKING
     if (statusType === "extended") {
-      console.log("📤 Sending EXTENSION emails to all recipients...");
+      console.log("ðŸ“¤ Sending EXTENSION emails to all recipients...");
       
       // Check if extension is paid
       const isExtensionPaid = 
@@ -420,8 +420,8 @@ export const sendBookingEmails = (booking, statusType) => {
       return;
     }
 
-    // ✅ Catch unknown statusType
-    console.error("❌ UNKNOWN EMAIL EVENT TYPE:", {
+    // âœ… Catch unknown statusType
+    console.error("âŒ UNKNOWN EMAIL EVENT TYPE:", {
       bookingId: booking._id,
       statusType,
       hostel: booking.hostel,
@@ -429,7 +429,7 @@ export const sendBookingEmails = (booking, statusType) => {
     });
 
   } catch (err) {
-    console.error("❌ EMAIL DISPATCH ERROR:", err);
+    console.error("âŒ EMAIL DISPATCH ERROR:", err);
     console.error("Stack:", err.stack);
   }
 };
@@ -440,8 +440,8 @@ export const sendBookingEmails = (booking, statusType) => {
 export const createBooking = async (req, res) => {
   try {
     console.log("================================================================================");
-    console.log("🔥 CREATE BOOKING REQUEST");
-    console.log("📦 Body:", JSON.stringify(req.body, null, 2));
+    console.log("ðŸ”¥ CREATE BOOKING REQUEST");
+    console.log("ðŸ“¦ Body:", JSON.stringify(req.body, null, 2));
     console.log("================================================================================");
 
     const payload = req.body;
@@ -452,7 +452,7 @@ export const createBooking = async (req, res) => {
     if (!payload.hostel) throw new Error("Hostel required");
     if (!payload.roomNo) throw new Error("Room number required");
 
-    console.log("🔍 Looking up hostel:", payload.hostel);
+    console.log("ðŸ” Looking up hostel:", payload.hostel);
     const hostelDoc = await Hostel.findOne({ name: payload.hostel }).lean();
 
     if (!hostelDoc) {
@@ -462,14 +462,14 @@ export const createBooking = async (req, res) => {
     const caretakerEmail = hostelDoc.caretakerEmail;
     const wardenEmail = hostelDoc.wardenEmail;
 
-    console.log("✅ Hostel emails fetched from database:", {
+    console.log("âœ… Hostel emails fetched from database:", {
       hostel: hostelDoc.name,
       caretakerEmail: caretakerEmail,
       wardenEmail: wardenEmail
     });
 
     if (!caretakerEmail || !wardenEmail) {
-      console.error("❌ CRITICAL: Hostel missing required emails:", hostelDoc.name);
+      console.error("âŒ CRITICAL: Hostel missing required emails:", hostelDoc.name);
     }
 
     const paymentType = payload.paymentType || "Paid";
@@ -537,23 +537,23 @@ export const createBooking = async (req, res) => {
       wardenEmail: wardenEmail,
     };
 
-    console.log("✅ Creating booking with database emails:", {
+    console.log("âœ… Creating booking with database emails:", {
       caretakerEmail: bookingData.caretakerEmail,
       wardenEmail: bookingData.wardenEmail
     });
 
     const booking = await Booking.create(bookingData);
 
-    console.log("✅ Booking created, sending emails...");
+    console.log("âœ… Booking created, sending emails...");
     sendBookingEmails(booking, "created");
 
     console.log("================================================================================");
-    console.log("✅ BOOKING CREATED:", booking._id);
-    console.log("💰 Payment Type:", booking.paymentType);
-    console.log("💵 Total:", booking.totalAmount);
-    console.log("📊 Status:", booking.paymentStatus);
-    console.log("📧 Caretaker Email:", booking.caretakerEmail);
-    console.log("📧 Warden Email:", booking.wardenEmail);
+    console.log("âœ… BOOKING CREATED:", booking._id);
+    console.log("ðŸ’° Payment Type:", booking.paymentType);
+    console.log("ðŸ’µ Total:", booking.totalAmount);
+    console.log("ðŸ“Š Status:", booking.paymentStatus);
+    console.log("ðŸ“§ Caretaker Email:", booking.caretakerEmail);
+    console.log("ðŸ“§ Warden Email:", booking.wardenEmail);
     console.log("================================================================================");
 
     if (req.user?._id) {
@@ -568,13 +568,13 @@ export const createBooking = async (req, res) => {
         roomNo: booking.roomNo,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted booking-created event');
+      console.log('ðŸ“¡ Emitted booking-created event');
     }
 
     res.json({ success: true, booking });
 
   } catch (err) {
-    console.error("❌ CREATE BOOKING ERROR:", err.message);
+    console.error("âŒ CREATE BOOKING ERROR:", err.message);
     console.error("Stack:", err.stack);
     
     res.status(500).json({ 
@@ -608,7 +608,7 @@ export const markReported = async (req, res) => {
       });
     }
 
-    // ✅ CRITICAL FIX: Handle early check-in
+    // âœ… CRITICAL FIX: Handle early check-in
     const reportDate = actualCheckInDate ? new Date(actualCheckInDate) : new Date();
     const scheduledDate = new Date(booking.from);
     
@@ -616,7 +616,7 @@ export const markReported = async (req, res) => {
     reportDate.setHours(0, 0, 0, 0);
     scheduledDate.setHours(0, 0, 0, 0);
 
-    console.log("📅 Check-in Date Comparison:", {
+    console.log("ðŸ“… Check-in Date Comparison:", {
       reportDate: reportDate.toISOString(),
       scheduledDate: scheduledDate.toISOString(),
       isEarlyCheckIn: reportDate < scheduledDate
@@ -630,11 +630,11 @@ export const markReported = async (req, res) => {
     booking.idVerified = Boolean(idVerified);
     booking.status = "checked_in";
     
-    // ✅ CRITICAL: If early check-in, update the main 'from' date
+    // âœ… CRITICAL: If early check-in, update the main 'from' date
     if (reportDate < scheduledDate) {
-      console.log("🔄 Early check-in detected! Updating 'from' date...");
+      console.log("ðŸ”„ Early check-in detected! Updating 'from' date...");
       booking.from = new Date(actualCheckInDate);
-      console.log("✅ Updated booking.from to:", booking.from.toISOString());
+      console.log("âœ… Updated booking.from to:", booking.from.toISOString());
     }
     
     if (req.user && req.user._id) {
@@ -647,7 +647,7 @@ export const markReported = async (req, res) => {
 
     await booking.save();
 
-    console.log("✅ Guest reported successfully:", {
+    console.log("âœ… Guest reported successfully:", {
       bookingId: booking._id,
       guest: booking.guest,
       originalFrom: scheduledDate.toISOString(),
@@ -656,21 +656,21 @@ export const markReported = async (req, res) => {
       wasEarlyCheckIn: reportDate < scheduledDate
     });
 
-    // ✅ EMIT SOCKET.IO EVENT WITH FULL BOOKING DATA
+    // âœ… EMIT SOCKET.IO EVENT WITH FULL BOOKING DATA
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('guest-reported', { 
         bookingId: booking._id,
         hostel: booking.hostel,
         roomNo: booking.roomNo,
-        from: booking.from, // ✅ Include updated dates
+        from: booking.from, // âœ… Include updated dates
         to: booking.to,
         actualCheckInDate: booking.actualCheckInDate,
         actualCheckInTime: booking.actualCheckInTime,
         status: booking.status,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted guest-reported event with updated dates');
+      console.log('ðŸ“¡ Emitted guest-reported event with updated dates');
     }
 
     res.json({
@@ -683,7 +683,7 @@ export const markReported = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ MARK REPORTED ERROR:", err);
+    console.error("âŒ MARK REPORTED ERROR:", err);
     res.status(500).json({ 
       success: false, 
       message: "Server error", 
@@ -767,7 +767,7 @@ export const checkOutGuest = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ CHECK OUT ERROR:", err);
+    console.error("âŒ CHECK OUT ERROR:", err);
     res.status(500).json({ 
       success: false, 
       message: "Server error", 
@@ -834,7 +834,7 @@ export const updatePaymentDetails = async (req, res) => {
         balanceAmount: booking.balanceAmount,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted payment-updated event');
+      console.log('ðŸ“¡ Emitted payment-updated event');
     }
 
     res.json({
@@ -850,7 +850,7 @@ export const updatePaymentDetails = async (req, res) => {
 };
 
 // ======================================================
-// ✅ EXTEND BOOKING (Controller) — PAYMENT + EMAIL SAFE
+// âœ… EXTEND BOOKING (Controller) â€” PAYMENT + EMAIL SAFE
 // ======================================================
 export const extendBooking = async (req, res) => {
   try {
@@ -864,7 +864,7 @@ export const extendBooking = async (req, res) => {
       extensionPaymentAttachments
     } = req.body;
 
-    console.log("🔥 EXTENSION REQUEST RECEIVED:", {
+    console.log("ðŸ”¥ EXTENSION REQUEST RECEIVED:", {
       bookingId: req.params.id,
       newTo,
       extensionPaymentType,
@@ -874,14 +874,14 @@ export const extendBooking = async (req, res) => {
     let booking = await Booking.findById(req.params.id);
 
     if (!booking) {
-      console.error("❌ EXTENSION FAILED: Booking not found", req.params.id);
+      console.error("âŒ EXTENSION FAILED: Booking not found", req.params.id);
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
     // ==================================================
     // REFRESH STAFF EMAILS
     // ==================================================
-    console.log("📍 Booking emails BEFORE refresh:", {
+    console.log("ðŸ“ Booking emails BEFORE refresh:", {
       caretakerEmail: booking.caretakerEmail,
       wardenEmail: booking.wardenEmail,
       hostel: booking.hostel
@@ -889,7 +889,7 @@ export const extendBooking = async (req, res) => {
 
     booking = await refreshBookingEmails(booking);
 
-    console.log("📍 Booking emails AFTER refresh:", {
+    console.log("ðŸ“ Booking emails AFTER refresh:", {
       caretakerEmail: booking.caretakerEmail,
       wardenEmail: booking.wardenEmail
     });
@@ -903,7 +903,7 @@ export const extendBooking = async (req, res) => {
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks || "";
 
-    console.log("📅 Extension applied:", {
+    console.log("ðŸ“… Extension applied:", {
       previousTo,
       newTo: booking.to
     });
@@ -944,16 +944,16 @@ export const extendBooking = async (req, res) => {
     // ==================================================
     await booking.save();
 
-    console.log("✅ Booking extended & saved:", {
+    console.log("âœ… Booking extended & saved:", {
       bookingId: booking._id,
       newTo: booking.to,
       extensionPaymentType: booking.extensionPaymentType
     });
 
     // ==================================================
-    // 🔔 EMAIL DISPATCH (EVENT-BASED)
+    // ðŸ”” EMAIL DISPATCH (EVENT-BASED)
     // ==================================================
-    console.log("📨 CALLING sendBookingEmails (EXTENDED EVENT):", {
+    console.log("ðŸ“¨ CALLING sendBookingEmails (EXTENDED EVENT):", {
       bookingId: booking._id,
       guest: booking.email,
       caretaker: booking.caretakerEmail,
@@ -975,7 +975,7 @@ export const extendBooking = async (req, res) => {
         newTo: booking.to,
         timestamp: Date.now()
       });
-      console.log("📡 Emitted booking-extended socket event");
+      console.log("ðŸ“¡ Emitted booking-extended socket event");
     }
 
     return res.json({
@@ -985,7 +985,7 @@ export const extendBooking = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Extend booking error:", err);
+    console.error("âŒ Extend booking error:", err);
     console.error("Stack:", err.stack);
     return res.status(500).json({
       success: false,
@@ -1008,12 +1008,12 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    console.log("🚫 CANCEL BOOKING:", {
+    console.log("ðŸš« CANCEL BOOKING:", {
       bookingId: booking._id,
       hostel: booking.hostel
     });
 
-    // ✅ Refresh emails from database
+    // âœ… Refresh emails from database
     booking = await refreshBookingEmails(booking);
 
     booking.status = "cancelled";
@@ -1022,7 +1022,7 @@ export const cancelBooking = async (req, res) => {
 
     await booking.save();
 
-    console.log("✅ Booking cancelled, sending emails...");
+    console.log("âœ… Booking cancelled, sending emails...");
     sendBookingEmails(booking, "cancelled");
 
     const io = req.app.get('io');
@@ -1033,13 +1033,13 @@ export const cancelBooking = async (req, res) => {
         roomNo: booking.roomNo,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted booking-cancelled event');
+      console.log('ðŸ“¡ Emitted booking-cancelled event');
     }
 
     res.json({ success: true, message: "Booking cancelled", booking });
 
   } catch (err) {
-    console.error("❌ Cancel booking error:", err);
+    console.error("âŒ Cancel booking error:", err);
     console.error("Stack:", err.stack);
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1221,9 +1221,9 @@ export const autoCancelNoShows = async () => {
     const now = new Date();
     const tenHoursAgo = new Date(now.getTime() - (10 * 60 * 60 * 1000));
 
-    console.log("🔍 Checking for no-show bookings...");
-    console.log("⏰ Current time:", now.toISOString());
-    console.log("⏰ 10 hours ago:", tenHoursAgo.toISOString());
+    console.log("ðŸ” Checking for no-show bookings...");
+    console.log("â° Current time:", now.toISOString());
+    console.log("â° 10 hours ago:", tenHoursAgo.toISOString());
 
     // Find bookings that:
     // 1. Are still "booked" status
@@ -1235,7 +1235,7 @@ export const autoCancelNoShows = async () => {
       from: { $lte: tenHoursAgo }
     });
 
-    console.log(`📋 Found ${noShowBookings.length} no-show bookings`);
+    console.log(`ðŸ“‹ Found ${noShowBookings.length} no-show bookings`);
 
     for (const booking of noShowBookings) {
       // Calculate exact check-in datetime
@@ -1252,7 +1252,7 @@ export const autoCancelNoShows = async () => {
 
         await booking.save();
 
-        console.log(`✅ Auto-cancelled booking ${booking._id} for ${booking.guest}`);
+        console.log(`âœ… Auto-cancelled booking ${booking._id} for ${booking.guest}`);
 
         // Send emails - NO AWAIT
         try {
@@ -1288,9 +1288,9 @@ export const autoCancelNoShows = async () => {
             });
           }
 
-          console.log(`📧 Cancellation emails sent for booking ${booking._id}`);
+          console.log(`ðŸ“§ Cancellation emails sent for booking ${booking._id}`);
         } catch (emailErr) {
-          console.error(`❌ Email error for booking ${booking._id}:`, emailErr);
+          console.error(`âŒ Email error for booking ${booking._id}:`, emailErr);
         }
       }
     }
@@ -1301,7 +1301,7 @@ export const autoCancelNoShows = async () => {
     };
 
   } catch (err) {
-    console.error("❌ Auto-cancel error:", err);
+    console.error("âŒ Auto-cancel error:", err);
     return {
       success: false,
       error: err.message

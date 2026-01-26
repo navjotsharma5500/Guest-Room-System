@@ -16,6 +16,8 @@ import AdminEnquiryPage from "../pages/AdminEnquiryPage";
 import LiveBookingCounter from "./LiveBookingCounter";
 import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
+import HostelMenuButton from "./HostelMenuButton";
+import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -86,6 +88,9 @@ export default function MainContent(props) {
   const [searchModal, setSearchModal] = useState(false);
   const [filterModal, setFilterModal] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+
+  const [blockRoomModal, setBlockRoomModal] = useState(null);
+  const [unblockRoomModal, setUnblockRoomModal] = useState(null);
 
   const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -612,6 +617,32 @@ export default function MainContent(props) {
       />
     );
   }
+
+  const handleBlockRoom = (hostelName, roomNo) => {
+    console.log("🔒 Block room clicked:", hostelName, roomNo);
+    setBlockRoomModal({ hostelName, roomNo });
+  };
+
+  const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
+    console.log("🔓 Unblock room clicked:", hostelName, roomNo);
+    setUnblockRoomModal({ hostelName, roomNo, blockInfo });
+  };
+
+  const handleBlockSuccess = () => {
+    console.log("✅ Block successful - refreshing data");
+    if (typeof window.fetchLatestHostelData === "function") {
+      window.fetchLatestHostelData();
+    }
+    setBlockRoomModal(null);
+  };
+
+  const handleUnblockSuccess = () => {
+    console.log("✅ Unblock successful - refreshing data");
+    if (typeof window.fetchLatestHostelData === "function") {
+      window.fetchLatestHostelData();
+    }
+    setUnblockRoomModal(null);
+  };
 
   // ====================================================
   // LOADING STATE
@@ -1307,32 +1338,44 @@ export default function MainContent(props) {
                   </>
                 ) : (
                   <>
-                    {/* âœ… ENHANCED HEADER FOR SINGLE HOSTEL */}
+                    {/* ✅ ENHANCED HEADER FOR SINGLE HOSTEL */}
                     <div className={`p-5 border-b-4 border-red-500 ${
                       theme === "dark" 
                         ? "bg-gradient-to-r from-gray-900 to-gray-700" 
                         : "bg-gradient-to-r from-gray-200 to-gray-100"
                     }`}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`p-2 rounded-lg ${
-                          theme === "dark" ? "bg-red-900/30" : "bg-red-100"
-                        }`}>
-                          <Building2 className={`w-6 h-6 ${
-                            theme === "dark" ? "text-red-400" : "text-red-600"
-                          }`} />
-                        </div>
-                        <div>
-                          <h2 className={`text-2xl font-bold ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
+                      <div className="flex items-center justify-between mb-2">
+                        {/* Left side - Hostel info */}
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            theme === "dark" ? "bg-red-900/30" : "bg-red-100"
                           }`}>
-                            {activeHostel}
-                          </h2>
-                          <p className={`text-sm ${
-                            theme === "dark" ? "text-gray-300" : "text-gray-700"
-                          }`}>
-                            Guest room management and booking overview
-                          </p>
+                            <Building2 className={`w-6 h-6 ${
+                              theme === "dark" ? "text-red-400" : "text-red-600"
+                            }`} />
+                          </div>
+                          <div>
+                            <h2 className={`text-2xl font-bold ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {activeHostel}
+                            </h2>
+                            <p className={`text-sm ${
+                              theme === "dark" ? "text-gray-300" : "text-gray-700"
+                            }`}>
+                              Guest room management and booking overview
+                            </p>
+                          </div>
                         </div>
+
+                        {/* ✅ Right side - Three dots menu */}
+                        <HostelMenuButton
+                          hostelName={activeHostel}
+                          rooms={hostelData[activeHostel]?.rooms || []}
+                          onBlockRoom={handleBlockRoom}
+                          onUnblockRoom={handleUnblockRoom}
+                          theme={theme}
+                        />
                       </div>
 
                       {/* Stats Bar */}
@@ -1700,6 +1743,33 @@ export default function MainContent(props) {
             setSearchModal(false);
           }}
           onClose={() => setSearchModal(false)}
+        />
+      )}
+      
+      {/* ========================================================= */}
+      {/* ROOM BLOCKING MODALS */}
+      {/* ========================================================= */}
+      
+      {/* Block Room Modal */}
+      {blockRoomModal && (
+        <BlockRoomModal
+          hostelName={blockRoomModal.hostelName}
+          roomNo={blockRoomModal.roomNo}
+          onClose={() => setBlockRoomModal(null)}
+          onSuccess={handleBlockSuccess}
+          theme={theme}
+        />
+      )}
+
+      {/* Unblock Room Modal */}
+      {unblockRoomModal && (
+        <UnblockRoomModal
+          hostelName={unblockRoomModal.hostelName}
+          roomNo={unblockRoomModal.roomNo}
+          blockInfo={unblockRoomModal.blockInfo}
+          onClose={() => setUnblockRoomModal(null)}
+          onSuccess={handleUnblockSuccess}
+          theme={theme}
         />
       )}
     </main>

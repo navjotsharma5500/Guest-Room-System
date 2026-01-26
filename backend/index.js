@@ -1,17 +1,6 @@
 // index.js - FINAL iOS + DESKTOP + CLOUDFLARE + SOCKET.IO SAFE VERSION
 
 import "dotenv/config";
-
-// âœ… DEBUG: Verify environment variables loaded
-console.log("ðŸ” Environment Check:");
-console.log("   NODE_ENV:", process.env.NODE_ENV);
-console.log("   PORT:", process.env.PORT);
-console.log("   MONGO_URL:", process.env.MONGO_URL ? "âœ“ Loaded" : "âœ— Missing");
-console.log("   IMAGEKIT_PUBLIC_KEY:", process.env.IMAGEKIT_PUBLIC_KEY ? "âœ“ Loaded" : "âœ— Missing");
-console.log("   IMAGEKIT_PRIVATE_KEY:", process.env.IMAGEKIT_PRIVATE_KEY ? "âœ“ Loaded" : "âœ— Missing");
-console.log("   IMAGEKIT_URL_ENDPOINT:", process.env.IMAGEKIT_URL_ENDPOINT ? "âœ“ Loaded" : "âœ— Missing");
-console.log("   MANAGER_EMAIL:", process.env.MANAGER_EMAIL ? "âœ“ Loaded" : "âœ— Missing");
-
 import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
@@ -22,7 +11,7 @@ import connectDB from "./config/db.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
-import { startNoShowCronJob } from "./utils/cronJobs.js";
+import { startNoShowCronJob, startNoShowCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
 // Routes
@@ -447,12 +436,14 @@ const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
   try {
-    console.log("â³ Connecting to MongoDB...");
+    console.log("⏳ Connecting to MongoDB...");
     await connectDB();
-    console.log("âœ… MongoDB connected");
+    console.log("✅ MongoDB connected");
 
-    startNoShowCronJob();
-    scheduleCleanupJob(); // âœ… Start cleanup scheduler
+    // ✅ UPDATED: Pass io instance to cron jobs
+    startNoShowCronJob(io);
+    startAutoUnblockCronJob(io); // ✅ NEW
+    scheduleCleanupJob();
 
     server.listen(PORT, () => {
       console.log(`ðŸš€ Server running on port ${PORT}`);

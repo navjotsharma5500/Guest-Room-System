@@ -200,6 +200,11 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    const handleRoomAutoUnblocked = () => {
+      console.log("📡 Rooms auto-unblocked - refreshing...");
+      fetchData(true);
+    };
+
     socket.on("booking-created", handleBookingCreated);
     socket.on("booking-cancelled", handleBookingCancelled);
     socket.on("booking-extended", handleBookingExtended);
@@ -208,6 +213,7 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("enquiry-created", handleEnquiryCreated);
     socket.on("enquiry-updated", handleEnquiryUpdated);
     socket.on("guest-checked-out", handleGuestCheckedOut);
+    socket.on("room-auto-unblocked", handleRoomAutoUnblocked);
 
     // âœ… Fallback polling every 2 minutes (in case Socket.IO fails)
     const interval = setInterval(() => {
@@ -229,6 +235,7 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
+      socket.off("room-auto-unblocked", handleRoomAutoUnblocked);
     };
   }, [fetchData]);
 

@@ -2,6 +2,7 @@
 import Booking from "../models/Booking.js";
 import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
+import { emitEvent } from "../utils/socket.js";
 
 // ======================================================
 // GET ALL HOSTELS WITH BOOKINGS
@@ -276,6 +277,247 @@ export const getHostel = async (req, res) => {
       success: false,
       message: "Error fetching hostel",
       error: error.message,
+    });
+  }
+};
+
+// ======================================================
+// BLOCK ROOM
+// ======================================================
+export const blockRoom = async (req, res) => {
+  try {
+    const { hostelName, roomNo } = req.params;
+    const { blockedTill, blockRemarks, blockAttachments } = req.body;
+
+    console.log("🔒 BLOCK ROOM REQUEST:", {
+      hostelName,
+      roomNo,
+      blockedTill,
+      blockRemarks,
+      attachments: blockAttachments?.length || 0
+    });
+
+    // Validation
+    if (!blockedTill) {
+      return res.status(400).json({
+        success: false,
+        message: "Blocked till date is required"
+      });
+    }
+
+    if (!blockRemarks || !blockRemarks.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Remarks are required"
+      });
+    }
+
+    if (!blockAttachments || blockAttachments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one attachment is required"
+      });
+    }
+
+    // Find hostel
+    const hostel = await Hostel.findOne({ name: hostelName });
+    
+    if (!hostel) {
+      return res.status(404).json({
+        success: false,
+        message: "Hostel not found"
+      });
+    }
+
+    // Find room
+    const room = hostel.rooms.find(r => r.roomNo === roomNo);
+    
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found"
+      });
+    }
+
+    // Check if room already blocked
+    if (room.isBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: "Room is already blocked"
+      });
+    }
+
+    // ✅ CRITICAL: Check for ongoing or upcoming bookings
+    const blockStartDate = new Date();
+    blockStartDate.setHours(0, 0, 0, 0);
+    
+    const blockEndDate = new Date(blockedTill);
+    blockEndDate.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      hostel: hostelName,
+      roomNo: roomNo,
+      status: { $nin: ["cancelled", "checked_out", "no_show"] }
+    });
+
+    const conflictingBookings = bookings.filter(b => {
+      const bookingStart = new Date(b.from);
+      bookingStart.setHours(0, 0, 0, 0);
+      
+      const bookingEnd = new Date(b.to);
+      bookingEnd.setHours(23, 59, 59, 999);
+
+      // Check if blocking period overlaps with booking
+      return !(blockEndDate < bookingStart || blockStartDate > bookingEnd);
+    });
+
+    if (conflictingBookings.length > 0) {
+      const conflicts = conflictingBookings.map(b => ({
+        guest: b.guest,
+        from: b.from,
+        to: b.to
+      }));
+
+      return res.status(400).json({
+        success: false,
+        message: `Cannot block room - ${conflictingBookings.length} conflicting booking(s) found`,
+        conflicts
+      });
+    }
+
+    // Block the room
+    room.isBlocked = true;
+    room.blockedTill = new Date(blockedTill);
+    room.blockRemarks = blockRemarks;
+    room.blockAttachments = blockAttachments;
+    room.blockedAt = new Date();
+    room.blockedBy = req.user?._id || null;
+
+    await hostel.save();
+
+    console.log("✅ Room blocked successfully:", {
+      hostel: hostelName,
+      room: roomNo,
+      blockedTill: room.blockedTill
+    });
+
+    // ✅ Emit Socket.IO event
+    try {
+      emitEvent('room-blocked', {
+        hostel: hostelName,
+        roomNo: roomNo,
+        blockedTill: room.blockedTill,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted room-blocked event');
+    } catch (err) {
+      console.warn('Socket emit failed:', err.message);
+    }
+
+    res.json({
+      success: true,
+      message: "Room blocked successfully",
+      room: {
+        roomNo: room.roomNo,
+        isBlocked: room.isBlocked,
+        blockedTill: room.blockedTill,
+        blockRemarks: room.blockRemarks,
+        blockAttachments: room.blockAttachments
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Block room error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error blocking room",
+      error: error.message
+    });
+  }
+};
+
+// ======================================================
+// UNBLOCK ROOM
+// ======================================================
+export const unblockRoom = async (req, res) => {
+  try {
+    const { hostelName, roomNo } = req.params;
+
+    console.log("🔓 UNBLOCK ROOM REQUEST:", {
+      hostelName,
+      roomNo
+    });
+
+    // Find hostel
+    const hostel = await Hostel.findOne({ name: hostelName });
+    
+    if (!hostel) {
+      return res.status(404).json({
+        success: false,
+        message: "Hostel not found"
+      });
+    }
+
+    // Find room
+    const room = hostel.rooms.find(r => r.roomNo === roomNo);
+    
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found"
+      });
+    }
+
+    // Check if room is blocked
+    if (!room.isBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: "Room is not blocked"
+      });
+    }
+
+    // Unblock the room
+    room.isBlocked = false;
+    room.blockedTill = undefined;
+    room.blockRemarks = undefined;
+    room.blockAttachments = undefined;
+    room.blockedAt = undefined;
+    room.blockedBy = undefined;
+
+    await hostel.save();
+
+    console.log("✅ Room unblocked successfully:", {
+      hostel: hostelName,
+      room: roomNo
+    });
+
+    // ✅ Emit Socket.IO event
+    try {
+      emitEvent('room-unblocked', {
+        hostel: hostelName,
+        roomNo: roomNo,
+        timestamp: Date.now()
+      });
+      console.log('📡 Emitted room-unblocked event');
+    } catch (err) {
+      console.warn('Socket emit failed:', err.message);
+    }
+
+    res.json({
+      success: true,
+      message: "Room unblocked successfully",
+      room: {
+        roomNo: room.roomNo,
+        isBlocked: room.isBlocked
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Unblock room error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error unblocking room",
+      error: error.message
     });
   }
 };
