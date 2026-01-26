@@ -21,6 +21,7 @@ const RoomCard = memo(function RoomCard({
   onSelect,
   onCancel,
   onDirectBooking,
+  onBlockedClick,  // ✅ ADD THIS LINE
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
