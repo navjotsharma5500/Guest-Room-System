@@ -1,4 +1,4 @@
-// src/components/Sidebar.jsx - FIXED VERSION
+// src/components/Sidebar.jsx - FINAL FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -148,14 +148,16 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ HOSTEL LIST WITH THREE DOTS MENU */}
+        {/* ✅ HOSTEL LIST WITH THREE DOTS MENU - FIXED VERSION */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
           const rooms = hostelData[hostelName]?.rooms || [];
 
           return (
-            <div
+            <motion.div
               key={hostelName}
+              whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+              whileTap={!isEnquiry ? { scale: 0.98 } : {}}
               className={`
                 relative group w-full rounded-xl border
                 bg-white/30 backdrop-blur-xl
@@ -166,9 +168,10 @@ export default function Sidebar({
                 }
               `}
             >
-              {/* ✅ FIXED: Flex container with proper spacing */}
+              {/* ✅ CRITICAL FIX: Flex container with click area separation */}
               <div className="flex items-center justify-between w-full px-3 py-2 gap-2">
-                {/* Left side: Clickable hostel name */}
+                
+                {/* ✅ LEFT SIDE: Clickable hostel name (takes most space) */}
                 <button
                   onClick={() => {
                     setActiveHostel(hostelName);
@@ -183,13 +186,12 @@ export default function Sidebar({
                   </span>
                 </button>
                 
-                {/* ✅ Right side: Three dots menu (CRITICAL: Stop propagation) */}
+                {/* ✅ RIGHT SIDE: Three dots menu (isolated click area) */}
                 <div 
-                  className="flex-shrink-0"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    e.stopPropagation(); // CRITICAL: Prevent hostel selection when clicking menu
                   }}
+                  className="flex-shrink-0"
                 >
                   <HostelMenuButton
                     hostelName={hostelName}
@@ -200,7 +202,7 @@ export default function Sidebar({
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
