@@ -1,4 +1,4 @@
-// src/components/Sidebar.jsx
+// src/components/Sidebar.jsx - FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -24,9 +24,7 @@ export default function Sidebar({
   const logoPublicPath = "/Logo.jpg";
   const isEnquiry = activeTab === "Enquiry";
 
-  // ----------------------------------------
   // Permission checks
-  // ----------------------------------------
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const canSeeHostels = hasPermission(currentUser, "sidebar.hostels");
   
@@ -37,24 +35,25 @@ export default function Sidebar({
 
   // ✅ Block/Unblock handlers
   const handleBlockRoom = (hostelName, roomNo) => {
+    console.log("🔒 Block room clicked:", hostelName, roomNo);
     setBlockRoomModal({ hostelName, roomNo });
   };
 
   const handleUnblockRoom = (hostelName, roomNo, blockInfo) => {
+    console.log("🔓 Unblock room clicked:", hostelName, roomNo);
     setUnblockRoomModal({ hostelName, roomNo, blockInfo });
-  };  
+  };
 
-  // Helper function to extract initial/letter from parentheses (e.g., "Agita Hall (A)" -> "A")
+  // Extract initial from hostel name
   const extractInitial = (hostelName) => {
     const match = hostelName.match(/\(([^)]+)\)/);
     if (match && match[1]) {
       return match[1].trim().toUpperCase();
     }
-    // If no parentheses found, use first letter of hostel name as fallback
     return hostelName.charAt(0).toUpperCase();
   };
 
-  // Convert hostel object → array and sort alphabetically by initial in parentheses
+  // Sort hostels alphabetically
   const hostelNames = useMemo(() => {
     return Object.keys(hostelData || {}).sort((a, b) => {
       const initialA = extractInitial(a);
@@ -63,23 +62,17 @@ export default function Sidebar({
     });
   }, [hostelData]);
 
-  // Memoize visibleHostels to prevent unnecessary re-renders
+  // Visible hostels based on permissions
   const visibleHostels = useMemo(() => {
     if (canSeeAllHostels) {
-      return hostelNames; // admin + manager (already sorted by initial)
+      return hostelNames;
     } else if (canSeeHostels && assignedHostel && hostelData[assignedHostel]) {
-      return [assignedHostel]; // caretaker only
+      return [assignedHostel];
     }
     return [];
   }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames]);
 
-  // Warn if caretaker has no hostel
-  if (assignedHostel === "" || assignedHostel === undefined) {
-    console.warn("Caretaker has no assigned hostel");
-  }
-
-  // ⭐ FIX caretaker double-navigation bug
-  // Auto-select hostel ONLY once after login
+  // Auto-select hostel (only once)
   const didAutoSelect = useRef(false);
 
   useEffect(() => {
@@ -130,7 +123,7 @@ export default function Sidebar({
           isEnquiry ? "pointer-events-none opacity-60" : ""
         }`}
       >
-        {/* ⭐ ALL HOSTELS BUTTON (Admin + Manager only) */}
+        {/* ALL HOSTELS BUTTON */}
         {canSeeAllHostels && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
@@ -155,23 +148,16 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ⭐ HOSTEL LIST (Admin sees all, manager too, caretaker one hostel) */}
+        {/* ✅ HOSTEL LIST WITH THREE DOTS MENU */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
           const rooms = hostelData[hostelName]?.rooms || [];
 
           return (
-            <motion.button
+            <div
               key={hostelName}
-              whileHover={!isEnquiry ? { scale: 1.01 } : {}}
-              whileTap={!isEnquiry ? { scale: 0.98 } : {}}
-              onClick={() => {
-                setActiveHostel(hostelName);
-                setActiveRoomRef(null);
-                setActiveTab("Home");
-              }}
               className={`
-                relative group w-full text-left px-3 py-2 rounded-xl border
+                relative group w-full rounded-xl border
                 bg-white/30 backdrop-blur-xl
                 ${
                   isActive
@@ -180,18 +166,31 @@ export default function Sidebar({
                 }
               `}
             >
-              {/* ✅ NEW: Flex container for hostel name and three dots */}
-              <div className="flex items-center justify-between w-full gap-2">
-                {/* Left side: Icon and Name */}
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              {/* ✅ FIXED: Flex container with proper spacing */}
+              <div className="flex items-center justify-between w-full px-3 py-2 gap-2">
+                {/* Left side: Clickable hostel name */}
+                <button
+                  onClick={() => {
+                    setActiveHostel(hostelName);
+                    setActiveRoomRef(null);
+                    setActiveTab("Home");
+                  }}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
                   <Building2 className="w-4 h-4 text-slate-600 flex-shrink-0" />
                   <span className={`text-sm truncate ${isActive ? "font-semibold" : ""}`}>
                     {hostelName}
                   </span>
-                </div>
+                </button>
                 
-                {/* Right side: Three dots menu */}
-                <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                {/* ✅ Right side: Three dots menu (CRITICAL: Stop propagation) */}
+                <div 
+                  className="flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   <HostelMenuButton
                     hostelName={hostelName}
                     rooms={rooms}
@@ -201,11 +200,11 @@ export default function Sidebar({
                   />
                 </div>
               </div>
-            </motion.button>
+            </div>
           );
         })}
 
-        {/* ✅ DEFAULTERS BUTTON */}
+        {/* DEFAULTERS BUTTON */}
         <motion.button
           onClick={() => {
             console.log("🔴 Defaulters clicked");
@@ -227,7 +226,7 @@ export default function Sidebar({
         <Creator variant="sidebar" />
       </div>
 
-      {/* ✅ NEW: Block Room Modal */}
+      {/* ✅ Block Room Modal */}
       {blockRoomModal && (
         <BlockRoomModal
           hostelName={blockRoomModal.hostelName}
@@ -241,7 +240,7 @@ export default function Sidebar({
         />
       )}
 
-      {/* ✅ NEW: Unblock Room Modal */}
+      {/* ✅ Unblock Room Modal */}
       {unblockRoomModal && (
         <UnblockRoomModal
           hostelName={unblockRoomModal.hostelName}

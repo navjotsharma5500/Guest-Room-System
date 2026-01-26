@@ -344,13 +344,6 @@ const RoomCard = memo(function RoomCard({
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-2">
-            <p className="font-semibold text-base">Room {room.roomNo}</p>
-            <span className="text-xs text-gray-500">
-              ({room.roomType || "Guest Room"})
-            </span>
-          </div>
-
           {/* ✅ Room number with blocked indicator */}
           <p className={`text-2xl font-bold ${
             isBlocked ? 'text-red-600 dark:text-red-400' : 'text-red-700'
@@ -358,6 +351,13 @@ const RoomCard = memo(function RoomCard({
             {room.roomNo}
             {isBlocked && ' 🔒'}
           </p>
+
+          {/* ✅ OPTIONAL: Show room type in small text below room number */}
+          {room.roomType && (
+            <p className="text-xs text-gray-500 mt-1">
+              ({room.roomType})
+            </p>
+          )}
 
           {/* ✅ Blocked till date */}
           {isBlocked && blockedTill && (
@@ -367,87 +367,87 @@ const RoomCard = memo(function RoomCard({
           )}
           
           {/* Status display - only if not blocked */}
-          {!isBlocked && currentActive ? (
-            <div className="mt-2">
-              <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
-                <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                Booking Active
-              </p>
+        {!isBlocked && currentActive ? (
+          <div className="mt-2">
+            <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
+              <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              Booking Active
+            </p>
 
-              {firstBooking && (
-                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
-                  <p className="font-medium truncate flex items-center justify-center gap-1">
-                    <User2 className="w-3 h-3" />
-                    {firstBooking.guest || "Guest"}
-                  </p>
-                  <div className="flex items-center justify-center gap-1 text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatShortDate(firstBooking.from)}</span>
-                  </div>
-                  <p className="text-gray-500">
-                    → {formatShortDate(firstBooking.to)}
-                  </p>
+            {firstBooking && (
+              <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                <p className="font-medium truncate flex items-center justify-center gap-1">
+                  <User2 className="w-3 h-3" />
+                  {firstBooking.guest || "Guest"}
+                </p>
+                <div className="flex items-center justify-center gap-1 text-gray-500">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatShortDate(firstBooking.from)}</span>
                 </div>
-              )}
-            </div>
-          ) : !isBlocked ? (
-            <div className="mt-2">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <CheckCircle2 className="w-3 h-3 text-green-700" />
-                <p className="text-xs text-green-700 font-medium">
-                  {isBooked ? (
-                    activeBookings.length > 1 
-                      ? `${activeBookings.length} Bookings` 
-                      : "Upcoming booking"
-                  ) : "Available - Click to book"}
+                <p className="text-gray-500">
+                  → {formatShortDate(firstBooking.to)}
                 </p>
-              </div>
-              
-              {activeBookings.length > 1 && (
-                <p className="text-xs text-gray-500 italic">
-                  Click to view all bookings
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="mt-2">
-              <p className="text-xs text-red-600 font-medium">
-                Click to view details
-              </p>
-            </div>
-          )}
-
-          {/* Selection checkbox - hide for blocked rooms */}
-          {!isBlocked && selectionMode &&
-            !bookingCompleted &&
-            !consolidateModal &&
-            availableForNewDates &&
-            prefillGuest?.from &&
-            prefillGuest?.to &&
-            !hasConflict && (
-              <div className="absolute top-2 right-2">
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    if (onToggleSelect) onToggleSelect();
-                  }}
-                  className="w-5 h-5 accent-blue-600 cursor-pointer"
-                />
               </div>
             )}
+          </div>
+        ) : !isBlocked ? (
+          <div className="mt-2">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <CheckCircle2 className="w-3 h-3 text-green-700" />
+              <p className="text-xs text-green-700 font-medium">
+                {isBooked ? (
+                  activeBookings.length > 1 
+                    ? `${activeBookings.length} Bookings` 
+                    : "Upcoming booking"
+                ) : "Available - Click to book"}
+              </p>
+            </div>
+            
+            {activeBookings.length > 1 && (
+              <p className="text-xs text-gray-500 italic">
+                Click to view all bookings
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mt-2">
+            <p className="text-xs text-red-600 font-medium">
+              Click to view details
+            </p>
+          </div>
+        )}
 
-          {/* Conflict overlay */}
-          {hasConflict && selectionMode && (
-            <div className="absolute inset-0 rounded-xl pointer-events-none">
-              <div className="absolute inset-0 bg-red-500/15 rounded-xl" />
-              <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow">
-                ⚠️ CONFLICT
-              </div>
+        {/* Selection checkbox - hide for blocked rooms */}
+        {!isBlocked && selectionMode &&
+          !bookingCompleted &&
+          !consolidateModal &&
+          availableForNewDates &&
+          prefillGuest?.from &&
+          prefillGuest?.to &&
+          !hasConflict && (
+            <div className="absolute top-2 right-2">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onToggleSelect) onToggleSelect();
+                }}
+                className="w-5 h-5 accent-blue-600 cursor-pointer"
+              />
             </div>
           )}
-        </div>
+
+        {/* Conflict overlay */}
+        {hasConflict && selectionMode && (
+          <div className="absolute inset-0 rounded-xl pointer-events-none">
+            <div className="absolute inset-0 bg-red-500/15 rounded-xl" />
+            <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow">
+              ⚠️ CONFLICT
+            </div>
+          </div>
+        )}
+      </div>
 
         {/* Bookings Modal */}
         <AnimatePresence>
