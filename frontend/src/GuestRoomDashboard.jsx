@@ -834,6 +834,18 @@ export default function GuestRoomDashboard() {
                 setExtensionModal={setExtensionModal}
               />
             )}
+
+            {activeTab === "Feedback" && (
+              <FeedbackPage
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                theme={theme}
+              />
+            )}
           </main>   
         </div>  
 
@@ -851,18 +863,6 @@ export default function GuestRoomDashboard() {
             }}
           />
         )}
-
-        {activeTab === "Feedback" && (
-            <FeedbackPage
-              onBack={() => {
-                setActiveTab("Home");
-                if (currentUser?.assignedHostel) {
-                  setActiveHostel(currentUser.assignedHostel);
-                }
-              }}
-              theme={theme}
-            />
-          )}
 
         {extensionModal && (
           <ExtensionModal

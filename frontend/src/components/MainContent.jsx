@@ -1097,7 +1097,7 @@ export default function MainContent(props) {
                               <div className={`text-2xl ${
                                 theme === "dark" ? "text-red-400" : "text-red-600"
                               }`}>
-                                ðŸ‘¤
+                                👤
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className={`font-bold text-lg truncate ${
@@ -1140,7 +1140,7 @@ export default function MainContent(props) {
                                 ? "bg-gray-800/50" 
                                 : "bg-gray-50"
                             }`}>
-                              <span className="text-xl">ðŸšª</span>
+                              <span className="text-xl">🚪</span>
                               <div className="flex-1">
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-600"
