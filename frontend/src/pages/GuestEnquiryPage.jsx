@@ -175,7 +175,12 @@ function GuestForm({
   dateError, setDateError, uploading, setUploading,
   uploadError, setUploadError, onIKSuccess, onIKError,
 }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [cities, setCities] = useState([]);
 
   const cityMap = useMemo(
@@ -709,7 +714,7 @@ export default function GuestEnquiryPage() {
           console.error(`  File ${idx + 1} is invalid: ${url}`);
         }
       });
-      alert("⚠️ Some files are invalid. Please remove and re-upload them.");
+      showToast("⚠️ Some files are invalid. Please remove and re-upload them.", "error");
       return;
     }
 

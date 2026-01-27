@@ -1,7 +1,6 @@
 import React from 'react';
-import { IKContext, IKUpload as IKUploadOriginal } from 'imagekitio-react';
+import { IKUpload as IKUploadOriginal } from 'imagekitio-react';
 import { Upload } from 'lucide-react';
-import { IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_AUTH_ENDPOINT } from '../utils/apiConfig';
 
 const IKUpload = ({ 
   onSuccess, 
@@ -24,11 +23,7 @@ const IKUpload = ({
   };
 
   return (
-    <IKContext
-      publicKey={IMAGEKIT_PUBLIC_KEY}
-      urlEndpoint={IMAGEKIT_URL_ENDPOINT}
-      authenticationEndpoint={IMAGEKIT_AUTH_ENDPOINT}
-    >
+    <>
       {buttonText ? (
         <label className={`cursor-pointer flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition group ${buttonClassName}`}>
             <Upload className="w-5 h-5 text-gray-500 group-hover:text-purple-600 transition" />
@@ -50,7 +45,7 @@ const IKUpload = ({
             {...props}
         />
       )}
-    </IKContext>
+    </>
   );
 };
 
