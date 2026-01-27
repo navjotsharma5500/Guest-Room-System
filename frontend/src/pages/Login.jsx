@@ -138,7 +138,7 @@ export default function Login() {
               className="
                 w-full px-4 py-3 mt-1
                 bg-white/10 border border-white/20
-                rounded-xl text-white
+                rounded-xl text-black placeholder-gray-500
                 backdrop-blur-md
                 focus:outline-none focus:ring-2 focus:ring-red-400/60
               "
@@ -156,7 +156,7 @@ export default function Login() {
                 className="
                   w-full px-4 py-3 mt-1
                   bg-white/10 border border-white/20
-                  rounded-xl text-white
+                  rounded-xl text-black placeholder-gray-500
                   backdrop-blur-md
                   pr-10
                 "

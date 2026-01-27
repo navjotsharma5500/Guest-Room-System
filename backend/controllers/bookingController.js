@@ -1137,7 +1137,13 @@ export const getBookingHistory = async (req, res) => {
     if (contact) query.$or.push({ contact: contact });
     if (email) query.$or.push({ email: { $regex: new RegExp(`^${email}$`, "i") } });
 
-    const bookings = await Booking.find(query).sort({ from: -1 }).populate("feedback").lean();
+    const bookings = await Booking.find(query)
+      .sort({ from: -1 })
+      .populate({
+        path: 'feedback',
+        select: 'rating remarks attachments ratingLabel'
+      })
+      .lean();
 
     res.json({
       success: true,

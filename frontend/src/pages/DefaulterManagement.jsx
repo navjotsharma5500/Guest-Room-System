@@ -1154,16 +1154,16 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       setRollbackAmount(value);
                     }}
                     onBlur={() => {
-                      // ✅ On blur, validate and cap the amount
-                      if (rollbackAmount === '' || rollbackAmount === '0') {
-                        setRollbackAmount('');
-                        return;
+                      // ✅ Only validate if field has a value
+                      if (!rollbackAmount || rollbackAmount === '') {
+                        return; // Don't clear it, let user continue
                       }
                       
                       const numValue = parseFloat(rollbackAmount);
-                      if (isNaN(numValue) || numValue <= 0) {
-                        setRollbackAmount('');
-                        return;
+                      
+                      // ✅ Only validate if it's actually a number
+                      if (isNaN(numValue)) {
+                        return; // Don't clear, just ignore invalid input
                       }
                       
                       // ✅ Cap at max paid amount

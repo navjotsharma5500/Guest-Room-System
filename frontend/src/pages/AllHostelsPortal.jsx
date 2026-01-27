@@ -15,6 +15,7 @@ import BookingDetailsModal from "../components/AllHostels/BookingDetailsModal";
 import DirectBookingModal from "../components/DirectBookingModal";
 import CancelModal from "../components/CancelModal";
 import ExtensionModal from "../components/ExtensionModal";
+import { BlockedRoomInfoModal } from '../components/RoomBlockingModals';
 
 // Custom Hooks
 import useBookingHandlers from "../hooks/useBookingHandlers";
@@ -93,6 +94,8 @@ export default function AllHostelsPortal({
   const [bookingCompleted, setBookingCompleted] = useState(false);
   const [bookingListModal, setBookingListModal] = useState(null);
   const [bookingDetailsModal, setBookingDetailsModal] = useState(null);
+  const [showBlockedRoomModal, setShowBlockedRoomModal] = useState(false);
+  const [selectedBlockedRoom, setSelectedBlockedRoom] = useState(null);
 
   const suppressToastRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -254,7 +257,25 @@ export default function AllHostelsPortal({
   }, [onBackHome]);
 
   const handleRoomCardClick = useCallback((hostel, room, bookedAny) => {
-    console.log("🎯 Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny });
+    console.log("🎯 Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny, isBlocked: room.isBlocked });
+    
+    // ✅ NEW: Check if room is blocked FIRST
+    if (room.isBlocked) {
+      console.log("🔒 Room is blocked, showing info modal");
+      setSelectedBlockedRoom({
+        hostelName: hostel,
+        roomNo: room.roomNo,
+        blockInfo: {
+          blockedTill: room.blockedTill,
+          blockRemarks: room.blockRemarks,
+          blockAttachments: room.blockAttachments,
+          blockedAt: room.blockedAt,
+          blockedBy: room.blockedBy
+        }
+      });
+      setShowBlockedRoomModal(true);
+      return;
+    }
     
     if (selectionMode && prefillGuest && prefillGuest.from && prefillGuest.to) {
       // In selection mode - toggle room selection
@@ -517,6 +538,22 @@ export default function AllHostelsPortal({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
       </button>
+
+      {/* Blocked Room Info Modal */}
+      <AnimatePresence>
+        {showBlockedRoomModal && selectedBlockedRoom && (
+          <BlockedRoomInfoModal
+            hostelName={selectedBlockedRoom.hostelName}
+            roomNo={selectedBlockedRoom.roomNo}
+            blockInfo={selectedBlockedRoom.blockInfo}
+            onClose={() => {
+              setShowBlockedRoomModal(false);
+              setSelectedBlockedRoom(null);
+            }}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
     </AllHostelsLayout>
   );
 }

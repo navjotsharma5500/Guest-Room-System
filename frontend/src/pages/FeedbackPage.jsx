@@ -102,7 +102,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto`}
+          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto will-change-auto`}
         >
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-2xl z-10 flex justify-between items-center">
@@ -129,12 +129,12 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <motion.button
                     key={star}
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
-                    className="focus:outline-none transition"
+                    className="focus:outline-none transition-colors duration-200"
+                    style={{ transformOrigin: 'center center' }}
                   >
                     <Star
                       size={48}

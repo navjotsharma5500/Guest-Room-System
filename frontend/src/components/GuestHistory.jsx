@@ -187,49 +187,78 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
                     </div>
                   )}
 
-                  {/* ✅ FEEDBACK DISPLAY */}
+                  {/* ✅ ENHANCED FEEDBACK DISPLAY */}
                   {booking.feedback && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star size={16} className="text-yellow-500" />
-                        <span className="text-sm font-semibold">Guest Rating:</span>
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              size={14}
-                              className={star <= booking.feedback.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-300 text-gray-300'}
-                            />
-                          ))}
+                    <div className="mt-3 pt-3 border-t-2 border-purple-200 dark:border-purple-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Star size={18} className="text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Guest Rating</span>
                         </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-bold">
-                          {booking.feedback.ratingLabel}
+                        <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide ${
+                          booking.feedback.rating >= 4 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                            : booking.feedback.rating === 3
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                        }`}>
+                          {booking.feedback.ratingLabel || 
+                            (booking.feedback.rating === 5 ? 'Outstanding' :
+                            booking.feedback.rating === 4 ? 'Good' :
+                            booking.feedback.rating === 3 ? 'Average' :
+                            booking.feedback.rating === 2 ? 'Below Average' : 'Poor')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={20}
+                            className={`${
+                              star <= booking.feedback.rating 
+                                ? 'fill-yellow-400 text-yellow-400' 
+                                : 'fill-gray-300 text-gray-300'
+                            } transition-all`}
+                          />
+                        ))}
+                        <span className="ml-2 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          {booking.feedback.rating}/5
                         </span>
                       </div>
                       
                       {booking.feedback.remarks && (
-                        <div className="text-sm italic bg-purple-50 dark:bg-purple-900/20 p-2 rounded border border-purple-200 dark:border-purple-700 mt-2">
-                          "{booking.feedback.remarks}"
+                        <div className="text-sm bg-white dark:bg-gray-800 p-3 rounded-lg border border-purple-200 dark:border-purple-700 shadow-sm">
+                          <p className="text-gray-600 dark:text-gray-400 text-xs font-semibold mb-1">Remarks:</p>
+                          <p className="text-gray-800 dark:text-gray-200 italic">"{booking.feedback.remarks}"</p>
                         </div>
                       )}
                       
                       {booking.feedback.attachments?.length > 0 && (
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                          {booking.feedback.attachments.map((url, idx) => (
-                            <a
-                              key={idx}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-12 h-12"
-                            >
-                              <img
-                                src={url}
-                                alt={`Feedback ${idx + 1}`}
-                                className="w-full h-full object-cover rounded border-2 border-purple-300 hover:border-purple-500 transition"
-                              />
-                            </a>
-                          ))}
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                            Attachments ({booking.feedback.attachments.length})
+                          </p>
+                          <div className="flex gap-2 flex-wrap">
+                            {booking.feedback.attachments.map((url, idx) => (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Feedback ${idx + 1}`}
+                                  className="w-16 h-16 object-cover rounded-lg border-2 border-purple-300 hover:border-purple-500 transition-all shadow-md group-hover:shadow-xl group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all flex items-center justify-center">
+                                  <span className="text-white text-xs opacity-0 group-hover:opacity-100 font-semibold">View</span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -238,7 +267,7 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
               ))}
             </div>
           )}
-        </div>    
+        </div>
 
         {/* Footer */}
         <div className={`p-4 border-t flex justify-end shrink-0 ${

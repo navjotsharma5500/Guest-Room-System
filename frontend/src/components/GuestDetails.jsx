@@ -434,12 +434,21 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       const data = await response.json();
       
       if (data.success) {
-        // Update booking with cancelled status
-        setBooking(normalizeBooking({ ...b, status: "cancelled", cancelRemarks: remarks }));
-        setShowCancelModal(false);
-        setCancelRemarks("");
-        showToast("✅ Booking cancelled successfully!", "success");
-      } else {
+      // Update booking with cancelled status
+      setBooking(normalizeBooking({ ...b, status: "cancelled", cancelRemarks: remarks }));
+      setShowCancelModal(false);
+      setCancelRemarks("");
+      showToast("✅ Booking cancelled successfully!", "success");
+      
+      // ✅ Close the guest details panel after short delay
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        } else if (onCancel) {
+          onCancel();
+        }
+      }, 1500); // 1.5 second delay to let user see the success message
+    } else {
         throw new Error(data.message || "Failed to cancel booking");
       }
     } catch (err) {
