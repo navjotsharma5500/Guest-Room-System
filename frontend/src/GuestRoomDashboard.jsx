@@ -725,8 +725,8 @@ export default function GuestRoomDashboard() {
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
 
-                    // ⚠️ Do NOT override Defaulters tab
-                    setActiveTab((prev) => (prev === "Defaulters" ? prev : "Home"));
+                    // ⚠️ Do NOT override Defaulters or Feedback tabs
+                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
@@ -836,7 +836,9 @@ export default function GuestRoomDashboard() {
             )}
 
             {activeTab === "Feedback" && (
-              <FeedbackPage
+              <>
+                {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
+                <FeedbackPage
                 onBack={() => {
                   setActiveTab("Home");
                   if (currentUser?.assignedHostel) {
@@ -845,6 +847,7 @@ export default function GuestRoomDashboard() {
                 }}
                 theme={theme}
               />
+            </>   
             )}
           </main>   
         </div>  

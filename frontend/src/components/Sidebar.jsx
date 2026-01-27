@@ -104,7 +104,7 @@ export default function Sidebar({
     activeTab,
     setActiveHostel
   ]);
-  
+
   return (
     <motion.aside
       initial={{ x: -250, opacity: 0 }}
@@ -209,23 +209,26 @@ export default function Sidebar({
         </motion.button>
 
         {/* ✅ FEEDBACK BUTTON */}
-        <motion.button
-          onClick={() => {
-            console.log("⭐ Feedback clicked");
-            setActiveTab("Feedback");
-            setActiveHostel(null);
-            setActiveRoomRef(null);
-          }}
-          className={`relative group w-full text-left px-3 py-2 rounded-xl
-                    border flex items-center gap-3 shadow-lg
-                    ${activeTab === "Feedback" 
-                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white border-purple-500" 
-                      : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
-                    }`}
-        >
-          <Star className="w-4 h-4" />
-          <span className="text-sm font-semibold">Guest Feedback</span>
-        </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("⭐ Feedback clicked - setting activeTab to Feedback");
+              setActiveTab("Feedback");
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+            }}
+            className={`relative group w-full text-left px-3 py-2 rounded-xl
+                      border flex items-center gap-3 shadow-lg
+                      ${activeTab === "Feedback" 
+                        ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white border-purple-500" 
+                        : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
+                      }`}
+          >
+            <Star className="w-4 h-4" />
+            <span className="text-sm font-semibold">Guest Feedback</span>
+          </motion.button>
         </nav>  
       
       {/* FOOTER */}
