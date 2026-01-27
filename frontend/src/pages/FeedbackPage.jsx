@@ -7,10 +7,27 @@ import {
   Award, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BACKEND_URL } from '../utils/apiConfig';
-import IKUpload from '../components/IKUpload';
+import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_AUTH_ENDPOINT } from '../utils/apiConfig';
+import { IKContext, IKUpload } from 'imagekitio-react';
 
 const API = BACKEND_URL;
+
+const authenticator = async () => {
+  try {
+    const r = await fetch(IMAGEKIT_AUTH_ENDPOINT, { method: "GET" });
+    if (!r.ok) throw new Error(`Auth request failed ${r.status}`);
+    const data = await r.json();
+    return {
+      signature: data.signature,
+      expire: data.expire,
+      token: data.token,
+      publicKey: data.publicKey,
+    };
+  } catch (err) {
+    console.error("ImageKit authenticator error:", err);
+    throw err;
+  }
+};
 
 // Rating configurations
 const RATING_CONFIG = {
@@ -67,14 +84,19 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
   };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
-        onClick={onClose}
-      >
+    <IKContext
+      publicKey={IMAGEKIT_PUBLIC_KEY}
+      urlEndpoint={IMAGEKIT_URL_ENDPOINT}
+      authenticator={authenticator}
+    >
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          onClick={onClose}
+        >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -139,10 +161,8 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
               </div>
 
               {ratingInfo && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`inline-flex flex-col items-center gap-2 px-6 py-3 rounded-xl ${
+                <div
+                  className={`inline-flex flex-col items-center gap-2 px-6 py-3 rounded-xl transition-all duration-200 ${
                     currentRating === 5 ? 'bg-green-100 text-green-800' :
                     currentRating === 4 ? 'bg-blue-100 text-blue-800' :
                     currentRating === 3 ? 'bg-yellow-100 text-yellow-800' :
@@ -150,9 +170,9 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                     'bg-red-100 text-red-800'
                   }`}
                 >
-                  <span className="font-bold text-lg">{ratingInfo.label}</span>
-                  <span className="text-sm">{ratingInfo.description}</span>
-                </motion.div>
+                  <p className="text-xl font-bold">{ratingInfo.label}</p>
+                  <p className="text-sm">{ratingInfo.description}</p>
+                </div>
               )}
             </div>
 
@@ -182,10 +202,37 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
               
               {attachments.length < 5 && (
                 <IKUpload
-                  onSuccess={handleFileUpload}
-                  folder="feedback-attachments"
-                  buttonText="Upload Image"
-                  buttonClassName="w-full"
+                  fileName={`feedback_${Date.now()}_${Math.random().toString(36).substring(2)}`}
+                  folder="/feedback-attachments"
+                  useUniqueFileName={true}
+                  isPrivateFile={false}
+                  tags={["feedback", "guest-rating"]}
+                  onUploadStart={() => console.log("Upload started...")}
+                  onError={(err) => {
+                    console.error("Upload error:", err);
+                    alert("Failed to upload file. Please try again.");
+                  }}
+                  onSuccess={(res) => {
+                    console.log("✅ Upload success:", res);
+                    handleFileUpload(res.url);
+                  }}
+                  validateFile={(file) => {
+                    if (attachments.length >= 5) {
+                      alert("Maximum 5 attachments allowed");
+                      return false;
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert("File size must be under 5MB");
+                      return false;
+                    }
+                    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+                    if (!allowedTypes.includes(file.type)) {
+                      alert("Only JPG, PNG, WEBP, or GIF images allowed");
+                      return false;
+                    }
+                    return true;
+                  }}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-purple-500 hover:bg-purple-50 transition cursor-pointer"
                 />
               )}
 
@@ -230,6 +277,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  </IKContext>
   );
 }
 
@@ -584,10 +632,10 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
   }, [checkedOutGuests, role, userHostel]);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-purple-50 to-blue-50'}`}>
+    <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-purple-50 to-blue-50'} overflow-y-auto`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-xl rounded-3xl mx-6 mt-6">
+        <div className="px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -610,7 +658,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
 
       {/* Filters */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b`}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
@@ -700,7 +748,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
       </div>
 
       {/* Stats Summary */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="px-6 py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-purple-500`}>
             <div className="flex items-center justify-between">

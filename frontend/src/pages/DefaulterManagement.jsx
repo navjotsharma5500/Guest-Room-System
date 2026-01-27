@@ -1139,27 +1139,37 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     onChange={(e) => {
                       const value = e.target.value;
                       
-                      // ✅ Allow empty string for clearing (don't set to 0 immediately)
+                      // ✅ Allow empty string for clearing
                       if (value === '') {
                         setRollbackAmount('');
                         return;
                       }
                       
-                      // ✅ Convert to number and validate
-                      const numValue = parseFloat(value);
-                      
-                      // ✅ Allow valid numbers >= 0
-                      if (!isNaN(numValue) && numValue >= 0) {
-                        // ✅ Cap at max paid amount
-                        const maxAmount = selectedDefaulter.paidAmount || 0;
-                        const cappedValue = Math.min(numValue, maxAmount);
-                        setRollbackAmount(cappedValue);
+                      // ✅ Only allow numeric input (including decimal point)
+                      if (!/^\d*\.?\d*$/.test(value)) {
+                        return; // Don't update if non-numeric
                       }
+                      
+                      // ✅ Store as string to preserve user input while typing
+                      setRollbackAmount(value);
                     }}
                     onBlur={() => {
-                      // ✅ On blur, if empty or 0, set to empty string
-                      if (rollbackAmount === '' || rollbackAmount === 0) {
+                      // ✅ On blur, validate and cap the amount
+                      if (rollbackAmount === '' || rollbackAmount === '0') {
                         setRollbackAmount('');
+                        return;
+                      }
+                      
+                      const numValue = parseFloat(rollbackAmount);
+                      if (isNaN(numValue) || numValue <= 0) {
+                        setRollbackAmount('');
+                        return;
+                      }
+                      
+                      // ✅ Cap at max paid amount
+                      const maxAmount = selectedDefaulter.paidAmount || 0;
+                      if (numValue > maxAmount) {
+                        setRollbackAmount(maxAmount.toString());
                       }
                     }}
                     min="0"
@@ -1282,20 +1292,20 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   )}
                 </AnimatePresence>
 
-                {rollbackAmount && rollbackAmount > 0 && (
+                {rollbackAmount && parseFloat(rollbackAmount) > 0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
                     <p className="text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <p className="text-gray-600">New Discount/Waiver</p>
                         <p className="font-bold text-green-700">
-                          ₹{(selectedDefaulter.discount || 0) + rollbackAmount}
+                          ₹{(selectedDefaulter.discount || 0) + parseFloat(rollbackAmount || 0)}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-600">New Balance</p>
                         <p className="font-bold text-red-700">
-                          ₹{(selectedDefaulter.totalDue || 0) - rollbackAmount}
+                          ₹{(selectedDefaulter.totalDue || 0) - parseFloat(rollbackAmount || 0)}
                         </p>
                       </div>
                     </div>
@@ -1305,7 +1315,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={handleRollbackPayment}
-                    disabled={loading || !rollbackAmount || rollbackAmount <= 0 || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
+                    disabled={loading || !rollbackAmount || parseFloat(rollbackAmount) <= 0 || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
                     className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
                   >
                     {loading ? "Processing..." : `Waive ₹${rollbackAmount}`}
