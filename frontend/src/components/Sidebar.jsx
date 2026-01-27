@@ -86,11 +86,13 @@ export default function Sidebar({
   useEffect(() => {
     if (loading) return;
 
+    // 🚫 Never auto-select outside Home
+    if (activeTab !== "Home") return;
+
     if (
       !didAutoSelect.current &&
       visibleHostels.length === 1 &&
-      canSeeAllHostels &&
-      !["Defaulters", "Feedback"].includes(activeTab)
+      canSeeAllHostels
     ) {
       didAutoSelect.current = true;
       setActiveHostel(visibleHostels[0]);
@@ -98,11 +100,11 @@ export default function Sidebar({
   }, [
     loading,
     visibleHostels,
-    setActiveHostel,
     canSeeAllHostels,
-    activeTab
+    activeTab,
+    setActiveHostel
   ]);
-
+  
   return (
     <motion.aside
       initial={{ x: -250, opacity: 0 }}

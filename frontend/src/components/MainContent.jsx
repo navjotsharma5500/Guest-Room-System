@@ -843,7 +843,7 @@ export default function MainContent(props) {
                       : "bg-white border-gray-200 hover:bg-red-50"
                   }`}
                 >
-                  🔓”
+                  🔔
                   {notifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5">
                       {notifications.length}
@@ -1661,7 +1661,7 @@ export default function MainContent(props) {
                   theme === "dark" ? "text-red-400" : "text-red-700"
                 }`}
               >
-                📋… Select Date Range for Complete Download
+                📋 Select Date Range for Complete Download
               </h3>
               <button
                 className={
@@ -1727,9 +1727,9 @@ export default function MainContent(props) {
                 <ul className="space-y-1 ml-4">
                   <li>✅ <strong>Approved Bookings</strong> - with all details</li>
                   <li>❌ <strong>Rejected Enquiries</strong> - with rejection reasons</li>
-                  <li>ðŸš« <strong>Cancelled Bookings</strong> - with cancel remarks</li>
-                  <li>ðŸ†“ <strong>Free Bookings</strong> - with free remarks</li>
-                  <li>ðŸ‘¤ <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>
+                  <li>🚫 <strong>Cancelled Bookings</strong> - with cancel remarks</li>
+                  <li>🆓 <strong>Free Bookings</strong> - with free remarks</li>
+                  <li>👤 <strong>All Guest Info</strong> - Gender, City, State, Department, RollNo</li>
                   <li>📋 <strong>All Remarks</strong> - Cancel remarks, Free remarks, Rejection reasons</li>
                 </ul>
               </div>

@@ -21,7 +21,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [selectedDefaulter, setSelectedDefaulter] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showRollbackModal, setShowRollbackModal] = useState(false);
-  const [rollbackAmount, setRollbackAmount] = useState(0);
+  const [rollbackAmount, setRollbackAmount] = useState('');
   const [rollbackRemarks, setRollbackRemarks] = useState('');
   const [rollbackAttachments, setRollbackAttachments] = useState([]);
   const [uploadingRollback, setUploadingRollback] = useState(false);
@@ -1138,15 +1138,28 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     value={rollbackAmount}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // ✅ Allow empty string for clearing
+                      
+                      // ✅ Allow empty string for clearing (don't set to 0 immediately)
                       if (value === '') {
-                        setRollbackAmount(0);
+                        setRollbackAmount('');
                         return;
                       }
-                      // ✅ Convert to number and cap at max paid amount
-                      const numValue = Number(value);
+                      
+                      // ✅ Convert to number and validate
+                      const numValue = parseFloat(value);
+                      
+                      // ✅ Allow valid numbers >= 0
                       if (!isNaN(numValue) && numValue >= 0) {
-                        setRollbackAmount(Math.min(numValue, selectedDefaulter.paidAmount || 0));
+                        // ✅ Cap at max paid amount
+                        const maxAmount = selectedDefaulter.paidAmount || 0;
+                        const cappedValue = Math.min(numValue, maxAmount);
+                        setRollbackAmount(cappedValue);
+                      }
+                    }}
+                    onBlur={() => {
+                      // ✅ On blur, if empty or 0, set to empty string
+                      if (rollbackAmount === '' || rollbackAmount === 0) {
+                        setRollbackAmount('');
                       }
                     }}
                     min="0"
@@ -1269,7 +1282,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                   )}
                 </AnimatePresence>
 
-                {rollbackAmount > 0 && (
+                {rollbackAmount && rollbackAmount > 0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
                     <p className="text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1292,7 +1305,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={handleRollbackPayment}
-                    disabled={loading || !rollbackAmount || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
+                    disabled={loading || !rollbackAmount || rollbackAmount <= 0 || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
                     className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
                   >
                     {loading ? "Processing..." : `Waive ₹${rollbackAmount}`}

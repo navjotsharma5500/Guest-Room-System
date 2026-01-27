@@ -538,20 +538,26 @@ const RoomCard = memo(function RoomCard({
                             <p className={`text-sm font-bold flex items-center gap-1.5 mb-2 ${
                               isActive ? "text-red-700" : "text-green-700"
                             }`}>
-                              <User2 className="w-4 h-4" />
-                              {b.guest}
+                              👤 {b.guest}
                             </p>
 
                             <div className="space-y-1 text-xs text-gray-600">
                               <div className="flex items-start gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
+                                <span className="text-gray-400">📞</span>
+                                <div>
+                                  <span className="font-medium">Contact: </span>
+                                  <span>{b.contact || "—"}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-1.5">
+                                <span className="text-gray-400">📅</span>
                                 <div>
                                   <span className="font-medium">Check-in: </span>
                                   <span>{formatDateTime(b.from, b.checkInTime)}</span>
                                 </div>
                               </div>
                               <div className="flex items-start gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
+                                <span className="text-gray-400">📅</span>
                                 <div>
                                   <span className="font-medium">Check-out: </span>
                                   <span>{formatDateTime(b.to, b.checkOutTime)}</span>
@@ -619,7 +625,7 @@ const RoomCard = memo(function RoomCard({
               theme === "dark" ? "text-red-400" : "text-red-700"
             }`}
           >
-            <CalendarDays className="w-4 h-4" /> Room {room.roomNo}
+            <CalendarDays className="w-4 h-4" /> 🚪 Room {room.roomNo}
           </h3>
 
           {!isRoomBlocked && (

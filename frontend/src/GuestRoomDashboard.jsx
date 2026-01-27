@@ -11,26 +11,30 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AdminEnquiryPage from "./pages/AdminEnquiryPage";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
+import FeedbackPage from "./pages/FeedbackPage";
+import CalendarGuestsPage from "./pages/CalendarGuestsPage";
+import DefaulterManagement from "./pages/DefaulterManagement";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
-import FeedbackPage from "./pages/FeedbackPage";
+import PaymentModal from "./components/PaymentModal";
 
-import { ToastProvider } from "./context/ToastContext";
+import { ToastProvider, useToast } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
 import { useHostelDataPolling } from "./hooks/useHostelDataPolling";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
-import CalendarGuestsPage from "./pages/CalendarGuestsPage";
+
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
-import PaymentModal from "./components/PaymentModal";
-import DefaulterManagement from "./pages/DefaulterManagement";
+
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
 
 export default function GuestRoomDashboard() {
   const { currentUser, loading, logout } = useAuth();
+
+  const { showToast } = useToast();
 
   // Socket.IO hook (handles all data)
   const {
@@ -348,14 +352,14 @@ export default function GuestRoomDashboard() {
 
     const currentHostel = hostelData[hostel];
     if (!currentHostel) {
-      alert("❌ Hostel not found");
+      showToast("❌ Hostel not found", "error");
       setCancelModal(null);
       return;
     }
 
     const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === room?.roomNo) || null;
     if (!currentRoom) {
-      alert("❌ Room not found");
+      showToast("❌ Room not found", "error");
       setCancelModal(null);
       return;
     }
@@ -370,9 +374,7 @@ export default function GuestRoomDashboard() {
 
     if (!mongoId) {
       console.error("❌ Missing MongoDB _id for booking:", booking);
-      alert(
-        "❌ Cannot cancel: Booking is not stored in the database yet. Please refresh the page and try again."
-      );
+      showToast("❌ Cannot cancel: Booking is not stored in the database yet. Please refresh the page and try again.", "error");
       setCancelModal(null);
       return;
     }
@@ -405,10 +407,10 @@ export default function GuestRoomDashboard() {
 
       setCancelModal(null);
       setRemarksText("");
-      alert("✅ Booking cancelled successfully!");
+      showToast("✅ Booking cancelled successfully!", "success");
     } catch (error) {
       console.error("❌ Cancellation error:", error);
-      alert(`❌ Failed to cancel booking: ${error.message}`);
+      showToast(`❌ Failed to cancel booking: ${error.message}`, "error");
     }
   };
 
@@ -447,7 +449,7 @@ export default function GuestRoomDashboard() {
 
     // ✅ VALIDATE: extensionData must be the modal object
     if (!extensionData || !extensionData.booking) {
-      alert("❌ Invalid extension data");
+      showToast("❌ Invalid extension data", "error");
       return;
     }
 
@@ -456,7 +458,7 @@ export default function GuestRoomDashboard() {
     // Validate hostel exists
     const currentHostel = hostelData[hostel];
     if (!currentHostel) {
-      alert("❌ Hostel not found");
+      showToast("❌ Hostel not found", "error");
       setExtensionModal(null);
       return;
     }
@@ -464,7 +466,7 @@ export default function GuestRoomDashboard() {
     // Validate room exists
     const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo) || null;
     if (!currentRoom) {
-      alert("❌ Room not found");
+      showToast("❌ Room not found", "error");
       setExtensionModal(null);
       return;
     }
@@ -474,7 +476,7 @@ export default function GuestRoomDashboard() {
     const newTo = new Date(newToDate);
 
     if (newTo <= currentTo) {
-      alert("❌ New checkout date must be after the current checkout date.");
+      showToast("❌ New checkout date must be after the current checkout date", "error");
       return;
     }
 
@@ -512,9 +514,7 @@ export default function GuestRoomDashboard() {
     });
 
     if (hasFutureConflict) {
-      alert(
-        "❌ Cannot extend: these dates overlap another booking in this room.\nPlease use Direct Booking or ask the guest to raise a new enquiry."
-      );
+      showToast("❌ Cannot extend: these dates overlap another booking in this room. Please use Direct Booking or ask the guest to raise a new enquiry.", "error");
       return;
     }
 
@@ -529,9 +529,7 @@ export default function GuestRoomDashboard() {
       
     if (!mongoId) {
       console.error("❌ Missing MongoDB _id for booking:", booking);
-      alert(
-        "❌ Cannot extend: Booking is not stored in the database yet. Please refresh the page and try again."
-      );
+      showToast("❌ Cannot extend: Booking is not stored in the database yet. Please refresh the page and try again.", "error");
       setExtensionModal(null);
       return;
     }
@@ -577,7 +575,7 @@ export default function GuestRoomDashboard() {
       // ✅ CLOSE MODAL
       setExtensionModal(null);
       
-      alert("✅ Booking extended successfully!");
+      showToast("✅ Booking extended successfully!", "success");
 
       // ✅ TRIGGER REFRESH
       setTimeout(() => refresh(), 100);
@@ -587,7 +585,7 @@ export default function GuestRoomDashboard() {
       console.error("❌ Extension error:", error);
       console.error("Stack:", error.stack);
       console.error("================================================================================");
-      alert(`❌ Failed to extend booking: ${error.message}`);
+      showToast(`❌ Failed to extend booking: ${error.message}`, "error");
     }
   };
 

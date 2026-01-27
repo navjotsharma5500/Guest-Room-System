@@ -142,17 +142,21 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   // Listen for real-time booking updates
   useEffect(() => {
     const handleBookingCancelled = (event) => {
-      const { bookingId } = event.detail || {};
-      const currentBookingId = booking?._id || booking?.id;
+    const { bookingId } = event.detail || {};
+    const currentBookingId = booking?._id || booking?.id;
+    
+    if (bookingId === currentBookingId) {
+      console.log("📡 Current booking cancelled - closing details panel...");
       
-      if (bookingId === currentBookingId) {
-        console.log("📡 Current booking cancelled - updating...");
-        setBooking(prev => ({
-          ...prev,
-          status: "cancelled"
-        }));
+      // ✅ Clear the booking data (this will close the panel)
+      setBooking(null);
+      
+      // ✅ If there's a parent component managing activeRoomRef, notify it
+      if (onCancel && typeof onCancel === 'function') {
+        onCancel(); // This typically closes modals/panels in parent
       }
-    };
+    }
+  };
 
     const handleBookingExtended = (event) => {
       const { bookingId } = event.detail || {};
