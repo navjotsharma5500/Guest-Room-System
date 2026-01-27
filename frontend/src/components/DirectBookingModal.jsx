@@ -33,7 +33,12 @@ const authenticator = async () => {
 
 export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   const { hostel, room, prefill } = modal || {};
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
 
   /* ------------------ STATES ------------------ */
   const [step, setStep] = useState(1);

@@ -7,7 +7,12 @@ import { useAuth } from "../context/AuthContext";
 
 export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
   const { currentUser } = useAuth();
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
 
   const [filters, setFilters] = useState({
     hostel: "",

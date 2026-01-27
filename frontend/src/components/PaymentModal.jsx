@@ -14,7 +14,12 @@ import {
 const API = BACKEND_URL;
 
 export default function PaymentModal({ booking, onClose, onSuccess }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const { refreshDashboard } = useDashboardRefresh();
   
   // Refs for ImageKit upload

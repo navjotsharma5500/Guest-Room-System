@@ -37,7 +37,12 @@ const imagekitAuthenticator = async () => {
 };
 
 export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}, theme = "light", setExtensionModal = () => {}, hideExtendButton = false, onClose = null }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const { token } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -782,7 +787,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
 
     } catch (err) {
       console.error("PDF generation error:", err);
-      alert("Failed to generate PDF. Please try again.");
+      showToast("❌ Failed to generate PDF. Please try again.", "error");
     }
   };
 
@@ -866,13 +871,13 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       if (data.success) { 
         setBooking(normalizeBooking(data.booking)); 
         setIsEditMode(false); 
-        alert("Updated successfully!"); 
+        showToast("✅ Updated successfully!", "success");
       } else {
         throw new Error(data.message || "Failed to update");
       }
     } catch (err) { 
       console.error("Update error:", err); 
-      alert(err.message || "Failed to save changes"); 
+      showToast(err.message || "❌ Failed to save changes", "error");
     }
   };
 
@@ -1233,7 +1238,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         onSuccess={(updatedBooking) => { 
           setBooking(updatedBooking); 
           setShowReportedModal(false); 
-          alert("✅ Reported!"); 
+          showToast("✅ Reported!", "success");
         }}
         onOpenPaymentModal={() => {
           setShowReportedModal(false);

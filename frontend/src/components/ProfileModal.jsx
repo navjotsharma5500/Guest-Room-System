@@ -38,7 +38,12 @@ const isValidUrl = (url) => {
 };
 
 export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(currentUser || {});
   const [showPasswordBox, setShowPasswordBox] = useState(false);
@@ -108,7 +113,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
     
     console.error("Error details:", errorMessage);
     setUploadError(errorMessage);
-    alert(`Upload failed: ${errorMessage}`);
+    showToast(`❌ Upload failed: ${errorMessage}`, "error");
   };
 
   // ==================== Save Profile Picture ====================
@@ -133,11 +138,11 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
       if (res?.data && res.data.user) {
         console.log("✅ Profile picture saved to backend:", res.data.user);
         onUpdate && onUpdate(res.data.user);
-        alert("Profile picture updated successfully!");
+        showToast("✅ Profile picture updated successfully!", "success");
       } else {
         console.log("✅ Profile picture saved (local update)");
         onUpdate && onUpdate({ ...currentUser, profilePicture: picUrl });
-        alert("Profile picture updated successfully!");
+        showToast("✅ Profile picture updated successfully!", "success");
       }
     } catch (err) {
       const unauth =
@@ -159,16 +164,16 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
               detail: { profilePicture: picUrl },
             })
           );
-          alert("Profile picture saved locally. Please log in to sync with server.");
+          showToast("✅ Profile picture saved locally. Please log in to sync with server.", "success");
           return;
         } catch {
-          alert("Profile picture uploaded. Local save failed.");
+          showToast("⚠️ Profile picture uploaded. Local save failed.", "warning");
           return;
         }
       }
 
       console.error("Error saving profile picture:", err);
-      alert(`Failed to save profile picture: ${err.response?.data?.message || err.message || "Unknown error"}`);
+      showToast(`❌ Failed to save profile picture: ${err.response?.data?.message || err.message || "Unknown error"}`, "error");
     }
   };
 
@@ -346,13 +351,13 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
 
                           if (!file.type.startsWith("image/")) {
                             console.error("❌ File is not an image");
-                            alert("Please select an image file.");
+                            showToast("⚠️ Please select an image file.", "warning");
                             return false;
                           }
 
                           if (file.size > 5 * 1024 * 1024) {
                             console.error("❌ File too large:", file.size);
-                            alert("Image must be 5MB or less.");
+                            showToast("⚠️ Image must be 5MB or less.", "warning");
                             return false;
                           }
 

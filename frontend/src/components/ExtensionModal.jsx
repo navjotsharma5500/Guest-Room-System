@@ -35,8 +35,13 @@ export default function ExtensionModalWrapper(props) {
 }
 
 function ExtensionModal({ modal, onClose, onExtend }) {
-  const { showToast } = useToast();
-  const [step, setStep] = useState(1); // ✅ NEW: Multi-step form
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
+  const [step, setStep] = useState(1); 
   const [newTo, setNewTo] = useState("");
   const [remarks, setRemarks] = useState("");
   const [files, setFiles] = useState([]);
@@ -447,11 +452,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                         onSuccess={handlePaymentFileSuccess}
                         validateFile={(file) => {
                           if (paymentFiles.length >= 5) {
-                            alert("Max 5 files allowed");
+                            showToast("⚠️ Max 5 files allowed", "warning");
                             return false;
                           }
                           if (file.size > 5 * 1024 * 1024) {
-                            alert("File size must be under 5MB");
+                            showToast("⚠️ File size must be under 5MB", "warning");
                             return false;
                           }
                           return true;
@@ -532,11 +537,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                         onSuccess={handlePaymentFileSuccess}
                         validateFile={(file) => {
                           if (paymentFiles.length >= 5) {
-                            alert("Max 5 files allowed");
+                            showToast("⚠️ Max 5 files allowed", "warning");
                             return false;
                           }
                           if (file.size > 5 * 1024 * 1024) {
-                            alert("File size must be under 5MB");
+                            showToast("⚠️ File size must be under 5MB", "warning");
                             return false;
                           }
                           return true;

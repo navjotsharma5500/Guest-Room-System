@@ -8,7 +8,12 @@ import { BACKEND_URL } from "../utils/apiConfig";
 const API = BACKEND_URL;
 
 const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

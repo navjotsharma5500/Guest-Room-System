@@ -92,7 +92,12 @@ export default function MainContent(props) {
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const lastPendingRef = useRef(0);
   const initRef = useRef(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -513,7 +518,7 @@ export default function MainContent(props) {
       console.log("📋 Total rows after filtering:", rows.length);
 
       if (!rows.length) {
-        alert("ℹ️ No data found for the selected date range.");
+        showToast("ℹ️ No data found for the selected date range.", "info");
         return;
       }
 
@@ -1561,7 +1566,7 @@ export default function MainContent(props) {
                   .replace(/^ +/, "")
                   .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
               });
-              alert("Cleared. Reloading...");
+              showToast("✅ Cleared. Reloading...", "success");
               window.location.reload();
             }
           }}

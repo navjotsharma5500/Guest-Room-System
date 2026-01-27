@@ -9,7 +9,12 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
   
 
   // ✅ Hooks must always be declared first
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const inputRef = useRef(null);

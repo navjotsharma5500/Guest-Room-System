@@ -18,7 +18,12 @@ const imagekitAuthenticator = async () => {
 // BLOCK ROOM MODAL
 // ========================================
 export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [blockedTill, setBlockedTill] = useState("");
   const [remarks, setRemarks] = useState("");
   const [attachments, setAttachments] = useState([]);
@@ -186,7 +191,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                   onError={(err) => {
                     console.error("Upload failed:", err);
                     setUploading(false);
-                    alert("Failed to upload file");
+                    showToast("❌ Failed to upload file", "error");
                   }}
                   onSuccess={(res) => {
                     const fileData = {
@@ -199,11 +204,11 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                   }}
                   validateFile={(file) => {
                     if (attachments.length >= 5) {
-                      alert("Maximum 5 files allowed");
+                      showToast("⚠️ Maximum 5 files allowed", "warning");
                       return false;
                     }
                     if (file.size > 5 * 1024 * 1024) {
-                      alert("Maximum file size is 5 MB");
+                      showToast("⚠️ Maximum file size is 5 MB", "warning");
                       return false;
                     }
                     const allowedTypes = [
@@ -213,7 +218,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                       "application/pdf",
                     ];
                     if (!allowedTypes.includes(file.type)) {
-                      alert("Only JPG, PNG, WEBP or PDF files allowed");
+                      showToast("⚠️ Only JPG, PNG, WEBP or PDF files allowed", "warning");
                       return false;
                     }
                     return true;
@@ -312,7 +317,12 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
 // UNBLOCK ROOM MODAL
 // ========================================
 export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuccess, theme }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [submitting, setSubmitting] = useState(false);
 
   const handleUnblock = async () => {

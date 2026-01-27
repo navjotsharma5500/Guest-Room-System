@@ -11,7 +11,12 @@ export default function CancelModal({
   onClose,
   onDone,
 }) {
-  const { showToast } = useToast();
+  const toastContext = useToast();
+  const showToast = (message, type = "info") => {
+    if (toastContext?.showToast) {
+      toastContext.showToast(message, type);
+    }
+  };
   const [localRemarks, setLocalRemarks] = useState(remarksText || "");
 
   // ✅ Sync external remarksText → local state

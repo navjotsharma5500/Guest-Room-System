@@ -928,10 +928,10 @@ export default function GuestEnquiryPage() {
             <strong>For any queries or feedback, please email:</strong>
             <br />
             <a 
-              href="mailto:navjot.sharma@thapar.edu" 
+              href="mailto:harpreet.virdi@thapar.edu" 
               className="text-blue-600 hover:text-blue-800 underline font-medium mt-2 inline-block"
             >
-              navjot.sharma@thapar.edu
+              harpreet.virdi@thapar.edu
             </a>
           </p>
         </div>
