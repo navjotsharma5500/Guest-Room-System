@@ -2,7 +2,7 @@
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
-import { sendEmail } from "../emails/sendEmail.js";
+import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import EmailLog from "../models/EmailLog.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
@@ -12,35 +12,10 @@ import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import { sendBookingEmails } from "./bookingController.js";
 
 // ======================================================
-// HELPER: SAFE EMAIL SENDING (NON-BLOCKING)
+// WRAPPER: Use centralized safeSend with EmailLog
 // ======================================================
 const safeSend = (emailPayload) => {
-  try {
-    if (!emailPayload?.to || String(emailPayload.to).trim() === "") return;
-
-    sendEmail(emailPayload)
-      .then(() => {
-        EmailLog.create({
-          to: emailPayload.to,
-          subject: emailPayload.subject,
-          type: emailPayload.meta?.type,
-          enquiryId: emailPayload.meta?.enquiryId,
-          status: "sent",
-        }).catch(() => {});
-      })
-      .catch((err) => {
-        EmailLog.create({
-          to: emailPayload.to,
-          subject: emailPayload.subject,
-          type: emailPayload.meta?.type,
-          enquiryId: emailPayload.meta?.enquiryId,
-          status: "failed",
-          error: err.message,
-        }).catch(() => {});
-      });
-  } catch (err) {
-    console.error("⚠️ safeSend failed:", err.message);
-  }
+  return baseSafeSend(emailPayload, EmailLog);
 };
 
 // ======================================================

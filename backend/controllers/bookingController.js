@@ -3,7 +3,7 @@ import Booking from "../models/Booking.js";
 import { Parser } from "json2csv";
 import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
-import { sendEmail } from "../emails/sendEmail.js";
+import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import Enquiry from "../models/Enquiry.js";
 import EmailLog from "../models/EmailLog.js";
 import Feedback from "../models/Feedback.js";
@@ -90,54 +90,10 @@ const refreshBookingEmails = async (booking) => {
 };
 
 // ======================================================
-// ENHANCED safeSend with validation logging
+// WRAPPER: Use centralized safeSend with EmailLog
 // ======================================================
 const safeSend = (emailPayload) => {
-  console.log("📧 safeSend called:", {
-    to: emailPayload?.to,
-    subject: emailPayload?.subject,
-    type: emailPayload?.meta?.type,
-    bookingId: emailPayload?.meta?.bookingId
-  });
-
-  if (!emailPayload?.to || String(emailPayload.to).trim() === "") {
-    console.warn("⚠️ safeSend SKIPPED - No recipient email:", {
-      type: emailPayload?.meta?.type,
-      bookingId: emailPayload?.meta?.bookingId
-    });
-    return;
-  }
-
-  sendEmail(emailPayload)
-    .then(() => {
-      console.log("✅ Email sent successfully:", emailPayload.to);
-      try {
-        EmailLog.create({
-          to: emailPayload.to,
-          subject: emailPayload.subject,
-          type: emailPayload.meta?.type,
-          bookingId: emailPayload.meta?.bookingId,
-          status: "sent",
-        });
-      } catch (e) {
-        console.error("EmailLog write failed:", e.message);
-      }
-    })
-    .catch((err) => {
-      console.error("❌ Email send failed:", emailPayload.to, err.message);
-      try {
-        EmailLog.create({
-          to: emailPayload.to,
-          subject: emailPayload.subject,
-          type: emailPayload.meta?.type,
-          bookingId: emailPayload.meta?.bookingId,
-          status: "failed",
-          error: err.message,
-        });
-      } catch (e) {
-        console.error("EmailLog write failed:", e.message);
-      }
-    });
+  return baseSafeSend(emailPayload, EmailLog);
 };
 
 // ======================================================

@@ -3,7 +3,7 @@ import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
 import Hostel from "../models/Hostel.js";
 import masterTemplate from "../emails/templates/masterTemplate.js";
-import { safeSend } from "../emails/sendEmail.js";
+import { sendEmail, sendBulkEmails, safeSend } from "../emails/sendEmail.js";
 
 export const getDefaulters = async (req, res) => {
   try {
@@ -247,69 +247,89 @@ export const getDefaulterStats = async (req, res) => {
     console.error("❌ Get defaulter stats error:", err);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch defaulter statistics",
+      message: "Failed to fetch defaulter stats",
       error: err.message
     });
   }
 };
 
-// ✅ NEW: Mark defaulter as resolved (when payment is made)
+// Record payment for defaulter
 export const resolveDefaulter = async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentAmount, paymentMode, transactionId, remarks } = req.body;
+    const { 
+      amountPaid, 
+      paymentMode, 
+      transactionId, 
+      transactionDate,
+      paymentRemarks,
+      paymentAttachments
+    } = req.body;
+
+    if (!amountPaid || amountPaid <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid payment amount is required"
+      });
+    }
 
     const booking = await Booking.findById(id);
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Booking not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
       });
     }
 
-    // Update payment details
     const previousBalance = booking.balanceAmount;
-    booking.paidAmount = (booking.paidAmount || 0) + Number(paymentAmount);
-    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount);
+
+    // Update payment
+    booking.paidAmount = (booking.paidAmount || 0) + Number(amountPaid);
+    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - (booking.discount || 0));
     
-    if (booking.balanceAmount === 0) {
-      booking.paymentStatus = "PAID";
+    // Update payment details
+    booking.paymentMode = paymentMode || booking.paymentMode;
+    booking.transactionId = transactionId || booking.transactionId;
+    booking.transactionDate = transactionDate || booking.transactionDate;
+    booking.paymentRemarks = paymentRemarks || booking.paymentRemarks;
+    
+    // Update payment attachments if provided
+    if (paymentAttachments && Array.isArray(paymentAttachments)) {
+      booking.paymentAttachments = paymentAttachments;
     }
 
-    if (paymentMode) booking.paymentMode = paymentMode;
-    if (transactionId) booking.transactionId = transactionId;
-    if (remarks) booking.paymentRemarks = remarks;
+    // Update payment status
+    if (booking.balanceAmount === 0) {
+      booking.paymentStatus = "PAID";
+    } else if (booking.paidAmount > 0) {
+      booking.paymentStatus = "PARTIALLY_PAID";
+    }
 
     await booking.save();
 
-    console.log("✅ Defaulter resolved:", {
-      bookingId: booking._id,
-      guest: booking.guest,
-      previousBalance,
-      newBalance: booking.balanceAmount,
-      paidAmount: paymentAmount
-    });
+    console.log(`✅ Payment recorded: ${amountPaid} for booking ${booking._id}`);
+    console.log(`   Previous balance: ${previousBalance}, New balance: ${booking.balanceAmount}`);
 
-    // ✅ EMIT SOCKET.IO EVENT - Defaulter resolved
+    // ✅ EMIT SOCKET.IO EVENT
     const io = req.app.get('io');
     if (io) {
-      io.to('dashboard-room').emit('defaulter-resolved', { 
+      io.to('dashboard-room').emit('payment-recorded', {
         bookingId: booking._id,
         guest: booking.guest,
         hostel: booking.hostel,
+        amountPaid: Number(amountPaid),
         previousBalance,
         newBalance: booking.balanceAmount,
-        paidAmount: Number(paymentAmount),
-        fullyPaid: booking.balanceAmount === 0,
+        paymentStatus: booking.paymentStatus,
         timestamp: Date.now()
       });
-      console.log('📡 Emitted defaulter-resolved event');
+      console.log('📡 Emitted payment-recorded event');
     }
 
     res.json({
       success: true,
       message: booking.balanceAmount === 0 
-        ? "Payment completed - defaulter cleared" 
+        ? "Payment completed successfully" 
         : "Partial payment recorded",
       booking,
       previousBalance,
@@ -469,7 +489,7 @@ if (!req.user || !["admin", "manager"].includes(req.user.role)) {
   }
 };
 
-// ✅ NEW: Send Bulk Payment Reminder Emails
+// ✅ UPDATED: Send Bulk Payment Reminder Emails with Batching
 export const sendBulkPaymentReminders = async (req, res) => {
   try {
     const { defaulterIds } = req.body;
@@ -486,68 +506,75 @@ export const sendBulkPaymentReminders = async (req, res) => {
       balanceAmount: { $gt: 0 }
     });
 
-    console.log(`📧 Sending bulk payment reminders to ${defaulters.length} defaulters`);
+    console.log(`📧 Preparing bulk payment reminders for ${defaulters.length} defaulters`);
 
-    let sentCount = 0;
-    let failedCount = 0;
+    // Prepare email payloads
+    const emailPayloads = [];
 
     for (const booking of defaulters) {
-      try {
-        const balanceAmount = booking.balanceAmount || 0;
-        
-        // Refresh emails from hostel
-        const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
-        if (hostelDoc) {
-          booking.caretakerEmail = hostelDoc.caretakerEmail;
-        }
-
-        safeSend({
-          to: booking.email,
-          subject: "Payment Reminder - Outstanding Balance",
-          html: masterTemplate({
-            title: "Payment Reminder",
-            content: `
-              <p>Dear ${booking.guest},</p>
-              <p>This is a friendly reminder regarding your pending payment for your stay at ${booking.hostel}.</p>
-              
-              <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
-                <strong style="color: #dc2626;">Outstanding Payment Details:</strong><br/><br/>
-                <strong>Hostel:</strong> ${booking.hostel}<br/>
-                <strong>Room:</strong> ${booking.roomNo}<br/>
-                <strong>Stay Period:</strong> ${new Date(booking.from).toLocaleDateString()} to ${new Date(booking.to).toLocaleDateString()}<br/><br/>
-                <strong style="color: #dc2626; font-size: 18px;">Amount Due: ₹${balanceAmount.toFixed(2)}</strong>
-              </div>
-              
-              <p><strong>Please settle the payment at the earliest to avoid further action.</strong></p>
-              
-              <p>For payment queries, please contact:<br/>
-              Caretaker Email: ${booking.caretakerEmail || 'Contact your hostel'}<br/>
-              Hostel: ${booking.hostel}</p>
-              
-              <p>Thank you for your cooperation.</p>
-            `
-          }),
-          meta: {
-            bookingId: booking._id,
-            type: "bulk-payment-reminder",
-          },
-        });
-
-        sentCount++;
-        console.log(`✅ Sent reminder to ${booking.guest} (${booking.email})`);
-      } catch (err) {
-        failedCount++;
-        console.error(`❌ Failed to send to ${booking.guest}:`, err);
+      const balanceAmount = booking.balanceAmount || 0;
+      
+      // Refresh emails from hostel
+      const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+      if (hostelDoc) {
+        booking.caretakerEmail = hostelDoc.caretakerEmail;
       }
+
+      emailPayloads.push({
+        to: booking.email,
+        subject: "Payment Reminder - Outstanding Balance",
+        html: masterTemplate({
+          title: "Payment Reminder",
+          content: `
+            <p>Dear ${booking.guest},</p>
+            <p>This is a friendly reminder regarding your pending payment for your stay at ${booking.hostel}.</p>
+            
+            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+              <strong style="color: #dc2626;">Outstanding Payment Details:</strong><br/><br/>
+              <strong>Hostel:</strong> ${booking.hostel}<br/>
+              <strong>Room:</strong> ${booking.roomNo}<br/>
+              <strong>Stay Period:</strong> ${new Date(booking.from).toLocaleDateString()} to ${new Date(booking.to).toLocaleDateString()}<br/><br/>
+              <strong style="color: #dc2626; font-size: 18px;">Amount Due: ₹${balanceAmount.toFixed(2)}</strong>
+            </div>
+            
+            <p><strong>Please settle the payment at the earliest to avoid further action.</strong></p>
+            
+            <p>For payment queries, please contact:<br/>
+            Caretaker Email: ${booking.caretakerEmail || 'Contact your hostel'}<br/>
+            Hostel: ${booking.hostel}</p>
+            
+            <p>Thank you for your cooperation.</p>
+          `
+        }),
+        meta: {
+          bookingId: booking._id,
+          type: "bulk-payment-reminder",
+        },
+      });
     }
 
-    console.log(`📊 Bulk email summary: ${sentCount} sent, ${failedCount} failed`);
+    // ✅ Send emails in batches with rate limiting
+    const results = await sendBulkEmails(emailPayloads, {
+      batchSize: 10,       // Send 10 emails per batch
+      batchDelay: 30000,   // 30 seconds between batches
+      onProgress: (progress) => {
+        console.log(`📊 Progress: ${progress.current}/${progress.total} | Sent: ${progress.sent} | Failed: ${progress.failed}`);
+      },
+      onBatchComplete: (batch) => {
+        console.log(`✅ Batch ${batch.batchNumber}/${batch.totalBatches} complete`);
+      }
+    });
+
+    console.log(`📊 Bulk email summary:`, results);
 
     res.json({
       success: true,
-      sent: sentCount,
-      failed: failedCount,
-      message: `Sent ${sentCount} payment reminder emails`
+      sent: results.sent,
+      failed: results.failed,
+      rateLimited: results.rateLimited,
+      total: results.total,
+      message: `Sent ${results.sent} out of ${results.total} payment reminder emails`,
+      errors: results.errors && results.errors.length > 0 ? results.errors.slice(0, 10) : []
     });
 
   } catch (err) {
