@@ -78,15 +78,15 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
         throw new Error(result.message || "Failed to block room");
       }
 
-      console.log("✅ Room blocked:", result);
-      // ❌ REMOVED: showToast("✅ Room blocked successfully!", "success");
+      console.log("✅ Room blocked successfully:", result);
+      showToast("✅ Room blocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
 
     } catch (err) {
       console.error("❌ Block room error:", err);
-      showToast(`❌ Failed to block room: ${err.message}`, "error");
+      showToast(`❌ ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -201,6 +201,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                     };
                     setAttachments(prev => [...prev, fileData]);
                     setUploading(false);
+                    showToast("✅ File uploaded successfully", "success");
                   }}
                   validateFile={(file) => {
                     if (attachments.length >= 5) {
@@ -328,14 +329,27 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
   };
   const [submitting, setSubmitting] = useState(false);
 
+  // ✅ Pre-flight check: Verify room is actually blocked
+  React.useEffect(() => {
+    if (!blockInfo?.isBlocked) {
+      console.warn("⚠️ WARNING: Trying to unblock a room that appears unblocked");
+      console.log("Block info:", blockInfo);
+    }
+  }, [blockInfo]);
+
   const handleUnblock = async () => {
-    // Direct submission without extra confirm since the modal itself is the confirmation
     setSubmitting(true);
 
     try {
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      console.log("🔓 Attempting to unblock room:", {
+        hostel: hostelName,
+        room: roomNo,
+        blockInfo: blockInfo
+      });
 
       const response = await fetch(
         `${API}/api/hostels/${encodeURIComponent(hostelName)}/rooms/${encodeURIComponent(roomNo)}/unblock`,
@@ -349,18 +363,29 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
       const result = await response.json();
 
       if (!response.ok) {
+        // ✅ Handle "already unblocked" gracefully
+        if (response.status === 400 && result.message === "Room is not blocked") {
+          console.warn("⚠️ Room is already unblocked (may have auto-unblocked)");
+          showToast("ℹ️ Room is already unblocked", "info");
+          
+          // Still trigger success to refresh the UI
+          if (onSuccess) onSuccess(result);
+          onClose();
+          return;
+        }
+        
         throw new Error(result.message || "Failed to unblock room");
       }
 
-      console.log("✅ Room unblocked:", result);
-      // ❌ REMOVED: showToast("✅ Room unblocked successfully!", "success");
+      console.log("✅ Room unblocked successfully:", result);
+      showToast("✅ Room unblocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
 
     } catch (err) {
       console.error("❌ Unblock room error:", err);
-      showToast(`❌ Failed to unblock room: ${err.message}`, "error");
+      showToast(`❌ ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -414,7 +439,7 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
             <p className="text-sm font-semibold mb-2">Blocked Till:</p>
             <p className="text-lg font-bold text-red-600">
               {blockInfo?.blockedTill 
-                ? new Date(blockInfo.blockedTill).toLocaleDateString()
+                ? new Date(blockInfo.blockedTill).toLocaleString()
                 : "N/A"
               }
             </p>
@@ -535,7 +560,7 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
             <p className="text-sm font-semibold mb-2">Blocked Till:</p>
             <p className="text-lg font-bold text-red-600">
               {blockInfo?.blockedTill 
-                ? new Date(blockInfo.blockedTill).toLocaleDateString()
+                ? new Date(blockInfo.blockedTill).toLocaleString()
                 : "N/A"
               }
             </p>
@@ -572,7 +597,7 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
           )}
         </div>
 
-        {/* ✅ NEW: Buttons with Unblock option */}
+        {/* Buttons with Unblock option */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
@@ -580,7 +605,9 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
           >
             Close
           </button>
-          {onUnblock && (
+          
+          {/* Only show unblock button if room is actually blocked */}
+          {onUnblock && blockInfo?.isBlocked && (
             <button
               onClick={onUnblock}
               className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:shadow-lg transition font-semibold flex items-center gap-2"
@@ -588,6 +615,14 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
               <Unlock className="w-4 h-4" />
               Unblock Room
             </button>
+          )}
+
+          {/* Show different message if already unblocked */}
+          {onUnblock && !blockInfo?.isBlocked && (
+            <div className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Room Already Unblocked
+            </div>
           )}
         </div>
       </motion.div>
