@@ -311,8 +311,8 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       return;
     }
 
-    if (rollbackAmount > selectedDefaulter.paidAmount) {
-      alert(`⚠️ Cannot rollback ₹${rollbackAmount}. Only ₹${selectedDefaulter.paidAmount} has been paid.`);
+    if (rollbackAmount > selectedDefaulter.totalDue) { 
+      alert(`⚠️ Cannot rollback ₹${rollbackAmount}. Current balance is only ₹${selectedDefaulter.totalDue}.`);  // ✅
       return;
     }
 
@@ -1124,7 +1124,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     </div>
                     <div>
                       <p className="text-gray-600">Max Rollback</p>
-                      <p className="font-bold text-orange-600">₹{selectedDefaulter.paidAmount || 0}</p>
+                      <p className="font-bold text-orange-600">₹{selectedDefaulter.totalDue || 0}</p>  // ✅
                     </div>
                   </div>
                 </div>
@@ -1179,7 +1179,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                     className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Maximum: ₹{selectedDefaulter.paidAmount || 0}
+                    Maximum: ₹{selectedDefaulter.totalDue || 0}
                   </p>
                 </div>
 
