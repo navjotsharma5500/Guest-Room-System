@@ -81,7 +81,16 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
       console.log("✅ Room blocked successfully:", result);
       showToast("✅ Room blocked successfully!", "success");
       
-      if (onSuccess) onSuccess(result);
+      // ✅ SAFE CALLBACK HANDLING
+      try {
+        if (onSuccess && typeof onSuccess === 'function') {
+          await onSuccess(result);
+        }
+      } catch (callbackError) {
+        console.error("❌ onSuccess callback failed:", callbackError);
+        // Don't throw - we still want to close the modal
+      }
+      
       onClose();
 
     } catch (err) {
@@ -368,8 +377,15 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
           console.warn("⚠️ Room is already unblocked (may have auto-unblocked)");
           showToast("ℹ️ Room is already unblocked", "info");
           
-          // Still trigger success to refresh the UI
-          if (onSuccess) onSuccess(result);
+          // ✅ SAFE CALLBACK HANDLING
+          try {
+            if (onSuccess && typeof onSuccess === 'function') {
+              await onSuccess(result);
+            }
+          } catch (callbackError) {
+            console.error("❌ onSuccess callback failed:", callbackError);
+          }
+          
           onClose();
           return;
         }
@@ -380,7 +396,15 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
       console.log("✅ Room unblocked successfully:", result);
       showToast("✅ Room unblocked successfully!", "success");
       
-      if (onSuccess) onSuccess(result);
+      // ✅ SAFE CALLBACK HANDLING
+      try {
+        if (onSuccess && typeof onSuccess === 'function') {
+          await onSuccess(result);
+        }
+      } catch (callbackError) {
+        console.error("❌ onSuccess callback failed:", callbackError);
+      }
+      
       onClose();
 
     } catch (err) {
