@@ -194,24 +194,34 @@ export default function Sidebar({
 
         {/* ✅ DEFAULTERS BUTTON */}
         <motion.button
+          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
           onClick={() => {
             console.log("🔴 Defaulters clicked");
             setActiveTab("Defaulters");
             setActiveHostel(null);
             setActiveRoomRef(null);
           }}
-          className="relative group w-full text-left px-3 py-2 rounded-xl
-                    border bg-gradient-to-r from-red-500 to-red-600 text-white
-                    flex items-center gap-3 shadow-lg"
+          className={`
+            relative group w-full text-left px-3 py-2 rounded-xl border
+            bg-white/30 backdrop-blur-xl flex items-center gap-3
+            ${
+              activeTab === "Defaulters"
+                ? "border-red-500 shadow-md"
+                : "border-transparent hover:bg-white/80"
+            }
+          `}
         >
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm font-semibold">Defaulters</span>
+          <AlertCircle className="w-4 h-4 text-slate-600" />
+          <span className={`text-sm ${activeTab === "Defaulters" ? "font-semibold" : ""}`}>
+            Defaulters
+          </span>
         </motion.button>
 
         {/* ✅ FEEDBACK BUTTON */}
           <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={(e) => {
               e.stopPropagation();
               console.log("⭐ Feedback clicked - setting activeTab to Feedback");
@@ -219,15 +229,20 @@ export default function Sidebar({
               setActiveHostel(null);
               setActiveRoomRef(null);
             }}
-            className={`relative group w-full text-left px-3 py-2 rounded-xl
-                      border flex items-center gap-3 shadow-lg
-                      ${activeTab === "Feedback" 
-                        ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white border-purple-500" 
-                        : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
-                      }`}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl border
+              bg-white/30 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "Feedback"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
           >
-            <Star className="w-4 h-4" />
-            <span className="text-sm font-semibold">Guest Feedback</span>
+            <Star className="w-4 h-4 text-slate-600" />
+            <span className={`text-sm ${activeTab === "Feedback" ? "font-semibold" : ""}`}>
+              Guest Feedback
+            </span>
           </motion.button>
         </nav>  
       
