@@ -1167,7 +1167,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
                       }
                       
                       // ✅ Cap at max paid amount
-                      const maxAmount = selectedDefaulter.paidAmount || 0;
+                      const maxAmount = selectedDefaulter.totalDue || 0; 
                       if (numValue > maxAmount) {
                         setRollbackAmount(maxAmount.toString());
                       }
