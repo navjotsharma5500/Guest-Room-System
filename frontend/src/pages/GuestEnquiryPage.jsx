@@ -1137,6 +1137,26 @@ export default function GuestEnquiryPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* SUPPORT BUTTON */}
+        <div className="fixed bottom-4 left-6 z-50">
+          <a
+            href="mailto:harpreet.virdi@thapar.edu"
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 shadow-lg transition-all duration-300"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+            </svg>
+            Support
+          </a>
+        </div>
+
         {/* FOOTER CREDIT */}
         <div className="fixed bottom-4 right-6 z-50">
           <Creator variant="default" />
