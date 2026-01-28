@@ -875,7 +875,7 @@ export default function GuestEnquiryPage() {
             </div>
             
             <h2 className="text-3xl font-bold text-red-700 mb-3 group-hover:text-red-800 transition-colors">
-              Faculty & Emp.
+              Faculty & Staff
             </h2>
             
             <p className="text-gray-600 text-center">
