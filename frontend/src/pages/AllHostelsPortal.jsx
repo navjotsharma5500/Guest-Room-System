@@ -15,7 +15,7 @@ import BookingDetailsModal from "../components/AllHostels/BookingDetailsModal";
 import DirectBookingModal from "../components/DirectBookingModal";
 import CancelModal from "../components/CancelModal";
 import ExtensionModal from "../components/ExtensionModal";
-import { BlockedRoomInfoModal } from '../components/RoomBlockingModals';
+import { BlockedRoomInfoModal, BlockRoomModal, UnblockRoomModal } from '../components/RoomBlockingModals';
 
 // Custom Hooks
 import useBookingHandlers from "../hooks/useBookingHandlers";
@@ -96,6 +96,11 @@ export default function AllHostelsPortal({
   const [bookingDetailsModal, setBookingDetailsModal] = useState(null);
   const [showBlockedRoomModal, setShowBlockedRoomModal] = useState(false);
   const [selectedBlockedRoom, setSelectedBlockedRoom] = useState(null);
+  
+  // ✅ NEW: Block/Unblock modal states
+  const [showBlockRoomModal, setShowBlockRoomModal] = useState(false);
+  const [showUnblockRoomModal, setShowUnblockRoomModal] = useState(false);
+  const [selectedRoomForBlocking, setSelectedRoomForBlocking] = useState(null);
 
   const suppressToastRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -259,9 +264,9 @@ export default function AllHostelsPortal({
   const handleRoomCardClick = useCallback((hostel, room, bookedAny) => {
     console.log("🎯 Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny, isBlocked: room.isBlocked });
     
-    // ✅ NEW: Check if room is blocked FIRST
+    // ✅ Check if room is blocked FIRST
     if (room.isBlocked) {
-      console.log("🔒 Room is blocked, showing info modal");
+      console.log("🔒 Room is blocked, showing info modal with block/unblock options");
       setSelectedBlockedRoom({
         hostelName: hostel,
         roomNo: room.roomNo,
@@ -296,6 +301,39 @@ export default function AllHostelsPortal({
       openDirectBookingForVacant({ hostel, room, prefill: null });
     }
   }, [selectionMode, prefillGuest, vacancyHandlers, bookingHandlers, openDirectBookingForVacant, showToast]);
+
+  // ✅ NEW: Handler for blocking success
+  const handleBlockSuccess = useCallback((result) => {
+    console.log("✅ Block success:", result);
+    showToast("✅ Room blocked successfully!", "success");
+    setShowBlockRoomModal(false);
+    setSelectedRoomForBlocking(null);
+    // Data will refresh automatically via Socket.IO from parent
+  }, [showToast]);
+
+  // ✅ NEW: Handler for unblocking success
+  const handleUnblockSuccess = useCallback((result) => {
+    console.log("✅ Unblock success:", result);
+    showToast("✅ Room unblocked successfully!", "success");
+    setShowUnblockRoomModal(false);
+    setShowBlockedRoomModal(false);
+    setSelectedBlockedRoom(null);
+    setSelectedRoomForBlocking(null);
+    // Data will refresh automatically via Socket.IO from parent
+  }, [showToast]);
+
+  // ✅ NEW: Handler to open unblock modal from BlockedRoomInfoModal
+  const handleOpenUnblockModal = useCallback(() => {
+    if (selectedBlockedRoom) {
+      setSelectedRoomForBlocking({
+        hostelName: selectedBlockedRoom.hostelName,
+        roomNo: selectedBlockedRoom.roomNo,
+        blockInfo: selectedBlockedRoom.blockInfo
+      });
+      setShowBlockedRoomModal(false);
+      setShowUnblockRoomModal(true);
+    }
+  }, [selectedBlockedRoom]);
 
   // ✅ Check if data is empty
   const hasData = Object.keys(stableHostelData).length > 0;
@@ -539,6 +577,39 @@ export default function AllHostelsPortal({
         </svg>
       </button>
 
+      {/* ✅ NEW: Block Room Modal */}
+      <AnimatePresence>
+        {showBlockRoomModal && selectedRoomForBlocking && (
+          <BlockRoomModal
+            hostelName={selectedRoomForBlocking.hostelName}
+            roomNo={selectedRoomForBlocking.roomNo}
+            onClose={() => {
+              setShowBlockRoomModal(false);
+              setSelectedRoomForBlocking(null);
+            }}
+            onSuccess={handleBlockSuccess}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ✅ NEW: Unblock Room Modal */}
+      <AnimatePresence>
+        {showUnblockRoomModal && selectedRoomForBlocking && (
+          <UnblockRoomModal
+            hostelName={selectedRoomForBlocking.hostelName}
+            roomNo={selectedRoomForBlocking.roomNo}
+            blockInfo={selectedRoomForBlocking.blockInfo}
+            onClose={() => {
+              setShowUnblockRoomModal(false);
+              setSelectedRoomForBlocking(null);
+            }}
+            onSuccess={handleUnblockSuccess}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Blocked Room Info Modal */}
       <AnimatePresence>
         {showBlockedRoomModal && selectedBlockedRoom && (
@@ -550,6 +621,7 @@ export default function AllHostelsPortal({
               setShowBlockedRoomModal(false);
               setSelectedBlockedRoom(null);
             }}
+            onUnblock={handleOpenUnblockModal}
             theme={theme}
           />
         )}

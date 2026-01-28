@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { autoCancelNoShows } from "../controllers/bookingController.js";
+import { autoCancelNoShows, autoCheckoutOverdueGuests } from "../controllers/bookingController.js";
 import Hostel from "../models/Hostel.js";
 
 export const startNoShowCronJob = (io) => {
@@ -30,6 +30,47 @@ export const startNoShowCronJob = (io) => {
   });
 
   console.log("✅ Cron job started - runs every hour");
+};
+
+// ✅ NEW: Auto-checkout overdue guests (runs every 2 hours)
+export const startAutoCheckoutCronJob = (io) => {
+  console.log("🕐 Starting auto-checkout cron job...");
+  
+  // Run every 2 hours at minute 0 (midnight, 2am, 4am, etc.)
+  cron.schedule("0 */2 * * *", async () => {
+    const now = new Date();
+    console.log(`⏰ [${now.toISOString()}] Running auto-checkout job...`);
+    
+    try {
+      const result = await autoCheckoutOverdueGuests();
+      console.log("✅ Auto-checkout completed:", result);
+      
+      // ✅ Notify all connected clients
+      if (io && result.checkedOut > 0) {
+        io.emit("bookingDataUpdated", {
+          type: "cron-auto-checkout",
+          timestamp: now.toISOString(),
+          result
+        });
+        console.log("📡 Broadcast auto-checkout to all clients");
+      }
+      
+      // ✅ If guests moved to defaulters, emit defaulter update
+      if (io && result.movedToDefaulters > 0) {
+        io.to('dashboard-room').emit('defaulter-stats-updated', {
+          type: "auto-checkout-defaulters",
+          count: result.movedToDefaulters,
+          timestamp: now.toISOString()
+        });
+        console.log("📡 Broadcast defaulter update to all clients");
+      }
+      
+    } catch (error) {
+      console.error("❌ Auto-checkout error:", error);
+    }
+  });
+
+  console.log("✅ Auto-checkout cron job started - runs every 2 hours");
 };
 
 // ✅ NEW: Auto-unblock expired room blocks (runs daily at midnight)

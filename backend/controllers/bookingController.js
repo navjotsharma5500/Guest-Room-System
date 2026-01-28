@@ -6,6 +6,7 @@ import { createLog } from "../middleware/logMiddleware.js";
 import { sendEmail } from "../emails/sendEmail.js";
 import Enquiry from "../models/Enquiry.js";
 import EmailLog from "../models/EmailLog.js";
+import Feedback from "../models/Feedback.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -1125,6 +1126,8 @@ export const getBookingHistory = async (req, res) => {
   try {
     const { contact, email } = req.query;
 
+    console.log("📋 Fetching booking history:", { contact, email });
+
     if (!contact && !email) {
       return res.status(400).json({ 
         success: false, 
@@ -1137,21 +1140,50 @@ export const getBookingHistory = async (req, res) => {
     if (contact) query.$or.push({ contact: contact });
     if (email) query.$or.push({ email: { $regex: new RegExp(`^${email}$`, "i") } });
 
+    // Fetch bookings
     const bookings = await Booking.find(query)
       .sort({ from: -1 })
-      .populate({
-        path: 'feedback',
-        select: 'rating remarks attachments ratingLabel'
-      })
       .lean();
+
+    console.log(`✅ Found ${bookings.length} bookings`);
+
+    // ✅ CRITICAL FIX: Manually fetch feedback for each booking
+    const bookingIds = bookings.map(b => b._id);
+    
+    const feedbacks = await Feedback.find({ 
+      bookingId: { $in: bookingIds } 
+    })
+    .select('bookingId rating remarks attachments ratingLabel')
+    .lean();
+
+    console.log(`✅ Found ${feedbacks.length} feedbacks`);
+
+    // Create a map for quick lookup
+    const feedbackMap = {};
+    feedbacks.forEach(fb => {
+      feedbackMap[fb.bookingId.toString()] = {
+        rating: fb.rating,
+        remarks: fb.remarks,
+        attachments: fb.attachments || [],
+        ratingLabel: fb.ratingLabel
+      };
+    });
+
+    // ✅ Attach feedback to each booking
+    const bookingsWithFeedback = bookings.map(booking => ({
+      ...booking,
+      feedback: feedbackMap[booking._id.toString()] || null
+    }));
+
+    console.log(`✅ Returning ${bookingsWithFeedback.length} bookings with feedback attached`);
 
     res.json({
       success: true,
-      bookings,
+      bookings: bookingsWithFeedback,
     });
 
   } catch (error) {
-    console.error("Fetch history error:", error);
+    console.error("❌ Fetch history error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Failed to fetch guest history",
@@ -1257,11 +1289,11 @@ export const downloadBookingsCSV = async (req, res) => {
 export const autoCancelNoShows = async () => {
   try {
     const now = new Date();
-    const tenHoursAgo = new Date(now.getTime() - (10 * 60 * 60 * 1000));
+    const twentyThreeHoursAgo = new Date(now.getTime() - (23 * 60 * 60 * 1000));
 
     console.log("🔍 Checking for no-show bookings...");
-    console.log("â° Current time:", now.toISOString());
-    console.log("â° 10 hours ago:", tenHoursAgo.toISOString());
+    console.log("⏰ Current time:", now.toISOString());
+    console.log("⏰ 23 hours ago:", twentyThreeHoursAgo.toISOString());
 
     // Find bookings that:
     // 1. Are still "booked" status
@@ -1270,7 +1302,7 @@ export const autoCancelNoShows = async () => {
     const noShowBookings = await Booking.find({
       status: "booked",
       reportedStatus: "pending",
-      from: { $lte: tenHoursAgo }
+      from: { $lte: twentyThreeHoursAgo }
     });
 
     console.log(`📋 Found ${noShowBookings.length} no-show bookings`);
@@ -1282,11 +1314,11 @@ export const autoCancelNoShows = async () => {
       checkInDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
       // Check if 10 hours have passed since check-in time
-      if (checkInDateTime < tenHoursAgo) {
+      if (checkInDateTime < twentyThreeHoursAgo) {
         booking.status = "cancelled";
         booking.reportedStatus = "not_reported";
         booking.cancelDate = new Date();
-        booking.cancelRemarks = "Auto-cancelled: Guest did not report within 10 hours of check-in time";
+        booking.cancelRemarks = "Auto-cancelled: Guest did not report within 23 hours of check-in time";
 
         await booking.save();
 
@@ -1346,3 +1378,221 @@ export const autoCancelNoShows = async () => {
     };
   }
 }
+
+// ================================
+// AUTO-CHECKOUT OVERDUE GUESTS WITH DEFAULTER INTEGRATION
+// ================================
+export const autoCheckoutOverdueGuests = async () => {
+  try {
+    const now = new Date();
+    console.log("🔍 Checking for overdue checkouts...");
+    console.log("⏰ Current time:", now.toISOString());
+
+    // Find all checked-in guests
+    const overdueBookings = await Booking.find({
+      status: "checked_in",
+      reportedStatus: "reported"
+    });
+
+    console.log(`📋 Found ${overdueBookings.length} checked-in bookings to evaluate`);
+
+    let checkedOutCount = 0;
+    let movedToDefaultersCount = 0;
+
+    for (const booking of overdueBookings) {
+      // Calculate exact checkout datetime
+      const checkoutDateTime = new Date(booking.to);
+      const [hours, minutes] = (booking.checkOutTime || "12:00").split(":");
+      checkoutDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Check if checkout time has passed
+      if (checkoutDateTime < now) {
+        // Calculate pending payment
+        const totalAmount = booking.totalAmount || 0;
+        const paidAmount = booking.paidAmount || 0;
+        const discount = booking.discount || booking.waveOff || 0;
+        const balanceAmount = totalAmount - paidAmount - discount;
+        const hasPendingPayment = 
+          booking.paymentType?.toUpperCase() !== "FREE" && 
+          balanceAmount > 0;
+
+        // ✅ UPDATE STATUS - Same as manual checkout
+        booking.status = "checked_out";
+        booking.reportedStatus = "reported_out";
+        booking.checkedOutAt = now;  // Same as manual checkout
+        booking.checkoutDate = now;
+        booking.checkoutTime = now.toTimeString().slice(0, 5);
+        
+        if (hasPendingPayment) {
+          // Move to defaulters (status remains "checked_out" with pending balance)
+          booking.checkOutComment = `Auto checked-out (Payment Pending: ₹${balanceAmount.toFixed(2)})`;
+          movedToDefaultersCount++;
+          
+          console.log(`⚠️ Auto checked-out (DEFAULTER): ${booking.guest} from ${booking.hostel} Room ${booking.roomNo} - Pending: ₹${balanceAmount}`);
+        } else {
+          booking.checkOutComment = "Auto checked-out (on-time departure)";
+          console.log(`✅ Auto checked-out (PAID): ${booking.guest} from ${booking.hostel} Room ${booking.roomNo}`);
+        }
+
+        await booking.save();
+        checkedOutCount++;
+
+        // ✅ Send notification emails
+        try {
+          // Refresh booking emails from database
+          const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+          if (hostelDoc) {
+            booking.caretakerEmail = hostelDoc.caretakerEmail;
+            booking.wardenEmail = hostelDoc.wardenEmail;
+          }
+
+          // Email to guest
+          safeSend({
+            to: booking.email,
+            subject: hasPendingPayment 
+              ? "Automatic Checkout - Payment Pending"
+              : "Automatic Checkout Completed",
+            html: masterTemplate({
+              title: "Automatic Checkout",
+              content: `
+                <p>Dear ${booking.guest},</p>
+                <p>Your checkout has been automatically processed as your stay period has ended.</p>
+                
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <strong>Booking Details:</strong><br/>
+                  Hostel: ${booking.hostel}<br/>
+                  Room: ${booking.roomNo}<br/>
+                  Checkout Date: ${now.toLocaleDateString()}<br/>
+                  Checkout Time: ${now.toLocaleTimeString()}
+                </div>
+                
+                ${hasPendingPayment ? `
+                  <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                    <strong>⚠️ Payment Pending:</strong><br/>
+                    Outstanding Amount: ₹${balanceAmount.toFixed(2)}<br/>
+                    Please contact the caretaker to settle the payment immediately.
+                  </div>
+                ` : ''}
+                
+                <p>Thank you for your stay!</p>
+              `
+            }),
+            meta: {
+              bookingId: booking._id,
+              type: "guest-auto-checkout",
+            },
+          });
+
+          // Email to caretaker
+          safeSend({
+            to: booking.caretakerEmail,
+            subject: hasPendingPayment 
+              ? `⚠️ Auto-Checkout - PAYMENT PENDING - ${booking.guest}`
+              : `Auto-Checkout Completed - ${booking.guest}`,
+            html: masterTemplate({
+              title: hasPendingPayment ? "Auto-Checkout - Payment Follow-up Required" : "Auto-Checkout Completed",
+              content: `
+                <p>Guest has been automatically checked out.</p>
+                
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <strong>Guest Details:</strong><br/>
+                  Name: ${booking.guest}<br/>
+                  Hostel: ${booking.hostel}<br/>
+                  Room: ${booking.roomNo}<br/>
+                  Contact: ${booking.contact}<br/>
+                  Email: ${booking.email}<br/>
+                  Checkout: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
+                </div>
+                
+                ${hasPendingPayment ? `
+                  <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                    <strong>⚠️ PAYMENT PENDING - MOVED TO DEFAULTERS</strong><br/><br/>
+                    Total Amount: ₹${totalAmount.toFixed(2)}<br/>
+                    Paid Amount: ₹${paidAmount.toFixed(2)}<br/>
+                    Discount: ₹${discount.toFixed(2)}<br/>
+                    <strong style="color: #dc2626; font-size: 16px;">Outstanding Balance: ₹${balanceAmount.toFixed(2)}</strong><br/><br/>
+                    <strong>⚡ Action Required:</strong> Guest has been added to the Defaulter Management system. Please follow up immediately for payment collection.
+                  </div>
+                ` : `
+                  <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                    ✅ Payment Status: Fully Paid
+                  </div>
+                `}
+              `
+            }),
+            meta: {
+              bookingId: booking._id,
+              type: "caretaker-auto-checkout",
+            },
+          });
+
+          // Email to warden (always send, with payment status)
+          safeSend({
+            to: booking.wardenEmail,
+            subject: hasPendingPayment 
+              ? `⚠️ DEFAULTER ALERT - Auto-Checkout: ${booking.guest}`
+              : `Auto-Checkout Completed - ${booking.guest}`,
+            html: masterTemplate({
+              title: hasPendingPayment ? "Defaulter Alert - Payment Follow-up Required" : "Auto-Checkout Completed",
+              content: `
+                <p>Automatic checkout notification for your review.</p>
+                
+                ${hasPendingPayment ? `
+                  <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                    <strong style="color: #dc2626; font-size: 18px;">⚠️ DEFAULTER - PAYMENT PENDING</strong><br/><br/>
+                    <strong>Guest:</strong> ${booking.guest}<br/>
+                    <strong>Hostel:</strong> ${booking.hostel}<br/>
+                    <strong>Room:</strong> ${booking.roomNo}<br/>
+                    <strong>Contact:</strong> ${booking.contact}<br/>
+                    <strong>Email:</strong> ${booking.email}<br/>
+                    <strong>Department:</strong> ${booking.department || 'N/A'}<br/>
+                    <strong>Roll No:</strong> ${booking.rollno || 'N/A'}<br/><br/>
+                    <strong style="color: #dc2626; font-size: 16px;">Outstanding Amount: ₹${balanceAmount.toFixed(2)}</strong><br/><br/>
+                    Guest has been added to the <strong>Defaulter Management System</strong>.
+                  </div>
+                ` : `
+                  <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                    <strong>✅ Payment Completed</strong><br/><br/>
+                    Guest: ${booking.guest}<br/>
+                    Hostel: ${booking.hostel}<br/>
+                    Room: ${booking.roomNo}<br/>
+                    All payments cleared successfully.
+                  </div>
+                `}
+                
+                <p>Please coordinate with the caretaker ${hasPendingPayment ? 'to ensure payment collection' : 'if any follow-up is needed'}.</p>
+              `
+            }),
+            meta: {
+              bookingId: booking._id,
+              type: hasPendingPayment ? "warden-auto-checkout-defaulter" : "warden-auto-checkout",
+            },
+          });
+
+          console.log(`📧 Checkout notification emails sent for booking ${booking._id}`);
+        } catch (emailErr) {
+          console.error(`❌ Email error for booking ${booking._id}:`, emailErr);
+        }
+      }
+    }
+
+    console.log("\n📊 Auto-Checkout Summary:");
+    console.log(`   ✅ Total Checked Out: ${checkedOutCount}`);
+    console.log(`   ⚠️ Moved to Defaulters: ${movedToDefaultersCount}`);
+    console.log(`   ✓ Fully Paid: ${checkedOutCount - movedToDefaultersCount}`);
+
+    return {
+      success: true,
+      checkedOut: checkedOutCount,
+      movedToDefaulters: movedToDefaultersCount,
+      fullyPaid: checkedOutCount - movedToDefaultersCount
+    };
+
+  } catch (err) {
+    console.error("❌ Auto-checkout error:", err);
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+};

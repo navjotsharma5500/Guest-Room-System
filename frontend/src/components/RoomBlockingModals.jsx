@@ -79,7 +79,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
       }
 
       console.log("✅ Room blocked:", result);
-      showToast("✅ Room blocked successfully!", "success");
+      // ❌ REMOVED: showToast("✅ Room blocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
@@ -215,62 +215,65 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
                       "image/jpeg",
                       "image/png",
                       "image/webp",
-                      "application/pdf",
+                      "application/pdf"
                     ];
                     if (!allowedTypes.includes(file.type)) {
-                      showToast("⚠️ Only JPG, PNG, WEBP or PDF files allowed", "warning");
+                      showToast("⚠️ Only images and PDFs are allowed", "warning");
                       return false;
                     }
                     return true;
                   }}
-                  className="border-2 border-dashed border-red-300 p-4 rounded-xl w-full bg-white cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all"
+                  className={`w-full border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                    uploading
+                      ? "bg-gray-100 border-gray-400 cursor-not-allowed"
+                      : theme === "dark"
+                      ? "bg-gray-700 border-gray-600 hover:border-red-500"
+                      : "bg-white border-red-300 hover:border-red-500"
+                  }`}
+                  disabled={uploading || attachments.length >= 5}
                 />
-                {attachments.length < 5 && !uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Upload className="w-5 h-5" />
-                      <span>Click to upload ({attachments.length}/5)</span>
-                    </div>
-                  </div>
-                )}
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-red-500 border-t-transparent mb-2"></div>
+                      <p className="text-sm text-gray-600">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-red-500 mb-2" />
+                      <p className="text-sm font-medium">
+                        Click to upload or drag & drop
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Images or PDF (max 5 MB)
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </IKContext>
 
-            {uploading && (
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                <p className="text-sm text-blue-700 font-medium">Uploading...</p>
-              </div>
-            )}
-
-            {/* Display uploaded files */}
+            {/* Uploaded Files */}
             {attachments.length > 0 && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-2">
                 {attachments.map((file, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-green-50 border border-green-300 rounded-lg flex items-center justify-between"
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600"
+                        : "bg-gray-50 border-gray-300"
+                    }`}
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-green-700 font-semibold truncate flex items-center gap-2">
-                        <FileText className="w-4 h-4" /> {file.name}
-                      </p>
-                        <a
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          View Document →
-                        </a>
-                      </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm truncate">{file.name}</span>
                     </div>
                     <button
+                      type="button"
                       onClick={() => handleRemoveFile(index)}
-                      className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                      title="Remove file"
+                      className="text-red-500 hover:text-red-700 transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -281,7 +284,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Action Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
@@ -350,7 +353,7 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
       }
 
       console.log("✅ Room unblocked:", result);
-      showToast("✅ Room unblocked successfully!", "success");
+      // ❌ REMOVED: showToast("✅ Room unblocked successfully!", "success");
       
       if (onSuccess) onSuccess(result);
       onClose();
@@ -481,9 +484,9 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
 }
 
 // ========================================
-// BLOCKED ROOM INFO MODAL (View Only)
+// BLOCKED ROOM INFO MODAL (View Only with Unblock Option)
 // ========================================
-export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, theme }) {
+export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, onUnblock, theme }) {
   return (
     <motion.div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50"
@@ -569,14 +572,23 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, t
           )}
         </div>
 
-        {/* Close Button */}
-        <div className="flex justify-end mt-6">
+        {/* ✅ NEW: Buttons with Unblock option */}
+        <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
             className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold"
           >
             Close
           </button>
+          {onUnblock && (
+            <button
+              onClick={onUnblock}
+              className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:shadow-lg transition font-semibold flex items-center gap-2"
+            >
+              <Unlock className="w-4 h-4" />
+              Unblock Room
+            </button>
+          )}
         </div>
       </motion.div>
     </motion.div>

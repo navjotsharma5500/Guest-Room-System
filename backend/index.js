@@ -12,7 +12,7 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
 // ✅ FIXED: Removed duplicate startNoShowCronJob import
-import { startNoShowCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
+import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
 // Routes
@@ -430,6 +430,7 @@ const startServer = async () => {
     // ✅ FIXED: Pass io instance to cron jobs
     startNoShowCronJob(io);
     startAutoUnblockCronJob(io);
+    startAutoCheckoutCronJob(io);
     scheduleCleanupJob();
 
     server.listen(PORT, () => {

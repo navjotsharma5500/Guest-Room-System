@@ -376,6 +376,112 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     });
   };
 
+  // ✅ NEW: Bulk Email Handler
+  const handleBulkEmail = async () => {
+    if (pendingDefaulters.length === 0) {
+      showToast("⚠️ No pending defaulters to email", "warning");
+      return;
+    }
+
+    setConfirmAction({
+      title: "Send Bulk Emails",
+      message: `Are you sure you want to send payment reminder emails to ${pendingDefaulters.length} defaulter(s)?`,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem("token");
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          const response = await fetch(`${API}/api/defaulters/bulk-email`, {
+            method: "POST",
+            credentials: "include",
+            headers,
+            body: JSON.stringify({
+              defaulterIds: pendingDefaulters.map(d => d._id)
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to send bulk emails");
+          }
+
+          const result = await response.json();
+          showToast(`✅ Sent ${result.sent} payment reminder emails successfully!`, "success");
+          setConfirmAction(null);
+        } catch (err) {
+          console.error("❌ Bulk email error:", err);
+          showToast(`❌ Failed to send emails: ${err.message}`, "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
+  // ✅ NEW: Bulk WhatsApp Handler
+  const handleBulkWhatsApp = () => {
+    if (pendingDefaulters.length === 0) {
+      showToast("⚠️ No pending defaulters to contact", "warning");
+      return;
+    }
+
+    // Create WhatsApp message for each defaulter
+    const messages = pendingDefaulters.map(d => {
+      const message = `Hello ${d.guest},
+
+This is a payment reminder from ${d.hostel}, TIET.
+
+*Outstanding Amount:* ₹${d.totalDue}
+*Days Overdue:* ${d.daysOverdue} days
+
+Please settle the payment at the earliest.
+
+Thank you!`;
+
+      return {
+        name: d.guest,
+        phone: d.contact,
+        url: `https://wa.me/${d.contact.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
+      };
+    });
+
+    // Show modal with WhatsApp links
+    setConfirmAction({
+      title: "Bulk WhatsApp Messages",
+      message: (
+        <div className="max-h-96 overflow-y-auto">
+          <p className="mb-4 text-gray-600">Click on each guest to send WhatsApp message:</p>
+          <div className="space-y-2">
+            {messages.map((msg, idx) => (
+              <a
+                key={idx}
+                href={msg.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition"
+              >
+                <div>
+                  <p className="font-semibold text-gray-800">{msg.name}</p>
+                  <p className="text-sm text-gray-600">{msg.phone}</p>
+                </div>
+                <div className="flex items-center gap-2 text-green-600">
+                  <Mail size={16} />
+                  <span className="text-sm">Open WhatsApp</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      ),
+      onConfirm: () => {
+        setConfirmAction(null);
+        showToast("✅ WhatsApp links opened in new tabs", "success");
+      },
+      confirmText: "Close"
+    });
+  };
+
   return (
     <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
       {/* Header */}
@@ -614,6 +720,39 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           </div>
         </div>
       </div>
+
+      {/* ✅ NEW: Bulk Action Buttons (Show only on Pending tab) */}
+      {activeTab === 'pending' && pendingDefaulters.length > 0 && (
+        <div className="mx-6 mt-4">
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-4">
+            <div className="flex gap-3">
+              <button
+                onClick={handleBulkEmail}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Mail size={20} />
+                <span>Send Bulk Payment Reminders</span>
+                <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                  {pendingDefaulters.length}
+                </span>
+              </button>
+
+              <button
+                onClick={handleBulkWhatsApp}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Phone size={20} />
+                <span>Bulk WhatsApp</span>
+                <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                  {pendingDefaulters.length}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Defaulters List */}
       <div className="mx-6 my-6">

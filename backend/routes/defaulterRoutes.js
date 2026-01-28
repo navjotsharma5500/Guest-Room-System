@@ -5,7 +5,8 @@ import {
   checkGuestHistory, 
   getDefaulterStats,
   resolveDefaulter,
-  rollbackPayment 
+  rollbackPayment,
+  sendBulkPaymentReminders
 } from "../controllers/defaulterController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
@@ -49,6 +50,14 @@ router.post(
   protect, 
   authorizeRoles("admin", "manager"), 
   rollbackPayment
+);
+
+// Send bulk payment reminders
+router.post(
+  "/bulk-email",
+  protect,
+  authorizeRoles("admin", "manager", "caretaker"),
+  sendBulkPaymentReminders
 );
 
 export default router;

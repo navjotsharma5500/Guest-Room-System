@@ -1,6 +1,9 @@
 // backend/controllers/defaulterController.js
 import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
+import Hostel from "../models/Hostel.js";
+import masterTemplate from "../emails/templates/masterTemplate.js";
+import { safeSend } from "../emails/sendEmail.js";
 
 export const getDefaulters = async (req, res) => {
   try {
@@ -461,6 +464,97 @@ if (!req.user || !["admin", "manager"].includes(req.user.role)) {
     res.status(500).json({
       success: false,
       message: "Failed to rollback payment",
+      error: err.message
+    });
+  }
+};
+
+// ✅ NEW: Send Bulk Payment Reminder Emails
+export const sendBulkPaymentReminders = async (req, res) => {
+  try {
+    const { defaulterIds } = req.body;
+
+    if (!Array.isArray(defaulterIds) || defaulterIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No defaulters selected"
+      });
+    }
+
+    const defaulters = await Booking.find({
+      _id: { $in: defaulterIds },
+      balanceAmount: { $gt: 0 }
+    });
+
+    console.log(`📧 Sending bulk payment reminders to ${defaulters.length} defaulters`);
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const booking of defaulters) {
+      try {
+        const balanceAmount = booking.balanceAmount || 0;
+        
+        // Refresh emails from hostel
+        const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+        if (hostelDoc) {
+          booking.caretakerEmail = hostelDoc.caretakerEmail;
+        }
+
+        safeSend({
+          to: booking.email,
+          subject: "Payment Reminder - Outstanding Balance",
+          html: masterTemplate({
+            title: "Payment Reminder",
+            content: `
+              <p>Dear ${booking.guest},</p>
+              <p>This is a friendly reminder regarding your pending payment for your stay at ${booking.hostel}.</p>
+              
+              <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                <strong style="color: #dc2626;">Outstanding Payment Details:</strong><br/><br/>
+                <strong>Hostel:</strong> ${booking.hostel}<br/>
+                <strong>Room:</strong> ${booking.roomNo}<br/>
+                <strong>Stay Period:</strong> ${new Date(booking.from).toLocaleDateString()} to ${new Date(booking.to).toLocaleDateString()}<br/><br/>
+                <strong style="color: #dc2626; font-size: 18px;">Amount Due: ₹${balanceAmount.toFixed(2)}</strong>
+              </div>
+              
+              <p><strong>Please settle the payment at the earliest to avoid further action.</strong></p>
+              
+              <p>For payment queries, please contact:<br/>
+              Caretaker Email: ${booking.caretakerEmail || 'Contact your hostel'}<br/>
+              Hostel: ${booking.hostel}</p>
+              
+              <p>Thank you for your cooperation.</p>
+            `
+          }),
+          meta: {
+            bookingId: booking._id,
+            type: "bulk-payment-reminder",
+          },
+        });
+
+        sentCount++;
+        console.log(`✅ Sent reminder to ${booking.guest} (${booking.email})`);
+      } catch (err) {
+        failedCount++;
+        console.error(`❌ Failed to send to ${booking.guest}:`, err);
+      }
+    }
+
+    console.log(`📊 Bulk email summary: ${sentCount} sent, ${failedCount} failed`);
+
+    res.json({
+      success: true,
+      sent: sentCount,
+      failed: failedCount,
+      message: `Sent ${sentCount} payment reminder emails`
+    });
+
+  } catch (err) {
+    console.error("❌ Bulk email error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send bulk emails",
       error: err.message
     });
   }

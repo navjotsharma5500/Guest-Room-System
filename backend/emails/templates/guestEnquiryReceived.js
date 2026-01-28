@@ -9,36 +9,33 @@ export default function guestEnquiryReceived(e) {
 
       <p>
         Thank you for submitting your enquiry to the
-        <strong>Thapar Guest Room Management System</strong>.
-        We have successfully received your request.
+        <strong>Thapar Institute Guest Room Management System</strong>.
+        We confirm that your request has been received successfully.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Enquiry Summary</div>
-        <p>
-          <strong>Check-in:</strong>
-          ${new Date(e.from).toDateString()} ${e.checkInTime || ""}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}
-        </p>
-        <p><strong>Guests:</strong> ${e.guests || 1}</p>
-      </div>
+      <p><strong>Enquiry Summary</strong></p>
 
       <p>
-        Our team will review your enquiry and update you via email once a
-        decision is made.
+        <strong>Check-in:</strong>
+        ${new Date(e.from).toDateString()} ${e.checkInTime || ""}<br/>
+        <strong>Check-out:</strong>
+        ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}<br/>
+        <strong>Number of Guests:</strong> ${e.guests || 1}
       </p>
 
       <p>
-        Kindly do not reply to this email. For any updates, please wait for
-        further communication from the Guest Room Administration.
+        Your enquiry will be reviewed by the Guest Room Administration.
+        You will be informed by email once a decision has been made.
+      </p>
+
+      <p>
+        Kindly note that this is an automated acknowledgement.
+        Please do not reply to this email.
       </p>
 
       <p>
         Regards,<br/>
-        <strong>Thapar Guest Room Management</strong><br/>
+        <strong>Thapar Institute Guest Room Management</strong><br/>
         Thapar Institute of Engineering & Technology
       </p>
     `,
