@@ -17,6 +17,7 @@ export default function GuestActions({
   onPayAmount,
   onExtendBooking,
   onCancelBooking,
+  userRole,
 }) {
   const { showToast } = useToast();
   // Check if booking exists and isn't cancelled/checked out
@@ -117,13 +118,15 @@ export default function GuestActions({
                   }`} />
                 )}
 
-                {/* Edit Details */}
-                <ActionButton
-                  icon={<Edit className="w-4 h-4" />}
-                  label="Edit Details"
-                  onClick={onEditDetails}
-                  theme={theme}
-                />
+                {/* Edit Details - Only for Admin */}
+                {userRole === "admin" && (
+                  <ActionButton
+                    icon={<Edit className="w-4 h-4" />}
+                    label="Edit Details"
+                    onClick={onEditDetails}
+                    theme={theme}
+                  />
+                )}
 
                 {/* Guest History */}
                 <ActionButton
