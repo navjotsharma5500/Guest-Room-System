@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
+import * as XLSX from 'xlsx';
 
 // Component Imports
 import HallBookingsLayout from "../components/HallBookings/HallBookingsLayout";
@@ -11,16 +12,14 @@ import FilterModal from "../components/AllHostels/FilterModal";
 import VacantRoomsModal from "../components/HallBookings/VacantRoomsModal";
 import HallBookingModal from "../components/HallBookings/HallBookingModal";
 import BookingListModal from "../components/HallBookings/BookingListModal";
-import BookingDetailsModal from "../components/HallBookings/BookingDetailsModal";
+import HallBookingDetailsModal from "../components/HallBookings/HallBookingDetailsModal";
 import CancelModal from "../components/CancelModal";
 import HallExtensionModal from "../components/HallBookings/HallExtensionModal";
+import SearchFilterModal from "../components/HallBookings/SearchFilterModal";
 
 // Custom Hooks
 import useHallBookingHandlers from "../hooks/useHallBookingHandlers";
 import useHallVacancyCheck from "../hooks/useHallVacancyCheck";
-import { BACKEND_URL } from "../utils/apiConfig";
-
-const API = BACKEND_URL;
 
 // Filter active bookings
 const filterActiveBookingsFromHallData = (hallData) => {
@@ -48,7 +47,7 @@ const filterActiveBookingsFromHallData = (hallData) => {
           const isValid = validStatuses.includes(booking.status);
           
           if (!isValid) {
-            console.log(`⭐️ Hall filter: Removing ${booking.status} booking:`, {
+            console.log(`🗑️ Hall filter: Removing ${booking.status} booking:`, {
               name: booking.name,
               room: room.roomNo,
               hall: hallName
@@ -85,6 +84,7 @@ export default function HallBookingsPortal({
   const [bookingCompleted, setBookingCompleted] = useState(false);
   const [bookingListModal, setBookingListModal] = useState(null);
   const [bookingDetailsModal, setBookingDetailsModal] = useState(null);
+  const [searchFilterModal, setSearchFilterModal] = useState(false);
 
   const suppressToastRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -114,7 +114,6 @@ export default function HallBookingsPortal({
   // Custom Hooks
   const bookingHandlers = useHallBookingHandlers({
     hallData: stableHallData,
-    // setHallData, // ❌ REMOVED - not needed, polling hook handles updates
     selectedRooms,
     showToast,
     setSelectedRooms: stableSetSelectedRooms,
@@ -180,41 +179,102 @@ export default function HallBookingsPortal({
     }
   }, [bookingCompleted]);
 
+  // Handle Add Booking button click
+  const handleAddBooking = () => {
+    console.log("📅 Add Booking clicked - entering selection mode");
+    setSelectionMode(true);
+    setSelectedRooms([]);
+    setBookingCompleted(false);
+    showToast("✅ Select hall rooms for booking (checkboxes enabled)", "info");
+  };
+
+  // Handle Done Selection
   const onDoneSelection = () => {
     if (selectedRooms.length === 0) {
       showToast("⚠️ Please select at least one hall room", "warning");
       return;
     }
     
+    console.log("✅ Done selection - opening booking modal with rooms:", selectedRooms);
     setHallBookingModal(true);
   };
 
+  // Open direct booking for vacant room
   const openDirectBookingForVacant = ({ hall, room }) => {
     setSelectedRooms([{ hall, roomNo: room.roomNo }]);
     setHallBookingModal(true);
     setVacantRooms([]);
   };
 
-  return (
-    <HallBookingsLayout theme={theme} onBackHome={onBackHome}>
-      {/* Add Booking Button */}
-      <div className="mb-6">
-        <button
-          onClick={() => {
-            setSelectionMode(true);
-            setSelectedRooms([]);
-            setBookingCompleted(false);
-            showToast("✅ Select hall rooms for booking", "info");
-          }}
-          className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Booking
-        </button>
-      </div>
+  // Download all bookings data
+  const handleDownloadData = () => {
+    try {
+      const allBookings = [];
+      
+      Object.entries(stableHallData).forEach(([hallName, hallInfo]) => {
+        (hallInfo.rooms || []).forEach(room => {
+          (room.bookings || []).forEach(booking => {
+            allBookings.push({
+              "Hall": hallName,
+              "Room": room.roomNo,
+              "Name": booking.name || "—",
+              "Society": booking.societyName || "—",
+              "Event": booking.eventName || "—",
+              "Contact": booking.contact || "—",
+              "Email": booking.email || "—",
+              "Check-in Date": booking.checkInDate || booking.from || "—",
+              "Check-in Time": booking.checkInTime || "—",
+              "Check-out Date": booking.checkOutDate || booking.to || "—",
+              "Check-out Time": booking.checkOutTime || "—",
+              "Status": booking.status || "—",
+              "Purpose": booking.purpose || "—",
+              "Description": booking.description || "—",
+            });
+          });
+        });
+      });
 
+      if (allBookings.length === 0) {
+        showToast("⚠️ No bookings to download", "warning");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(allBookings);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Hall Bookings");
+
+      // Auto-size columns
+      const maxWidth = 30;
+      const colWidths = Object.keys(allBookings[0] || {}).map(key => ({
+        wch: Math.min(
+          maxWidth,
+          Math.max(
+            key.length,
+            ...allBookings.map(row => String(row[key] || "").length)
+          )
+        )
+      }));
+      worksheet['!cols'] = colWidths;
+
+      const fileName = `All_Hall_Bookings_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      showToast("✅ Data downloaded successfully", "success");
+    } catch (error) {
+      console.error("❌ Download error:", error);
+      showToast("❌ Failed to download data", "error");
+    }
+  };
+
+  return (
+    <HallBookingsLayout 
+      theme={theme} 
+      onBackHome={onBackHome}
+      onSearchClick={() => setSearchFilterModal(true)}
+      onFilterClick={() => setFilterModal(true)}
+      onDownloadClick={handleDownloadData}
+      onAddBooking={handleAddBooking}
+    >
       {/* Hall Grid */}
       <HallGrid
         hallData={stableHallData}
@@ -228,7 +288,7 @@ export default function HallBookingsPortal({
         showToast={showToast}
       />
 
-      {/* Selection Footer */}
+      {/* Selection Footer - Shows when in selection mode */}
       {selectionMode && 
        !hallBookingModal && 
        !bookingCompleted && 
@@ -250,6 +310,16 @@ export default function HallBookingsPortal({
             setCheckOut={setCheckOut}
             onClose={() => setFilterModal(false)}
             onSubmit={vacancyHandlers.handleFilterSubmit}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {searchFilterModal && (
+          <SearchFilterModal
+            theme={theme}
+            hallData={stableHallData}
+            onClose={() => setSearchFilterModal(false)}
           />
         )}
       </AnimatePresence>
@@ -302,7 +372,7 @@ export default function HallBookingsPortal({
 
       <AnimatePresence mode="wait">
         {bookingDetailsModal && (
-          <BookingDetailsModal
+          <HallBookingDetailsModal
             theme={theme}
             modal={bookingDetailsModal}
             onClose={() => setBookingDetailsModal(null)}
@@ -362,18 +432,6 @@ export default function HallBookingsPortal({
           />
         )}
       </AnimatePresence>
-
-      {/* Floating Filter Button */}
-      <button
-        onClick={() => setFilterModal(true)}
-        className="fixed bottom-6 left-6 bg-red-600 text-white p-4 rounded-full shadow-2xl hover:bg-red-700 transition-all hover:scale-110 z-40"
-        aria-label="Filter vacant rooms"
-        title="Check vacancy by date range"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
-      </button>
     </HallBookingsLayout>
   );
 }

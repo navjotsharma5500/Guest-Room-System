@@ -2,7 +2,6 @@
 import { useCallback } from "react";
 import { BACKEND_URL } from "../utils/apiConfig";
 import { isDateTimeRangeOverlapping } from "../utils/dateUtils";
-import { IKUpload } from "imagekitio-react";
 
 const API = BACKEND_URL;
 
@@ -24,46 +23,64 @@ export default function useHallBookingHandlers({
   const handleHallBooking = useCallback(
     async (formData) => {
       try {
-        // Upload attachments to ImageKit first
-        // Upload attachments to ImageKit
+        console.log("📤 Starting hall booking submission...");
+        console.log("📎 Attachments received:", formData.attachments);
+
+        // ✅ Process attachments: handle both URLs (already uploaded) and File objects
         const uploadedAttachments = [];
 
-        // Get ImageKit auth parameters
-        const authResponse = await fetch(`${API}/api/imagekit/auth`, {
-          method: "GET",
-          credentials: "include",
-        });
+        for (const attachment of formData.attachments) {
+          // Check if it's already a URL (string)
+          if (typeof attachment === 'string') {
+            console.log("✅ Using already uploaded URL:", attachment);
+            uploadedAttachments.push(attachment);
+          } 
+          // Otherwise, it's a File object that needs to be uploaded
+          else if (attachment instanceof File) {
+            console.log("📤 Uploading file:", attachment.name);
 
-        if (!authResponse.ok) {
-          throw new Error("Failed to get ImageKit authentication");
-        }
+            // Get ImageKit auth parameters
+            const authResponse = await fetch(`${API}/api/imagekit/auth`, {
+              method: "GET",
+              credentials: "include",
+            });
 
-        const authData = await authResponse.json();
+            if (!authResponse.ok) {
+              throw new Error("Failed to get ImageKit authentication");
+            }
 
-        for (const file of formData.attachments) {
-          const formDataToSend = new FormData();
-          formDataToSend.append("file", file);
-          formDataToSend.append("publicKey", authData.publicKey);
-          formDataToSend.append("signature", authData.signature);
-          formDataToSend.append("expire", authData.expire);
-          formDataToSend.append("token", authData.token);
-          formDataToSend.append("fileName", file.name);
-          formDataToSend.append("folder", "/hall-bookings");
+            const authData = await authResponse.json();
 
-          const uploadResponse = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-            method: "POST",
-            body: formDataToSend,
-          });
+            // Create FormData for upload
+            const formDataToSend = new FormData();
+            formDataToSend.append("file", attachment);
+            formDataToSend.append("publicKey", authData.publicKey);
+            formDataToSend.append("signature", authData.signature);
+            formDataToSend.append("expire", authData.expire);
+            formDataToSend.append("token", authData.token);
+            formDataToSend.append("fileName", attachment.name);
+            formDataToSend.append("folder", "/hall-bookings");
 
-          if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error("❌ ImageKit upload error:", errorText);
-            throw new Error("Failed to upload attachment to ImageKit");
+            const uploadResponse = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+              method: "POST",
+              body: formDataToSend,
+            });
+
+            if (!uploadResponse.ok) {
+              const errorText = await uploadResponse.text();
+              console.error("❌ ImageKit upload error:", errorText);
+              throw new Error(`Failed to upload ${attachment.name} to ImageKit`);
+            }
+
+            const uploadData = await uploadResponse.json();
+            console.log("✅ File uploaded successfully:", uploadData.url);
+            uploadedAttachments.push(uploadData.url);
+          } else {
+            console.warn("⚠️ Unknown attachment type, skipping:", attachment);
           }
-
-          const uploadData = await uploadResponse.json();
-          uploadedAttachments.push(uploadData.url);
         }
+
+        console.log("✅ All attachments processed:", uploadedAttachments);
 
         // Create booking payload
         const bookingPayload = {
@@ -84,10 +101,13 @@ export default function useHallBookingHandlers({
           isHallBooking: true,
         };
 
+        console.log("📤 Submitting booking payload:", bookingPayload);
+
         // Submit booking
         const response = await fetch(`${API}/hall-bookings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(bookingPayload),
         });
 
@@ -97,6 +117,7 @@ export default function useHallBookingHandlers({
         }
 
         const data = await response.json();
+        console.log("✅ Hall booking created successfully:", data);
 
         // ✅ Don't update local state - let polling hook handle it
         // The backend emits 'hallBookingCreated' socket event
@@ -113,7 +134,7 @@ export default function useHallBookingHandlers({
 
         return data;
       } catch (error) {
-        console.error("Error creating hall booking:", error);
+        console.error("❌ Error creating hall booking:", error);
         showToast(`❌ ${error.message}`, "error");
         throw error;
       }
@@ -156,7 +177,7 @@ export default function useHallBookingHandlers({
         });
       }
     },
-    [setBookingDetailsModal, setBookingListModal, showToast]
+    [setBookingDetailsModal, setBookingListModal, setHallBookingModal, setSelectedRooms, setSelectionMode, showToast]
   );
 
   // Handle cancel booking
@@ -170,9 +191,12 @@ export default function useHallBookingHandlers({
       try {
         const { hall, room, booking } = cancelModal;
 
+        console.log("🚫 Cancelling booking:", booking._id);
+
         const response = await fetch(`${API}/hall-bookings/${booking._id}/cancel`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ remarks }),
         });
 
@@ -180,6 +204,8 @@ export default function useHallBookingHandlers({
           const errorData = await response.json();
           throw new Error(errorData.message || "Failed to cancel booking");
         }
+
+        console.log("✅ Booking cancelled successfully");
 
         // ✅ Don't update local state - let polling hook handle it
         // The backend emits 'hallBookingCancelled' socket event
@@ -191,7 +217,7 @@ export default function useHallBookingHandlers({
         setBookingListModal(null);
 
       } catch (error) {
-        console.error("Error cancelling hall booking:", error);
+        console.error("❌ Error cancelling hall booking:", error);
         showToast(`❌ ${error.message}`, "error");
       }
     },
@@ -204,9 +230,12 @@ export default function useHallBookingHandlers({
       try {
         const { hall, roomNo, booking, extendedDate, extendedTime, remarks } = payload;
 
+        console.log("⏰ Extending booking:", booking._id);
+
         const response = await fetch(`${API}/hall-bookings/${booking._id}/extend`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             extendedDate,
             extendedTime,
@@ -220,6 +249,7 @@ export default function useHallBookingHandlers({
         }
 
         const updatedBooking = await response.json();
+        console.log("✅ Booking extended successfully:", updatedBooking);
 
         // ✅ Don't update local state - let polling hook handle it
         // The backend emits 'hallBookingExtended' socket event
@@ -230,7 +260,7 @@ export default function useHallBookingHandlers({
         setBookingDetailsModal(null);
 
       } catch (error) {
-        console.error("Error extending hall booking:", error);
+        console.error("❌ Error extending hall booking:", error);
         showToast(`❌ ${error.message}`, "error");
       }
     },
