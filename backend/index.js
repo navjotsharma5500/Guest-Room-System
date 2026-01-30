@@ -27,6 +27,8 @@ import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
+import hallBookingRoutes from "./routes/hallBookingRoutes.js";
+import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
 
 const app = express();
 
@@ -302,8 +304,11 @@ app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/hall-bookings", hallBookingRoutes);
+app.use('/api/unified-bookings', unifiedBookingRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
+console.log("✅ Hall booking routes mounted at /api/hall-bookings");
 
 /* =========================================================
    SOCKET.IO HANDLER
@@ -325,6 +330,22 @@ io.on("connection", (socket) => {
 
   socket.onAny((event, ...args) => {
     console.log("📡 Socket event:", event, args);
+  });
+  
+  // Hall booking events
+  socket.on("hall-booking-created", (data) => {
+    console.log("📢 Hall booking created event:", data);
+    io.emit("hallBookingCreated", data);
+  });
+
+  socket.on("hall-booking-cancelled", (data) => {
+    console.log("📢 Hall booking cancelled event:", data);
+    io.emit("hallBookingCancelled", data);
+  });
+
+  socket.on("hall-booking-extended", (data) => {
+    console.log("📢 Hall booking extended event:", data);
+    io.emit("hallBookingExtended", data);
   });
 });
 

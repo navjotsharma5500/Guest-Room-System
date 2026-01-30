@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle, Star } from "lucide-react";
+import { AlertCircle, Star, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
@@ -29,8 +29,7 @@ export default function Sidebar({
   // ----------------------------------------
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const canSeeHostels = hasPermission(currentUser, "sidebar.hostels");
-  
-
+  const canSeeHallBookings = hasPermission(currentUser, "sidebar.hallBookings");
 
   const assignedHostel =
     currentUser?.assignedHostel ||
@@ -158,6 +157,31 @@ export default function Sidebar({
           </motion.button>
         )}
 
+        {/* ⭐ HALL BOOKINGS BUTTON (Assistant only) */}
+        {canSeeHallBookings && (
+          <motion.button
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+            onClick={() => {
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+              setActiveTab("HallBookings");
+            }}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl
+              border bg-white/40 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "HallBookings"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
+          >
+            <Users className="w-4 h-4 text-slate-600" />
+            <span className="text-sm">Hall Bookings</span>
+          </motion.button>
+        )}
+
         {/* ⭐ HOSTEL LIST (Admin sees all, manager too, caretaker one hostel) */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
@@ -192,33 +216,36 @@ export default function Sidebar({
           );
         })}
 
-        {/* ✅ DEFAULTERS BUTTON */}
-        <motion.button
-          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
-          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
-          onClick={() => {
-            console.log("🔴 Defaulters clicked");
-            setActiveTab("Defaulters");
-            setActiveHostel(null);
-            setActiveRoomRef(null);
-          }}
-          className={`
-            relative group w-full text-left px-3 py-2 rounded-xl border
-            bg-white/30 backdrop-blur-xl flex items-center gap-3
-            ${
-              activeTab === "Defaulters"
-                ? "border-red-500 shadow-md"
-                : "border-transparent hover:bg-white/80"
-            }
-          `}
-        >
-          <AlertCircle className="w-4 h-4 text-slate-600" />
-          <span className={`text-sm ${activeTab === "Defaulters" ? "font-semibold" : ""}`}>
-            Defaulters
-          </span>
-        </motion.button>
+        {/* ✅ DEFAULTERS BUTTON (Not for Assistant) */}
+        {!canSeeHallBookings && (
+          <motion.button
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+            onClick={() => {
+              console.log("🔴 Defaulters clicked");
+              setActiveTab("Defaulters");
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+            }}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl border
+              bg-white/30 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "Defaulters"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
+          >
+            <AlertCircle className="w-4 h-4 text-slate-600" />
+            <span className={`text-sm ${activeTab === "Defaulters" ? "font-semibold" : ""}`}>
+              Defaulters
+            </span>
+          </motion.button>
+        )}
 
-        {/* ✅ FEEDBACK BUTTON */}
+        {/* ✅ FEEDBACK BUTTON (Not for Assistant) */}
+        {!canSeeHallBookings && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -244,7 +271,8 @@ export default function Sidebar({
               Guest Feedback
             </span>
           </motion.button>
-        </nav>  
+        )}
+      </nav>  
       
       {/* FOOTER */}
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">

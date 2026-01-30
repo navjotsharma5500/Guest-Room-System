@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from 'framer-motion';
+import { filterBookingsByRole } from "../utils/bookingUtils";
+import { fetchUnifiedBookingsByDateRange, normalizeBooking } from "../utils/unifiedBookingApi";
 
 // Guest Details Modal Component
 function GuestDetailsModal({ guest, onClose, theme = "light" }) {
@@ -374,6 +376,8 @@ export default function CalendarGuestsPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [allBookings, setAllBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -405,37 +409,32 @@ export default function CalendarGuestsPage({
   // ============================================================================
   // ✅ FIXED: Caretaker can only see their assigned hostel's bookings
   // ============================================================================
-  const allBookings = useMemo(() => {
-    const dataSource = Object.keys(completeHostelData).length > 0 ? completeHostelData : hostelData;
-    
-    const bookings = [];
-    Object.entries(dataSource).forEach(([hostelName, hostel]) => {
-      // ✅ CRITICAL FIX: Caretakers can ONLY see their assigned hostel
-      if (role === "caretaker") {
-        if (!userHostel) {
-          console.warn("⚠️ Caretaker has no assigned hostel");
-          return; // Skip if no hostel assigned
-        }
-        if (hostelName !== userHostel) {
-          return; // Skip other hostels
-        }
-      }
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setLoadingBookings(true);
+      
+      // Calculate date range (±90 days from selected date)
+      const startDate = new Date(selectedDate);
+      startDate.setDate(startDate.getDate() - 90);
+      
+      const endDate = new Date(selectedDate);
+      endDate.setDate(endDate.getDate() + 90);
+      
+      const bookings = await fetchUnifiedBookingsByDateRange(
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0]
+      );
+      
+      // Normalize all bookings for consistent structure
+      const normalized = bookings.map(normalizeBooking);
+      
+      console.log('📅 Calendar bookings loaded:', normalized.length);
+      setAllBookings(normalized);
+      setLoadingBookings(false);
+    };
 
-      (hostel.rooms || []).forEach(room => {
-        (room.bookings || []).forEach(booking => {
-          bookings.push({
-            ...booking,
-            hostel: hostelName,
-            roomNo: room.roomNo
-          });
-        });
-      });
-    });
-
-    console.log(`📊 Total bookings for ${role === 'caretaker' ? userHostel : 'all hostels'}:`, bookings.length);
-  
-  return bookings;
-}, [hostelData, completeHostelData, role, userHostel]);
+    fetchBookings();
+  }, [selectedDate]);
 
   // ============================================================================
   // ✅ FIXED: Hostel dropdown for caretakers
@@ -555,14 +554,60 @@ export default function CalendarGuestsPage({
     });
   }, [allBookings, filterGuestsByDate, selectedHostel, searchQuery, role, userHostel]);
 
-  // Pagination logic
+  // 🆕 ADD: Role-based filtering for hall vs guest bookings
+  const filteredByRole = useMemo(() => {
+    const HALL_NAMES = [
+      "Hall",
+      "Rooms", 
+      "Creativity Rooms",
+      "Green Rooms",
+      "Open Area",
+      "Desk Area",
+      "Common Rooms"
+    ];
+
+    const isHallBooking = (guest) => {
+      // Check explicit flags
+      if (guest.isHallBooking === true || guest.bookingType === "hall") {
+        return true;
+      }
+      
+      // Check if hostel matches hall names
+      if (guest.hostel && HALL_NAMES.includes(guest.hostel)) {
+        return true;
+      }
+      
+      return false;
+    };
+
+    return filteredGuests.filter((guest) => {
+      // Admin sees everything
+      if (role === "admin") return true;
+
+      const isHall = isHallBooking(guest);
+
+      // Manager and Caretaker - exclude hall bookings
+      if (role === "manager" || role === "caretaker") {
+        return !isHall; // Only show guest room bookings
+      }
+
+      // Assistant - only show hall bookings
+      if (role === "assistant") {
+        return isHall; // Only show hall bookings
+      }
+
+      return true;
+    });
+  }, [filteredGuests, role]);
+
+  // Pagination logic - USE filteredByRole instead of filteredGuests
   const paginatedGuests = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredGuests.slice(startIndex, endIndex);
-  }, [filteredGuests, currentPage, itemsPerPage]);
+    return filteredByRole.slice(startIndex, endIndex);
+  }, [filteredByRole, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredByRole.length / itemsPerPage);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -619,9 +664,34 @@ export default function CalendarGuestsPage({
   };
 
   // ============================================================================
-  // ✅ FIXED: Tab counts with caretaker restrictions - uses same logic as filterGuestsByDate
+  // ✅ FIXED: Tab counts with caretaker restrictions + role-based hall/guest filtering
   // ============================================================================
   const getTabCount = (tabId) => {
+    // 🆕 Define hall booking checker
+    const HALL_NAMES = [
+      "Hall",
+      "Rooms", 
+      "Creativity Rooms",
+      "Green Rooms",
+      "Open Area",
+      "Desk Area",
+      "Common Rooms"
+    ];
+
+    const isHallBooking = (guest) => {
+      // Check explicit flags
+      if (guest.isHallBooking === true || guest.bookingType === "hall") {
+        return true;
+      }
+      
+      // Check if hostel matches hall names
+      if (guest.hostel && HALL_NAMES.includes(guest.hostel)) {
+        return true;
+      }
+      
+      return false;
+    };
+
     return allBookings.filter(g => {
       // ✅ Apply hostel filter with role-based logic
       let matchesHostel = true;
@@ -634,6 +704,22 @@ export default function CalendarGuestsPage({
       }
       
       if (!matchesHostel) return false;
+
+      // 🆕 ADD: Role-based hall/guest booking filter
+      const isHall = isHallBooking(g);
+      
+      // Admin sees everything
+      if (role !== "admin") {
+        // Manager and Caretaker - exclude hall bookings
+        if (role === "manager" || role === "caretaker") {
+          if (isHall) return false; // Don't count hall bookings
+        }
+        
+        // Assistant - only count hall bookings
+        if (role === "assistant") {
+          if (!isHall) return false; // Don't count guest room bookings
+        }
+      }
 
       // ✅ CANCELLED: All cancelled bookings
       if (tabId === 'cancelled') {
@@ -835,9 +921,18 @@ export default function CalendarGuestsPage({
         </div>
       </div>
 
+      {/* Loading State */}
+      {loadingBookings && (
+        <div className="max-w-7xl mx-auto px-6 py-12 text-center">
+          <div className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            Loading bookings...
+          </div>
+        </div>
+      )}
+
       {/* Guest List */}
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {filteredGuests.length === 0 ? (
+        {filteredByRole.length === 0 ? (
           <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
             <Users className={`w-16 h-16 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-300'}`} />
             <h3 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -864,7 +959,7 @@ export default function CalendarGuestsPage({
             {totalPages > 1 && (
               <div className={`mt-6 flex items-center justify-between ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4`}>
                 <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredGuests.length)} of {filteredGuests.length} guests
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredByRole.length)} of {filteredByRole.length} guests
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -883,7 +978,6 @@ export default function CalendarGuestsPage({
                   
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                      // Show first page, last page, current page, and pages around current
                       if (
                         page === 1 ||
                         page === totalPages ||
@@ -939,18 +1033,6 @@ export default function CalendarGuestsPage({
           </>
         )}
       </div>
-
-      {/* Guest Details Modal */}
-      {showGuestModal && selectedGuest && (
-        <GuestDetailsModal 
-          guest={selectedGuest} 
-          onClose={() => { 
-            setShowGuestModal(false); 
-            setSelectedGuest(null); 
-          }}
-          theme={theme}
-        />
-      )}
     </div>
   );
 }

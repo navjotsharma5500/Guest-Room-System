@@ -287,5 +287,77 @@ export const apiCreateDirectBooking = async (data) => {
 };
 
 // ============================================================================
+// UNIFIED BOOKINGS (Guest + Hall)
+// ============================================================================
+export const apiFetchUnifiedBookings = async () => {
+  try {
+    console.log(`📡 Fetching unified bookings from: ${API}/api/unified-bookings`);
+
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API}/api/unified-bookings`, {
+      method: "GET",
+      credentials: "include",
+      headers,
+    });
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch unified bookings:", res.status);
+      return { success: false, bookings: [] };
+    }
+
+    const data = await res.json();
+    console.log("✅ Unified bookings API Response:", data);
+
+    return { success: data.success, bookings: data.bookings || [] };
+
+  } catch (err) {
+    console.error("❌ Fetch unified bookings error:", err);
+    return { success: false, bookings: [] };
+  }
+};
+
+export const apiFetchUnifiedBookingsByDateRange = async (startDate, endDate) => {
+  try {
+    console.log(`📡 Fetching unified bookings by date range: ${startDate} to ${endDate}`);
+
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(
+      `${API}/api/unified-bookings/date-range?startDate=${startDate}&endDate=${endDate}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers,
+      }
+    );
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch bookings by date range:", res.status);
+      return { success: false, bookings: [] };
+    }
+
+    const data = await res.json();
+    console.log("✅ Unified bookings by date range:", data);
+
+    return { success: data.success, bookings: data.bookings || [] };
+
+  } catch (err) {
+    console.error("❌ Fetch bookings by date range error:", err);
+    return { success: false, bookings: [] };
+  }
+};
+
+// ============================================================================
 // END OF FILE
 // ============================================================================

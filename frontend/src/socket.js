@@ -85,4 +85,25 @@ socket.on("enquiry-booked", (data) => {
   window.dispatchEvent(new CustomEvent("enquiryBooked", { detail: data }));
 });
 
+// Hall booking events
+socket.on("hallBookingCreated", (data) => {
+  console.log("✅ Hall booking created:", data);
+  window.dispatchEvent(new CustomEvent("hallBookingCreated", { detail: data }));
+});
+
+socket.on("hallBookingCancelled", (data) => {
+  console.log("✅ Hall booking cancelled:", data);
+  window.dispatchEvent(new CustomEvent("hallBookingCancelled", { detail: data }));
+});
+
+socket.on("hallBookingExtended", (data) => {
+  console.log("✅ Hall booking extended:", data);
+  window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
+});
+
+socket.on("hallBookingUpdated", (data) => {
+  console.log("✅ Hall booking updated:", data);
+  window.dispatchEvent(new CustomEvent("hallBookingUpdated", { detail: data }));
+});
+
 export default socket;
