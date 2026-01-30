@@ -1072,10 +1072,10 @@ export default function MainContent(props) {
                 {upcoming.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     {upcoming.map((u, idx) => {
-                      const isSelected = activeRoomRef?.booking?.id === u.booking.id || 
-                                        activeRoomRef?.booking?._id === u.booking._id;
+                      const isSelected = activeRoomRef?.booking?.id === u.id || 
+                                        activeRoomRef?.booking?._id === u._id;
 
-                      const effectiveFrom = getEffectiveCheckInDate(u.booking);
+                      const effectiveFrom = getEffectiveCheckInDate(u);
                       
                       return (
                         <div
@@ -1151,7 +1151,7 @@ export default function MainContent(props) {
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                                 }`}>
-                                  {u.booking.department || u.booking.rollno || 'Guest'}
+                                  {u.department || u.rollno || 'Guest'}
                                 </p>
                               </div>
                             </div>

@@ -177,6 +177,34 @@ export default function GuestRoomDashboard() {
     }
   }, [activeTab]);
 
+  // Listen for hall booking events
+  useEffect(() => {
+    const handleHallBookingEvent = () => {
+      if (activeTab === 'HallBookings') {
+        // Refetch hall data
+        fetch(`${API}/hall-bookings`)
+          .then(res => res.json())
+          .then(data => {
+            const hallStructure = transformHallData(data);
+            setHallData(hallStructure);
+          })
+          .catch(err => console.error('Error refreshing hall data:', err));
+      }
+    };
+
+    window.addEventListener('hallBookingCreated', handleHallBookingEvent);
+    window.addEventListener('hallBookingCancelled', handleHallBookingEvent);
+    window.addEventListener('hallBookingExtended', handleHallBookingEvent);
+    window.addEventListener('hallBookingUpdated', handleHallBookingEvent);
+
+    return () => {
+      window.removeEventListener('hallBookingCreated', handleHallBookingEvent);
+      window.removeEventListener('hallBookingCancelled', handleHallBookingEvent);
+      window.removeEventListener('hallBookingExtended', handleHallBookingEvent);
+      window.removeEventListener('hallBookingUpdated', handleHallBookingEvent);
+    };
+  }, [activeTab, transformHallData]);
+
   // Extension modal listener
   useEffect(() => {
     const handleExtensionOpen = (e) => {
