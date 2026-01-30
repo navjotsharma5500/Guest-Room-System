@@ -37,6 +37,17 @@ export default function Sidebar({
     currentUser?.hostel ||
     null;
 
+    // Debug logging
+    console.log("🔍 Sidebar Debug:", {
+      role: currentUser?.role,
+      canSeeAllHostels,
+      canSeeHostels,
+      canSeeHallBookings,
+      assignedHostel,
+      hostelDataKeys: Object.keys(hostelData || {}),
+      visibleHostelsCount: visibleHostels.length
+    });
+
   const handleBlockRoom = (hostelName, roomNo) => {
     setBlockRoomModal({ hostelName, roomNo });
   };

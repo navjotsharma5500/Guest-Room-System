@@ -1590,7 +1590,11 @@ export default function MainContent(props) {
       <div className="fixed bottom-6 right-6 flex flex-col gap-3">
         <button
           className="p-3 bg-white border shadow-lg rounded-full hover:bg-red-50"
-          onClick={() => setActiveTab("Settings")}
+          onClick={() => {
+            if (setActiveTab && typeof setActiveTab === 'function') {
+              setActiveTab("Settings");
+            }
+          }}
         >
           <Settings className="text-red-700" />
         </button>

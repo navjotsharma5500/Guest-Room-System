@@ -892,17 +892,13 @@ export default function GuestRoomDashboard() {
               <AllHostelsPortal
                 hostelData={hostelData}
                 setHostelData={(updater) => {
-                  // ✅ CRITICAL FIX: setHostelData was missing
                   console.log("🔄 AllHostelsPortal updating hostelData");
                   
                   if (typeof updater === 'function') {
-                    // Handle function updater (prev => newState)
                     const newData = updater(hostelData);
                     console.log("✅ Updated hostelData:", Object.keys(newData));
-                    // Trigger refresh to sync with backend
                     setTimeout(() => refresh(), 100);
                   } else {
-                    // Handle direct value
                     console.log("✅ Direct hostelData update");
                     setTimeout(() => refresh(), 100);
                   }
@@ -920,9 +916,7 @@ export default function GuestRoomDashboard() {
             )}
 
             {activeTab === "Feedback" && (
-              <>
-                {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
-                <FeedbackPage
+              <FeedbackPage
                 onBack={() => {
                   setActiveTab("Home");
                   if (currentUser?.assignedHostel) {
@@ -931,25 +925,33 @@ export default function GuestRoomDashboard() {
                 }}
                 theme={theme}
               />
-            </>   
             )}
-          </main>   
-        </div>  
 
-        {activeTab === "Defaulters" && (
-          <DefaulterManagement
-            currentUser={currentUser}
-            onBack={() => {
-              setActiveTab("Home");
-              if (currentUser?.assignedHostel) {
-                setActiveHostel(currentUser.assignedHostel);
-              }
-            }}
-            onOpenPaymentModal={(booking) => {
-              setDefaulterPaymentModal(booking);
-            }}
-          />
-        )}
+            {activeTab === "Defaulters" && (
+              <DefaulterManagement
+                currentUser={currentUser}
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                onOpenPaymentModal={(booking) => {
+                  setDefaulterPaymentModal(booking);
+                }}
+              />
+            )}
+
+            {activeTab === "HallBookings" && (
+              <HallBookingsPortal
+                hallData={hallData}
+                setHallData={setHallData}
+                theme={theme}
+                onBackHome={() => setActiveTab("Home")}
+              />
+            )}
+          </main>
+        </div>
 
         {extensionModal && (
           <ExtensionModal
@@ -971,9 +973,9 @@ export default function GuestRoomDashboard() {
               hostel: defaulterPaymentModal.hostel,
               roomNo: defaulterPaymentModal.roomNo,
               totalAmount: defaulterPaymentModal.totalDue || 0,
-              paidAmount: 0, // Defaulter has paid nothing yet
+              paidAmount: 0,
               balanceAmount: defaulterPaymentModal.totalDue || 0,
-              paymentType: "Paid", // Defaulters are always paid bookings
+              paymentType: "Paid",
               discount: 0,
               waveOff: 0
             }}
@@ -981,27 +983,10 @@ export default function GuestRoomDashboard() {
             onSuccess={(updatedBooking) => {
               console.log("✅ Payment successful:", updatedBooking);
               setDefaulterPaymentModal(null);
-              refresh(); // Refresh data after payment
+              refresh();
             }}
           />
-        )}
-
-        {activeTab === 'HallBookings' ? (
-          <HallBookingsPortal
-            hallData={hallData}
-            setHallData={setHallData}
-            theme={theme}
-            onBackHome={() => setActiveTab('Dashboard')}
-          />
-        ) : (
-          <div className="flex">
-            {/* Sidebar - only show when NOT in HallBookings */}
-            <Sidebar />
-            
-            {/* Main Content */}
-            <MainContent />
-          </div>
-        )}
+        )}  
 
         <ProfileModal
           open={profileOpen}
