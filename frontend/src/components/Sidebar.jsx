@@ -16,6 +16,7 @@ export default function Sidebar({
   hostelData,
   activeTab,
   setActiveTab,
+  theme,
 }) {
   const { currentUser, loading } = useAuth();
   const [blockRoomModal, setBlockRoomModal] = useState(null);
@@ -65,10 +66,21 @@ export default function Sidebar({
 
   // Memoize visibleHostels to prevent unnecessary re-renders
   const visibleHostels = useMemo(() => {
+    if (!hostelData || typeof hostelData !== 'object') {
+      console.warn('⚠️ hostelData is invalid:', hostelData);
+      return [];
+    }
+
     if (canSeeAllHostels) {
       return hostelNames; // admin + manager (already sorted by initial)
-    } else if (canSeeHostels && assignedHostel && hostelData[assignedHostel]) {
-      return [assignedHostel]; // caretaker only
+    } else if (canSeeHostels && assignedHostel) {
+      // Check if assigned hostel exists in data
+      if (hostelData[assignedHostel]) {
+        return [assignedHostel]; // caretaker only
+      } else {
+        console.warn(`⚠️ Caretaker's assigned hostel "${assignedHostel}" not found in hostelData`);
+        return [];
+      }
     }
     return [];
   }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames]);
@@ -78,7 +90,6 @@ export default function Sidebar({
     console.warn("Caretaker has no assigned hostel");
   }
 
-  // ⭐ FIX caretaker double-navigation bug
   // Auto-select hostel ONLY once after login
   const didAutoSelect = useRef(false);
 
@@ -88,10 +99,12 @@ export default function Sidebar({
     // 🚫 Never auto-select outside Home
     if (activeTab !== "Home") return;
 
+    // Only auto-select for caretakers with single hostel
     if (
       !didAutoSelect.current &&
       visibleHostels.length === 1 &&
-      canSeeAllHostels
+      !canSeeAllHostels &&
+      canSeeHostels
     ) {
       didAutoSelect.current = true;
       setActiveHostel(visibleHostels[0]);
@@ -100,6 +113,7 @@ export default function Sidebar({
     loading,
     visibleHostels,
     canSeeAllHostels,
+    canSeeHostels,
     activeTab,
     setActiveHostel
   ]);
@@ -138,9 +152,9 @@ export default function Sidebar({
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={() => {
-              setActiveHostel(null);
-              setActiveRoomRef(null);
-              setActiveTab("AllHostelsPortal");
+              if (setActiveHostel) setActiveHostel(null);
+              if (setActiveRoomRef) setActiveRoomRef(null);
+              if (setActiveTab) setActiveTab("AllHostelsPortal");
             }}
             className={`
               relative group w-full text-left px-3 py-2 rounded-xl
@@ -163,9 +177,9 @@ export default function Sidebar({
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={() => {
-              setActiveHostel(null);
-              setActiveRoomRef(null);
-              setActiveTab("HallBookings");
+              if (setActiveHostel) setActiveHostel(null);
+              if (setActiveRoomRef) setActiveRoomRef(null);
+              if (setActiveTab) setActiveTab("HallBookings");
             }}
             className={`
               relative group w-full text-left px-3 py-2 rounded-xl
@@ -192,11 +206,13 @@ export default function Sidebar({
               whileHover={!isEnquiry ? { scale: 1.01 } : {}}
               whileTap={!isEnquiry ? { scale: 0.98 } : {}}
               onClick={() => {
-                setActiveHostel(hostelName);
-                setActiveRoomRef(null);
-                setActiveTab((prev) =>
-                  ["Defaulters", "Feedback"].includes(prev) ? prev : "Home"
-                );
+                if (setActiveHostel) setActiveHostel(hostelName);
+                if (setActiveRoomRef) setActiveRoomRef(null);
+                if (setActiveTab) {
+                  setActiveTab((prev) =>
+                    ["Defaulters", "Feedback"].includes(prev) ? prev : "Home"
+                  );
+                }
               }}
               className={`
                 relative group w-full text-left px-3 py-2 rounded-xl border
@@ -223,9 +239,9 @@ export default function Sidebar({
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={() => {
               console.log("🔴 Defaulters clicked");
-              setActiveTab("Defaulters");
-              setActiveHostel(null);
-              setActiveRoomRef(null);
+              if (setActiveTab) setActiveTab("Defaulters");
+              if (setActiveHostel) setActiveHostel(null);
+              if (setActiveRoomRef) setActiveRoomRef(null);
             }}
             className={`
               relative group w-full text-left px-3 py-2 rounded-xl border
@@ -252,9 +268,9 @@ export default function Sidebar({
             onClick={(e) => {
               e.stopPropagation();
               console.log("⭐ Feedback clicked - setting activeTab to Feedback");
-              setActiveTab("Feedback");
-              setActiveHostel(null);
-              setActiveRoomRef(null);
+              if (setActiveTab) setActiveTab("Feedback");
+              if (setActiveHostel) setActiveHostel(null);
+              if (setActiveRoomRef) setActiveRoomRef(null);
             }}
             className={`
               relative group w-full text-left px-3 py-2 rounded-xl border

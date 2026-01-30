@@ -811,12 +811,7 @@ export default function GuestRoomDashboard() {
               >
                 <Sidebar
                   activeHostel={activeHostel}
-                  setActiveHostel={(hostel) => {
-                    setActiveHostel(hostel);
-
-                    // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
-                  }}
+                  setActiveHostel={setActiveHostel}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
                   activeTab={activeTab}
