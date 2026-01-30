@@ -57,12 +57,24 @@ export default function HallGrid({
   // Sort halls in the defined order
   const sortedHalls = Object.keys(HALL_STRUCTURE);
 
+  console.log("🎯 HallGrid Render:", {
+    hallDataKeys: Object.keys(hallData || {}),
+    sortedHalls,
+    hasData: !!hallData
+  });
+
   return (
     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
       {sortedHalls.map((hallName) => {
         const hallConfig = HALL_STRUCTURE[hallName];
         const hallDataEntry = hallData?.[hallName] || {};
         const rooms = hallDataEntry.rooms || [];
+        
+        console.log(`📋 Hall "${hallName}":`, {
+          hasDataEntry: !!hallDataEntry,
+          roomsCount: rooms.length,
+          configRooms: hallConfig.rooms
+        });
         
         // Count occupied rooms
         const occupied = rooms.filter((r) => {
@@ -76,6 +88,8 @@ export default function HallGrid({
           <motion.div
             key={hallName}
             variants={itemVariants}
+            initial="hidden"
+            animate="show"
             whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}
             className={`rounded-2xl shadow-2xl border overflow-hidden ${
               theme === "dark"
@@ -125,32 +139,39 @@ export default function HallGrid({
 
             {/* Rooms Grid */}
             <div className="p-5 grid grid-cols-2 gap-4">
-              {rooms.map((room) => {
-                const activeBookings = getActiveBookings(room.bookings || []);
-                
-                const roomWithActiveBookings = {
-                  ...room,
-                  bookings: activeBookings
-                };
+              {rooms.length > 0 ? (
+                rooms.map((room) => {
+                  const activeBookings = getActiveBookings(room.bookings || []);
+                  
+                  const roomWithActiveBookings = {
+                    ...room,
+                    bookings: activeBookings
+                  };
 
-                return (
-                  <RoomCard
-                    key={`${hallName}_${room.roomNo}`}
-                    hostelName={hallName}
-                    room={roomWithActiveBookings}
-                    theme={theme}
-                    isSelected={selectedRooms.some(
-                      (r) => r.hall === hallName && r.roomNo === room.roomNo
-                    )}
-                    selectionMode={selectionMode}
-                    consolidateModal={hallBookingModal}
-                    bookingCompleted={bookingCompleted}
-                    onToggleSelect={() => toggleRoomSelect(hallName, room.roomNo)}
-                    onClick={(bookedAny) => onRoomClick(hallName, room, bookedAny)}
-                    showToast={showToast}
-                  />
-                );
-              })}
+                  return (
+                    <RoomCard
+                      key={`${hallName}_${room.roomNo}`}
+                      hostelName={hallName}
+                      room={roomWithActiveBookings}
+                      theme={theme}
+                      isSelected={selectedRooms.some(
+                        (r) => r.hall === hallName && r.roomNo === room.roomNo
+                      )}
+                      selectionMode={selectionMode}
+                      consolidateModal={hallBookingModal}
+                      bookingCompleted={bookingCompleted}
+                      onToggleSelect={() => toggleRoomSelect(hallName, room.roomNo)}
+                      onClick={(bookedAny) => onRoomClick(hallName, room, bookedAny)}
+                      showToast={showToast}
+                    />
+                  );
+                })
+              ) : (
+                <div className="col-span-2 text-center py-8 text-gray-500">
+                  <p className="text-sm">No rooms available</p>
+                  <p className="text-xs mt-1">Expected rooms: {hallConfig.rooms.join(", ")}</p>
+                </div>
+              )}
             </div>
           </motion.div>
         );

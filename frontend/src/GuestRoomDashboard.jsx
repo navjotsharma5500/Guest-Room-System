@@ -991,13 +991,21 @@ export default function GuestRoomDashboard() {
           />
         )}
 
-        {activeTab === "HallBookings" && (
+        {activeTab === 'HallBookings' ? (
           <HallBookingsPortal
             hallData={hallData}
             setHallData={setHallData}
             theme={theme}
-            onBackHome={() => setActiveTab("Home")}
+            onBackHome={() => setActiveTab('Dashboard')}
           />
+        ) : (
+          <div className="flex">
+            {/* Sidebar - only show when NOT in HallBookings */}
+            <Sidebar />
+            
+            {/* Main Content */}
+            <MainContent />
+          </div>
         )}
 
         <ProfileModal
