@@ -37,17 +37,6 @@ export default function Sidebar({
     currentUser?.hostel ||
     null;
 
-    // Debug logging
-    console.log("🔍 Sidebar Debug:", {
-      role: currentUser?.role,
-      canSeeAllHostels,
-      canSeeHostels,
-      canSeeHallBookings,
-      assignedHostel,
-      hostelDataKeys: Object.keys(hostelData || {}),
-      visibleHostelsCount: visibleHostels.length
-    });
-
   const handleBlockRoom = (hostelName, roomNo) => {
     setBlockRoomModal({ hostelName, roomNo });
   };
@@ -95,6 +84,17 @@ export default function Sidebar({
     }
     return [];
   }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames]);
+
+  // Debug logging (after visibleHostels is defined)
+  console.log("🔍 Sidebar Debug:", {
+    role: currentUser?.role,
+    canSeeAllHostels,
+    canSeeHostels,
+    canSeeHallBookings,
+    assignedHostel,
+    hostelDataKeys: Object.keys(hostelData || {}),
+    visibleHostelsCount: visibleHostels.length
+  });
 
   // Warn if caretaker has no hostel
   if (assignedHostel === "" || assignedHostel === undefined) {
