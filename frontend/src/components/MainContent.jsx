@@ -23,8 +23,8 @@ import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBl
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
-import UnifiedCalendar from "./components/UnifiedCalendar";
-import UnifiedUpcoming from "./components/UnifiedUpcoming";
+import UnifiedCalendar from "./UnifiedCalendar";
+import UnifiedUpcoming from "./UnifiedUpcoming";
 
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
