@@ -7,7 +7,7 @@ const API = BACKEND_URL;
 
 export default function useHallBookingHandlers({
   hallData,
-  setHallData,
+  // setHallData, // ❌ REMOVED - polling hook handles all updates
   selectedRooms,
   showToast,
   setSelectedRooms,
@@ -77,28 +77,9 @@ export default function useHallBookingHandlers({
 
         const data = await response.json();
 
-        // Update local state
-        setHallData((prev) => {
-          const newData = { ...prev };
-          
-          data.bookings.forEach((newBooking) => {
-            const { hall, roomNo } = newBooking;
-            
-            if (newData[hall]) {
-              newData[hall].rooms = newData[hall].rooms.map((r) => {
-                if (r.roomNo === roomNo) {
-                  return {
-                    ...r,
-                    bookings: [...(r.bookings || []), newBooking],
-                  };
-                }
-                return r;
-              });
-            }
-          });
-
-          return newData;
-        });
+        // ✅ Don't update local state - let polling hook handle it
+        // The backend emits 'hallBookingCreated' socket event
+        // which the polling hook will catch and refetch data
 
         showToast("✅ Hall booking created successfully!", "success");
         setHallBookingModal(false);
@@ -116,7 +97,7 @@ export default function useHallBookingHandlers({
         throw error;
       }
     },
-    [selectedRooms, setHallData, showToast, setHallBookingModal, setSelectionMode, setSelectedRooms, setBookingCompleted]
+    [selectedRooms, showToast, setHallBookingModal, setSelectionMode, setSelectedRooms, setBookingCompleted]
   );
 
   // Handle room click
@@ -177,29 +158,9 @@ export default function useHallBookingHandlers({
           throw new Error(errorData.message || "Failed to cancel booking");
         }
 
-        // Update local state
-        setHallData((prev) => {
-          const newData = { ...prev };
-          
-          if (newData[hall]) {
-            newData[hall].rooms = newData[hall].rooms.map((r) => {
-              if (r.roomNo === room.roomNo) {
-                return {
-                  ...r,
-                  bookings: r.bookings.map((b) => {
-                    if (b._id === booking._id) {
-                      return { ...b, status: "cancelled" };
-                    }
-                    return b;
-                  }),
-                };
-              }
-              return r;
-            });
-          }
-
-          return newData;
-        });
+        // ✅ Don't update local state - let polling hook handle it
+        // The backend emits 'hallBookingCancelled' socket event
+        // which the polling hook will catch and refetch data
 
         showToast("✅ Hall booking cancelled successfully", "success");
         setCancelModal(null);
@@ -211,7 +172,7 @@ export default function useHallBookingHandlers({
         showToast(`❌ ${error.message}`, "error");
       }
     },
-    [setHallData, showToast, setCancelModal, setBookingDetailsModal, setBookingListModal]
+    [showToast, setCancelModal, setBookingDetailsModal, setBookingListModal]
   );
 
   // Handle extend booking
@@ -237,29 +198,9 @@ export default function useHallBookingHandlers({
 
         const updatedBooking = await response.json();
 
-        // Update local state
-        setHallData((prev) => {
-          const newData = { ...prev };
-          
-          if (newData[hall]) {
-            newData[hall].rooms = newData[hall].rooms.map((r) => {
-              if (r.roomNo === roomNo) {
-                return {
-                  ...r,
-                  bookings: r.bookings.map((b) => {
-                    if (b._id === booking._id) {
-                      return { ...b, ...updatedBooking };
-                    }
-                    return b;
-                  }),
-                };
-              }
-              return r;
-            });
-          }
-
-          return newData;
-        });
+        // ✅ Don't update local state - let polling hook handle it
+        // The backend emits 'hallBookingExtended' socket event
+        // which the polling hook will catch and refetch data
 
         showToast("✅ Hall booking extended successfully", "success");
         setExtensionModal(null);
@@ -270,7 +211,7 @@ export default function useHallBookingHandlers({
         showToast(`❌ ${error.message}`, "error");
       }
     },
-    [setHallData, showToast, setExtensionModal, setBookingDetailsModal]
+    [showToast, setExtensionModal, setBookingDetailsModal]
   );
 
   return {

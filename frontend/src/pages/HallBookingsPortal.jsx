@@ -114,7 +114,7 @@ export default function HallBookingsPortal({
   // Custom Hooks
   const bookingHandlers = useHallBookingHandlers({
     hallData: stableHallData,
-    setHallData,
+    // setHallData, // ❌ REMOVED - not needed, polling hook handles updates
     selectedRooms,
     showToast,
     setSelectedRooms: stableSetSelectedRooms,
