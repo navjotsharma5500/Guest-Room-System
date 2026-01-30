@@ -178,23 +178,24 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     // ✅ TAB FILTERING
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
+        // Show in pending if: has balance AND not paid via defaulter modal
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        // Show in pending if: has balance AND no rollbacks (or partial rollbacks?)
-        // User said: "if the guest has a rollback amount... it means it is wavered"
-        // But if balance > 0, they are still pending.
-        return d.totalDue > 0; 
+        return d.totalDue > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'completed') {
-      filtered = filtered.filter(d => {
-        // Show in completed if: fully paid (0 balance)
-        // This INCLUDES fully rolled back (waived) guests
-        return d.totalDue === 0;
-      });
-    } else if (activeTab === 'rollbacks') {
-      filtered = filtered.filter(d => 
-        // Show in rollbacks if: has any rollback history
-        d.paymentRollbacks && d.paymentRollbacks.length > 0
-      );
+    filtered = filtered.filter(d => {
+      // Show in completed ONLY if:
+      // 1. Guest had pending balance (was a defaulter)
+      // 2. Then cleared it via defaulter modal (has rollbacks indicating waiver/payment through defaulter system)
+      // 3. Balance is now 0 or negative
+      const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+      
+      // Must have rollbacks to be in completed (this ensures they were handled via defaulter modal)
+      // AND balance must be cleared
+      return hasRollbacks && d.totalDue <= 0;
+    });
+    } else if (activeTab === 'rollback') {
+      filtered = filtered.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0);
     }
 
     setFilteredDefaulters(filtered);
@@ -1180,7 +1181,7 @@ Thank you!`;
                           Pay ₹{currentBalance} Now
                         </button>
 
-                        {canRollback && currentBalance > 0 && (
+                        {canRollback && selectedDefaulter.totalDue > 0 && (
                           <button
                             onClick={() => {
                               setShowDetails(false);

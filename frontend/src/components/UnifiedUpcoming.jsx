@@ -136,9 +136,9 @@ export default function UnifiedUpcoming({ theme, onBookingClick }) {
     }
   };
 
-  // Count by type
-  const guestCount = bookings.filter(b => b.bookingType === "guest" || !b.isHallBooking).length;
-  const hallCount = bookings.filter(b => b.bookingType === "hall" || b.isHallBooking).length;
+  // Count by type (from filtered upcoming bookings only)
+  const guestCount = upcomingBookings.filter(b => b.bookingType === "guest" || !b.isHallBooking).length;
+  const hallCount = upcomingBookings.filter(b => b.bookingType === "hall" || b.isHallBooking).length;
 
   return (
     <motion.div
