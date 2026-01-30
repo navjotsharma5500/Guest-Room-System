@@ -244,7 +244,7 @@ export default function Sidebar({
         })}
 
         {/* ✅ DEFAULTERS BUTTON (Not for Assistant) */}
-        {!canSeeHallBookings && (
+        {currentUser?.role !== "assistant" && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -272,7 +272,7 @@ export default function Sidebar({
         )}
 
         {/* ✅ FEEDBACK BUTTON (Not for Assistant) */}
-        {!canSeeHallBookings && (
+        {currentUser?.role !== "assistant" && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
