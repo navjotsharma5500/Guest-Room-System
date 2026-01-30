@@ -50,14 +50,30 @@ export default function UnifiedUpcoming({ theme, onBookingClick }) {
     const now = new Date();
 
     let filtered = bookings.filter((booking) => {
-      // Only show active bookings
-      if (!["booked", "checked_in"].includes(booking.status)) {
+      // ✅ ONLY show bookings with "booked" status
+      // Exclude: checked_in, checked_out, cancelled, no_show
+      if (booking.status !== "booked") {
         return false;
       }
 
-      // Check if booking is upcoming or active
-      const checkOut = new Date(booking.to || booking.checkOutDate);
-      if (checkOut < now) {
+      // Exclude reported guests
+      if (booking.reportedStatus === "reported") {
+        return false;
+      }
+
+      // Get check-in date/time
+      const fromDate = booking.actualCheckInDate || booking.from || booking.checkInDate;
+      if (!fromDate) return false;
+
+      const checkInDateTime = new Date(fromDate);
+      
+      // Set check-in time
+      const checkInTime = booking.actualCheckInTime || booking.checkInTime || "00:00";
+      const [hours, minutes] = (checkInTime || "00:00").split(':').map(Number);
+      checkInDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+
+      // ✅ ONLY show FUTURE bookings (check-in time hasn't passed yet)
+      if (checkInDateTime < now) {
         return false;
       }
 
@@ -206,7 +222,6 @@ export default function UnifiedUpcoming({ theme, onBookingClick }) {
         <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
           {upcomingBookings.map((booking, index) => {
             const { label, color, icon: Icon } = getBookingTypeLabel(booking);
-            const isCheckedIn = booking.status === "checked_in";
 
             return (
               <motion.div
@@ -239,12 +254,9 @@ export default function UnifiedUpcoming({ theme, onBookingClick }) {
                     </span>
                   </div>
                   
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    isCheckedIn
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {isCheckedIn ? "ACTIVE" : "UPCOMING"}
+                  {/* Status badge - always UPCOMING since we only show "booked" status */}
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                    UPCOMING
                   </span>
                 </div>
 
