@@ -12,7 +12,7 @@ import FilterModal from "../components/AllHostels/FilterModal";
 import VacantRoomsModal from "../components/HallBookings/VacantRoomsModal";
 import HallBookingModal from "../components/HallBookings/HallBookingModal";
 import BookingListModal from "../components/HallBookings/BookingListModal";
-import HallBookingDetailsModal from "../components/HallBookings/HallBookingDetailsModal";
+import BookingDetailsModal from "../components/HallBookings/BookingDetailsModal";
 import CancelModal from "../components/CancelModal";
 import HallExtensionModal from "../components/HallBookings/HallExtensionModal";
 import SearchFilterModal from "../components/HallBookings/SearchFilterModal";
@@ -372,7 +372,7 @@ export default function HallBookingsPortal({
 
       <AnimatePresence mode="wait">
         {bookingDetailsModal && (
-          <HallBookingDetailsModal
+          <BookingDetailsModal
             theme={theme}
             modal={bookingDetailsModal}
             onClose={() => setBookingDetailsModal(null)}
