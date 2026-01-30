@@ -2,12 +2,12 @@
 import { useCallback } from "react";
 import { BACKEND_URL } from "../utils/apiConfig";
 import { isDateTimeRangeOverlapping } from "../utils/dateUtils";
+import { IKUpload } from "imagekitio-react";
 
 const API = BACKEND_URL;
 
 export default function useHallBookingHandlers({
   hallData,
-  // setHallData, // ❌ REMOVED - polling hook handles all updates
   selectedRooms,
   showToast,
   setSelectedRooms,
@@ -25,19 +25,40 @@ export default function useHallBookingHandlers({
     async (formData) => {
       try {
         // Upload attachments to ImageKit first
+        // Upload attachments to ImageKit
         const uploadedAttachments = [];
-        
+
+        // Get ImageKit auth parameters
+        const authResponse = await fetch(`${API}/api/imagekit/auth`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!authResponse.ok) {
+          throw new Error("Failed to get ImageKit authentication");
+        }
+
+        const authData = await authResponse.json();
+
         for (const file of formData.attachments) {
           const formDataToSend = new FormData();
           formDataToSend.append("file", file);
-          
-          const uploadResponse = await fetch(`${API}/upload`, {
+          formDataToSend.append("publicKey", authData.publicKey);
+          formDataToSend.append("signature", authData.signature);
+          formDataToSend.append("expire", authData.expire);
+          formDataToSend.append("token", authData.token);
+          formDataToSend.append("fileName", file.name);
+          formDataToSend.append("folder", "/hall-bookings");
+
+          const uploadResponse = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
             method: "POST",
             body: formDataToSend,
           });
 
           if (!uploadResponse.ok) {
-            throw new Error("Failed to upload attachment");
+            const errorText = await uploadResponse.text();
+            console.error("❌ ImageKit upload error:", errorText);
+            throw new Error("Failed to upload attachment to ImageKit");
           }
 
           const uploadData = await uploadResponse.json();
@@ -104,8 +125,10 @@ export default function useHallBookingHandlers({
   const onRoomClick = useCallback(
     (hallName, room, bookedAny) => {
       if (!bookedAny) {
-        // Empty room - show info or allow direct booking
-        showToast("ℹ️ This hall room is vacant", "info");
+        // Empty room - open booking modal directly
+        setSelectedRooms([{ hall: hallName, roomNo: room.roomNo }]);
+        setSelectionMode(false);
+        setHallBookingModal(true);
         return;
       }
 

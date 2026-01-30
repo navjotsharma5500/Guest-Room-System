@@ -90,55 +90,59 @@ export default function HallGrid({
             variants={itemVariants}
             initial="hidden"
             animate="show"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}
-            className={`rounded-2xl shadow-2xl border overflow-hidden ${
+            whileHover={{ y: -8, boxShadow: "0 25px 50px rgba(220, 38, 38, 0.15)" }}
+            className={`rounded-3xl shadow-2xl border-2 overflow-hidden transition-all duration-300 ${
               theme === "dark"
-                ? "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-700"
-                : "border-red-200 bg-gradient-to-br from-white to-red-50"
+                ? "border-gray-600 bg-gradient-to-br from-gray-800 via-gray-750 to-gray-800"
+                : "border-red-100 bg-gradient-to-br from-white via-red-25 to-white"
             }`}
           >
             {/* Header */}
             <div
-              className={`px-5 py-4 border-b ${
+              className={`px-6 py-5 border-b-2 ${
                 theme === "dark"
-                  ? "border-gray-700 bg-gradient-to-r from-gray-800 to-gray-700"
-                  : "border-red-200 bg-gradient-to-r from-red-50 to-white"
+                  ? "border-gray-700 bg-gradient-to-r from-red-900/20 to-orange-900/20"
+                  : "border-red-100 bg-gradient-to-r from-red-50 to-orange-50"
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
-                    <Users className="w-5 h-5 text-red-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <motion.div 
+                    whileHover={{ rotate: 360, scale: 1.15 }} 
+                    transition={{ duration: 0.5 }}
+                    className="bg-gradient-to-br from-red-500 to-red-600 p-2.5 rounded-xl shadow-lg"
+                  >
+                    <Users className="w-6 h-6 text-white" />
                   </motion.div>
-                  <h2 className="text-lg font-bold tracking-wide text-red-700">
-                    {hallName}
-                  </h2>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+                      {hallName}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">{rooms.length} Total Rooms</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <motion.span
-                    whileHover={{ scale: 1.1 }}
-                    className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 font-medium"
+                
+                <div className="flex flex-col gap-1.5">
+                  <motion.div
+                    whileHover={{ scale: 1.08 }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-green-100 to-green-200 border border-green-300 shadow-sm"
                   >
-                    Total: {rooms.length}
-                  </motion.span>
-                  <motion.span
-                    whileHover={{ scale: 1.1 }}
-                    className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium"
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="font-bold text-green-700">Available: {available}</span>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.08 }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-red-100 to-red-200 border border-red-300 shadow-sm"
                   >
-                    Occupied: {occupied}
-                  </motion.span>
-                  <motion.span
-                    whileHover={{ scale: 1.1 }}
-                    className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium"
-                  >
-                    Available: {available}
-                  </motion.span>
+                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                    <span className="font-bold text-red-700">Occupied: {occupied}</span>
+                  </motion.div>
                 </div>
               </div>
             </div>
 
             {/* Rooms Grid */}
-            <div className="p-5 grid grid-cols-2 gap-4">
+            <div className="p-5 grid grid-cols-2 gap-3.5">
               {rooms.length > 0 ? (
                 rooms.map((room) => {
                   const activeBookings = getActiveBookings(room.bookings || []);
@@ -167,9 +171,16 @@ export default function HallGrid({
                   );
                 })
               ) : (
-                <div className="col-span-2 text-center py-8 text-gray-500">
-                  <p className="text-sm">No rooms available</p>
-                  <p className="text-xs mt-1">Expected rooms: {hallConfig.rooms.join(", ")}</p>
+                <div className="col-span-2 text-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Users className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-600">No Rooms Available</p>
+                      <p className="text-xs text-gray-400 mt-1">Expected: {hallConfig.rooms.slice(0, 3).join(", ")}...</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
