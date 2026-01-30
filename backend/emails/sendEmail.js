@@ -106,6 +106,14 @@ const rateLimiter = new EmailRateLimiter();
 // 📧 SEND EMAIL FUNCTION
 // ========================================
 export async function sendEmail({ to, subject, html, text, priority = 'normal' }) {
+  console.log("📧 [sendEmail] ENTERED", {
+    to,
+    subject,
+    EMAIL_USER: process.env.EMAIL_USER,
+    EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS,
+    EMAIL_HOST: process.env.EMAIL_HOST,
+    EMAIL_PORT: process.env.EMAIL_PORT,
+  });
   // Check rate limits
   const limitCheck = rateLimiter.canSend();
   if (!limitCheck.allowed) {
@@ -131,13 +139,23 @@ export async function sendEmail({ to, subject, html, text, priority = 'normal' }
         priority: priority === "high" ? "high" : undefined,
       });
 
+      console.log("📨 [sendEmail] About to call transporter.sendMail()", {
+        from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
+        to,
+      });
+
       // Record successful send
       rateLimiter.recordSent();
       console.log(`✅ [EMAIL] Sent to ${to} (attempt ${attempt})`);
       return true;
 
     } catch (err) {
-      console.error(`❌ [EMAIL] Failed attempt ${attempt}/${EMAIL_LIMITS.MAX_RETRIES} to ${to}:`, err.message);
+      console.error(`❌ [EMAIL] Failed attempt ${attempt}/${EMAIL_LIMITS.MAX_RETRIES}`, {
+        message: err.message,
+        code: err.code,
+        response: err.response,
+        stack: err.stack,
+      });
 
       // Check if it's a Gmail rate limit error (421)
       if (err.message.includes("421") || err.message.includes("Temporary System Problem")) {
@@ -164,6 +182,11 @@ export async function sendEmail({ to, subject, html, text, priority = 'normal' }
 // 🛡️ SAFE SEND WRAPPER WITH EMAIL LOGGING
 // ========================================
 export function safeSend(emailPayload, EmailLogModel = null) {
+  console.log("🛡️ [safeSend] ENTERED", {
+    to: emailPayload?.to,
+    subject: emailPayload?.subject,
+    meta: emailPayload?.meta,
+  });
   // Validation
   if (!emailPayload?.to || String(emailPayload.to).trim() === "") {
     console.warn("⚠️ safeSend SKIPPED - No recipient email:", {

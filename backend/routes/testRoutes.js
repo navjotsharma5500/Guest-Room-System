@@ -5,7 +5,13 @@ import { sendEmail } from "../emails/sendEmail.js";
 const router = express.Router();
 
 router.get("/test-email", (req, res) => {
-  // 🔥 DO NOT await
+  console.log("🧪 [TEST ROUTE] /test-email HIT", {
+    time: new Date().toISOString(),
+    adminEmail: process.env.ADMIN_NOTIFICATION_EMAIL,
+  });
+
+  console.log("🧪 [TEST ROUTE] Triggering sendEmail()");
+
   sendEmail({
     to: process.env.ADMIN_NOTIFICATION_EMAIL,
     subject: "Test Email – Guest Room System",
@@ -13,14 +19,16 @@ router.get("/test-email", (req, res) => {
     text: "Email system working",
   })
     .then((ok) => {
-      console.log("[TEST EMAIL RESULT]:", ok);
+      console.log("🧪 [TEST ROUTE] sendEmail resolved:", ok);
     })
     .catch((err) => {
-      // This should never happen, but log defensively
-      console.error("[TEST EMAIL ERROR]:", err);
+      console.error("🧪 [TEST ROUTE] sendEmail rejected:", {
+        message: err.message,
+        code: err.code,
+        stack: err.stack,
+      });
     });
 
-  // ✅ IMMEDIATE RESPONSE (Cloudflare-safe)
   res.status(200).json({
     success: true,
     message: "Email triggered (async)",
