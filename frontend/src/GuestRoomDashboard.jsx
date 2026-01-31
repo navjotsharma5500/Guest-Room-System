@@ -14,7 +14,6 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
-import HallBookingsPortal from './pages/HallBookingsPortal';
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -57,7 +56,6 @@ export default function GuestRoomDashboard() {
 
   // Navigation & Selection
   const [activeTab, setActiveTab] = useState("Home");
-  const [hallData, setHallData] = useState({});
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
 
@@ -117,93 +115,6 @@ export default function GuestRoomDashboard() {
       notificationsEnabled ? "true" : "false"
     );
   }, [theme, notificationsEnabled]);
-
-  // Transform hall booking data into hall structure
-  const transformHallData = useCallback((bookings) => {
-    const HALL_STRUCTURE = {
-      "Hall": { rooms: ["MAIN AUDITORIUM", "TAN AUDITORIUM", "C-Hall"] },
-      "Rooms": { rooms: ["T105", "T106"] },
-      "Creativity Rooms": { rooms: ["CR-1", "CR-2", "CR-5 (Sur Room)", "CR-6", "CR-7", "CR-8"] },
-      "Green Rooms": { rooms: ["GR-1", "GR-2"] },
-      "Open Area": { rooms: ["SBI Lawns", "FETE Area", "OAT (Open Air Theater)"] },
-      "Desk Area": { rooms: ["Street Cafe", "Jaggi", "Street Cafe & Jaggi Area"] },
-      "Common Rooms": { rooms: ["G-Block", "Tan Rooms", "E-Block", "F-Block", "Activity Room", "Activity Space", "LP Rooms"] }
-    };
-
-    const hallData = {};
-
-    // Initialize hall structure
-    Object.keys(HALL_STRUCTURE).forEach(hallName => {
-      hallData[hallName] = {
-        rooms: HALL_STRUCTURE[hallName].rooms.map(roomNo => ({
-          roomNo,
-          bookings: []
-        }))
-      };
-    });
-
-    // Add bookings to appropriate rooms
-    if (Array.isArray(bookings)) {
-      bookings.forEach(booking => {
-        const { hall, roomNo } = booking;
-        if (hallData[hall]) {
-          const room = hallData[hall].rooms.find(r => r.roomNo === roomNo);
-          if (room) {
-            room.bookings.push(booking);
-          }
-        }
-      });
-    }
-
-    return hallData;
-  }, []);
-
-  useEffect(() => {
-    const fetchHallData = async () => {
-      try {
-        const response = await fetch(`${API}/hall-bookings`);
-        const data = await response.json();
-        
-        // Transform data into hall structure
-        const hallStructure = transformHallData(data);
-        setHallData(hallStructure);
-      } catch (error) {
-        console.error('Error fetching hall data:', error);
-      }
-    };
-
-    if (activeTab === 'HallBookings') {
-      fetchHallData();
-    }
-  }, [activeTab]);
-
-  // Listen for hall booking events
-  useEffect(() => {
-    const handleHallBookingEvent = () => {
-      if (activeTab === 'HallBookings') {
-        // Refetch hall data
-        fetch(`${API}/hall-bookings`)
-          .then(res => res.json())
-          .then(data => {
-            const hallStructure = transformHallData(data);
-            setHallData(hallStructure);
-          })
-          .catch(err => console.error('Error refreshing hall data:', err));
-      }
-    };
-
-    window.addEventListener('hallBookingCreated', handleHallBookingEvent);
-    window.addEventListener('hallBookingCancelled', handleHallBookingEvent);
-    window.addEventListener('hallBookingExtended', handleHallBookingEvent);
-    window.addEventListener('hallBookingUpdated', handleHallBookingEvent);
-
-    return () => {
-      window.removeEventListener('hallBookingCreated', handleHallBookingEvent);
-      window.removeEventListener('hallBookingCancelled', handleHallBookingEvent);
-      window.removeEventListener('hallBookingExtended', handleHallBookingEvent);
-      window.removeEventListener('hallBookingUpdated', handleHallBookingEvent);
-    };
-  }, [activeTab, transformHallData]);
 
   // Extension modal listener
   useEffect(() => {
@@ -811,7 +722,12 @@ export default function GuestRoomDashboard() {
               >
                 <Sidebar
                   activeHostel={activeHostel}
-                  setActiveHostel={setActiveHostel}
+                  setActiveHostel={(hostel) => {
+                    setActiveHostel(hostel);
+
+                    // ⚠️ Do NOT override Defaulters or Feedback tabs
+                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
+                  }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
                   activeTab={activeTab}
@@ -984,23 +900,6 @@ export default function GuestRoomDashboard() {
               refresh(); // Refresh data after payment
             }}
           />
-        )}
-
-        {activeTab === 'HallBookings' ? (
-          <HallBookingsPortal
-            hallData={hallData}
-            setHallData={setHallData}
-            theme={theme}
-            onBackHome={() => setActiveTab('Dashboard')}
-          />
-        ) : (
-          <div className="flex">
-            {/* Sidebar - only show when NOT in HallBookings */}
-            <Sidebar />
-            
-            {/* Main Content */}
-            <MainContent />
-          </div>
         )}
 
         <ProfileModal

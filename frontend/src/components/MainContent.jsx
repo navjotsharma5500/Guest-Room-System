@@ -1,11 +1,10 @@
 // src/components/MainContent.jsx - COMPLETE FIXED VERSION
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
 import { Settings, Trash2, Filter, Building2, Search } from "lucide-react";
 import { combineDateAndTime } from "../utils/dateUtils";
 import { persistHostelData } from "../utils/hostelUtils";
-import { fetchUnifiedBookings, normalizeBooking } from "../utils/unifiedBookingApi";
 
 import GuestDetails from "./GuestDetails";
 import RoomCard from "./RoomCard";
@@ -106,7 +105,6 @@ export default function MainContent(props) {
   const [downloadFromDate, setDownloadFromDate] = useState("");
   const [downloadToDate, setDownloadToDate] = useState("");
   const [showCalendarPage, setShowCalendarPage] = useState(false);
-  const [unifiedBookings, setUnifiedBookings] = useState([]);
 
   // ====================================================
   // EVENT LISTENER – RELOAD HOSTEL DATA
@@ -208,84 +206,60 @@ export default function MainContent(props) {
     localStorage.setItem("guestDashboardTheme", theme);
   }, [theme]);
 
-  // ==================================================== 
-  // 🆕 FETCH UNIFIED BOOKINGS
   // ====================================================
-  useEffect(() => {
-    const loadUnifiedBookings = async () => {
-      console.log('🔄 Loading unified bookings...');
-      const bookings = await fetchUnifiedBookings();
-      const normalized = bookings.map(normalizeBooking);
-      console.log('✅ Unified bookings loaded:', normalized.length);
-      setUnifiedBookings(normalized);
-    };
-
-    loadUnifiedBookings();
-    
-    // Refresh on booking events
-    const handleRefresh = () => {
-      console.log('🔄 Refreshing unified bookings...');
-      loadUnifiedBookings();
-    };
-    
-    window.addEventListener('hallBookingCompleted', handleRefresh);
-    window.addEventListener('bookingCreated', handleRefresh);
-    window.addEventListener('bookingCancelled', handleRefresh);
-    window.addEventListener('reloadHostelData', handleRefresh);
-    
-    return () => {
-      window.removeEventListener('hallBookingCompleted', handleRefresh);
-      window.removeEventListener('bookingCreated', handleRefresh);
-      window.removeEventListener('bookingCancelled', handleRefresh);
-      window.removeEventListener('reloadHostelData', handleRefresh);
-    };
-  }, []);
-
+  // UPCOMING BOOKINGS LIST
   // ====================================================
-  // UPCOMING BOOKINGS LIST (UNIFIED)
-  // ====================================================
-  const upcoming = useMemo(() => {
-    console.log('🔍 Computing upcoming bookings from unified data...');
-    
-    return unifiedBookings
-      .filter((b) => {
-        // Exclude inactive statuses
-        if (["cancelled", "checked_out", "no_show", "checked_in"].includes(b.status)) {
-          return false;
-        }
-        
-        // Exclude if reportedStatus is "reported"
-        if (b.reportedStatus === "reported") {
-          return false;
-        }
-        
-        // Get check-in date/time
-        const fromDate = b.actualCheckInDate || b.from || b.checkInDate;
-        const checkInDateTime = new Date(fromDate);
-        
-        // Set check-in time
-        const checkInTime = b.actualCheckInTime || b.checkInTime || "00:00";
-        const [hours, minutes] = (checkInTime || "00:00").split(':').map(Number);
-        checkInDateTime.setHours(hours || 0, minutes || 0, 0, 0);
-        
-        const now = new Date();
-        
-        // Show only FUTURE bookings
-        return checkInDateTime >= now;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.from || a.checkInDate);
-        const dateB = new Date(b.from || b.checkInDate);
-        return dateA - dateB;
-      })
-      .slice(0, 5);
-  }, [unifiedBookings]);
+  const allBookings =
+    Object.entries(hostelData || {})
+      .flatMap(([hostel, h]) =>
+        (h.rooms || [])
+          .flatMap((room) =>
+            (room.bookings || []).map((b) => ({
+              hostel,
+              roomNo: room.roomNo,
+              booking: b,
+            }))
+          )
+      )
+      .sort((a, b) => new Date(a.booking.from) - new Date(b.booking.from)) || [];
 
-  const getEffectiveCheckInDate = (booking) => {
-    return booking.actualCheckInDate || booking.from || booking.checkInDate;
-  };
+  const upcoming = allBookings
+    .filter((b) => {
+      // ✅ Filter by user role
+      if (role === "admin" || role === "manager") return true;
+      return b.hostel === userHostel;
+    })
+    .filter((b) => {
+      // ✅ CRITICAL FIX: Exclude cancelled, checked_out, no_show, and REPORTED/CHECKED_IN bookings
+      if (["cancelled", "checked_out", "no_show", "checked_in"].includes(b.booking.status)) {
+        return false;
+      }
+      
+      // ✅ ALSO exclude if reportedStatus is "reported" (additional safety check)
+      if (b.booking.reportedStatus === "reported") {
+        return false;
+      }
+      
+      // ✅ Use actualCheckInDate if guest reported early
+      const fromDate = b.booking.actualCheckInDate || b.booking.from;
+      const checkInDateTime = new Date(fromDate);
+      
+      // Set check-in time
+      const checkInTime = b.booking.actualCheckInTime || b.booking.checkInTime || "00:00";
+      const [hours, minutes] = checkInTime.split(':').map(Number);
+      checkInDateTime.setHours(hours, minutes, 0, 0);
+      
+      const now = new Date();
+      
+      // ✅ Show only FUTURE bookings (not currently checked in)
+      return checkInDateTime >= now;
+    })
+    .slice(0, 5);
 
-  console.log('📊 Upcoming bookings count:', upcoming.length);
+    const getEffectiveCheckInDate = (booking) => {
+      // ✅ Use actualCheckInDate if guest reported early, otherwise use 'from'
+      return booking.actualCheckInDate || booking.from;
+    };
 
   // ====================================================
   // CSV EXPORT LOGIC (COMPLETE VERSION WITH DATE RANGE)
@@ -1072,31 +1046,19 @@ export default function MainContent(props) {
                 {upcoming.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     {upcoming.map((u, idx) => {
-                      const isSelected = activeRoomRef?.booking?.id === u.id || 
-                                        activeRoomRef?.booking?._id === u._id;
+                      const isSelected = activeRoomRef?.booking?.id === u.booking.id || 
+                                        activeRoomRef?.booking?._id === u.booking._id;
 
-                      const effectiveFrom = getEffectiveCheckInDate(u);
+                      const effectiveFrom = getEffectiveCheckInDate(u.booking);
                       
                       return (
                         <div
                           key={`${u.hostel}_${u.roomNo}_${idx}`}
-                          onClick={() => {
-                            // Handle differently based on booking type
-                            if (u.bookingType === 'hall' || u.isHallBooking) {
-                              // Hall booking - show info toast
-                              console.log('🏢 Hall booking clicked:', u);
-                              showToast('ℹ️ Hall booking - view details in Hall Bookings Portal', 'info');
-                              // Optional: You can add navigation to hall bookings portal here
-                              // setActiveTab('HallBookings');
-                            } else {
-                              // Regular guest booking - use existing logic
-                              setRightPanelToRoom(
-                                u.hostel,
-                                u.roomNo,
-                                u._id || u.id
-                              );
-                            }
-                          }}
+                          onClick={() => setRightPanelToRoom(
+                            u.hostel,
+                            u.roomNo,
+                            u.booking._id || u.booking.id
+                          )}
                           className={`
                             group relative overflow-hidden rounded-xl border-2 cursor-pointer
                             transition-all duration-300 transform hover:scale-105 hover:shadow-2xl
@@ -1141,17 +1103,12 @@ export default function MainContent(props) {
                                 <h4 className={`font-bold text-lg truncate ${
                                   theme === "dark" ? "text-white" : "text-gray-900"
                                 }`}>
-                                  {u.guest}
+                                  {u.booking.guest}
                                 </h4>
                                 <p className={`text-xs ${
                                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                                 }`}>
-                                  {u.department || u.rollno || (u.isHallBooking ? u.societyName : 'Guest')}
-                                </p>
-                                <p className={`text-xs ${
-                                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                                }`}>
-                                  {u.department || u.rollno || 'Guest'}
+                                  {u.booking.department || u.booking.rollno || 'Guest'}
                                 </p>
                               </div>
                             </div>
@@ -1216,7 +1173,7 @@ export default function MainContent(props) {
                                   <p className={`text-xs font-semibold truncate ${
                                     theme === "dark" ? "text-blue-100" : "text-blue-900"
                                   }`}>
-                                    {formatDateTime(u.from || u.checkInDate, u.checkInTime)}
+                                    {formatDateTime(u.booking.from, u.booking.checkInTime)}
                                   </p>
                                 </div>
                               </div>
@@ -1237,7 +1194,7 @@ export default function MainContent(props) {
                                   <p className={`text-xs font-semibold truncate ${
                                     theme === "dark" ? "text-blue-100" : "text-blue-900"
                                   }`}>
-                                    {formatDateTime(u.to || u.checkOutDate, u.checkOutTime)}
+                                    {formatDateTime(u.booking.to, u.booking.checkOutTime)}
                                   </p>
                                 </div>
                               </div>
@@ -1251,7 +1208,7 @@ export default function MainContent(props) {
                               <p className={`text-xs truncate ${
                                 theme === "dark" ? "text-gray-400" : "text-gray-600"
                               }`}>
-                                {u.contact}
+                                {u.booking.contact}
                               </p>
                             </div>
                           </div>
