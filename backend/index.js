@@ -27,6 +27,8 @@ import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
+import hallBookingRoutes from './routes/hallBookingRoutes.js';
+import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
 
 const app = express();
 
@@ -296,6 +298,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiry", enquiryRoutes);
+app.use('/hall-bookings', hallBookingRoutes);
+app.use('/api/unified-bookings', unifiedBookingRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);

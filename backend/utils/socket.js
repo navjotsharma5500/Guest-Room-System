@@ -1,17 +1,48 @@
-// src/socket.js
+// backend/utils/socket.js
 // =======================================================
 // SOCKET.IO SERVER HELPER (BACKEND ONLY)
 // =======================================================
 
-let ioInstance = null;
+import { Server } from 'socket.io';
+
+let io;
 
 /**
- * Register Socket.IO instance
- * Called ONCE from index.js after io is created
+ * Initialize Socket.IO server
+ * Called ONCE from index.js when server starts
  */
-export const setSocketIO = (io) => {
-  ioInstance = io;
-  console.log("ðŸ”Œ Socket.IO instance registered in backend");
+export const initializeSocket = (server) => {
+  io = new Server(server, {
+    cors: {
+      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+      credentials: true,
+    },
+  });
+
+  io.on('connection', (socket) => {
+    console.log('✅ Client connected:', socket.id);
+
+    socket.on('join-dashboard', () => {
+      console.log('📊 Client joined dashboard');
+      socket.join('dashboard');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Client disconnected:', socket.id);
+    });
+  });
+
+  console.log("🔌 Socket.IO instance initialized in backend");
+  return io;
+};
+
+/**
+ * Register Socket.IO instance (alternative to initializeSocket)
+ * Called ONCE from index.js after io is created externally
+ */
+export const setSocketIO = (ioInstance) => {
+  io = ioInstance;
+  console.log("🔌 Socket.IO instance registered in backend");
 };
 
 /**
@@ -19,10 +50,10 @@ export const setSocketIO = (io) => {
  * Used inside controllers to emit events
  */
 export const getSocketIO = () => {
-  if (!ioInstance) {
-    throw new Error("âŒ Socket.IO instance not initialized");
+  if (!io) {
+    throw new Error('❌ Socket.IO not initialized');
   }
-  return ioInstance;
+  return io;
 };
 
 /**
@@ -39,6 +70,7 @@ export const emitEvent = (event, payload, room = null) => {
 };
 
 export default {
+  initializeSocket,
   setSocketIO,
   getSocketIO,
   emitEvent,
