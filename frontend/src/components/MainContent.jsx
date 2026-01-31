@@ -23,8 +23,6 @@ import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBl
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
-import UnifiedCalendar from "./UnifiedCalendar";
-import UnifiedUpcoming from "./UnifiedUpcoming";
 
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -1004,29 +1002,14 @@ export default function MainContent(props) {
                     Select a Date to View Bookings
                   </h2>
 
-                  {/* 🆕 UNIFIED CALENDAR FOR ADMIN/ASSISTANT */}
-                  {(currentUser?.role === "admin" || currentUser?.role === "assistant") && (
-                    <UnifiedCalendar 
-                      theme={theme}
-                      onDateClick={(date, bookings) => {
-                        console.log("📅 Unified Calendar - Date clicked:", date, bookings);
-                        setSelectedDate(date);
-                        setShowCalendarPage(true);
-                      }}
-                    />
-                  )}
-
-                  {/* 🔄 REGULAR CALENDAR FOR MANAGER/CARETAKER */}
-                  {(currentUser?.role === "manager" || currentUser?.role === "caretaker") && (
-                    <Calendar
-                      onChange={(date) => {
-                        setSelectedDate(date);
-                        setShowCalendarPage(true);
-                      }}
-                      value={selectedDate}
-                      className="rounded-xl shadow-lg"
-                    />
-                  )}
+                  <Calendar
+                    onChange={(date) => {
+                      setSelectedDate(date);
+                      setShowCalendarPage(true);
+                    }}
+                    value={selectedDate}
+                    className="rounded-xl shadow-lg"
+                  />
                   
                   <p className={`text-sm mt-4 ${
                     theme === "dark" ? "text-gray-400" : "text-gray-600"
@@ -1067,33 +1050,6 @@ export default function MainContent(props) {
               </div>
 
               {/* ========== UPCOMING BOOKINGS SECTION (FULL WIDTH) ========== */}
-              
-              {/* 🆕 UNIFIED UPCOMING FOR ADMIN/ASSISTANT */}
-              {(currentUser?.role === "admin" || currentUser?.role === "assistant") && (
-                <div className={`shadow-md rounded-2xl p-6 ${
-                  theme === "dark" ? "bg-gray-800" : "bg-white"
-                }`}>
-                  <UnifiedUpcoming 
-                    theme={theme}
-                    onBookingClick={(booking) => {
-                      console.log("📋 Unified Upcoming - Booking clicked:", booking);
-                      // Handle both hall and guest bookings
-                      if (booking.bookingType === 'hall' || booking.isHallBooking) {
-                        showToast('ℹ️ Hall booking - view details in Hall Bookings Portal', 'info');
-                      } else {
-                        setRightPanelToRoom(
-                          booking.hostel,
-                          booking.roomNo,
-                          booking._id || booking.id
-                        );
-                      }
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* 🔄 REGULAR UPCOMING FOR MANAGER/CARETAKER */}
-              {(currentUser?.role === "manager" || currentUser?.role === "caretaker") && (
               <div className={`shadow-md rounded-2xl p-6 ${
                 theme === "dark" ? "bg-gray-800" : "bg-white"
               }`}>
@@ -1324,7 +1280,6 @@ export default function MainContent(props) {
                   </div>
                 )}
               </div>
-              )}
             </>
           )}  
 
@@ -1635,11 +1590,7 @@ export default function MainContent(props) {
       <div className="fixed bottom-6 right-6 flex flex-col gap-3">
         <button
           className="p-3 bg-white border shadow-lg rounded-full hover:bg-red-50"
-          onClick={() => {
-            if (setActiveTab && typeof setActiveTab === 'function') {
-              setActiveTab("Settings");
-            }
-          }}
+          onClick={() => setActiveTab("Settings")}
         >
           <Settings className="text-red-700" />
         </button>

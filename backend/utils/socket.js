@@ -11,7 +11,7 @@ let ioInstance = null;
  */
 export const setSocketIO = (io) => {
   ioInstance = io;
-  console.log("🔌 Socket.IO instance registered in backend");
+  console.log("ðŸ”Œ Socket.IO instance registered in backend");
 };
 
 /**
@@ -20,7 +20,7 @@ export const setSocketIO = (io) => {
  */
 export const getSocketIO = () => {
   if (!ioInstance) {
-    throw new Error("❌ Socket.IO instance not initialized");
+    throw new Error("âŒ Socket.IO instance not initialized");
   }
   return ioInstance;
 };

@@ -23,7 +23,6 @@ import PaymentModal from "./components/PaymentModal";
 import { ToastProvider, useToast } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
 import { useHostelDataPolling } from "./hooks/useHostelDataPolling";
-import { useHallDataPolling } from "./hooks/useHallDataPolling";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 
 import useIdleTimeout from "./hooks/useIdleTimeout";
@@ -49,16 +48,6 @@ export default function GuestRoomDashboard() {
     refresh
   } = useHostelDataPolling({});
 
-  // 🆕 Hall data polling hook
-  const {
-    hallData,
-    loading: hallLoading,
-    hasData: hasHallData,
-    error: hallError,
-    connected: hallConnected,
-    refresh: refreshHallData
-  } = useHallDataPolling({});
-
   // Screen Saver
   const isIdle = useIdleTimeout(2); // 5 minutes idle timeout
   const [showScreenSaver, setShowScreenSaver] = useState(false);
@@ -68,6 +57,7 @@ export default function GuestRoomDashboard() {
 
   // Navigation & Selection
   const [activeTab, setActiveTab] = useState("Home");
+  const [hallData, setHallData] = useState({});
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
 
@@ -128,8 +118,92 @@ export default function GuestRoomDashboard() {
     );
   }, [theme, notificationsEnabled]);
 
+  // Transform hall booking data into hall structure
+  const transformHallData = useCallback((bookings) => {
+    const HALL_STRUCTURE = {
+      "Hall": { rooms: ["MAIN AUDITORIUM", "TAN AUDITORIUM", "C-Hall"] },
+      "Rooms": { rooms: ["T105", "T106"] },
+      "Creativity Rooms": { rooms: ["CR-1", "CR-2", "CR-5 (Sur Room)", "CR-6", "CR-7", "CR-8"] },
+      "Green Rooms": { rooms: ["GR-1", "GR-2"] },
+      "Open Area": { rooms: ["SBI Lawns", "FETE Area", "OAT (Open Air Theater)"] },
+      "Desk Area": { rooms: ["Street Cafe", "Jaggi", "Street Cafe & Jaggi Area"] },
+      "Common Rooms": { rooms: ["G-Block", "Tan Rooms", "E-Block", "F-Block", "Activity Room", "Activity Space", "LP Rooms"] }
+    };
+
+    const hallData = {};
+
+    // Initialize hall structure
+    Object.keys(HALL_STRUCTURE).forEach(hallName => {
+      hallData[hallName] = {
+        rooms: HALL_STRUCTURE[hallName].rooms.map(roomNo => ({
+          roomNo,
+          bookings: []
+        }))
+      };
+    });
+
+    // Add bookings to appropriate rooms
+    if (Array.isArray(bookings)) {
+      bookings.forEach(booking => {
+        const { hall, roomNo } = booking;
+        if (hallData[hall]) {
+          const room = hallData[hall].rooms.find(r => r.roomNo === roomNo);
+          if (room) {
+            room.bookings.push(booking);
+          }
+        }
+      });
+    }
+
+    return hallData;
+  }, []);
+
+  useEffect(() => {
+    const fetchHallData = async () => {
+      try {
+        const response = await fetch(`${API}/hall-bookings`);
+        const data = await response.json();
+        
+        // Transform data into hall structure
+        const hallStructure = transformHallData(data);
+        setHallData(hallStructure);
+      } catch (error) {
+        console.error('Error fetching hall data:', error);
+      }
+    };
+
+    if (activeTab === 'HallBookings') {
+      fetchHallData();
+    }
+  }, [activeTab]);
+
   // Listen for hall booking events
-  // ✅ No longer needed - useHallDataPolling hook handles real-time updates via Socket.IO
+  useEffect(() => {
+    const handleHallBookingEvent = () => {
+      if (activeTab === 'HallBookings') {
+        // Refetch hall data
+        fetch(`${API}/hall-bookings`)
+          .then(res => res.json())
+          .then(data => {
+            const hallStructure = transformHallData(data);
+            setHallData(hallStructure);
+          })
+          .catch(err => console.error('Error refreshing hall data:', err));
+      }
+    };
+
+    window.addEventListener('hallBookingCreated', handleHallBookingEvent);
+    window.addEventListener('hallBookingCancelled', handleHallBookingEvent);
+    window.addEventListener('hallBookingExtended', handleHallBookingEvent);
+    window.addEventListener('hallBookingUpdated', handleHallBookingEvent);
+
+    return () => {
+      window.removeEventListener('hallBookingCreated', handleHallBookingEvent);
+      window.removeEventListener('hallBookingCancelled', handleHallBookingEvent);
+      window.removeEventListener('hallBookingExtended', handleHallBookingEvent);
+      window.removeEventListener('hallBookingUpdated', handleHallBookingEvent);
+    };
+  }, [activeTab, transformHallData]);
 
   // Extension modal listener
   useEffect(() => {
@@ -818,13 +892,17 @@ export default function GuestRoomDashboard() {
               <AllHostelsPortal
                 hostelData={hostelData}
                 setHostelData={(updater) => {
+                  // ✅ CRITICAL FIX: setHostelData was missing
                   console.log("🔄 AllHostelsPortal updating hostelData");
                   
                   if (typeof updater === 'function') {
+                    // Handle function updater (prev => newState)
                     const newData = updater(hostelData);
                     console.log("✅ Updated hostelData:", Object.keys(newData));
+                    // Trigger refresh to sync with backend
                     setTimeout(() => refresh(), 100);
                   } else {
+                    // Handle direct value
                     console.log("✅ Direct hostelData update");
                     setTimeout(() => refresh(), 100);
                   }
@@ -842,7 +920,9 @@ export default function GuestRoomDashboard() {
             )}
 
             {activeTab === "Feedback" && (
-              <FeedbackPage
+              <>
+                {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
+                <FeedbackPage
                 onBack={() => {
                   setActiveTab("Home");
                   if (currentUser?.assignedHostel) {
@@ -851,33 +931,25 @@ export default function GuestRoomDashboard() {
                 }}
                 theme={theme}
               />
+            </>   
             )}
+          </main>   
+        </div>  
 
-            {activeTab === "Defaulters" && (
-              <DefaulterManagement
-                currentUser={currentUser}
-                onBack={() => {
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) {
-                    setActiveHostel(currentUser.assignedHostel);
-                  }
-                }}
-                onOpenPaymentModal={(booking) => {
-                  setDefaulterPaymentModal(booking);
-                }}
-              />
-            )}
-
-            {activeTab === "HallBookings" && (
-              <HallBookingsPortal
-                hallData={hallData}           
-                setHallData={() => {}}        
-                theme={theme}
-                onBackHome={() => setActiveTab("Home")}
-              />
-            )}
-          </main>
-        </div>
+        {activeTab === "Defaulters" && (
+          <DefaulterManagement
+            currentUser={currentUser}
+            onBack={() => {
+              setActiveTab("Home");
+              if (currentUser?.assignedHostel) {
+                setActiveHostel(currentUser.assignedHostel);
+              }
+            }}
+            onOpenPaymentModal={(booking) => {
+              setDefaulterPaymentModal(booking);
+            }}
+          />
+        )}
 
         {extensionModal && (
           <ExtensionModal
@@ -899,9 +971,9 @@ export default function GuestRoomDashboard() {
               hostel: defaulterPaymentModal.hostel,
               roomNo: defaulterPaymentModal.roomNo,
               totalAmount: defaulterPaymentModal.totalDue || 0,
-              paidAmount: 0,
+              paidAmount: 0, // Defaulter has paid nothing yet
               balanceAmount: defaulterPaymentModal.totalDue || 0,
-              paymentType: "Paid",
+              paymentType: "Paid", // Defaulters are always paid bookings
               discount: 0,
               waveOff: 0
             }}
@@ -909,10 +981,27 @@ export default function GuestRoomDashboard() {
             onSuccess={(updatedBooking) => {
               console.log("✅ Payment successful:", updatedBooking);
               setDefaulterPaymentModal(null);
-              refresh();
+              refresh(); // Refresh data after payment
             }}
           />
-        )}  
+        )}
+
+        {activeTab === 'HallBookings' ? (
+          <HallBookingsPortal
+            hallData={hallData}
+            setHallData={setHallData}
+            theme={theme}
+            onBackHome={() => setActiveTab('Dashboard')}
+          />
+        ) : (
+          <div className="flex">
+            {/* Sidebar - only show when NOT in HallBookings */}
+            <Sidebar />
+            
+            {/* Main Content */}
+            <MainContent />
+          </div>
+        )}
 
         <ProfileModal
           open={profileOpen}

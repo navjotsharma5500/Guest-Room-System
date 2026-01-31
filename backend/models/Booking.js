@@ -53,7 +53,7 @@ const BookingSchema = new mongoose.Schema(
     state: { type: String, default: "" },
     reference: { type: String, default: "" },
 
-    // 🆕 NEW PAYMENT STRUCTURE
+    // ðŸ†• NEW PAYMENT STRUCTURE
     paymentType: {
       type: String,
       enum: ["Paid", "Free"],
@@ -70,7 +70,7 @@ const BookingSchema = new mongoose.Schema(
       default: "UNPAID",
     },
 
-    // 🔁 OLD PAYMENT FIELDS (BACKWARD COMPATIBILITY)
+    // ðŸ” OLD PAYMENT FIELDS (BACKWARD COMPATIBILITY)
     amount: { type: Number, default: 0 },
     amountToBePaid: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
@@ -158,7 +158,7 @@ const BookingSchema = new mongoose.Schema(
       default: [],
     },
 
-    // ✅ NEW: Extension Payment Fields
+    // âœ… NEW: Extension Payment Fields
     extensionPaymentType: {
       type: String,
       enum: ["Paid", "Free", ""],
@@ -230,12 +230,12 @@ const BookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔥 CRITICAL: Add virtual for real-time balance
+// ðŸ”¥ CRITICAL: Add virtual for real-time balance
 BookingSchema.virtual('currentBalance').get(function() {
   return this.totalAmount - this.paidAmount;
 });
 
-// 🆕 Virtual field for total wave off (discount)
+// ðŸ†• Virtual field for total wave off (discount)
 BookingSchema.virtual('waveOff').get(function() {
   return this.discount || 0;
 });

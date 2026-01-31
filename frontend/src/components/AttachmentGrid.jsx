@@ -102,7 +102,7 @@ export default function AttachmentGrid({ files = [], theme }) {
 
   if (!resolvedFiles.length) return null;
 
-  // ✅ Enhanced file type detection
+  // âœ… Enhanced file type detection
   const isImage = (f) => {
     if (/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|heic|heif)$/i.test(f.name)) {
       return true;
@@ -325,7 +325,7 @@ export default function AttachmentGrid({ files = [], theme }) {
                     
                     await handleDownload(lightbox);
                     
-                    btn.innerHTML = '<span class="text-green-600">✓ Downloaded</span>';
+                    btn.innerHTML = '<span class="text-green-600">âœ“ Downloaded</span>';
                     
                     setTimeout(() => {
                       btn.innerHTML = originalText;

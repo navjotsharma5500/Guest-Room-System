@@ -11,7 +11,7 @@ import connectDB from "./config/db.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
-// ✅ FIXED: Removed duplicate startNoShowCronJob import
+// âœ… FIXED: Removed duplicate startNoShowCronJob import
 import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
@@ -27,8 +27,6 @@ import testRoutes from "./routes/testRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
-import hallBookingRoutes from "./routes/hallBookingRoutes.js";
-import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
 
 const app = express();
 
@@ -54,40 +52,40 @@ const allowedOrigins = [
   "https://guestroom.vercel.app",
 ];
 
-console.log("🌐 Allowed origins:", allowedOrigins);
+console.log("ðŸŒ Allowed origins:", allowedOrigins);
 
 /* =========================================================
    ORIGIN RESOLVER
 ========================================================= */
 const resolveOrigin = (origin) => {
-  console.log("🔍 Checking origin:", origin || "none");
+  console.log("ðŸ” Checking origin:", origin || "none");
   
   if (!origin) {
-    console.log("⚠️ No origin header - same-origin or server request");
+    console.log("âš ï¸ No origin header - same-origin or server request");
     return "https://www.guestapp.in";
   }
   
   if (allowedOrigins.includes(origin)) {
-    console.log("✅ Allowed origin (exact match):", origin);
+    console.log("âœ… Allowed origin (exact match):", origin);
     return origin;
   }
   
   if (origin.endsWith(".vercel.app")) {
-    console.log("✅ Vercel deployment:", origin);
+    console.log("âœ… Vercel deployment:", origin);
     return origin;
   }
   
   if (origin.includes(".onrender.com")) {
-    console.log("✅ Render origin:", origin);
+    console.log("âœ… Render origin:", origin);
     return origin;
   }
   
   if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
-    console.log("✅ Localhost development:", origin);
+    console.log("âœ… Localhost development:", origin);
     return origin;
   }
   
-  console.warn("⚠️ Unknown origin (allowing):", origin);
+  console.warn("âš ï¸ Unknown origin (allowing):", origin);
   return origin;
 };
 
@@ -105,7 +103,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       const resolvedOrigin = resolveOrigin(origin);
-      console.log("🔌 Socket.IO Origin:", origin, "→", resolvedOrigin);
+      console.log("ðŸ”Œ Socket.IO Origin:", origin, "â†’", resolvedOrigin);
       callback(null, resolvedOrigin);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -115,7 +113,7 @@ const io = new Server(server, {
   allowEIO3: true,
 });
 
-console.log("🔌 Socket.IO initialized with CORS support");
+console.log("ðŸ”Œ Socket.IO initialized with CORS support");
 
 app.set("io", io);
 setSocketIO(io);
@@ -128,7 +126,7 @@ app.use((req, res, next) => {
     const origin = req.headers.origin;
     const allowedOrigin = resolveOrigin(origin);
 
-    console.log("🔥 OPTIONS preflight:", req.path, "from", origin);
+    console.log("ðŸ”¥ OPTIONS preflight:", req.path, "from", origin);
 
     res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -186,21 +184,21 @@ try {
   const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
 
   if (!publicKey || !privateKey || !urlEndpoint) {
-    console.warn("⚠️ ImageKit credentials missing - uploads will be disabled");
-    console.warn("   PUBLIC_KEY:", publicKey ? "✓" : "✗");
-    console.warn("   PRIVATE_KEY:", privateKey ? "✓" : "✗");
-    console.warn("   URL_ENDPOINT:", urlEndpoint ? "✓" : "✗");
+    console.warn("âš ï¸ ImageKit credentials missing - uploads will be disabled");
+    console.warn("   PUBLIC_KEY:", publicKey ? "âœ“" : "âœ—");
+    console.warn("   PRIVATE_KEY:", privateKey ? "âœ“" : "âœ—");
+    console.warn("   URL_ENDPOINT:", urlEndpoint ? "âœ“" : "âœ—");
   } else {
     imagekitServer = new ImageKit({
       publicKey,
       privateKey,
       urlEndpoint,
     });
-    console.log("✅ ImageKit initialized successfully");
+    console.log("âœ… ImageKit initialized successfully");
   }
 } catch (err) {
-  console.error("❌ ImageKit initialization failed:", err.message);
-  console.warn("⚠️ Continuing without ImageKit - file uploads disabled");
+  console.error("âŒ ImageKit initialization failed:", err.message);
+  console.warn("âš ï¸ Continuing without ImageKit - file uploads disabled");
 }
 
 /* =========================================================
@@ -210,10 +208,10 @@ app.get("/api/imagekit/auth", (req, res) => {
   const origin = req.headers.origin;
   const allowedOrigin = resolveOrigin(origin);
 
-  console.log("📸 ImageKit auth request");
-  console.log("📍 Origin:", origin || "none");
-  console.log("📍 Method:", req.method);
-  console.log("📍 User-Agent:", req.headers["user-agent"]?.substring(0, 50));
+  console.log("ðŸ“¸ ImageKit auth request");
+  console.log("ðŸ“ Origin:", origin || "none");
+  console.log("ðŸ“ Method:", req.method);
+  console.log("ðŸ“ User-Agent:", req.headers["user-agent"]?.substring(0, 50));
 
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -225,13 +223,13 @@ app.get("/api/imagekit/auth", (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
 
   if (req.method === "OPTIONS") {
-    console.log("✅ ImageKit auth OPTIONS preflight handled");
+    console.log("âœ… ImageKit auth OPTIONS preflight handled");
     return res.status(200).end();
   }
 
   try {
     if (!imagekitServer) {
-      console.error("❌ ImageKit not initialized");
+      console.error("âŒ ImageKit not initialized");
       return res.status(503).json({
         error: "ImageKit service unavailable",
         message: "File upload service is not configured"
@@ -240,7 +238,7 @@ app.get("/api/imagekit/auth", (req, res) => {
 
     const result = imagekitServer.getAuthenticationParameters();
     
-    console.log("✅ ImageKit auth generated:", {
+    console.log("âœ… ImageKit auth generated:", {
       hasSignature: !!result.signature,
       hasToken: !!result.token,
       expire: result.expire
@@ -253,8 +251,8 @@ app.get("/api/imagekit/auth", (req, res) => {
       publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
     });
   } catch (err) {
-    console.error("❌ ImageKit auth error:", err);
-    console.error("❌ Stack:", err.stack);
+    console.error("âŒ ImageKit auth error:", err);
+    console.error("âŒ Stack:", err.stack);
     
     res.status(500).json({
       error: "ImageKit authentication failed",
@@ -269,7 +267,7 @@ app.get("/api/imagekit/auth", (req, res) => {
 ========================================================= */
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`📥 ${timestamp} | ${req.method} ${req.path}`);
+  console.log(`ðŸ“¥ ${timestamp} | ${req.method} ${req.path}`);
   console.log(`   Origin: ${req.headers.origin || "none"}`);
   console.log(`   User-Agent: ${req.headers["user-agent"]?.substring(0, 60)}...`);
   next();
@@ -287,7 +285,7 @@ app.use("/uploads", express.static("uploads"));
    HEALTH CHECK
 ========================================================= */
 app.get("/", (req, res) => {
-  res.send("Guest Room Backend Running Successfully 🏨");
+  res.send("Guest Room Backend Running Successfully ðŸ¨");
 });
 
 /* =========================================================
@@ -304,17 +302,14 @@ app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use("/api/hall-bookings", hallBookingRoutes);
-app.use('/api/unified-bookings', unifiedBookingRoutes);
 
-console.log("✅ Payment routes mounted at /api/payments");
-console.log("✅ Hall booking routes mounted at /api/hall-bookings");
+console.log("âœ… Payment routes mounted at /api/payments");
 
 /* =========================================================
    SOCKET.IO HANDLER
 ========================================================= */
 io.on("connection", (socket) => {
-  console.log("✅ Socket connected:", socket.id);
+  console.log("âœ… Socket connected:", socket.id);
 
   socket.on("join-dashboard", () => {
     socket.join("dashboard-room");
@@ -325,27 +320,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", (reason) => {
-    console.log("❌ Socket disconnected:", socket.id, reason);
+    console.log("âŒ Socket disconnected:", socket.id, reason);
   });
 
   socket.onAny((event, ...args) => {
-    console.log("📡 Socket event:", event, args);
-  });
-  
-  // Hall booking events
-  socket.on("hall-booking-created", (data) => {
-    console.log("📢 Hall booking created event:", data);
-    io.emit("hallBookingCreated", data);
-  });
-
-  socket.on("hall-booking-cancelled", (data) => {
-    console.log("📢 Hall booking cancelled event:", data);
-    io.emit("hallBookingCancelled", data);
-  });
-
-  socket.on("hall-booking-extended", (data) => {
-    console.log("📢 Hall booking extended event:", data);
-    io.emit("hallBookingExtended", data);
+    console.log("ðŸ“¡ Socket event:", event, args);
   });
 });
 
@@ -361,7 +340,7 @@ app.get("/api/admin/cleanup-orphaned-enquiries", protect, async (req, res) => {
       });
     }
     
-    console.log("🧹 Manual cleanup triggered by admin:", req.user.email);
+    console.log("ðŸ§¹ Manual cleanup triggered by admin:", req.user.email);
     const result = await cleanupOrphanedEnquiries();
     
     res.json({
@@ -370,7 +349,7 @@ app.get("/api/admin/cleanup-orphaned-enquiries", protect, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    console.error("❌ Cleanup endpoint error:", err);
+    console.error("âŒ Cleanup endpoint error:", err);
     res.status(500).json({
       success: false,
       message: "Cleanup failed",
@@ -383,23 +362,23 @@ app.get("/api/admin/cleanup-orphaned-enquiries", protect, async (req, res) => {
    CLEANUP SCHEDULER
 ========================================================= */
 const scheduleCleanupJob = () => {
-  console.log("⏰ Scheduling orphaned enquiry cleanup job...");
+  console.log("â° Scheduling orphaned enquiry cleanup job...");
   
   setTimeout(async () => {
-    console.log("🧹 Running initial orphaned enquiry cleanup...");
+    console.log("ðŸ§¹ Running initial orphaned enquiry cleanup...");
     try {
       await cleanupOrphanedEnquiries();
     } catch (err) {
-      console.error("❌ Initial cleanup failed:", err);
+      console.error("âŒ Initial cleanup failed:", err);
     }
   }, 10000);
   
   setInterval(async () => {
-    console.log("⏰ Running scheduled orphaned enquiry cleanup...");
+    console.log("â° Running scheduled orphaned enquiry cleanup...");
     try {
       await cleanupOrphanedEnquiries();
     } catch (err) {
-      console.error("❌ Scheduled cleanup failed:", err);
+      console.error("âŒ Scheduled cleanup failed:", err);
     }
   }, 60 * 60 * 1000);
 };
@@ -419,11 +398,11 @@ app.get("/api/health", (req, res) => {
    SINGLE ERROR HANDLER
 ========================================================= */
 app.use((err, req, res, next) => {
-  console.error("❌ Global Error Handler:");
-  console.error("❌ Path:", req.path);
-  console.error("❌ Method:", req.method);
-  console.error("❌ Error:", err.message);
-  console.error("❌ Stack:", err.stack);
+  console.error("âŒ Global Error Handler:");
+  console.error("âŒ Path:", req.path);
+  console.error("âŒ Method:", req.method);
+  console.error("âŒ Error:", err.message);
+  console.error("âŒ Stack:", err.stack);
   
   const origin = req.headers.origin;
   const allowedOrigin = resolveOrigin(origin);
@@ -444,24 +423,24 @@ const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
   try {
-    console.log("⏳ Connecting to MongoDB...");
+    console.log("â³ Connecting to MongoDB...");
     await connectDB();
-    console.log("✅ MongoDB connected");
+    console.log("âœ… MongoDB connected");
 
-    // ✅ FIXED: Pass io instance to cron jobs
+    // âœ… FIXED: Pass io instance to cron jobs
     startNoShowCronJob(io);
     startAutoUnblockCronJob(io);
     startAutoCheckoutCronJob(io);
     scheduleCleanupJob();
 
     server.listen(PORT, () => {
-      console.log(`🏨 Server running on port ${PORT}`);
-      console.log(`📱 iOS Safari supported`);
-      console.log(`🌐 Allowed origins:`, allowedOrigins);
-      console.log(`🔌 Socket.IO ready`);
+      console.log(`ðŸ¨ Server running on port ${PORT}`);
+      console.log(`ðŸ“± iOS Safari supported`);
+      console.log(`ðŸŒ Allowed origins:`, allowedOrigins);
+      console.log(`ðŸ”Œ Socket.IO ready`);
     });
   } catch (err) {
-    console.error("❌ Server startup failed:", err);
+    console.error("âŒ Server startup failed:", err);
     process.exit(1);
   }
 };

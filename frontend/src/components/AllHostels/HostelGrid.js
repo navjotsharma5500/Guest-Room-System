@@ -23,7 +23,7 @@ export default function HostelGrid({
     show: { opacity: 1, y: 0 },
   };
 
-  // ✅ CRITICAL FIX: Helper function to filter only ACTIVE bookings
+  // âœ… CRITICAL FIX: Helper function to filter only ACTIVE bookings
   const getActiveBookings = (bookings = []) => {
     return bookings.filter(booking => {
       // Only count bookings that are:
@@ -50,7 +50,7 @@ export default function HostelGrid({
     return hostelName.charAt(0).toUpperCase();
   };
 
-  // ✅ Sort hostels alphabetically by initial in parentheses
+  // âœ… Sort hostels alphabetically by initial in parentheses
   const sortedHostels = Object.entries(hostelData || {}).sort(([nameA], [nameB]) => {
     const initialA = extractInitial(nameA);
     const initialB = extractInitial(nameB);
@@ -63,7 +63,7 @@ export default function HostelGrid({
       {sortedHostels.map(([hostelName, hostel]) => {
         const rooms = hostel.rooms || [];
         
-        // ✅ FIXED: Count only rooms with ACTIVE bookings
+        // âœ… FIXED: Count only rooms with ACTIVE bookings
         const occupied = rooms.filter((r) => {
           const activeBookings = getActiveBookings(r.bookings || []);
           return activeBookings.length > 0;
@@ -125,7 +125,7 @@ export default function HostelGrid({
             {/* Rooms Grid */}
             <div className="p-5 grid grid-cols-2 gap-4">
               {rooms.map((room, idx) => {
-                // ✅ FIXED: Pass only ACTIVE bookings to RoomCard
+                // âœ… FIXED: Pass only ACTIVE bookings to RoomCard
                 const activeBookings = getActiveBookings(room.bookings || []);
                 
                 // Create a modified room object with only active bookings
@@ -138,7 +138,7 @@ export default function HostelGrid({
                   <RoomCard
                     key={`${hostelName}_${room.roomNo}`}
                     hostelName={hostelName}
-                    room={roomWithActiveBookings} // ✅ Pass filtered room
+                    room={roomWithActiveBookings} // âœ… Pass filtered room
                     theme={theme}
                     isSelected={selectedRooms.some(
                       (r) => r.hostel === hostelName && r.roomNo === room.roomNo

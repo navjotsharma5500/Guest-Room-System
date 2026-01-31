@@ -22,7 +22,7 @@ export const updateUser = async (req, res) => {
 
     const updates = req.body;
 
-    // If password is being updated — hash it
+    // If password is being updated â€” hash it
     if (updates.password) {
       updates.password = await bcrypt.hash(updates.password, 10);
     }
@@ -86,5 +86,3 @@ export const changePasswordForCurrentUser = async (req, res) => {
     res.status(500).json({ message: "Failed to update password" });
   }
 };
-
-

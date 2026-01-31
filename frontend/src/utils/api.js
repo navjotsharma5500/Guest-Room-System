@@ -1,8 +1,8 @@
 // ============================================================================
-// 🔥 API CONFIG + DEBUG
+// ðŸ”¥ API CONFIG + DEBUG
 // ============================================================================
 
-// ✅ USE CENTRALIZED API CONFIG
+// âœ… USE CENTRALIZED API CONFIG
 import { BACKEND_URL } from './apiConfig';
 
 console.log("%c[API CONFIG DEBUG]", "color:#e91e63;font-weight:bold;");
@@ -44,56 +44,56 @@ export const apiLogout = async () => {
 // ============================================================================
 export const apiFetchHostels = async () => {
   try {
-    console.log(`📡 Fetching hostels from: ${API}/api/hostels/all`);
+    console.log(`ðŸ“¡ Fetching hostels from: ${API}/api/hostels/all`);
     
     const res = await fetch(`${API}/api/hostels/all`, {
       credentials: "include",
     });
 
     if (!res.ok) {
-      console.error("❌ Failed to fetch hostels:", res.statusText);
+      console.error("âŒ Failed to fetch hostels:", res.statusText);
       return { success: false, hostels: [] };
     }
 
     const data = await res.json();
-    console.log("🏨 Hostels API Response:", data);
+    console.log("ðŸ¨ Hostels API Response:", data);
     return data; // { success, hostels }
   } catch (err) {
-    console.error("🔥 Hostels fetch error:", err);
+    console.error("ðŸ”¥ Hostels fetch error:", err);
     return { success: false, hostels: [] };
   }
 };
 
 /* ----------------------------------------------------------------------------
-   BOOKINGS – FIXED + NORMALIZED (IMPORTANT)
+   BOOKINGS â€“ FIXED + NORMALIZED (IMPORTANT)
 ---------------------------------------------------------------------------- */
 export const apiFetchBookings = async () => {
   try {
-    console.log(`🚀 Calling ${API}/api/bookings/all`);
+    console.log(`ðŸš€ Calling ${API}/api/bookings/all`);
 
     const res = await fetch(`${API}/api/bookings/all`, {
       credentials: "include",
     });
 
-    console.log("🔍 Response status:", res.status);
+    console.log("ðŸ” Response status:", res.status);
 
     let data;
     try {
       data = await res.json();
     } catch (err) {
-      console.error("❌ JSON parse error:", err);
+      console.error("âŒ JSON parse error:", err);
       return { success: false, hostels: [] };
     }
 
-    console.log("📘 REAL backend bookings response:", data);
+    console.log("ðŸ“˜ REAL backend bookings response:", data);
 
-    // If backend returned object → convert to array
+    // If backend returned object â†’ convert to array
     let bookingHostels = data.hostels;
     if (bookingHostels && !Array.isArray(bookingHostels)) {
       bookingHostels = Object.values(bookingHostels);
     }
 
-    console.log("📘 FINAL RETURN from apiFetchBookings():", {
+    console.log("ðŸ“˜ FINAL RETURN from apiFetchBookings():", {
       success: data.success,
       hostels: bookingHostels,
     });
@@ -104,15 +104,15 @@ export const apiFetchBookings = async () => {
     };
 
   } catch (err) {
-    console.error("🔥 Error fetching bookings:", err);
+    console.error("ðŸ”¥ Error fetching bookings:", err);
     return { success: false, hostels: [] };
   }
 };
 
-// ✅ Fetch ALL bookings for download (including cancelled)
+// âœ… Fetch ALL bookings for download (including cancelled)
 export const apiFetchAllBookingsForDownload = async () => {
   try {
-    console.log(`🚀 Calling ${API}/api/bookings/all-for-download`);
+    console.log(`ðŸš€ Calling ${API}/api/bookings/all-for-download`);
 
     const token = localStorage.getItem("token");
     const headers = {};
@@ -131,7 +131,7 @@ export const apiFetchAllBookingsForDownload = async () => {
 
     const data = await res.json();
 
-    // If backend returned object → convert to array
+    // If backend returned object â†’ convert to array
     let bookingHostels = data.hostels;
     if (bookingHostels && !Array.isArray(bookingHostels)) {
       bookingHostels = Object.values(bookingHostels);
@@ -143,7 +143,7 @@ export const apiFetchAllBookingsForDownload = async () => {
     };
 
   } catch (err) {
-    console.error("🔥 Error fetching all bookings for download:", err);
+    console.error("ðŸ”¥ Error fetching all bookings for download:", err);
     return { success: false, hostels: [] };
   }
 };
@@ -216,7 +216,7 @@ export const apiRejectEnquiry = async (id) => {
 };
 
 // ============================================================================
-// 🔥 IMAGEKIT – React SDK USES IKUpload, NOT JS SDK
+// ðŸ”¥ IMAGEKIT â€“ React SDK USES IKUpload, NOT JS SDK
 // ============================================================================
 export const IMAGEKIT_PUBLIC_KEY =
   process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
@@ -232,11 +232,11 @@ console.log("urlEndpoint =", IMAGEKIT_URL_ENDPOINT);
 console.log("Auth Endpoint =", IMAGEKIT_AUTH_ENDPOINT);
 
 // ============================================================================
-// 📋 Fetch enquiries (used in MainContent.jsx)
+// ðŸ“‹ Fetch enquiries (used in MainContent.jsx)
 // ============================================================================
 export const fetchEnquiries = async () => {
   try {
-    console.log(`📄 Fetching enquiries from: ${API}/api/enquiry`);
+    console.log(`ðŸ“„ Fetching enquiries from: ${API}/api/enquiry`);
 
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("token");
@@ -252,17 +252,17 @@ export const fetchEnquiries = async () => {
     });
 
     if (!res.ok) {
-      console.error("❌ Failed to fetch enquiries:", res.status);
+      console.error("âŒ Failed to fetch enquiries:", res.status);
       return [];
     }
 
     const data = await res.json();
-    console.log("✅ Raw API Response:", data);
+    console.log("âœ… Raw API Response:", data);
 
     return data.enquiries || [];
 
   } catch (err) {
-    console.error("❌ Fetch enquiries error:", err);
+    console.error("âŒ Fetch enquiries error:", err);
     return [];
   }
 };
@@ -291,7 +291,7 @@ export const apiCreateDirectBooking = async (data) => {
 // ============================================================================
 export const apiFetchUnifiedBookings = async () => {
   try {
-    console.log(`📡 Fetching unified bookings from: ${API}/api/unified-bookings`);
+    console.log(`ðŸ“¡ Fetching unified bookings from: ${API}/api/unified-bookings`);
 
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("token");
@@ -307,24 +307,24 @@ export const apiFetchUnifiedBookings = async () => {
     });
 
     if (!res.ok) {
-      console.error("❌ Failed to fetch unified bookings:", res.status);
+      console.error("âŒ Failed to fetch unified bookings:", res.status);
       return { success: false, bookings: [] };
     }
 
     const data = await res.json();
-    console.log("✅ Unified bookings API Response:", data);
+    console.log("âœ… Unified bookings API Response:", data);
 
     return { success: data.success, bookings: data.bookings || [] };
 
   } catch (err) {
-    console.error("❌ Fetch unified bookings error:", err);
+    console.error("âŒ Fetch unified bookings error:", err);
     return { success: false, bookings: [] };
   }
 };
 
 export const apiFetchUnifiedBookingsByDateRange = async (startDate, endDate) => {
   try {
-    console.log(`📡 Fetching unified bookings by date range: ${startDate} to ${endDate}`);
+    console.log(`ðŸ“¡ Fetching unified bookings by date range: ${startDate} to ${endDate}`);
 
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("token");
@@ -343,17 +343,17 @@ export const apiFetchUnifiedBookingsByDateRange = async (startDate, endDate) => 
     );
 
     if (!res.ok) {
-      console.error("❌ Failed to fetch bookings by date range:", res.status);
+      console.error("âŒ Failed to fetch bookings by date range:", res.status);
       return { success: false, bookings: [] };
     }
 
     const data = await res.json();
-    console.log("✅ Unified bookings by date range:", data);
+    console.log("âœ… Unified bookings by date range:", data);
 
     return { success: data.success, bookings: data.bookings || [] };
 
   } catch (err) {
-    console.error("❌ Fetch bookings by date range error:", err);
+    console.error("âŒ Fetch bookings by date range error:", err);
     return { success: false, bookings: [] };
   }
 };

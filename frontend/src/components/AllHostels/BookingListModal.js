@@ -10,9 +10,9 @@ export default function BookingListModal({
   onSelectBooking,
   onAddNewBooking,
 }) {
-  // ✅ CRITICAL FIX: Safe navigation
+  // âœ… CRITICAL FIX: Safe navigation
   if (!modal || !modal.bookings) {
-    console.error("❌ BookingListModal: Invalid modal data", modal);
+    console.error("âŒ BookingListModal: Invalid modal data", modal);
     return null;
   }
 
@@ -34,7 +34,7 @@ export default function BookingListModal({
 
   // Format date and time like RoomCard
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "—";
+    if (!dateString) return "â€”";
 
     try {
       let dateObj;
@@ -73,11 +73,11 @@ export default function BookingListModal({
   };
 
   const handleSelectBooking = (booking) => {
-    console.log("✅ Booking selected:", booking);
+    console.log("âœ… Booking selected:", booking);
     if (onSelectBooking && typeof onSelectBooking === 'function') {
       onSelectBooking(booking);
     } else {
-      console.error("❌ onSelectBooking is not a function");
+      console.error("âŒ onSelectBooking is not a function");
     }
   };
 

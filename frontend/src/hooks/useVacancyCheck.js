@@ -14,7 +14,7 @@ export default function useVacancyCheck({
 }) {
   const handleFilterSubmit = useCallback(() => {
     if (!checkIn || !checkOut) {
-      showToast("⚠️ Please select both Check-in and Check-out dates.", "warning");
+      showToast("âš ï¸ Please select both Check-in and Check-out dates.", "warning");
       return;
     }
 
@@ -22,19 +22,19 @@ export default function useVacancyCheck({
 
     Object.entries(hostelData || {}).forEach(([hostel, data]) => {
       (data.rooms || []).forEach((room) => {
-        // ✅ CRITICAL FIX: Only check ACTIVE bookings for conflicts
+        // âœ… CRITICAL FIX: Only check ACTIVE bookings for conflicts
         const hasOverlap = (room.bookings || []).some((b) => {
           // Skip inactive bookings - these rooms should be considered vacant
           const inactiveStatuses = ["cancelled", "checked_out", "no_show", "not_reported"];
           if (inactiveStatuses.includes(b.status)) {
-            console.log(`⏭️ Skipping inactive booking (${b.status}):`, b.guest);
+            console.log(`â­ï¸ Skipping inactive booking (${b.status}):`, b.guest);
             return false;
           }
 
           // Only consider "booked", "reported", or "checked_in" status as active
           const activeStatuses = ["booked", "reported", "checked_in"];
           if (!activeStatuses.includes(b.status)) {
-            console.log(`⚠️ Unknown booking status:`, b.status, b.guest);
+            console.log(`âš ï¸ Unknown booking status:`, b.status, b.guest);
             return false;
           }
 
@@ -58,7 +58,7 @@ export default function useVacancyCheck({
 
     setVacantRooms(vacant);
     setFilterModal(false);
-    showToast(`✅ ${vacant.length} vacant room(s) found.`, "success");
+    showToast(`âœ… ${vacant.length} vacant room(s) found.`, "success");
   }, [
     hostelData,
     checkIn,

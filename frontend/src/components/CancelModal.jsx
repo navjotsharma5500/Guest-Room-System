@@ -19,7 +19,7 @@ export default function CancelModal({
   };
   const [localRemarks, setLocalRemarks] = useState(remarksText || "");
 
-  // ✅ Sync external remarksText → local state
+  // âœ… Sync external remarksText â†’ local state
   useEffect(() => {
     setLocalRemarks(remarksText || "");
   }, [remarksText]);
@@ -33,17 +33,17 @@ export default function CancelModal({
 
   const handleDone = async () => {
     if (!safeTrim(localRemarks)) {
-      showToast("⚠️ Please enter cancellation remarks.", "warning");
+      showToast("âš ï¸ Please enter cancellation remarks.", "warning");
       return;
     }
 
-    // ✅ Run parent cancel logic (which should handle MongoDB call)
+    // âœ… Run parent cancel logic (which should handle MongoDB call)
     // The parent handler will update MongoDB and then update local state
     if (typeof onDone === "function") {
       await onDone(localRemarks);
     }
 
-    // ✅ Reset remarks after successful cancellation
+    // âœ… Reset remarks after successful cancellation
     setLocalRemarks("");
     setRemarksText("");
   };
@@ -79,13 +79,13 @@ export default function CancelModal({
               className="text-gray-500 hover:text-red-700"
               title="Close"
             >
-              ✖
+              âœ–
             </button>
           </div>
 
           <p className="text-sm text-gray-600 mb-3">
-            Room: <strong>{modal.room?.roomNo || "—"}</strong> —{" "}
-            {modal.hostel || "—"}
+            Room: <strong>{modal.room?.roomNo || "â€”"}</strong> â€”{" "}
+            {modal.hostel || "â€”"}
           </p>
 
           {/* ===== Remarks Input ===== */}
