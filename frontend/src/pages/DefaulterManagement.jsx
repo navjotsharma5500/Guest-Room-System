@@ -8,9 +8,7 @@ import {
 } from 'lucide-react';
 import { BACKEND_URL } from '../utils/apiConfig';
 import { useToast } from "../context/ToastContext";
-
 const API = BACKEND_URL;
-
 const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const [defaulters, setDefaulters] = useState([]);
   const [filteredDefaulters, setFilteredDefaulters] = useState([]);
@@ -34,27 +32,21 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const ikRollbackUploadRef = useRef(null);
   const itemsPerPage = 10;
   const { showToast } = useToast();
-
   const role = currentUser?.role || "caretaker";
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
-
   const canRollback = role === "admin" || role === "manager";
-
   useEffect(() => {
     fetchDefaulters();
   }, []);
-
   useEffect(() => {
     const onEsc = (e) => {
       if (e.key === "Escape" && onBack) {
         onBack();
       }
     };
-
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
   }, [onBack]);
-
   const fetchDefaulters = async () => {
     try {
       setLoading(true);
@@ -63,21 +55,17 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      // ✅ Fetch ALL defaulters (pending + completed + rollbacks) to support all tabs
       const response = await fetch(`${API}/api/defaulters?status=all`, {
         method: "GET",
         credentials: "include",
         headers
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
       console.log("✅ Defaulters fetched:", data);
-
       if (data.success && Array.isArray(data.defaulters)) {
         const normalized = data.defaulters
           .map(d => {
@@ -88,7 +76,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               ? d.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0)
               : 0;
             
-            // ✅ CORRECT CALCULATION: Total - Paid - Discount
             const actualBalance = totalAmount - paidAmount - discount;
             
             return {
@@ -99,7 +86,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               paidAmount: paidAmount,
               totalAmount: totalAmount,
               discount: discount,
-              totalDue: actualBalance, // ✅ Use calculated balance
+              totalDue: actualBalance,
               totalRolledBack: totalRolledBack,
               paymentRollbacks: Array.isArray(d.paymentRollbacks) ? d.paymentRollbacks : []
             };
@@ -113,10 +100,8 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
             const hasCheckoutPassed = checkoutDate < today;
             const isCheckoutStatus = d.status === 'checked_out' || hasCheckoutPassed;
             
-            // ✅ Include all: pending, completed, and those with rollbacks
             return isCheckoutStatus;
           });
-
         setDefaulters(normalized);
         setFilteredDefaulters(normalized);
         console.log(`📊 Found ${normalized.length} real defaulters`);
@@ -134,11 +119,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       setLoading(false);
     }
   };
-
-  // ✅ TAB FILTERING LOGIC
+  // ✅ TAB FILTERING LOGIC - FIXED: 'rollbacks' instead of 'rollback'
   useEffect(() => {
     let filtered = [...defaulters];
-
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -149,12 +132,10 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         d.rollno.toLowerCase().includes(query)
       );
     }
-
     // Hostel filter
     if (selectedHostel !== 'All') {
       filtered = filtered.filter(d => d.hostel === selectedHostel);
     }
-
     // Date range filter
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
@@ -165,7 +146,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         return checkoutDate >= fromDate;
       });
     }
-
     if (dateTo) {
       const toDate = new Date(dateTo);
       toDate.setHours(23, 59, 59, 999);
@@ -174,52 +154,44 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         return checkoutDate <= toDate;
       });
     }
-
-    // ✅ TAB FILTERING
+    // ✅ TAB FILTERING - FIXED
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
-        // Show in pending if: has balance AND not paid via defaulter modal
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
         return d.totalDue > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'completed') {
-    filtered = filtered.filter(d => {
-      // Show in completed ONLY if:
-      // 1. Guest had pending balance (was a defaulter)
-      // 2. Then cleared it via defaulter modal (has rollbacks indicating waiver/payment through defaulter system)
-      // 3. Balance is now 0 or negative
-      const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-      
-      // Must have rollbacks to be in completed (this ensures they were handled via defaulter modal)
-      // AND balance must be cleared
-      return hasRollbacks && d.totalDue <= 0;
-    });
-    } else if (activeTab === 'rollback') {
+      filtered = filtered.filter(d => {
+        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        return hasRollbacks && d.totalDue <= 0;
+      });
+    } else if (activeTab === 'rollbacks') {
+      // ✅ FIXED: Changed from 'rollback' to 'rollbacks' to match tab button
       filtered = filtered.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0);
     }
-
     setFilteredDefaulters(filtered);
     setCurrentPage(1);
   }, [searchQuery, selectedHostel, dateFrom, dateTo, activeTab, defaulters]);
-
   const totalPages = Math.ceil(filteredDefaulters.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedDefaulters = filteredDefaulters.slice(startIndex, startIndex + itemsPerPage);
-
   const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
-
-  const pendingDefaulters = defaulters.filter(d => d.totalDue > 0);
+  const pendingDefaulters = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return d.totalDue > 0 && !hasRollbacks;
+  });
   
-  const completedPayments = defaulters.filter(d => d.totalDue === 0);
+  const completedPayments = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return hasRollbacks && d.totalDue <= 0;
+  });
   
   const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
-
   const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
   const avgDaysOverdue = pendingDefaulters.length > 0 
     ? Math.round(pendingDefaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / pendingDefaulters.length)
     : 0;
   const criticalCount = pendingDefaulters.filter(d => d.daysOverdue > 30).length;
-
   const handleBackClick = () => {
     if (onBack && typeof onBack === 'function') {
       onBack();
@@ -227,7 +199,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       window.history.go(-2);
     }
   };
-
   const handleDownload = () => {
     const headers = [
       'Guest Name', 'Email', 'Contact', 'Hostel', 'Room', 'Department', 'Roll No',
@@ -241,7 +212,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     if (role === 'caretaker' && assignedHostel) {
       dataToDownload = dataToDownload.filter(d => d.hostel === assignedHostel);
     }
-
     const csvContent = [
       headers.join(','),
       ...dataToDownload.map(d => {
@@ -250,7 +220,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         const rollbackDetails = rollbacks.map(r => 
           `₹${r.amount} on ${new Date(r.rollbackDate).toLocaleDateString()} - ${r.remarks}`
         ).join(' | ');
-
         return [
           `"${d.guest}"`,
           `"${d.email}"`,
@@ -276,7 +245,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
         ].join(',');
       })
     ].join('\n');
-
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -285,13 +253,11 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   const getSeverityColor = (days) => {
     if (days > 30) return 'bg-red-100 text-red-700 border-red-300';
     if (days > 15) return 'bg-orange-100 text-orange-700 border-orange-300';
     return 'bg-gray-100 text-gray-700 border-gray-300';
   };
-
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -303,30 +269,24 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       }, 1500);
     }
   };
-
   const handleRollbackPayment = async () => {
     if (!selectedDefaulter) return;
-
     if (!rollbackAmount || rollbackAmount <= 0) {
       alert("⚠️ Please enter a valid rollback amount");
       return;
     }
-
     if (rollbackAmount > selectedDefaulter.totalDue) { 
-      alert(`⚠️ Cannot rollback ₹${rollbackAmount}. Current balance is only ₹${selectedDefaulter.totalDue}.`);  // ✅
+      alert(`⚠️ Cannot rollback ₹${rollbackAmount}. Current balance is only ₹${selectedDefaulter.totalDue}.`);
       return;
     }
-
     if (!rollbackRemarks.trim()) {
       alert("⚠️ Remarks are mandatory for rollback");
       return;
     }
-
     if (rollbackAttachments.length === 0) {
       alert("⚠️ At least one attachment is required for rollback");
       return;
     }
-
     setConfirmAction({
       title: "Confirm Rollback",
       message: `Are you sure you want to rollback ₹${rollbackAmount}? This action cannot be undone.`,
@@ -336,7 +296,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           const token = localStorage.getItem("token");
           const headers = { "Content-Type": "application/json" };
           if (token) headers["Authorization"] = `Bearer ${token}`;
-
           const response = await fetch(`${API}/api/defaulters/${selectedDefaulter._id}/rollback`, {
             method: "POST",
             credentials: "include",
@@ -347,17 +306,13 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               attachments: rollbackAttachments
             }),
           });
-
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || "Failed to rollback payment");
           }
-
           const result = await response.json();
           console.log("✅ Payment rolled back:", result);
-
           showToast(`✅ ₹${rollbackAmount} rolled back successfully!`, "success");
-
           setShowRollbackModal(false);
           setRollbackAmount(0);
           setRollbackRemarks('');
@@ -366,7 +321,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           setConfirmAction(null);
           
           await fetchDefaulters();
-
         } catch (err) {
           console.error("❌ Rollback error:", err);
           showToast(`❌ Failed to rollback payment: ${err.message}`, "error");
@@ -376,14 +330,11 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       }
     });
   };
-
-  // ✅ NEW: Bulk Email Handler
   const handleBulkEmail = async () => {
     if (pendingDefaulters.length === 0) {
       showToast("⚠️ No pending defaulters to email", "warning");
       return;
     }
-
     setConfirmAction({
       title: "Send Bulk Emails",
       message: `Are you sure you want to send payment reminder emails to ${pendingDefaulters.length} defaulter(s)?`,
@@ -393,7 +344,6 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
           const token = localStorage.getItem("token");
           const headers = { "Content-Type": "application/json" };
           if (token) headers["Authorization"] = `Bearer ${token}`;
-
           const response = await fetch(`${API}/api/defaulters/bulk-email`, {
             method: "POST",
             credentials: "include",
@@ -402,11 +352,9 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
               defaulterIds: pendingDefaulters.map(d => d._id)
             }),
           });
-
           if (!response.ok) {
             throw new Error("Failed to send bulk emails");
           }
-
           const result = await response.json();
           showToast(`✅ Sent ${result.sent} payment reminder emails successfully!`, "success");
           setConfirmAction(null);
@@ -419,58 +367,46 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       }
     });
   };
-
-  // ✅ NEW: Bulk WhatsApp Handler
   const handleBulkWhatsApp = () => {
     if (pendingDefaulters.length === 0) {
       showToast("⚠️ No pending defaulters to contact", "warning");
       return;
     }
-
-    // Create WhatsApp message for each defaulter
     const messages = pendingDefaulters.map(d => {
       const message = `Hello ${d.guest},
-
 This is a payment reminder from ${d.hostel}, TIET.
-
 *Outstanding Amount:* ₹${d.totalDue}
 *Days Overdue:* ${d.daysOverdue} days
-
 Please settle the payment at the earliest.
-
 Thank you!`;
-
       return {
         name: d.guest,
         phone: d.contact,
         url: `https://wa.me/${d.contact.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
       };
     });
-
-    // Show modal with WhatsApp links
     setConfirmAction({
       title: "Bulk WhatsApp Messages",
       message: (
-        <div className="max-h-96 overflow-y-auto">
-          <p className="mb-4 text-gray-600">Click on each guest to send WhatsApp message:</p>
-          <div className="space-y-2">
+        <div className="space-y-4">
+          <p className="text-gray-600">Click on each guest to send WhatsApp message:</p>
+          <div className="max-h-60 overflow-y-auto space-y-2">
             {messages.map((msg, idx) => (
-              <a
-                key={idx}
-                href={msg.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition"
-              >
+              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-semibold text-gray-800">{msg.name}</p>
-                  <p className="text-sm text-gray-600">{msg.phone}</p>
+                  <p className="font-semibold">{msg.name}</p>
+                  <p className="text-sm text-gray-500">{msg.phone}</p>
                 </div>
-                <div className="flex items-center gap-2 text-green-600">
-                  <Mail size={16} />
-                  <span className="text-sm">Open WhatsApp</span>
-                </div>
-              </a>
+                <a
+                  href={msg.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
+                >
+                  <Phone className="w-4 h-4 inline mr-1" />
+                  Open WhatsApp
+                </a>
+              </div>
             ))}
           </div>
         </div>
@@ -482,326 +418,300 @@ Thank you!`;
       confirmText: "Close"
     });
   };
-
   return (
-    <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-red-50/30 to-orange-50/30 p-6">
       {/* Header */}
-      <div className="relative bg-gradient-to-br from-gray-900 via-red-900 to-black text-white shadow-2xl rounded-3xl mx-6 mt-6 overflow-hidden border border-red-500/30">
-        <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-orange-500/10 backdrop-blur-xl"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-        <div className="relative z-10">
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleBackClick}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
-              >
-                <ArrowLeft size={24} />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-3 rounded-2xl">
-                  <AlertCircle className="w-8 h-8" />
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="bg-gradient-to-r from-red-600 via-red-700 to-orange-600 rounded-3xl p-8 text-white shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <button
+                  onClick={handleBackClick}
+                  className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <div className="bg-white/20 p-4 rounded-2xl">
+                  <AlertCircle className="w-10 h-10" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Defaulter Management</h1>
                   <p className="text-red-100 mt-1">Outstanding Payment Tracking System</p>
                 </div>
               </div>
+              
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl transition font-semibold"
+              >
+                <Download className="w-5 h-5" />
+                Download Report
+              </button>
             </div>
-            
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg"
-            >
-              <Download size={20} />
-              Download Report
-            </button>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-4 gap-6 mt-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+                <div className="flex items-center gap-4">
+                  <DollarSign className="w-8 h-8 text-yellow-300" />
+                  <div>
+                    <p className="text-red-100 text-sm">Total Outstanding</p>
+                    <p className="text-2xl font-bold">₹{totalOutstanding.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+                <div className="flex items-center gap-4">
+                  <User className="w-8 h-8 text-blue-300" />
+                  <div>
+                    <p className="text-red-100 text-sm">Total Defaulters</p>
+                    <p className="text-2xl font-bold">{defaulters.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+                <div className="flex items-center gap-4">
+                  <Clock className="w-8 h-8 text-orange-300" />
+                  <div>
+                    <p className="text-red-100 text-sm">Avg Days Overdue</p>
+                    <p className="text-2xl font-bold">{avgDaysOverdue}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+                <div className="flex items-center gap-4">
+                  <AlertCircle className="w-8 h-8 text-red-300" />
+                  <div>
+                    <p className="text-red-100 text-sm">Critical (30+ days)</p>
+                    <p className="text-2xl font-bold">{criticalCount}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
-            <motion.div 
-              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              whileHover={{ y: -5 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-8 h-8 text-yellow-400" />
-                <div>
-                  <p className="text-xs text-gray-300">Total Outstanding</p>
-                  <p className="text-2xl font-bold text-yellow-400">₹{totalOutstanding}</p>
+        </motion.div>
+        {/* Filters Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex flex-wrap items-end gap-4">
+              {/* Date Range Filter */}
+              <div className="flex items-end gap-3">
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">From</label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  />
                 </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              whileHover={{ y: -5 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-3">
-                <User className="w-8 h-8 text-blue-400" />
-                <div>
-                  <p className="text-xs text-gray-300">Total Defaulters</p>
-                  <p className="text-2xl font-bold text-blue-400">{defaulters.length}</p>
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">To</label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  />
                 </div>
+                {(dateFrom || dateTo) && (
+                  <button
+                    onClick={() => {
+                      setDateFrom('');
+                      setDateTo('');
+                    }}
+                    className="mt-5 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm font-semibold"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
-            </motion.div>
-
-            <motion.div 
-              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              whileHover={{ y: -5 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-orange-400" />
-                <div>
-                  <p className="text-xs text-gray-300">Avg Days Overdue</p>
-                  <p className="text-2xl font-bold text-orange-400">{avgDaysOverdue}</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              whileHover={{ y: -5 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-3">
-                <Ban className="w-8 h-8 text-red-400" />
-                <div>
-                  <p className="text-xs text-gray-300">Critical (30+ days)</p>
-                  <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
-        <div className="px-6 py-4">
-          <div className="flex gap-4 items-center flex-wrap">
-            {/* Date Range Filter */}
-            <div className="flex gap-2 items-center">
-              <div>
-                <label className="text-xs text-gray-600 mb-1 block">From</label>
+              {/* Search Bar */}
+              <div className="flex-1 min-w-[300px] relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, email, contact, or roll number..."
+                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
-              <div>
-                <label className="text-xs text-gray-600 mb-1 block">To</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-              {(dateFrom || dateTo) && (
-                <button
-                  onClick={() => {
-                    setDateFrom('');
-                    setDateTo('');
-                  }}
-                  className="mt-5 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm font-semibold"
-                >
-                  Clear
-                </button>
+              {/* Hostel Filter */}
+              {(role === 'admin' || role === 'manager') && (
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={selectedHostel}
+                    onChange={(e) => setSelectedHostel(e.target.value)}
+                    className="pl-10 pr-8 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
+                  >
+                    {hostels.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
-
-            {/* Search Bar */}
-            <div className="flex-1 min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, contact, or roll number..."
-                className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-              />
-            </div>
-
-            {/* Hostel Filter */}
-            {(role === 'admin' || role === 'manager') && (
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  value={selectedHostel}
-                  onChange={(e) => setSelectedHostel(e.target.value)}
-                  className="pl-10 pr-8 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
-                >
-                  {hostels.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
-        </div>
-      </div>
+        </motion.div>
       
-      {/* Tabs Section */}
-      <div className="mx-6 mt-4">
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-2">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
-                activeTab === 'pending'
-                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <AlertCircle size={20} />
-                <span>Pending Payments</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  activeTab === 'pending' ? 'bg-white/20' : 'bg-red-100 text-red-700'
-                }`}>
-                  {pendingDefaulters.length}
-                </span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
-                activeTab === 'completed'
-                  ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <CheckCircle size={20} />
-                <span>Completed</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  activeTab === 'completed' ? 'bg-white/20' : 'bg-green-100 text-green-700'
-                }`}>
-                  {completedPayments.length}
-                </span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('rollbacks')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
-                activeTab === 'rollbacks'
-                  ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <History size={20} />
-                <span>Rollbacks</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  activeTab === 'rollbacks' ? 'bg-white/20' : 'bg-orange-100 text-orange-700'
-                }`}>
-                  {rollbackCount}
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ✅ NEW: Bulk Action Buttons (Show only on Pending tab) */}
-      {activeTab === 'pending' && pendingDefaulters.length > 0 && (
-        <div className="mx-6 mt-4">
-          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-4">
-            <div className="flex gap-3">
+        {/* Tabs Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6"
+        >
+          <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+            <div className="flex gap-4">
               <button
-                onClick={handleBulkEmail}
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                onClick={() => setActiveTab('pending')}
+                className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                  activeTab === 'pending'
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               >
-                <Mail size={20} />
-                <span>Send Bulk Payment Reminders</span>
-                <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                  {pendingDefaulters.length}
-                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Pending Payments
+                  <span className={`px-2 py-0.5 rounded-full text-sm ${
+                    activeTab === 'pending' ? 'bg-white/20' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {pendingDefaulters.length}
+                  </span>
+                </div>
               </button>
-
               <button
-                onClick={handleBulkWhatsApp}
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                onClick={() => setActiveTab('completed')}
+                className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                  activeTab === 'completed'
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               >
-                <Phone size={20} />
-                <span>Bulk WhatsApp</span>
-                <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                  {pendingDefaulters.length}
-                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Completed
+                  <span className={`px-2 py-0.5 rounded-full text-sm ${
+                    activeTab === 'completed' ? 'bg-white/20' : 'bg-green-100 text-green-700'
+                  }`}>
+                    {completedPayments.length}
+                  </span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('rollbacks')}
+                className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                  activeTab === 'rollbacks'
+                    ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <History className="w-5 h-5" />
+                  Rollbacks
+                  <span className={`px-2 py-0.5 rounded-full text-sm ${
+                    activeTab === 'rollbacks' ? 'bg-white/20' : 'bg-orange-100 text-orange-700'
+                  }`}>
+                    {rollbackCount}
+                  </span>
+                </div>
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Defaulters List */}
-      <div className="mx-6 my-6">
-        {loading ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-              <p className="text-gray-600">Loading defaulters...</p>
-            </div>
-          </div>
-        ) : filteredDefaulters.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-green-700">No Defaulters Found!</h3>
-            <p className="text-sm text-green-600 mt-2">All guests have cleared their payments ✓</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-4">
-              {paginatedDefaulters.map((defaulter) => (
-                <motion.div
-                  key={defaulter._id}
-                  className="relative bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  transition={{ duration: 0.3 }}
+        </motion.div>
+        {/* Bulk Action Buttons (Show only on Pending tab) */}
+        {activeTab === 'pending' && pendingDefaulters.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-6"
+          >
+            <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+              <div className="flex gap-4">
+                <button
+                  onClick={handleBulkEmail}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition shadow-lg"
                 >
-                  {/* Animated border gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '2px' }}>
-                    <div className="h-full w-full bg-white rounded-2xl"></div>
-                  </div>
-                  
-                  {/* Border */}
-                  <div className="absolute inset-0 border-2 border-red-500/30 group-hover:border-red-500 rounded-2xl transition-all duration-300"></div>
-                  
-                  {/* Content */}
-                  <div className="relative z-10 p-6 bg-gradient-to-br from-white/95 via-gray-50/95 to-white/95 backdrop-blur-sm rounded-2xl">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="relative">
-                          <div className="bg-gradient-to-br from-gray-600 to-gray-800 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0 border-2 border-red-500">
-                            {defaulter.guest.charAt(0)}
-                          </div>
-                          {/* Payment Status Flag */}
-                          <div 
-                            className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${
+                  <Mail className="w-5 h-5" />
+                  Send Bulk Payment Reminders
+                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                    {pendingDefaulters.length}
+                  </span>
+                </button>
+                <button
+                  onClick={handleBulkWhatsApp}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition shadow-lg"
+                >
+                  <Phone className="w-5 h-5" />
+                  Bulk WhatsApp
+                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                    {pendingDefaulters.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        {/* Defaulters List */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          {loading ? (
+            <div className="bg-white rounded-2xl p-12 shadow-lg text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-500 font-medium">Loading defaulters...</p>
+              </div>
+            </div>
+          ) : filteredDefaulters.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 shadow-lg text-center">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-800">No Defaulters Found!</h3>
+              <p className="text-gray-500 mt-2">All guests have cleared their payments ✓</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {paginatedDefaulters.map((defaulter) => (
+                  <motion.div
+                    key={defaulter._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="relative group"
+                  >
+                    {/* Animated border gradient */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300 blur-sm">
+                      <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-2xl animate-pulse" />
+                    </div>
+                    
+                    {/* Border */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-200 to-orange-200 rounded-2xl" />
+                    
+                    {/* Content */}
+                    <div className="relative bg-white rounded-2xl p-6 shadow-lg m-[2px]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="relative">
+                            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                              {defaulter.guest.charAt(0)}
+                            </div>
+                            {/* Payment Status Flag */}
+                            <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${
                               defaulter.totalDue === 0 
                                 ? 'bg-green-500' 
                                 : defaulter.paidAmount > 0 
@@ -815,169 +725,163 @@ Thank you!`;
                                   ? `Partial: ₹${defaulter.paidAmount} paid` 
                                   : 'No Payment'
                             }
-                          >
-                            {defaulter.totalDue === 0 && (
-                              <CheckCircle className="w-4 h-4 text-white" />
-                            )}
+                            >
+                              {defaulter.totalDue === 0 && (
+                                <CheckCircle className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-800">{defaulter.guest}</h3>
+                            <p className="text-gray-500">{defaulter.department} • {defaulter.rollno}</p>
                           </div>
                         </div>
-                        <div className="min-w-0">
-                          <h3 className="text-xl font-bold text-gray-900 truncate">{defaulter.guest}</h3>
-                          <p className="text-sm text-gray-600 truncate">{defaulter.department} • {defaulter.rollno}</p>
+                        <div className="flex items-center gap-8">
+                          <div className="text-center">
+                            <p className="text-sm text-gray-500">Email</p>
+                            <p className="font-medium text-gray-700">{defaulter.email}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-500">Contact</p>
+                            <p className="font-medium text-gray-700">{defaulter.contact}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-500">Hostel</p>
+                            <p className="font-medium text-gray-700">{defaulter.hostel} - {defaulter.roomNo}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-500">Last Booking</p>
+                            <p className="font-medium text-gray-700">{new Date(defaulter.lastBooking).toLocaleDateString()}</p>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3">
-                        <div>
-                          <p className="text-gray-500">Email</p>
-                          <p className="font-semibold text-gray-900 truncate">{defaulter.email}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Contact</p>
-                          <p className="font-semibold text-gray-900">{defaulter.contact}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Hostel</p>
-                          <p className="font-semibold text-gray-900 truncate">{defaulter.hostel} - {defaulter.roomNo}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Last Booking</p>
-                          <p className="font-semibold text-gray-900">{new Date(defaulter.lastBooking).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Outstanding</p>
-                        <div className="relative inline-block">
-                          <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full"></div>
-                          <p className="relative text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600 drop-shadow-lg">
-                            ₹{defaulter.totalDue}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-2 rounded-full border-2 border-red-300 mt-3 shadow-sm">
-                          <Clock className="w-4 h-4 text-red-600 animate-pulse" />
-                          <span className="text-sm font-bold text-red-700">{defaulter.daysOverdue} days</span>
-                        </div>
-                      </div>
-
-                      <motion.button
-                        onClick={() => {
-                          setSelectedDefaulter(defaulter);
-                          setShowDetails(true);
-                        }}
-                        className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 text-white px-8 py-4 rounded-xl font-bold shadow-xl flex items-center gap-3 group"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <FileText size={20} className="relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                        <span className="relative z-10">View Details</span>
-                      </motion.button>
-                    </div>
-                  </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between bg-white rounded-xl shadow-md p-4">
-                <div className="text-sm text-gray-600">
-                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length} defaulters
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
-                      currentPage === 1
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                      if (
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`w-10 h-10 rounded-lg font-semibold transition ${
-                              currentPage === page
-                                ? 'bg-red-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <p className="text-sm text-gray-500">Outstanding</p>
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-red-600" />
+                              <span className="text-2xl font-bold text-red-600">
+                                ₹{defaulter.totalDue.toLocaleString()}
+                              </span>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded-full ${getSeverityColor(defaulter.daysOverdue)}`}>
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              {defaulter.daysOverdue} days
+                            </span>
+                          </div>
+                          <motion.button
+                            onClick={() => {
+                              setSelectedDefaulter(defaulter);
+                              setShowDetails(true);
+                            }}
+                            className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 text-white px-8 py-4 rounded-xl font-bold shadow-xl flex items-center gap-3 group"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                           >
-                            {page}
-                          </button>
-                        );
-                      } else if (
-                        page === currentPage - 2 ||
-                        page === currentPage + 2
-                      ) {
-                        return (
-                          <span key={page} className="px-2 text-gray-500">
-                            ...
-                          </span>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
-
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
-                      currentPage === totalPages
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <FileText className="w-5 h-5 relative z-10" />
+                            View Details
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            )}
-          </>
-        )}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between bg-white rounded-2xl p-4 shadow-lg">
+                  <p className="text-gray-600">
+                    Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length} defaulters
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className={`px-4 py-2 rounded-lg font-semibold transition ${
+                        currentPage === 1
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-600 text-white hover:bg-red-700'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-10 h-10 rounded-lg font-semibold transition ${
+                                currentPage === page
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="w-10 h-10 flex items-center justify-center text-gray-400">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`px-4 py-2 rounded-lg font-semibold transition ${
+                        currentPage === totalPages
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-600 text-white hover:bg-red-700'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </motion.div>
       </div>
-
-      {/* Details Modal - Keep as is */}
+      {/* Details Modal */}
       <AnimatePresence>
         {showDetails && selectedDefaulter && (
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowDetails(false)}
           >
             <motion.div
-              className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-red-500"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
-                <div className="flex justify-between items-center">
+              <div className="bg-gradient-to-r from-red-600 to-orange-600 p-6 text-white rounded-t-3xl">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="bg-white/20 p-3 rounded-2xl">
-                      <User className="w-6 h-6" />
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <User className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold">{selectedDefaulter.guest}</h3>
+                      <h2 className="text-2xl font-bold">{selectedDefaulter.guest}</h2>
                       <p className="text-red-100">Outstanding Payment Details</p>
                     </div>
                   </div>
@@ -985,123 +889,119 @@ Thank you!`;
                     onClick={() => setShowDetails(false)}
                     className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition"
                   >
-                    <X size={20} />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
               </div>
-
               <div className="p-6 space-y-6">
                 {/* Guest Details */}
-                <div className="bg-gray-50 rounded-2xl p-5 border-2 border-gray-200">
-                  <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                <div className="bg-gray-50 rounded-2xl p-5">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-red-600" />
                     Guest Information
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-gray-600 mb-1">Email</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.email}</p>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{selectedDefaulter.email}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 mb-1">Contact</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.contact}</p>
+                      <p className="text-sm text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedDefaulter.contact}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 mb-1">Department</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.department}</p>
+                      <p className="text-sm text-gray-500">Department</p>
+                      <p className="font-medium">{selectedDefaulter.department}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 mb-1">Roll Number</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.rollno}</p>
+                      <p className="text-sm text-gray-500">Roll Number</p>
+                      <p className="font-medium">{selectedDefaulter.rollno}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 mb-1">Hostel</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.hostel}</p>
+                      <p className="text-sm text-gray-500">Hostel</p>
+                      <p className="font-medium">{selectedDefaulter.hostel}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 mb-1">Room</p>
-                      <p className="font-semibold text-gray-900">{selectedDefaulter.roomNo}</p>
+                      <p className="text-sm text-gray-500">Room</p>
+                      <p className="font-medium">{selectedDefaulter.roomNo}</p>
                     </div>
                   </div>
                 </div>
-
                 {/* Bill Details */}
-                <div className="bg-red-50 rounded-2xl p-5 border-2 border-red-200">
-                  <h4 className="font-bold text-red-800 mb-4 flex items-center gap-2">
-                    <Receipt className="w-5 h-5" />
+                <div className="bg-gray-50 rounded-2xl p-5">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-red-600" />
                     Unpaid Bills
-                  </h4>
+                  </h3>
                   <div className="space-y-3">
                     {selectedDefaulter.bills.map((bill, index) => (
-                      <div key={index} className="bg-white rounded-xl p-4 border border-red-300 flex justify-between items-center">
+                      <div key={index} className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200">
                         <div>
-                          <p className="font-bold text-gray-900">{bill.billNumber}</p>
-                          <p className="text-xs text-gray-600">Date: {new Date(bill.date).toLocaleDateString()}</p>
+                          <p className="font-semibold text-gray-800">{bill.billNumber}</p>
+                          <p className="text-sm text-gray-500">Date: {new Date(bill.date).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-red-700">₹{bill.amount}</p>
-                          <span className="inline-block px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                          <p className="text-lg font-bold text-red-600">₹{bill.amount}</p>
+                          <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full">
                             {bill.status.toUpperCase()}
                           </span>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  <div className="mt-4 pt-4 border-t-2 border-red-300 flex justify-between items-center">
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
                     <span className="font-bold text-gray-800">Total Outstanding</span>
-                    <span className="text-3xl font-bold text-red-700">
+                    <span className="text-2xl font-bold text-red-600">
                       ₹{(() => {
                         const totalAmount = selectedDefaulter.totalAmount || 0;
                         const paidAmount = selectedDefaulter.paidAmount || 0;
                         const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
                         return totalAmount - paidAmount - discount;
-                      })()}
+                      })().toLocaleString()}
                     </span>
                   </div>
                 </div>
-
                 {/* Rollback History */}
                 {selectedDefaulter.paymentRollbacks && selectedDefaulter.paymentRollbacks.length > 0 && (
-                  <div className="bg-orange-50 rounded-2xl p-5 border-2 border-orange-200">
-                    <h4 className="font-bold text-orange-800 mb-4 flex items-center gap-2">
-                      <History className="w-5 h-5" />
+                  <div className="bg-orange-50 rounded-2xl p-5">
+                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <History className="w-5 h-5 text-orange-600" />
                       Payment Rollback History ({selectedDefaulter.paymentRollbacks.length})
-                    </h4>
+                    </h3>
                     <div className="space-y-3">
                       {selectedDefaulter.paymentRollbacks.map((rollback, index) => (
-                        <div key={index} className="bg-white rounded-xl p-4 border border-orange-300">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={index} className="bg-white p-4 rounded-xl border border-orange-200">
+                          <div className="flex items-center justify-between mb-2">
                             <div>
-                              <p className="font-bold text-gray-900">Rollback #{selectedDefaulter.paymentRollbacks.length - index}</p>
-                              <p className="text-xs text-gray-600">
+                              <p className="font-semibold text-gray-800">Rollback #{selectedDefaulter.paymentRollbacks.length - index}</p>
+                              <p className="text-sm text-gray-500">
                                 Date: {new Date(rollback.rollbackDate).toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-600">
+                              <p className="text-sm text-gray-500">
                                 By: {rollback.rolledBackBy?.name || 'System'}
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-orange-700">₹{rollback.amount}</p>
+                              <p className="text-lg font-bold text-orange-600">₹{rollback.amount.toLocaleString()}</p>
                             </div>
                           </div>
-                          <div className="mt-2 pt-2 border-t border-orange-200">
-                            <p className="text-xs text-gray-600 font-semibold mb-1">Remarks:</p>
-                            <p className="text-sm text-gray-800">{rollback.remarks}</p>
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <p className="text-sm text-gray-600 font-medium">Remarks:</p>
+                            <p className="text-gray-700">{rollback.remarks}</p>
                           </div>
                           {rollback.attachments && rollback.attachments.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-orange-200">
-                              <p className="text-xs text-gray-600 font-semibold mb-1">Attachments:</p>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <p className="text-sm text-gray-600 font-medium">Attachments:</p>
+                              <div className="flex gap-2 mt-1">
                                 {rollback.attachments.map((att, i) => (
                                   <a
                                     key={i}
                                     href={att}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                    className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                                   >
-                                    <FileText size={12} />
+                                    <FileText className="w-4 h-4" />
                                     File {i + 1}
                                   </a>
                                 ))}
@@ -1111,362 +1011,213 @@ Thank you!`;
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t-2 border-orange-300 flex justify-between items-center">
+                    <div className="mt-4 pt-4 border-t border-orange-200 flex justify-between items-center">
                       <span className="font-bold text-gray-800">Total Rolled Back</span>
-                      <span className="text-2xl font-bold text-orange-700">
-                        ₹{selectedDefaulter.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0)}
+                      <span className="text-xl font-bold text-orange-600">
+                        ₹{selectedDefaulter.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
                 )}
-
                 {/* Action Buttons */}
-                <div className="flex gap-3">
-                  {(() => {
-                    const hasRollbacks = selectedDefaulter.paymentRollbacks && selectedDefaulter.paymentRollbacks.length > 0;
-                    const totalAmount = selectedDefaulter.totalAmount || 0;
-                    const paidAmount = selectedDefaulter.paidAmount || 0;
-                    const discount = selectedDefaulter.discount || selectedDefaulter.waveOff || 0;
-                    const currentBalance = totalAmount - paidAmount - discount;
-                    const isFullyPaid = currentBalance === 0 && paidAmount > 0;
-
-                    // ✅ CASE 1: Fully Paid OR Zero Balance (includes fully rolled back if balance is 0)
-                    if (currentBalance <= 0) {
-                      return (
-                        <>
-                          <div className={`flex-1 ${hasRollbacks ? 'bg-orange-100 text-orange-700 border-orange-500' : 'bg-green-100 text-green-700 border-green-500'} py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2`}>
-                            {hasRollbacks ? <History size={20} /> : <CheckCircle size={20} />}
-                            {hasRollbacks ? 'Rolled Back / Cleared' : 'Fully Paid'}
-                          </div>
-                          <button
-                            onClick={() => setShowDetails(false)}
-                            className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
-                          >
-                            Close
-                          </button>
-                        </>
-                      );
-                    }
-
-                    // ✅ CASE 2: Pending/Partial Payment - Show Pay + Rollback + Close
-                    return (
-                      <>
-                        <button
-                          onClick={() => {
-                            setShowDetails(false);
-                            const bookingData = {
-                              _id: selectedDefaulter._id,
-                              bookingId: selectedDefaulter._id,
-                              guest: selectedDefaulter.guest,
-                              email: selectedDefaulter.email,
-                              contact: selectedDefaulter.contact,
-                              hostel: selectedDefaulter.hostel,
-                              roomNo: selectedDefaulter.roomNo,
-                              department: selectedDefaulter.department,
-                              rollno: selectedDefaulter.rollno,
-                              totalAmount: totalAmount,
-                              paidAmount: paidAmount,
-                              discount: discount,
-                              balanceAmount: currentBalance,
-                              totalDue: currentBalance,
-                              bills: selectedDefaulter.bills,
-                              daysOverdue: selectedDefaulter.daysOverdue,
-                              lastBooking: selectedDefaulter.lastBooking
-                            };
-                            onOpenPaymentModal?.(bookingData);
-                          }}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-800 transition"
-                        >
-                          <CreditCard size={20} />
-                          Pay ₹{currentBalance} Now
-                        </button>
-
-                        {canRollback && selectedDefaulter.totalDue > 0 && (
-                          <button
-                            onClick={() => {
-                              setShowDetails(false);
-                              setShowRollbackModal(true);
-                            }}
-                            className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:from-orange-700 hover:to-red-700 transition"
-                          >
-                            <AlertCircle size={20} />
-                            Rollback / Waive
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => setShowDetails(false)}
-                          className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
-                        >
-                          Close
-                        </button>
-                      </>
-                    );
-                  })()}
+                <div className="flex gap-4">
+                  {selectedDefaulter.totalDue > 0 && (
+                    <button
+                      onClick={() => {
+                        if (onOpenPaymentModal) {
+                          onOpenPaymentModal(selectedDefaulter);
+                          setShowDetails(false);
+                        }
+                      }}
+                      className="flex-1 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition flex items-center justify-center gap-2"
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      Record Payment
+                    </button>
+                  )}
+                  
+                  {canRollback && selectedDefaulter.paidAmount > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowRollbackModal(true);
+                      }}
+                      className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl font-bold hover:from-orange-700 hover:to-orange-800 transition flex items-center justify-center gap-2"
+                    >
+                      <History className="w-5 h-5" />
+                      Rollback Payment
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Rollback Payment Modal - Keep as is */}
+      {/* Rollback Modal */}
       <AnimatePresence>
-        {showRollbackModal && selectedDefaulter && canRollback && (
+        {showRollbackModal && selectedDefaulter && (
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
             onClick={() => setShowRollbackModal(false)}
           >
             <motion.div
-              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-6">
+              <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 text-white rounded-t-3xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl">
-                      <AlertCircle className="w-8 h-8" />
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <History className="w-8 h-8" />
                     <div>
-                      <h3 className="text-2xl font-bold">Rollback Payment</h3>
-                      <p className="text-white/90 text-sm">{selectedDefaulter.guest}</p>
+                      <h2 className="text-xl font-bold">Rollback Payment</h2>
+                      <p className="text-orange-100 text-sm">For {selectedDefaulter.guest}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowRollbackModal(false)}
                     className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition"
                   >
-                    <X size={20} />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-
               <div className="p-6 space-y-4">
-                <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-600">Total Amount</p>
-                      <p className="font-bold text-gray-900">₹{selectedDefaulter.totalAmount || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Paid Amount</p>
-                      <p className="font-bold text-green-600">₹{selectedDefaulter.paidAmount || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Current Balance</p>
-                      <p className="font-bold text-red-600">₹{selectedDefaulter.totalDue}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Max Rollback</p>
-                      <p className="font-bold text-orange-600">₹{selectedDefaulter.totalDue || 0}</p>  // ✅
-                    </div>
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
-                    Rollback Amount (₹) <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rollback Amount (₹)
                   </label>
                   <input
                     type="number"
                     value={rollbackAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      
-                      // ✅ Allow empty string for clearing
-                      if (value === '') {
-                        setRollbackAmount('');
-                        return;
-                      }
-                      
-                      // ✅ Only allow numeric input (including decimal point)
-                      if (!/^\d*\.?\d*$/.test(value)) {
-                        return; // Don't update if non-numeric
-                      }
-                      
-                      // ✅ Store as string to preserve user input while typing
-                      setRollbackAmount(value);
-                    }}
-                    onBlur={() => {
-                      // ✅ Only validate if field has a value
-                      if (!rollbackAmount || rollbackAmount === '') {
-                        return; // Don't clear it, let user continue
-                      }
-                      
-                      const numValue = parseFloat(rollbackAmount);
-                      
-                      // ✅ Only validate if it's actually a number
-                      if (isNaN(numValue)) {
-                        return; // Don't clear, just ignore invalid input
-                      }
-                      
-                      // ✅ Cap at max paid amount
-                      const maxAmount = selectedDefaulter.totalDue || 0; 
-                      if (numValue > maxAmount) {
-                        setRollbackAmount(maxAmount.toString());
-                      }
-                    }}
-                    min="0"
-                    max={selectedDefaulter.paidAmount || 0}
-                    step="1"
-                    placeholder="Enter amount to rollback"
-                    className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    onChange={(e) => setRollbackAmount(Number(e.target.value))}
+                    max={selectedDefaulter.paidAmount}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder={`Max: ₹${selectedDefaulter.paidAmount}`}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maximum: ₹{selectedDefaulter.totalDue || 0}
+                  <p className="text-sm text-gray-500 mt-1">
+                    Available to rollback: ₹{selectedDefaulter.paidAmount}
                   </p>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
-                    Remarks <span className="text-red-500">* (Mandatory)</span>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Remarks (Required)
                   </label>
                   <textarea
                     value={rollbackRemarks}
                     onChange={(e) => setRollbackRemarks(e.target.value)}
-                    placeholder="Enter reason for rollback (mandatory)..."
-                    className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 h-24 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="Reason for rollback..."
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
-                    Upload Proof <span className="text-red-500">* (Mandatory)</span>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Attachments (Required)
                   </label>
-                  
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="rollback-upload"
-                    accept="image/*,.pdf"
-                  />
-                  
-                  <label
-                    htmlFor="rollback-upload"
-                    className="w-full border-2 border-dashed border-gray-400 rounded-xl p-4 hover:border-orange-500 hover:bg-orange-50 transition text-center cursor-pointer block"
-                  >
-                    {uploadingRollback ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                        <p className="text-sm text-gray-600">Uploading...</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-8 h-8 text-gray-400" />
-                        <p className="text-sm text-gray-600">Click to upload proof</p>
-                      </div>
-                    )}
-                  </label>
-
-                  {rollbackAttachments.length > 0 && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-xs font-semibold text-green-700 mb-2">
-                        ✅ Uploaded: {rollbackAttachments.length}
-                      </p>
-                      <ul className="space-y-1">
-                        {rollbackAttachments.map((url, i) => (
-                          <li key={i} className="flex items-center justify-between bg-white p-2 rounded">
-                            <span className="text-xs text-blue-600 truncate flex-1">File {i + 1}</span>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4">
+                    <input
+                      type="file"
+                      ref={ikRollbackUploadRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept="image/*,.pdf"
+                    />
+                    <button
+                      onClick={() => ikRollbackUploadRef.current?.click()}
+                      disabled={uploadingRollback}
+                      className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition flex items-center justify-center gap-2"
+                    >
+                      {uploadingRollback ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5" />
+                          Upload File
+                        </>
+                      )}
+                    </button>
+                    {rollbackAttachments.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {rollbackAttachments.map((att, i) => (
+                          <div key={i} className="flex items-center justify-between bg-green-50 p-2 rounded-lg">
+                            <span className="text-sm text-green-700 truncate flex-1">
+                              <FileText className="w-4 h-4 inline mr-1" />
+                              File {i + 1}
+                            </span>
                             <button
                               onClick={() => setRollbackAttachments(prev => prev.filter((_, idx) => idx !== i))}
                               className="text-red-500 hover:text-red-700"
                             >
-                              <X size={16} />
+                              <X className="w-4 h-4" />
                             </button>
-                          </li>
+                          </div>
                         ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                <AnimatePresence>
-                  {confirmAction && (
-                    <motion.div
-                      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
-                        initial={{ scale: 0.9, y: 20 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.9, y: 20 }}
-                      >
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {confirmAction.title}
-                        </h3>
-
-                        <p className="text-gray-600 mb-6">
-                          {confirmAction.message}
-                        </p>
-
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => {
-                              confirmAction.onConfirm();
-                              setConfirmAction(null);
-                            }}
-                            className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition"
-                          >
-                            Yes, Continue
-                          </button>
-
-                          <button
-                            onClick={() => setConfirmAction(null)}
-                            className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {rollbackAmount && parseFloat(rollbackAmount) > 0 && (
-                  <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-                    <p className="text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <p className="text-gray-600">New Discount/Waiver</p>
-                        <p className="font-bold text-green-700">
-                          ₹{(selectedDefaulter.discount || 0) + parseFloat(rollbackAmount || 0)}
-                        </p>
                       </div>
-                      <div>
-                        <p className="text-gray-600">New Balance</p>
-                        <p className="font-bold text-red-700">
-                          ₹{(selectedDefaulter.totalDue || 0) - parseFloat(rollbackAmount || 0)}
-                        </p>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                )}
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleRollbackPayment}
-                    disabled={loading || !rollbackAmount || parseFloat(rollbackAmount) <= 0 || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
-                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
-                  >
-                    {loading ? "Processing..." : `Waive ₹${rollbackAmount}`}
-                  </button>
-                  <button
-                    onClick={() => setShowRollbackModal(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
-                  >
-                    Cancel
-                  </button>
                 </div>
+                <button
+                  onClick={handleRollbackPayment}
+                  disabled={!rollbackAmount || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
+                  className={`w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${
+                    rollbackAmount && rollbackRemarks.trim() && rollbackAttachments.length > 0
+                      ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-700 hover:to-red-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <History className="w-5 h-5" />
+                  Confirm Rollback
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Confirm Action Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+            >
+              <h3 className="text-xl font-bold text-gray-800 mb-4">{confirmAction.title}</h3>
+              <div className="text-gray-600 mb-6">
+                {typeof confirmAction.message === 'string' ? (
+                  <p>{confirmAction.message}</p>
+                ) : (
+                  confirmAction.message
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAction.onConfirm}
+                  className="flex-1 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition"
+                >
+                  {confirmAction.confirmText || 'Confirm'}
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -1475,5 +1226,4 @@ Thank you!`;
     </div>
   );
 };
-
 export default DefaulterManagement;
