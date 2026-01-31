@@ -1,4 +1,4 @@
-// src/GuestRoomDashboard.jsx - COMPLETE WITH HALL BOOKING INTEGRATION
+// src/GuestRoomDashboard.jsx - UPDATED WITH CENTRALIZED REFRESH
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
@@ -11,10 +11,10 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AdminEnquiryPage from "./pages/AdminEnquiryPage";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
-import HallBookingDashboard from "./components/HallBookings/HallBookingDashboard";
 import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
+import HallBookingDashboard from "./components/HallBookings/HallBookingDashboard";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -112,19 +112,19 @@ export default function GuestRoomDashboard() {
     setCurrentUserData(currentUser);
   }, [currentUser]);
 
-  // Update local hallData state when polling hook updates
-  useEffect(() => {
-    if (liveHallData && Object.keys(liveHallData).length > 0) {
-      setHallData(liveHallData);
-    }
-  }, [liveHallData]);
-
   // Show screen saver when idle
   useEffect(() => {
     if (isIdle) {
       setShowScreenSaver(true);
     }
   }, [isIdle]);
+
+  // Update local hallData state when polling hook updates
+  useEffect(() => {
+    if (liveHallData && Object.keys(liveHallData).length > 0) {
+      setHallData(liveHallData);
+    }
+  }, [liveHallData]);
 
   // 🆕 AUTO-REDIRECT: Assistant goes directly to Hall Dashboard
   useEffect(() => {
@@ -193,7 +193,7 @@ export default function GuestRoomDashboard() {
     return (
       <main className="flex items-center justify-center h-screen text-gray-500">
         Kindly Wait Dashboard Loading...
-      </main>
+      </main>  // ← Make sure this closing tag exists
     );
   }
 
@@ -329,321 +329,443 @@ export default function GuestRoomDashboard() {
       return;
     }
 
-    const booking = bookingId
-      ? room.bookings.find((b) => b._id === bookingId)
-      : room.bookings[0];
+    if (bookingId) {
+      const bk = room.bookings.find(
+        (b) => b.id === bookingId || b._id === bookingId
+      );
+    
+      if (bk) {
+        console.log("✅ Booking found and selected:", bookingId);
+        setActiveRoomRef({ hostel, roomNo, booking: bk });
+      } else {
+        console.warn(`❌ Booking not found in room: ${bookingId}`);
+        const allRoomBookings = room.bookings;
+        console.log("Available booking IDs:", allRoomBookings.map(b => b.id || b._id));
+        setActiveRoomRef({ hostel, roomNo, booking: null });
+      }
+      return;
+    }
 
-    setActiveRoomRef({ hostel, roomNo, booking });
+    if (room.bookings.length === 1) {
+      setActiveRoomRef({ hostel, roomNo, booking: room.bookings[0] });
+    } else {
+      setBookingSelectModal({ hostel, room, bookings: room.bookings });
+    }
+  };
+
+  const addBookingToRoom = (hostel, roomNo, booking) => {
+    console.log("📘 Booking added, triggering refresh...");
+    const bookingId = booking._id || booking.id;
+    
+    setTimeout(() => {
+      refresh();
+      setTimeout(() => {
+        setRightPanelToRoom(hostel, roomNo, bookingId);
+      }, 500);
+    }, 100);
+  };
+
+  const cancelBooking = (hostel, roomNo, bookingId, remarks) => {
+    console.log("❌ Booking cancelled, Socket.IO will sync...");
+    
+    if (activeRoomRef?.booking?.id === bookingId) {
+      setActiveRoomRef(null);
+    }
+    
+    setTimeout(() => refresh(), 100);
+  };
+
+  const handleCancelModalCancel = async (remarks) => {
+    if (!cancelModal) return;
+
+    const { hostel, room, booking } = cancelModal;
+
+    const currentHostel = hostelData[hostel];
+    if (!currentHostel) {
+      showToast("❌ Hostel not found", "error");
+      setCancelModal(null);
+      return;
+    }
+
+    const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === room?.roomNo) || null;
+    if (!currentRoom) {
+      showToast("❌ Room not found", "error");
+      setCancelModal(null);
+      return;
+    }
+
+    const mongoId =
+      (booking._id && !booking._id.toString().startsWith("b_")
+        ? booking._id
+        : null) ||
+      (booking.id && !booking.id.toString().startsWith("b_")
+        ? booking.id
+        : null);
+
+    if (!mongoId) {
+      console.error("❌ Missing MongoDB _id for booking:", booking);
+      showToast("❌ Cannot cancel: Booking is not stored in the database yet. Please refresh the page and try again.", "error");
+      setCancelModal(null);
+      return;
+    }
+
+    try {
+      console.log("⬆️ Cancelling booking in MongoDB:", mongoId);
+
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(`${API}/api/bookings/${mongoId}/cancel`, {
+        method: "PUT",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({
+          remarks: remarks || "Cancelled",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to cancel booking");
+      }
+
+      const result = await response.json();
+      console.log("✅ Booking cancelled in MongoDB:", result);
+
+      cancelBooking(hostel, room.roomNo, booking.id || booking._id, remarks);
+
+      setCancelModal(null);
+      setRemarksText("");
+      showToast("✅ Booking cancelled successfully!", "success");
+    } catch (error) {
+      console.error("❌ Cancellation error:", error);
+      showToast(`❌ Failed to cancel booking: ${error.message}`, "error");
+    }
+  };
+
+  const extendBooking = (hostel, roomNo, bookingId, newToDate, remarks, extensionAttachments) => {
+    console.log("🔄 Booking extended, Socket.IO will sync...");
+    
+    setActiveRoomRef((ref) =>
+      ref?.booking?.id === bookingId
+        ? { 
+            ...ref, 
+            booking: { 
+                ...ref.booking, 
+                to: newToDate,
+                extendRemarks: remarks || ref.booking.extendRemarks,
+                extensionAttachments: extensionAttachments || ref.booking.extensionAttachments
+            } 
+          }
+        : ref
+    );
+    
+    setTimeout(() => refresh(), 100);
+  };
+
+  const handleExtensionModalExtend = async (extensionData, newToDate, remarks, extensionAttachments, paymentData) => {
+    console.log("================================================================================");
+    console.log("🔥 DASHBOARD: handleExtensionModalExtend called");
+    console.log("📦 Parameters:", {
+      extensionData: extensionData ? "present" : "null",
+      hasBooking: extensionData?.booking ? "yes" : "no",
+      newToDate,
+      remarks,
+      filesCount: extensionAttachments?.length || 0,
+      paymentData: paymentData || "none"
+    });
+    console.log("================================================================================");
+
+    // ✅ VALIDATE: extensionData must be the modal object
+    if (!extensionData || !extensionData.booking) {
+      showToast("❌ Invalid extension data", "error");
+      return;
+    }
+
+    const { hostel, roomNo, booking } = extensionData;
+
+    // Validate hostel exists
+    const currentHostel = hostelData[hostel];
+    if (!currentHostel) {
+      showToast("❌ Hostel not found", "error");
+      setExtensionModal(null);
+      return;
+    }
+
+    // Validate room exists
+    const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo) || null;
+    if (!currentRoom) {
+      showToast("❌ Room not found", "error");
+      setExtensionModal(null);
+      return;
+    }
+
+    // ✅ VALIDATE: New date must be after current checkout
+    const currentTo = new Date(booking.to);
+    const newTo = new Date(newToDate);
+
+    if (newTo <= currentTo) {
+      showToast("❌ New checkout date must be after the current checkout date", "error");
+      return;
+    }
+
+    // ✅ CHECK FOR CONFLICTS (exclude cancelled/completed bookings)
+    const bookingFrom = new Date(booking.from);
+    
+    const hasFutureConflict = (currentRoom.bookings || []).some((b) => {
+      // Skip the current booking
+      const sameBooking =
+        (b.id && booking.id && b.id === booking.id) ||
+        (b._id && booking._id && b._id === booking._id);
+      if (sameBooking) return false;
+
+      // ✅ CRITICAL FIX: Skip cancelled, checked_out, and no_show bookings
+      if (["cancelled", "checked_out", "no_show"].includes(b.status)) {
+        return false;
+      }
+      
+      const otherFrom = new Date(b.from);
+      const otherTo = new Date(b.to);
+
+      // Check if extension period overlaps with other booking
+      const overlaps = bookingFrom <= otherTo && newTo >= otherFrom;
+      
+      if (overlaps) {
+        console.log("⚠️ Conflict detected with booking:", {
+          guest: b.guest,
+          from: b.from,
+          to: b.to,
+          status: b.status
+        });
+      }
+      
+      return overlaps;
+    });
+
+    if (hasFutureConflict) {
+      showToast("❌ Cannot extend: these dates overlap another booking in this room. Please use Direct Booking or ask the guest to raise a new enquiry.", "error");
+      return;
+    }
+
+    // ✅ GET MONGODB ID
+    const mongoId =
+      (booking._id && !booking._id.toString().startsWith("b_")
+        ? booking._id
+        : null) ||
+      (booking.id && !booking.id.toString().startsWith("b_")
+        ? booking.id
+        : null);
+      
+    if (!mongoId) {
+      console.error("❌ Missing MongoDB _id for booking:", booking);
+      showToast("❌ Cannot extend: Booking is not stored in the database yet. Please refresh the page and try again.", "error");
+      setExtensionModal(null);
+      return;
+    }
+    
+    // ✅ CALL BACKEND API WITH PAYMENT DATA
+    try {
+      console.log("⬆️ Extending booking in MongoDB:", mongoId);
+
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const payload = {
+        newTo: newToDate,
+        hostel,
+        roomNo,
+        remarks: remarks || "",
+        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
+        // ✅ ADD PAYMENT DATA
+        ...paymentData
+      };
+
+      console.log("📤 Sending payload:", JSON.stringify(payload, null, 2));
+
+      const response = await fetch(`${API}/api/bookings/${mongoId}/extend`, {
+        method: "PUT",
+        credentials: "include",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to extend booking");
+      }
+      
+      const result = await response.json();
+      console.log("✅ Booking extended in MongoDB:", result);
+
+      // ✅ UPDATE LOCAL STATE
+      extendBooking(hostel, roomNo, booking.id || booking._id, newToDate, remarks, extensionAttachments);
+
+      // ✅ CLOSE MODAL
+      setExtensionModal(null);
+      
+      showToast("✅ Booking extended successfully!", "success");
+
+      // ✅ TRIGGER REFRESH
+      setTimeout(() => refresh(), 100);
+
+    } catch (error) {
+      console.error("================================================================================");
+      console.error("❌ Extension error:", error);
+      console.error("Stack:", error.stack);
+      console.error("================================================================================");
+      showToast(`❌ Failed to extend booking: ${error.message}`, "error");
+    }
   };
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
-    const dateStr = date.toISOString().split("T")[0];
+    setActiveRoomRef(null);
 
-    const bookings = [];
-    Object.keys(hostelData).forEach((hostel) => {
-      (hostelData[hostel]?.rooms || []).forEach((room) => {
-        (room.bookings || []).forEach((booking) => {
-          const fromD = new Date(booking.from);
-          const toD = new Date(booking.to);
-          const clickedD = new Date(dateStr);
-
-          if (
-            clickedD.getTime() >= fromD.getTime() &&
-            clickedD.getTime() <= toD.getTime()
-          ) {
-            bookings.push({
-              ...booking,
-              hostel,
-              roomNo: room.roomNo
-            });
-          }
-        });
-      });
-    });
-
-    setDateBookings(bookings);
-
-    if (bookings.length > 0) {
-      setCalendarDate(date);
-      setShowCalendarPage(true);
-    } else {
-      showToast("No bookings on this date.", "info");
-    }
-  };
-
-  const tileClassName = ({ date, view }) => {
-    if (view !== "month") return "";
-    const dateStr = date.toISOString().split("T")[0];
-
-    const hasBooking = Object.values(hostelData).some((hostel) =>
-      hostel.rooms?.some((room) =>
-        room.bookings?.some((booking) => {
-          const fromD = new Date(booking.from);
-          const toD = new Date(booking.to);
-          const checkD = new Date(dateStr);
-
-          return (
-            checkD.getTime() >= fromD.getTime() &&
-            checkD.getTime() <= toD.getTime()
-          );
-        })
-      )
+    const bookingsOnDate = Object.entries(hostelData).flatMap(
+      ([hostel, h]) =>
+        (h.rooms || [])
+          .filter((r) =>
+            (r.bookings || []).some((b) =>
+              isWithinInterval(date, {
+                start: new Date(b.from),
+                end: new Date(b.to)
+              })
+            )
+          )
+          .flatMap((r) =>
+            r.bookings
+              .filter((b) =>
+                isWithinInterval(date, {
+                  start: new Date(b.from),
+                  end: new Date(b.to)
+                })
+              )
+              .map((b) => ({
+                hostel,
+                roomNo: r.roomNo,
+                booking: b
+              }))
+          )
     );
 
-    return hasBooking ? "has-booking" : "";
+    setDateBookings(bookingsOnDate);
   };
 
-  const addBookingToRoom = async ({
-    hostelName,
-    roomNo,
-    guest,
-    from,
-    to,
-    checkInTime,
-    checkOutTime,
-    contact,
-    email,
-    college,
-    course,
-    purpose,
-    organisation,
-    paymentType,
-    totalAmount,
-    paidAmount,
-    balanceAmount,
-    remarks
-  }) => {
-    try {
-      const bookingData = {
-        hostel: hostelName,
-        roomNo,
-        guest,
-        from,
-        to,
-        checkInTime,
-        checkOutTime,
-        contact,
-        email,
-        college,
-        course,
-        purpose,
-        organisation,
-        paymentType,
-        totalAmount,
-        paidAmount,
-        balanceAmount,
-        remarks,
-        status: "booked"
-      };
-
-      const response = await fetch(`${API}/bookings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(bookingData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add booking");
-      }
-
-      const savedBooking = await response.json();
-      console.log("✅ Booking added:", savedBooking);
-
-      showToast("✅ Booking added successfully", "success");
-      setDirectBookingModal(null);
-      setPrefillGuest(null);
-
-      setTimeout(() => refresh(), 500);
-    } catch (error) {
-      console.error("❌ Error adding booking:", error);
-      showToast(`❌ ${error.message}`, "error");
-    }
-  };
-
-  const cancelBooking = async () => {
-    if (!cancelModal?.booking) return;
-
-    const { booking } = cancelModal;
-    const remarks = remarksText.trim();
-
-    try {
-      const response = await fetch(`${API}/bookings/${booking._id}/cancel`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ remarks })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to cancel booking");
-      }
-
-      const updatedBooking = await response.json();
-      console.log("✅ Booking cancelled:", updatedBooking);
-
-      showToast("✅ Booking cancelled successfully", "success");
-      setCancelModal(null);
-      setBookingSelectModal(null);
-      setRemarksText("");
-
-      setTimeout(() => refresh(), 500);
-    } catch (error) {
-      console.error("❌ Error cancelling booking:", error);
-      showToast(`❌ ${error.message}`, "error");
-    }
-  };
-
-  const handleCancelModalCancel = () => {
-    setCancelModal(null);
-    setRemarksText("");
-  };
-
-  const handleExtensionModalExtend = async ({ hostel, roomNo, booking, extendedDate }) => {
-    try {
-      const response = await fetch(`${API}/bookings/${booking._id}/extend`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ extendedDate })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to extend booking");
-      }
-
-      const updatedBooking = await response.json();
-      console.log("✅ Booking extended:", updatedBooking);
-
-      showToast("✅ Booking extended successfully", "success");
-      setExtensionModal(null);
-
-      setTimeout(() => refresh(), 500);
-    } catch (error) {
-      console.error("❌ Error extending booking:", error);
-      showToast(`❌ ${error.message}`, "error");
-    }
+  const tileClassName = ({ date }) => {
+    const hasBooking = Object.values(hostelData).some((h) =>
+      (h.rooms || []).some((r) =>
+        (r.bookings || []).some((b) =>
+          isWithinInterval(date, {
+            start: new Date(b.from),
+            end: new Date(b.to)
+          })
+        )
+      )
+    );
+    return hasBooking ? "bg-red-200 rounded-full" : null;
   };
 
   const sidebarVariants = {
-    hidden: { x: "-100%", opacity: 0 },
-    visible: { x: 0, opacity: 1, transition: { duration: 0.3, ease: "easeInOut" } }
+    hidden: { x: -280, opacity: 0, transition: { duration: 0.4 } },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.4 } }
   };
 
   return (
+    // 🔥 WRAP EVERYTHING IN DashboardRefreshProvider
     <DashboardRefreshProvider onRefresh={handleRefresh}>
       <ToastProvider theme={theme}>
         <div
-          className={`flex flex-col h-screen ${
+          className={`flex h-screen font-sans transition-colors duration-300 ${
             theme === "dark"
-              ? "bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100"
-              : "bg-gradient-to-b from-gray-50 to-white text-gray-900"
+              ? "bg-gray-900 text-gray-100"
+              : "bg-gray-50 text-gray-900"
           }`}
         >
-          {/* FIXED HEADER */}
+          {/* TOP HEADER */}
           <div
-            className={`fixed top-0 left-0 right-0 z-40 h-16 border-b-2 shadow-lg backdrop-blur-md ${
-              theme === "dark"
-                ? "bg-gray-800/95 border-gray-700"
-                : "bg-white/95 border-gray-200"
+            className={`fixed left-64 right-0 top-0 h-16 flex items-center justify-between px-6 shadow-md z-20 ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
           >
-            <div className="flex items-center justify-between h-full px-6">
-              {/* LEFT SECTION - Logo & Title */}
-              <div className="flex items-center gap-4">
-                <motion.img
-                  src="https://www.thapar.edu/images/tiet-logo.svg"
-                  alt="Logo"
-                  className="h-10 w-10 rounded-lg shadow-lg"
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                />
-                <motion.h1
-                  className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                >
-                  Thapar Institute
-                </motion.h1>
+            {/* LEFT SIDE: Real-time Status */}
+            <div className="flex items-center gap-4">
+              {/* Connection Status Indicator */}
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className={`text-sm font-medium ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {connected ? '🔴 LIVE' : '⚠️ Reconnecting...'}
+                </span>
               </div>
 
-              {/* CENTER SECTION - Connection Status & Refresh */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700">
-                  <div className={`w-2 h-2 rounded-full ${
-                    connected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'
-                  }`} />
-                  <span className="text-xs font-medium">
-                    {connected ? 'Live' : 'Connecting'}
-                  </span>
-                </div>
+              {/* Last Update Time */}
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Updated: {new Date(lastUpdate).toLocaleTimeString()}
+              </div>
 
+              {/* Manual Refresh Button */}
+              <button
+                onClick={refresh}
+                disabled={hostelLoading}
+                className={`px-3 py-1 text-xs rounded-md transition ${
+                  hostelLoading
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+                title="Manually refresh data"
+              >
+                {hostelLoading ? '⏳ Refreshing...' : '🔄 Refresh'}
+              </button>
+            </div>
+
+            {/* RIGHT SIDE: Profile & Logout */}
+            <div className="flex items-center gap-4">
+              {activeTab !== "AllHostelsPortal" && !showHallDashboard && (
                 <button
-                  onClick={() => refresh()}
-                  disabled={hostelLoading}
-                  className={`px-3 py-1 text-xs rounded-md transition ${
-                    hostelLoading
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  onClick={() => setProfileOpen(true)}
+                  className="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                >
+                  <span className="font-medium">{currentUserData?.name || "Profile"}</span>
+                </button>
+              )}
+
+              {/* 🆕 HALL BOOKING TOGGLE (Admin Only) */}
+              {currentUser?.role === "admin" && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowHallDashboard(!showHallDashboard)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg ${
+                    showHallDashboard
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
+                      : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
                   }`}
-                  title="Manually refresh data"
                 >
-                  {hostelLoading ? '⏳ Refreshing...' : '🔄 Refresh'}
-                </button>
-              </div>
+                  {showHallDashboard ? (
+                    <>
+                      <Building2 size={20} />
+                      Guest Room Dashboard
+                    </>
+                  ) : (
+                    <>
+                      <Users size={20} />
+                      Hall Bookings
+                    </>
+                  )}
+                </motion.button>
+              )}
 
-              {/* RIGHT SIDE: Hall Toggle, Profile & Logout */}
-              <div className="flex items-center gap-4">
-                {/* 🆕 HALL BOOKING TOGGLE (Admin Only) */}
-                {currentUser?.role === "admin" && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowHallDashboard(!showHallDashboard)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg ${
-                      showHallDashboard
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
-                        : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
-                    }`}
-                  >
-                    {showHallDashboard ? (
-                      <>
-                        <Building2 size={20} />
-                        Guest Room Dashboard
-                      </>
-                    ) : (
-                      <>
-                        <Users size={20} />
-                        Hall Bookings
-                      </>
-                    )}
-                  </motion.button>
-                )}
-
-                {activeTab !== "AllHostelsPortal" && !showHallDashboard && (
-                  <button
-                    onClick={() => setProfileOpen(true)}
-                    className="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    <span className="font-medium">{currentUserData?.name || "Profile"}</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                >
-                  Logout
-                </button>
-              </div>
+                            <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
             </div>
           </div>
 
-          {/* SIDEBAR - Hide for Hall Dashboard */}
+          {/* SIDEBAR */}
           <AnimatePresence>
             {activeTab !== "AllHostelsPortal" && !showHallDashboard && (
               <motion.div
@@ -672,7 +794,7 @@ export default function GuestRoomDashboard() {
             )}
           </AnimatePresence>
 
-          {/* MAIN CONTENT - CONDITIONAL DASHBOARD */}
+          {/* MAIN CONTENT */}
           <main className="flex-1 overflow-y-auto mt-16">
             <AnimatePresence mode="wait">
               {showHallDashboard ? (
@@ -700,113 +822,118 @@ export default function GuestRoomDashboard() {
                   exit={{ opacity: 0, x: 100 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {activeTab === "Home" && (
-                    <MainContent
-                      {...{
-                        activeTab,
-                        setActiveTab,
-                        activeHostel,
-                        setActiveHostel,
-                        hostelData,
-                        completeHostelData,
-                        setRightPanelToRoom,
-                        activeRoomRef,
-                        setActiveRoomRef,
-                        statsForHostel,
-                        statsAll,
-                        bookingSelectModal,
-                        setBookingSelectModal,
-                        directBookingModal,
-                        setDirectBookingModal,
-                        cancelModal,
-                        setCancelModal,
-                        extensionModal,
-                        setExtensionModal,
-                        remarksText,
-                        setRemarksText,
-                        cancelBooking,
-                        handleCancelModalCancel,
-                        addBookingToRoom,
-                        selectedDate,
-                        dateBookings,
-                        handleDateClick,
-                        tileClassName,
-                        notificationsEnabled,
-                        setNotificationsEnabled,
-                        theme,
-                        setTheme,
-                        handleStartDirectBooking,
-                        currentUserData,
-                      }}
-                    />
-                  )}
+            {activeTab === "Home" && (
+              <MainContent
+                {...{
+                  activeTab,
+                  setActiveTab,
+                  activeHostel,
+                  setActiveHostel,
+                  hostelData,
+                  completeHostelData,
+                  setRightPanelToRoom,
+                  activeRoomRef,
+                  setActiveRoomRef,
+                  statsForHostel,
+                  statsAll,
+                  bookingSelectModal,
+                  setBookingSelectModal,
+                  directBookingModal,
+                  setDirectBookingModal,
+                  cancelModal,
+                  setCancelModal,
+                  extensionModal,
+                  setExtensionModal,
+                  remarksText,
+                  setRemarksText,
+                  cancelBooking,
+                  handleCancelModalCancel,
+                  addBookingToRoom,
+                  selectedDate,
+                  dateBookings,
+                  handleDateClick,
+                  tileClassName,
+                  notificationsEnabled,
+                  setNotificationsEnabled,
+                  theme,
+                  setTheme,
+                  handleStartDirectBooking,
+                  currentUserData,
+                }}
+              />
+            )}
 
-                  {activeTab === "Settings" && (
-                    <SettingsPage
-                      theme={theme}
-                      setTheme={setTheme}
-                      notificationsEnabled={notificationsEnabled}
-                      setNotificationsEnabled={setNotificationsEnabled}
-                      setActiveTab={setActiveTab}
-                      hostelData={hostelData}
-                    />
-                  )}
+            {activeTab === "Settings" && (
+              <SettingsPage
+                theme={theme}
+                setTheme={setTheme}
+                notificationsEnabled={notificationsEnabled}
+                setNotificationsEnabled={setNotificationsEnabled}
+                setActiveTab={setActiveTab}
+                hostelData={hostelData}
+              />
+            )}
 
-                  {activeTab === "Enquiry" && (
-                    <AdminEnquiryPage setActiveTab={setActiveTab} />
-                  )}
+            {activeTab === "Enquiry" && (
+              <AdminEnquiryPage setActiveTab={setActiveTab} />
+            )}
 
-                  {activeTab === "Analytics" && (
-                    <AnalyticsPage
-                      hostelData={hostelData}
-                      setActiveTab={setActiveTab}
-                      theme={theme}
-                    />
-                  )}
+            {activeTab === "Analytics" && (
+              <AnalyticsPage
+                hostelData={hostelData}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
+            )}
 
-                  {activeTab === "AllHostelsPortal" && (
-                    <AllHostelsPortal
-                      hostelData={hostelData}
-                      setHostelData={(updater) => {
-                        console.log("🔄 AllHostelsPortal updating hostelData");
-                        
-                        if (typeof updater === 'function') {
-                          const newData = updater(hostelData);
-                          console.log("✅ Updated hostelData:", Object.keys(newData));
-                          setTimeout(() => refresh(), 100);
-                        } else {
-                          console.log("✅ Direct hostelData update");
-                          setTimeout(() => refresh(), 100);
-                        }
-                      }}
-                      prefillGuest={prefillGuest}
-                      theme={theme}
-                      onBackHome={() => {
-                        localStorage.removeItem("lastApprovedGuest");
-                        setPrefillGuest(null);
-                        setActiveTab("Home");
-                      }}
-                      handleStartDirectBooking={handleStartDirectBooking}
-                      setExtensionModal={setExtensionModal}
-                    />
-                  )}
+            {activeTab === "AllHostelsPortal" && (
+              <AllHostelsPortal
+                hostelData={hostelData}
+                setHostelData={(updater) => {
+                  // ✅ CRITICAL FIX: setHostelData was missing
+                  console.log("🔄 AllHostelsPortal updating hostelData");
+                  
+                  if (typeof updater === 'function') {
+                    // Handle function updater (prev => newState)
+                    const newData = updater(hostelData);
+                    console.log("✅ Updated hostelData:", Object.keys(newData));
+                    // Trigger refresh to sync with backend
+                    setTimeout(() => refresh(), 100);
+                  } else {
+                    // Handle direct value
+                    console.log("✅ Direct hostelData update");
+                    setTimeout(() => refresh(), 100);
+                  }
+                }}
+                prefillGuest={prefillGuest}
+                theme={theme}
+                onBackHome={() => {
+                  localStorage.removeItem("lastApprovedGuest");
+                  setPrefillGuest(null);
+                  setActiveTab("Home");
+                }}
+                handleStartDirectBooking={handleStartDirectBooking}
+                setExtensionModal={setExtensionModal}
+              />
+            )}
 
-                  {activeTab === "Feedback" && (
-                    <FeedbackPage
-                      onBack={() => {
-                        setActiveTab("Home");
-                        if (currentUser?.assignedHostel) {
-                          setActiveHostel(currentUser.assignedHostel);
-                        }
-                      }}
-                      theme={theme}
-                    />   
-                  )}
+            {activeTab === "Feedback" && (
+              <FeedbackPage
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                theme={theme}
+              />
+            )}
                 </motion.div>
               )}
             </AnimatePresence>
-          </main>   
-        </div>  
+          </main>
+        </div>
+
 
         {activeTab === "Defaulters" && (
           <DefaulterManagement
@@ -843,9 +970,9 @@ export default function GuestRoomDashboard() {
               hostel: defaulterPaymentModal.hostel,
               roomNo: defaulterPaymentModal.roomNo,
               totalAmount: defaulterPaymentModal.totalDue || 0,
-              paidAmount: 0,
+              paidAmount: 0, // Defaulter has paid nothing yet
               balanceAmount: defaulterPaymentModal.totalDue || 0,
-              paymentType: "Paid",
+              paymentType: "Paid", // Defaulters are always paid bookings
               discount: 0,
               waveOff: 0
             }}
@@ -853,7 +980,7 @@ export default function GuestRoomDashboard() {
             onSuccess={(updatedBooking) => {
               console.log("✅ Payment successful:", updatedBooking);
               setDefaulterPaymentModal(null);
-              refresh();
+              refresh(); // Refresh data after payment
             }}
           />
         )}
@@ -881,7 +1008,6 @@ export default function GuestRoomDashboard() {
             }));
           }}
         />
-
         {/* ✅ SCREEN SAVER - RENDERS OVER EVERYTHING */}
         <ScreenSaver
           isActive={showScreenSaver}
