@@ -570,6 +570,7 @@ export default function CalendarGuestsPage({
   }, [activeTab, selectedDate, selectedHostel, searchQuery]);
 
   const handleGuestClick = (guest) => {
+    console.log('🔍 Guest clicked:', guest);
     setSelectedGuest(guest);
     setShowGuestModal(true);
   };
@@ -931,6 +932,18 @@ export default function CalendarGuestsPage({
           </>
         )}
       </div>
+
+      {/* Guest Details Modal */}
+      {showGuestModal && selectedGuest && (
+        <GuestDetailsModal
+          guest={selectedGuest}
+          onClose={() => {
+            setShowGuestModal(false);
+            setSelectedGuest(null);
+          }}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
