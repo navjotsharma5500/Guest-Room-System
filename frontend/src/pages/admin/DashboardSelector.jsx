@@ -1,5 +1,6 @@
 // src/pages/admin/DashboardSelector.jsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Building2, 
@@ -12,6 +13,7 @@ import {
 
 const DashboardSelector = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
+  const navigate = useNavigate();
 
   const dashboards = [
     {
@@ -23,7 +25,8 @@ const DashboardSelector = () => {
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600",
       available: true,
-      features: ["Room Management", "Guest Tracking", "Booking System"]
+      features: ["Room Management", "Guest Tracking", "Booking System"],
+      onClick: () => navigate("/dashboard")
     },
     {
       id: "hall-booking",
@@ -182,6 +185,7 @@ const DashboardSelector = () => {
               >
                 <button
                   disabled={!dashboard.available}
+                  onClick={dashboard.onClick}
                   className={`
                     w-full h-full p-8 rounded-3xl border-2 shadow-xl
                     transition-all duration-500 text-left
