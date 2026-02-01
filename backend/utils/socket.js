@@ -31,6 +31,19 @@ export const getSocketIO = () => {
 };
 
 /**
+ * Safe emit helper - MUST BE EXPORTED
+ */
+export const emitEvent = (event, payload, room = null) => {
+  const ioInstance = getSocketIO();
+
+  if (room) {
+    ioInstance.to(room).emit(event, payload);
+  } else {
+    ioInstance.emit(event, payload);
+  }
+};
+
+/**
  * Emit to hall namespace
  */
 export const emitHallEvent = (event, data) => {
@@ -66,9 +79,11 @@ export const emitGuestEvent = (event, data) => {
   }
 };
 
+// Keep default export for backward compatibility
 export default {
   setSocketIO,
   getSocketIO,
+  emitEvent,
   emitHallEvent,
   emitGuestEvent,
 };
