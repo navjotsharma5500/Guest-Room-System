@@ -595,7 +595,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <input
-                  className="border p-2 rounded"
+                  className={`border p-2 rounded ${!form.guest.trim() ? 'border-red-500' : 'border-green-500'}`}
                   placeholder="Guest Name / Society Name"
                   value={form.guest}
                   onChange={(e) => setForm({ ...form, guest: e.target.value })}
@@ -620,7 +620,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </div>
 
                 <select
-                  className="border p-2 rounded"
+                  className={`border p-2 rounded ${!form.department && form.guest ? 'border-red-500' : ''}`}
                   value={form.department}
                   onChange={(e) => setForm({ ...form, department: e.target.value })}
                 >
@@ -638,10 +638,15 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <option>MTECH</option>
                   <option>MA</option>
                   <option>RA</option>
+                  <option>Others</option>
                 </select>
 
                 <input
-                  className="border p-2 rounded"
+                  className={`border p-2 rounded ${
+                    form.contact 
+                      ? (validateContact(form.contact) ? 'border-green-500' : 'border-red-500')
+                      : ''
+                  }`}
                   placeholder="Contact (10 digits)"
                   value={form.contact}
                   maxLength={10}
@@ -654,7 +659,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 />
 
                 <input
-                  className="border p-2 rounded col-span-2"
+                  className={`border p-2 rounded col-span-2 ${
+                    form.email 
+                      ? (validateEmail(form.email) ? 'border-green-500' : 'border-red-500')
+                      : ''
+                  }`}
                   placeholder="Email (.com/.in/.edu only)"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}

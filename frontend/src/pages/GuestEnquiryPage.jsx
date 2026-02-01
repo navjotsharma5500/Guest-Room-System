@@ -47,7 +47,7 @@ const INITIAL_FORM_STATE = {
 
 const DEPARTMENTS = [
   "ALUMINI", "BETECH", "BEMBA", "BLAS", "JRF", "PHD", 
-  "PHDP", "MA", "ME", "MCA", "MSc", "MTECH", "RA",
+  "PHDP", "MA", "ME", "MCA", "MSc", "MTECH", "RA", "Others",
 ];
 
 const ALLOWED_FILE_TYPES = [
@@ -242,7 +242,9 @@ function GuestForm({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-              className="border-2 border-red-400 p-2 rounded w-full"
+              className={`border-2 p-2 rounded w-full ${
+                !form.name.trim() ? 'border-red-500' : 'border-green-500'
+              }`}
             />
           </div>
 
@@ -288,7 +290,11 @@ function GuestForm({
               maxLength={10}
               onChange={(e) => handleContactChange(e.target.value)}
               required
-              className="border-2 border-red-400 p-2 rounded w-full"
+              className={`border-2 p-2 rounded w-full ${
+                form.contact
+                  ? (form.contact.length === 10 ? 'border-green-500' : 'border-red-500')
+                  : 'border-red-400'
+              }`}
             />
           </div>
 
@@ -300,7 +306,11 @@ function GuestForm({
               value={form.email}
               onChange={(e) => handleEmailChange(e.target.value)}
               required
-              className="border-2 border-red-400 p-2 rounded w-full"
+              className={`border-2 p-2 rounded w-full ${
+                form.email
+                  ? (form.email.endsWith('@thapar.edu') ? 'border-green-500' : 'border-red-500')
+                  : 'border-red-400'
+              }`}
             />
             {emailError && (
               <p className="text-red-600 text-xs mt-1">{emailError}</p>
@@ -313,7 +323,9 @@ function GuestForm({
               value={form.department}
               onChange={(e) => setForm({ ...form, department: e.target.value })}
               required
-              className="border-2 border-red-400 p-2 rounded w-full"
+              className={`border-2 p-2 rounded w-full ${
+                !form.department ? 'border-red-500' : 'border-green-500'
+              }`}
             >
               <option value="">Select Department *</option>
               {DEPARTMENTS.map((d) => (
@@ -321,7 +333,7 @@ function GuestForm({
               ))}
             </select>
           </div>
-
+          
           {/* Gender */}
           <div className="col-span-1 md:col-span-1">
             <select
