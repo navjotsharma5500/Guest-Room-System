@@ -31,7 +31,8 @@ const HALL_STRUCTURE = {
   }
 };
 
-export function useHallDataPolling(initialData = {}) {
+// ✅ CHANGED: Default export instead of named export
+export default function useHallDataPolling(initialData = {}) {
   const [hallData, setHallData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
