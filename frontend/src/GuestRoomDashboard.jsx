@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
-import { AlertCircle, Building2, Users } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
@@ -14,7 +14,6 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
-import HallBookingDashboard from "./components/HallBookings/HallBookingDashboard";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -23,7 +22,6 @@ import PaymentModal from "./components/PaymentModal";
 import { ToastProvider, useToast } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
 import { useHostelDataPolling } from "./hooks/useHostelDataPolling";
-import { useHallDataPolling } from "./hooks/useHallDataPolling";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 
 import useIdleTimeout from "./hooks/useIdleTimeout";
@@ -49,16 +47,6 @@ export default function GuestRoomDashboard() {
     refresh
   } = useHostelDataPolling({});
 
-  // 🆕 HALL DATA POLLING (for admin and assistant)
-  const {
-    hallData: liveHallData,
-    loading: hallLoading,
-    error: hallError,
-    lastUpdate: hallLastUpdate,
-    connected: hallConnected,
-    refresh: hallRefresh
-  } = useHallDataPolling({});
-
   // Screen Saver
   const isIdle = useIdleTimeout(2); // 5 minutes idle timeout
   const [showScreenSaver, setShowScreenSaver] = useState(false);
@@ -70,10 +58,6 @@ export default function GuestRoomDashboard() {
   const [activeTab, setActiveTab] = useState("Home");
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
-
-  // 🆕 HALL BOOKING DASHBOARD STATE
-  const [showHallDashboard, setShowHallDashboard] = useState(false);
-  const [hallData, setHallData] = useState({});
 
   // 🔍 DEBUG: track active tab
  console.log("🧭 Dashboard activeTab =", activeTab);
@@ -118,20 +102,6 @@ export default function GuestRoomDashboard() {
       setShowScreenSaver(true);
     }
   }, [isIdle]);
-
-  // Update local hallData state when polling hook updates
-  useEffect(() => {
-    if (liveHallData && Object.keys(liveHallData).length > 0) {
-      setHallData(liveHallData);
-    }
-  }, [liveHallData]);
-
-  // 🆕 AUTO-REDIRECT: Assistant goes directly to Hall Dashboard
-  useEffect(() => {
-    if (currentUser?.role === "assistant") {
-      setShowHallDashboard(true);
-    }
-  }, [currentUser]);
 
   // Theme + notifications save
   useEffect(() => {
@@ -193,7 +163,7 @@ export default function GuestRoomDashboard() {
     return (
       <main className="flex items-center justify-center h-screen text-gray-500">
         Kindly Wait Dashboard Loading...
-      </main>  // ← Make sure this closing tag exists
+      </main>
     );
   }
 
@@ -721,7 +691,7 @@ export default function GuestRoomDashboard() {
 
             {/* RIGHT SIDE: Profile & Logout */}
             <div className="flex items-center gap-4">
-              {activeTab !== "AllHostelsPortal" && !showHallDashboard && (
+              {activeTab !== "AllHostelsPortal" && (
                 <button
                   onClick={() => setProfileOpen(true)}
                   className="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -730,33 +700,7 @@ export default function GuestRoomDashboard() {
                 </button>
               )}
 
-              {/* 🆕 HALL BOOKING TOGGLE (Admin Only) */}
-              {currentUser?.role === "admin" && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowHallDashboard(!showHallDashboard)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg ${
-                    showHallDashboard
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
-                      : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
-                  }`}
-                >
-                  {showHallDashboard ? (
-                    <>
-                      <Building2 size={20} />
-                      Guest Room Dashboard
-                    </>
-                  ) : (
-                    <>
-                      <Users size={20} />
-                      Hall Bookings
-                    </>
-                  )}
-                </motion.button>
-              )}
-
-                            <button
+              <button
                 onClick={handleLogout}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
               >
@@ -767,7 +711,7 @@ export default function GuestRoomDashboard() {
 
           {/* SIDEBAR */}
           <AnimatePresence>
-            {activeTab !== "AllHostelsPortal" && !showHallDashboard && (
+            {activeTab !== "AllHostelsPortal" && (
               <motion.div
                 key="sidebar"
                 variants={sidebarVariants}
@@ -796,32 +740,6 @@ export default function GuestRoomDashboard() {
 
           {/* MAIN CONTENT */}
           <main className="flex-1 overflow-y-auto mt-16">
-            <AnimatePresence mode="wait">
-              {showHallDashboard ? (
-                /* 🆕 HALL BOOKING DASHBOARD */
-                <motion.div
-                  key="hall-dashboard"
-                  initial={{ opacity: 0, x: 100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <HallBookingDashboard
-                    hallData={hallData}
-                    setHallData={setHallData}
-                    theme={theme}
-                    onBackHome={() => setShowHallDashboard(false)}
-                  />
-                </motion.div>
-              ) : (
-                /* ✅ EXISTING GUEST ROOM DASHBOARD */
-                <motion.div
-                  key="guest-dashboard"
-                  initial={{ opacity: 0, x: -100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 100 }}
-                  transition={{ duration: 0.3 }}
-                >
             {activeTab === "Home" && (
               <MainContent
                 {...{
@@ -918,7 +836,9 @@ export default function GuestRoomDashboard() {
             )}
 
             {activeTab === "Feedback" && (
-              <FeedbackPage
+              <>
+                {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
+                <FeedbackPage
                 onBack={() => {
                   setActiveTab("Home");
                   if (currentUser?.assignedHostel) {
@@ -927,13 +847,10 @@ export default function GuestRoomDashboard() {
                 }}
                 theme={theme}
               />
+            </>   
             )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </main>
-        </div>
-
+          </main>   
+        </div>  
 
         {activeTab === "Defaulters" && (
           <DefaulterManagement

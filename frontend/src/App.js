@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Login";
+import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 
@@ -40,6 +41,18 @@ export default function App() {
               <Navigate to="/dashboard" replace />
             ) : (
               <Login />
+            )
+          }
+        />
+
+        {/* ---------- ADMIN DASHBOARD SELECTOR ---------- */}
+        <Route
+          path="/admin/dashboard-selector"
+          element={
+            currentUser ? (
+              <DashboardSelectorGlass />
+            ) : (
+              <Navigate to="/" replace />
             )
           }
         />

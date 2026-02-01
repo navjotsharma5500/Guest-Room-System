@@ -1,7 +1,8 @@
 // src/components/HallBookings/HallSidebar.jsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Calendar, Users, Home, Grid } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Grid } from "lucide-react";
+import Creator from "../Creator";
 
 export default function HallSidebar({ 
   theme, 
@@ -62,7 +63,7 @@ export default function HallSidebar({
         )}
       </button>
 
-      {/* Sidebar Header */}
+      {/* Sidebar Header with Thapar Logo */}
       <div className="p-6 border-b border-gray-700">
         <AnimatePresence mode="wait">
           {!isCollapsed ? (
@@ -74,8 +75,13 @@ export default function HallSidebar({
               transition={{ duration: 0.2 }}
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg">
-                  <Users className="w-6 h-6 text-white" />
+                {/* Thapar Logo */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                    alt="Thapar Institute"
+                    className="w-12 h-12 object-contain"
+                  />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
@@ -98,9 +104,11 @@ export default function HallSidebar({
               transition={{ duration: 0.2 }}
               className="flex justify-center"
             >
-              <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                alt="Thapar Institute"
+                className="w-10 h-10 object-contain"
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -153,7 +161,7 @@ export default function HallSidebar({
         })}
       </nav>
 
-      {/* Footer Info */}
+      {/* Footer - Creator Link */}
       {!isCollapsed && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -161,12 +169,7 @@ export default function HallSidebar({
           transition={{ delay: 0.2 }}
           className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700"
         >
-          <div className={`text-xs text-center ${
-            theme === "dark" ? "text-gray-400" : "text-gray-500"
-          }`}>
-            <p className="font-semibold mb-1">🎭 Hall Booking System</p>
-            <p className="opacity-75">Thapar Institute</p>
-          </div>
+          <Creator variant="sidebar" className="w-full justify-center" />
         </motion.div>
       )}
     </motion.aside>

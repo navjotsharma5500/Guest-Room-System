@@ -1,15 +1,12 @@
 // src/components/HallBookings/HallBookingsLayout.jsx
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, Users, Search, Filter, Download, Calendar } from "lucide-react";
+import { Home, Users, Calendar } from "lucide-react";
 
 export default function HallBookingsLayout({ 
   theme, 
   onBackHome, 
   children,
-  onSearchClick,
-  onFilterClick,
-  onDownloadClick,
   onAddBooking
 }) {
   return (
@@ -63,54 +60,6 @@ export default function HallBookingsLayout({
             >
               <Calendar size={18} />
               <span className="hidden sm:inline">Add Booking</span>
-            </motion.button>
-
-            {/* Search Button */}
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onSearchClick}
-              className={`flex items-center gap-2 px-4 py-2.5 border-2 rounded-xl shadow hover:shadow-lg transition-all ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
-              title="Search Bookings"
-            >
-              <Search size={18} />
-              <span className="hidden sm:inline">Search</span>
-            </motion.button>
-
-            {/* Filter Button */}
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onFilterClick}
-              className={`flex items-center gap-2 px-4 py-2.5 border-2 rounded-xl shadow hover:shadow-lg transition-all ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
-              title="Filter by Date Range"
-            >
-              <Filter size={18} />
-              <span className="hidden sm:inline">Filter</span>
-            </motion.button>
-
-            {/* Download Button */}
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 5px 15px rgba(34, 197, 94, 0.2)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onDownloadClick}
-              className={`flex items-center gap-2 px-4 py-2.5 border-2 rounded-xl shadow hover:shadow-lg transition-all ${
-                theme === "dark"
-                  ? "bg-green-900 border-green-700 text-green-100 hover:bg-green-800"
-                  : "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
-              }`}
-              title="Download Booking Data"
-            >
-              <Download size={18} />
-              <span className="hidden sm:inline">Download</span>
             </motion.button>
 
             {/* Home Button */}

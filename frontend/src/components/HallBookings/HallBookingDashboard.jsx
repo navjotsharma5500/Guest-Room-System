@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import "react-calendar/dist/Calendar.css";
 import "../../styles/calendarCustom.css";
+import * as XLSX from 'xlsx';
 
 import HallSidebar from "./HallSidebar";
 import HallBookingsPortal from "../../pages/HallBookingsPortal";
@@ -186,6 +187,66 @@ export default function HallBookingDashboard({
     setActiveSection(section);
   };
 
+  // Download all bookings data
+  const handleDownloadData = () => {
+    try {
+      const allBookings = [];
+      
+      Object.entries(hallData).forEach(([hallName, hallInfo]) => {
+        (hallInfo.rooms || []).forEach(room => {
+          (room.bookings || []).forEach(booking => {
+            allBookings.push({
+              "Hall": hallName,
+              "Room": room.roomNo,
+              "Name": booking.name || "—",
+              "Society": booking.societyName || "—",
+              "Event": booking.eventName || "—",
+              "Contact": booking.contact || "—",
+              "Email": booking.email || "—",
+              "Check-in Date": booking.checkInDate || booking.from || "—",
+              "Check-in Time": booking.checkInTime || "—",
+              "Check-out Date": booking.checkOutDate || booking.to || "—",
+              "Check-out Time": booking.checkOutTime || "—",
+              "Status": booking.status || "—",
+              "Purpose": booking.purpose || "—",
+              "Description": booking.description || "—",
+            });
+          });
+        });
+      });
+
+      if (allBookings.length === 0) {
+        showToast("⚠️ No bookings to download", "warning");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(allBookings);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Hall Bookings");
+
+      // Auto-size columns
+      const maxWidth = 30;
+      const colWidths = Object.keys(allBookings[0] || {}).map(key => ({
+        wch: Math.min(
+          maxWidth,
+          Math.max(
+            key.length,
+            ...allBookings.map(row => String(row[key] || "").length)
+          )
+        )
+      }));
+      worksheet['!cols'] = colWidths;
+
+      const fileName = `Hall_Bookings_Dashboard_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      showToast("✅ Data downloaded successfully", "success");
+    } catch (error) {
+      console.error("❌ Download error:", error);
+      showToast("❌ Failed to download data", "error");
+    }
+  };
+
   // If in portal view, show full portal
   if (activeSection === "portal") {
     return (
@@ -210,123 +271,119 @@ export default function HallBookingDashboard({
   // Dashboard Home View
   return (
     <div className="fixed inset-0 top-16">
-      {/* Sidebar */}
       <HallSidebar
         theme={theme}
         onNavigate={handleNavigate}
         activeSection={activeSection}
       />
-
-      {/* Main Content */}
-      <main className={`ml-[250px] h-full overflow-y-auto ${
+      
+      <main className={`ml-[250px] h-full overflow-y-auto p-6 ${
         theme === "dark"
           ? "bg-gradient-to-b from-gray-900 to-gray-800"
-          : "bg-gradient-to-b from-gray-50 to-white"
+          : "bg-gradient-to-b from-red-50 to-white"
       }`}>
-        <div className="p-6 space-y-6">
-          {/* Header with Stats */}
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Statistics Overview */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
           >
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent mb-6">
-              Hall Booking Dashboard
-            </h1>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <motion.div
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={`p-4 rounded-2xl border-2 shadow-lg ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-                    : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-100 rounded-xl">
-                    <Building2 className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-blue-600">{stats.totalRooms}</p>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Total Rooms
-                    </p>
-                  </div>
+            {/* Total Rooms */}
+            <div className={`p-6 rounded-2xl border-2 shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
+                : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-blue-100 rounded-xl">
+                  <Users className="w-6 h-6 text-blue-600" />
                 </div>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={`p-4 rounded-2xl border-2 shadow-lg ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-                    : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-100 rounded-xl">
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-green-600">{stats.totalAvailable}</p>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Available
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-3xl font-bold text-blue-600">{stats.totalRooms}</p>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Total Rooms
+                  </p>
                 </div>
-              </motion.div>
+              </div>
+            </div>
 
-              <motion.div
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={`p-4 rounded-2xl border-2 shadow-lg ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-                    : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-red-100 rounded-xl">
-                    <AlertCircle className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-red-600">{stats.totalActive}</p>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Active Now
-                    </p>
-                  </div>
+            {/* Available */}
+            <div className={`p-6 rounded-2xl border-2 shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
+                : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-100 rounded-xl">
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
                 </div>
-              </motion.div>
+                <div>
+                  <p className="text-3xl font-bold text-green-600">{stats.totalAvailable}</p>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Available
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              <motion.div
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={`p-4 rounded-2xl border-2 shadow-lg ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-                    : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-yellow-100 rounded-xl">
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.totalUpcoming}</p>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Upcoming
-                    </p>
-                  </div>
+            {/* Active Now */}
+            <div className={`p-6 rounded-2xl border-2 shadow-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
+                : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
                 </div>
-              </motion.div>
+                <div>
+                  <p className="text-3xl font-bold text-red-600">{stats.totalActive}</p>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Active Now
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming - With Download Button */}
+            <div className={`p-6 rounded-2xl border-2 shadow-lg relative ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
+                : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
+            }`}>
+              {/* Download Button - Positioned top-right */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleDownloadData}
+                className="absolute top-2 right-2 p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
+                title="Download All Bookings"
+              >
+                <Download className="w-4 h-4 text-green-600" />
+              </motion.button>
+
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-yellow-100 rounded-xl">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-yellow-600">{stats.totalUpcoming}</p>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Upcoming
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
 
-          {/* Main Grid: Calendar + Booking Details */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* LEFT: Calendar */}
+          {/* Calendar and Booking Details Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Calendar Section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
               className={`shadow-xl rounded-2xl p-6 ${
                 theme === "dark"
                   ? "bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700"
@@ -336,31 +393,78 @@ export default function HallBookingDashboard({
               <div className="flex items-center gap-3 mb-6">
                 <CalendarIcon className="w-6 h-6 text-red-600" />
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-                  Select a Date
+                  Booking Calendar
                 </h2>
               </div>
 
               <Calendar
-                onChange={(date) => {
-                  setSelectedDate(date);
-                  setSelectedBooking(null);
-                }}
+                onChange={setSelectedDate}
                 value={selectedDate}
                 tileClassName={tileClassName}
-                className="rounded-xl shadow-lg w-full"
+                className={theme === "dark" ? "dark-calendar" : ""}
               />
 
-              <p className={`text-sm mt-4 text-center ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                {bookingsForDate.length} booking(s) on {selectedDate.toDateString()}
-              </p>
+              {/* Bookings for Selected Date */}
+              <div className="mt-6 space-y-3">
+                <h3 className={`font-semibold text-lg flex items-center gap-2 ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-800"
+                }`}>
+                  <Building2 className="w-5 h-5 text-red-600" />
+                  Bookings on {selectedDate.toLocaleDateString()}
+                </h3>
+
+                {bookingsForDate.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                    {bookingsForDate.map((booking, index) => (
+                      <motion.div
+                        key={booking._id || index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => setSelectedBooking(booking)}
+                        whileHover={{ scale: 1.02 }}
+                        className={`p-3 rounded-xl cursor-pointer transition-all ${
+                          selectedBooking?._id === booking._id
+                            ? "bg-red-100 border-2 border-red-600"
+                            : theme === "dark"
+                            ? "bg-gray-700 hover:bg-gray-600"
+                            : "bg-white hover:bg-gray-50 border border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-500" />
+                          <span className={`font-semibold text-sm ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-800"
+                          }`}>
+                            {booking.name || booking.guest || "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-xs">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          <span className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+                            {booking.hall} - {booking.roomNo}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    }`}>
+                      No bookings on this date
+                    </p>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
-            {/* RIGHT: Booking Details */}
+            {/* Booking Details Section */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
               className={`shadow-xl rounded-2xl p-6 ${
                 theme === "dark"
                   ? "bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700"
@@ -374,8 +478,8 @@ export default function HallBookingDashboard({
               {selectedBooking ? (
                 <motion.div
                   key={selectedBooking._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   className="space-y-4"
                 >
                   {/* Guest Name */}

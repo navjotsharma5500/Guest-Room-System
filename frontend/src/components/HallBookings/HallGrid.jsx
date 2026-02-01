@@ -1,8 +1,7 @@
 // src/components/HallBookings/HallGrid.jsx
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, CheckCircle2, Clock, AlertCircle } from "lucide-react";
-import RoomCard from "../RoomCard";
+import { Users, CheckCircle2, Clock, AlertCircle, User, Calendar } from "lucide-react";
 
 // Hall data structure configuration
 const HALL_STRUCTURE = {
@@ -38,7 +37,7 @@ const HALL_STRUCTURE = {
   },
   "Common Rooms": {
     rooms: ["G-Block", "Tan Rooms", "E-Block", "F-Block", "Activity Room", "Activity Space", "LP Rooms"],
-    icon: "🏛️",
+    icon: "🛋️",
     color: "indigo"
   }
 };
@@ -72,6 +71,28 @@ const getRoomStatus = (room) => {
 
   // Upcoming booking
   return { status: "upcoming", color: "yellow", label: "Upcoming" };
+};
+
+// Format date/time helper
+const formatDateTime = (dateString, timeString) => {
+  if (!dateString) return "—";
+  try {
+    const date = new Date(dateString);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const formattedDate = `${String(day).padStart(2, "0")} ${month}`;
+
+    if (!timeString) return formattedDate;
+
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+
+    return `${formattedDate}, ${String(displayHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
+  } catch {
+    return dateString;
+  }
 };
 
 export default function HallGrid({
@@ -304,41 +325,100 @@ export default function HallGrid({
                 </div>
               </div>
 
-              {/* Rooms Grid - Better Layout */}
+              {/* Rooms Grid - New Card-based Layout */}
               <div className="p-5">
                 {rooms.length > 0 ? (
-                  <div className={`grid gap-3 ${
-                    rooms.length === 1 ? "grid-cols-1" :
-                    rooms.length === 2 ? "grid-cols-2" :
-                    rooms.length <= 4 ? "grid-cols-2" :
-                    "grid-cols-2"
-                  }`}>
+                  <div className="space-y-3">
                     {rooms.map((room) => {
                       const activeBookings = getActiveBookings(room.bookings || []);
                       const roomStatus = getRoomStatus(room);
-                      
-                      const roomWithActiveBookings = {
-                        ...room,
-                        bookings: activeBookings,
-                        _status: roomStatus
-                      };
+                      const isSelected = selectedRooms.some(
+                        (r) => r.hall === hallName && r.roomNo === room.roomNo
+                      );
 
                       return (
-                        <RoomCard
+                        <motion.div
                           key={`${hallName}_${room.roomNo}`}
-                          hostelName={hallName}
-                          room={roomWithActiveBookings}
-                          theme={theme}
-                          isSelected={selectedRooms.some(
-                            (r) => r.hall === hallName && r.roomNo === room.roomNo
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          onClick={() => {
+                            if (selectionMode) {
+                              toggleRoomSelect(hallName, room.roomNo);
+                            } else {
+                              onRoomClick(hallName, room, activeBookings.length > 0);
+                            }
+                          }}
+                          className={`p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                            isSelected
+                              ? "border-red-600 bg-red-50 dark:bg-red-900/20"
+                              : roomStatus.status === "available"
+                              ? theme === "dark"
+                                ? "border-green-700 bg-green-900/20 hover:bg-green-800/30"
+                                : "border-green-300 bg-green-50 hover:bg-green-100"
+                              : roomStatus.status === "active"
+                              ? theme === "dark"
+                                ? "border-red-700 bg-red-900/20 hover:bg-red-800/30"
+                                : "border-red-300 bg-red-50 hover:bg-red-100"
+                              : theme === "dark"
+                              ? "border-yellow-700 bg-yellow-900/20 hover:bg-yellow-800/30"
+                              : "border-yellow-300 bg-yellow-50 hover:bg-yellow-100"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {selectionMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                                />
+                              )}
+                              <span className={`font-bold text-lg ${
+                                theme === "dark" ? "text-gray-100" : "text-gray-900"
+                              }`}>
+                                {room.roomNo}
+                              </span>
+                            </div>
+                            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              roomStatus.status === "available"
+                                ? "bg-green-500 text-white"
+                                : roomStatus.status === "active"
+                                ? "bg-red-500 text-white"
+                                : "bg-yellow-500 text-white"
+                            }`}>
+                              {roomStatus.label}
+                            </div>
+                          </div>
+
+                          {/* Show booking info if exists */}
+                          {activeBookings.length > 0 && (
+                            <div className={`mt-3 pt-3 border-t ${
+                              theme === "dark" ? "border-gray-700" : "border-gray-200"
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <User className="w-4 h-4 text-gray-500" />
+                                <span className={`text-sm font-semibold ${
+                                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                                }`}>
+                                  {activeBookings[0].name || activeBookings[0].guest || "—"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-gray-500" />
+                                <span className={`text-xs ${
+                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                                }`}>
+                                  {formatDateTime(activeBookings[0].from || activeBookings[0].checkInDate, activeBookings[0].checkInTime)}
+                                </span>
+                              </div>
+                              {activeBookings.length > 1 && (
+                                <div className="mt-2 text-xs text-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                                  +{activeBookings.length - 1} more booking{activeBookings.length > 2 ? 's' : ''}
+                                </div>
+                              )}
+                            </div>
                           )}
-                          selectionMode={selectionMode}
-                          consolidateModal={hallBookingModal}
-                          bookingCompleted={bookingCompleted}
-                          onToggleSelect={() => toggleRoomSelect(hallName, room.roomNo)}
-                          onClick={(bookedAny) => onRoomClick(hallName, room, bookedAny)}
-                          showToast={showToast}
-                        />
+                        </motion.div>
                       );
                     })}
                   </div>

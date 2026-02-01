@@ -1,7 +1,8 @@
 // src/pages/HallBookingsPortal.jsx
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
+import { Filter, Search } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 // Component Imports
@@ -206,73 +207,10 @@ export default function HallBookingsPortal({
     setVacantRooms([]);
   };
 
-  // Download all bookings data
-  const handleDownloadData = () => {
-    try {
-      const allBookings = [];
-      
-      Object.entries(stableHallData).forEach(([hallName, hallInfo]) => {
-        (hallInfo.rooms || []).forEach(room => {
-          (room.bookings || []).forEach(booking => {
-            allBookings.push({
-              "Hall": hallName,
-              "Room": room.roomNo,
-              "Name": booking.name || "—",
-              "Society": booking.societyName || "—",
-              "Event": booking.eventName || "—",
-              "Contact": booking.contact || "—",
-              "Email": booking.email || "—",
-              "Check-in Date": booking.checkInDate || booking.from || "—",
-              "Check-in Time": booking.checkInTime || "—",
-              "Check-out Date": booking.checkOutDate || booking.to || "—",
-              "Check-out Time": booking.checkOutTime || "—",
-              "Status": booking.status || "—",
-              "Purpose": booking.purpose || "—",
-              "Description": booking.description || "—",
-            });
-          });
-        });
-      });
-
-      if (allBookings.length === 0) {
-        showToast("⚠️ No bookings to download", "warning");
-        return;
-      }
-
-      const worksheet = XLSX.utils.json_to_sheet(allBookings);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Hall Bookings");
-
-      // Auto-size columns
-      const maxWidth = 30;
-      const colWidths = Object.keys(allBookings[0] || {}).map(key => ({
-        wch: Math.min(
-          maxWidth,
-          Math.max(
-            key.length,
-            ...allBookings.map(row => String(row[key] || "").length)
-          )
-        )
-      }));
-      worksheet['!cols'] = colWidths;
-
-      const fileName = `All_Hall_Bookings_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-      
-      showToast("✅ Data downloaded successfully", "success");
-    } catch (error) {
-      console.error("❌ Download error:", error);
-      showToast("❌ Failed to download data", "error");
-    }
-  };
-
   return (
     <HallBookingsLayout 
       theme={theme} 
       onBackHome={onBackHome}
-      onSearchClick={() => setSearchFilterModal(true)}
-      onFilterClick={() => setFilterModal(true)}
-      onDownloadClick={handleDownloadData}
       onAddBooking={handleAddBooking}
     >
       {/* Hall Grid */}
@@ -298,6 +236,39 @@ export default function HallBookingsPortal({
           onDone={onDoneSelection}
         />
       )}
+
+      {/* Floating Action Buttons - Bottom Right */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
+        {/* Search Button */}
+        <motion.button
+          whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setSearchFilterModal(true)}
+          className={`p-4 rounded-full shadow-2xl transition-all ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
+              : "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500"
+          } text-white`}
+          title="Search Bookings"
+        >
+          <Search size={24} />
+        </motion.button>
+
+        {/* Filter Button */}
+        <motion.button
+          whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setFilterModal(true)}
+          className={`p-4 rounded-full shadow-2xl transition-all ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
+              : "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500"
+          } text-white`}
+          title="Filter by Date Range (Check Vacancy)"
+        >
+          <Filter size={24} />
+        </motion.button>
+      </div>
 
       {/* Modals */}
       <AnimatePresence mode="wait">
