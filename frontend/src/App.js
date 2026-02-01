@@ -1,4 +1,4 @@
-// src/App.js - FINAL VERSION WITH ROLE-BASED ROUTING
+// src/App.js - FINAL VERSION WITH STRICT ROLE-BASED ROUTING
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -30,14 +30,14 @@ export default function App() {
     );
   }
 
-  // ✅ STEP 1.3: Extract user role for routing logic
+  // ✅ Extract role safely
   const role = currentUser?.role || currentUser?.user?.role;
 
   return (
     <Router>
       <Routes>
 
-        {/* ---------- LOGIN PAGE WITH ROLE-BASED REDIRECT ---------- */}
+        {/* ---------- LOGIN + AUTO REDIRECT ---------- */}
         <Route
           path="/"
           element={
@@ -71,8 +71,10 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            currentUser ? (
+            currentUser && role !== "assistant" ? (
               <GuestRoomDashboard />
+            ) : currentUser && role === "assistant" ? (
+              <Navigate to="/hall/dashboard" replace />
             ) : (
               <Navigate to="/" replace />
             )
@@ -93,7 +95,7 @@ export default function App() {
           }
         />
 
-        {/* ---------- GUEST ENQUIRY PAGE (PUBLIC) ---------- */}
+        {/* ---------- GUEST ENQUIRY (PUBLIC) ---------- */}
         <Route
           path="/guest-enquiry"
           element={<GuestEnquiryPage />}
