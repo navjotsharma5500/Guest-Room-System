@@ -1,5 +1,6 @@
 // src/GuestRoomDashboard.jsx - UPDATED WITH CENTRALIZED REFRESH
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
 import { AlertCircle } from "lucide-react";
@@ -32,7 +33,11 @@ import { BACKEND_URL } from "./utils/apiConfig";
 const API = BACKEND_URL;
 
 export default function GuestRoomDashboard() {
+  const navigate = useNavigate();  
   const { currentUser, loading, logout } = useAuth();
+  
+  // Extract user role
+  const role = currentUser?.role || currentUser?.user?.role;  
 
   const { showToast } = useToast();
 
@@ -689,8 +694,27 @@ export default function GuestRoomDashboard() {
               </button>
             </div>
 
-            {/* RIGHT SIDE: Profile & Logout */}
-            <div className="flex items-center gap-4">
+            {/* RIGHT SIDE: Switch Dashboard (Admin only), Profile & Logout */}
+            <div className="flex items-center gap-3">
+              {/* Switch Dashboard Button - Admin Only */}
+              {role === "admin" && (
+                <button
+                  onClick={() => navigate("/admin/dashboard-selector")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                    theme === "dark"
+                      ? "border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                      : "border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                  }`}
+                  title="Switch to Dashboard Selector"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  <span className="font-medium text-sm">Switch Dashboard</span>
+                </button>
+              )}
+
+              {/* Profile Button */}
               {activeTab !== "AllHostelsPortal" && (
                 <button
                   onClick={() => setProfileOpen(true)}
@@ -700,6 +724,7 @@ export default function GuestRoomDashboard() {
                 </button>
               )}
 
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
@@ -707,7 +732,7 @@ export default function GuestRoomDashboard() {
                 Logout
               </button>
             </div>
-          </div>
+          </div>  
 
           {/* SIDEBAR */}
           <AnimatePresence>
