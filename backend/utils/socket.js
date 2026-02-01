@@ -1,53 +1,27 @@
 // backend/utils/socket.js
-// =======================================================
-// SOCKET.IO SERVER HELPER (BACKEND ONLY)
-// =======================================================
-
 import { Server } from 'socket.io';
 
 let io;
+let hallNamespace;
+let guestNamespace;
 
 /**
- * Initialize Socket.IO server
- * Called ONCE from index.js when server starts
- */
-export const initializeSocket = (server) => {
-  io = new Server(server, {
-    cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true,
-    },
-  });
-
-  io.on('connection', (socket) => {
-    console.log('✅ Client connected:', socket.id);
-
-    socket.on('join-dashboard', () => {
-      console.log('📊 Client joined dashboard');
-      socket.join('dashboard');
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ Client disconnected:', socket.id);
-    });
-  });
-
-  console.log("🔌 Socket.IO instance initialized in backend");
-  return io;
-};
-
-/**
- * Register Socket.IO instance (alternative to initializeSocket)
- * Called ONCE from index.js after io is created externally
+ * Register Socket.IO instance
  */
 export const setSocketIO = (ioInstance) => {
   io = ioInstance;
+  
+  // Create namespaces AFTER io is set
+  hallNamespace = io.of('/hall');
+  guestNamespace = io.of('/guest');
+  
   console.log("🔌 Socket.IO instance registered in backend");
+  console.log("🎪 Hall namespace created");
+  console.log("🏨 Guest namespace created");
 };
 
 /**
  * Get Socket.IO instance
- * Used inside controllers to emit events
  */
 export const getSocketIO = () => {
   if (!io) {
@@ -57,21 +31,44 @@ export const getSocketIO = () => {
 };
 
 /**
- * Safe emit helper (optional but useful)
+ * Emit to hall namespace
  */
-export const emitEvent = (event, payload, room = null) => {
-  const io = getSocketIO();
+export const emitHallEvent = (event, data) => {
+  if (!hallNamespace) {
+    console.error('❌ Hall namespace not initialized');
+    return;
+  }
+  
+  try {
+    hallNamespace.emit(event, data);
+    io.emit(event, data); // Also emit to default for admin
+    console.log(`✅ Hall event emitted: ${event}`);
+  } catch (error) {
+    console.error(`⚠️ Hall event emit failed: ${error.message}`);
+  }
+};
 
-  if (room) {
-    io.to(room).emit(event, payload);
-  } else {
-    io.emit(event, payload);
+/**
+ * Emit to guest namespace
+ */
+export const emitGuestEvent = (event, data) => {
+  if (!guestNamespace) {
+    console.error('❌ Guest namespace not initialized');
+    return;
+  }
+  
+  try {
+    guestNamespace.emit(event, data);
+    io.emit(event, data); // Also emit to default for admin
+    console.log(`✅ Guest event emitted: ${event}`);
+  } catch (error) {
+    console.error(`⚠️ Guest event emit failed: ${error.message}`);
   }
 };
 
 export default {
-  initializeSocket,
   setSocketIO,
   getSocketIO,
-  emitEvent,
+  emitHallEvent,
+  emitGuestEvent,
 };

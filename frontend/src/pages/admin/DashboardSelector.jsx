@@ -37,7 +37,8 @@ const DashboardSelector = () => {
       iconBg: "bg-red-100",
       iconColor: "text-red-600",
       available: true,
-      features: ["Hall Reservations", "Event Calendar", "Availability Check"]
+      features: ["Hall Reservations", "Event Calendar", "Availability Check"],
+      onClick: () => navigate("/hall/dashboard") 
     },
     {
       id: "coming-soon",

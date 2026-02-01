@@ -9,54 +9,57 @@ export const getAllUnifiedBookings = async (req, res) => {
   try {
     const userRole = req.user?.role || 'caretaker';
     const userHostel = req.user?.assignedHostel || req.user?.hostel;
+    
+    let guestBookings = [];
+    let hallBookings = [];
 
-    // Fetch guest bookings
-    let guestBookings = await Booking.find()
-      .populate('createdBy', 'name email')
-      .lean();
+    // 🛡️ ISOLATION: Fetch each system independently
+    try {
+      guestBookings = await Booking.find()
+        .populate('createdBy', 'name email')
+        .lean();
+      
+      guestBookings = guestBookings.map(b => ({
+        ...b,
+        bookingType: 'guest',
+        isHallBooking: false,
+        guest: b.guest,
+      }));
+    } catch (guestError) {
+      console.error('⚠️ Guest booking fetch failed (isolated):', guestError.message);
+    }
 
-    // Fetch hall bookings
-    let hallBookings = await HallBooking.find()
-      .populate('createdBy', 'name email')
-      .lean();
-
-    // Add type identifiers to guest bookings
-    guestBookings = guestBookings.map(b => ({
-      ...b,
-      bookingType: 'guest',
-      isHallBooking: false,
-      guest: b.guest, // Already has guest field
-    }));
-
-    // Add type identifiers and compatibility fields to hall bookings
-    hallBookings = hallBookings.map(b => ({
-      ...b,
-      bookingType: 'hall',
-      isHallBooking: true,
-      guest: b.name, // Use name as guest
-      hostel: b.hall, // Use hall as hostel for compatibility
-      from: b.checkInDate, // Compatibility
-      to: b.checkOutDate, // Compatibility
-    }));
+    try {
+      hallBookings = await HallBooking.find()
+        .populate('createdBy', 'name email')
+        .lean();
+      
+      hallBookings = hallBookings.map(b => ({
+        ...b,
+        bookingType: 'hall',
+        isHallBooking: true,
+        guest: b.name,
+        hostel: b.hall,
+        from: b.checkInDate,
+        to: b.checkOutDate,
+      }));
+    } catch (hallError) {
+      console.error('⚠️ Hall booking fetch failed (isolated):', hallError.message);
+    }
 
     // Role-based filtering
     let filteredBookings = [];
 
     if (userRole === 'admin') {
-      // Admin sees everything
       filteredBookings = [...guestBookings, ...hallBookings];
     } else if (userRole === 'assistant') {
-      // Assistant sees ONLY hall bookings
       filteredBookings = hallBookings;
     } else if (userRole === 'manager') {
-      // Manager sees ONLY guest bookings
       filteredBookings = guestBookings;
     } else if (userRole === 'caretaker') {
-      // Caretaker sees only their hostel's guest bookings
       filteredBookings = guestBookings.filter(b => b.hostel === userHostel);
     }
 
-    // Sort by check-in date
     filteredBookings.sort((a, b) => {
       const dateA = new Date(a.from || a.checkInDate);
       const dateB = new Date(b.from || b.checkInDate);
@@ -87,36 +90,43 @@ export const getUnifiedBookingsByDateRange = async (req, res) => {
     const userRole = req.user?.role || 'caretaker';
     const userHostel = req.user?.assignedHostel || req.user?.hostel;
 
-    // Fetch guest bookings in date range
-    let guestBookings = await Booking.find({
-      from: { $lte: new Date(endDate) },
-      to: { $gte: new Date(startDate) },
-    }).lean();
+    let guestBookings = [];
+    let hallBookings = [];
 
-    // Fetch hall bookings in date range
-    let hallBookings = await HallBooking.find({
-      checkInDate: { $lte: endDate },
-      checkOutDate: { $gte: startDate },
-    }).lean();
+    try {
+      guestBookings = await Booking.find({
+        from: { $lte: new Date(endDate) },
+        to: { $gte: new Date(startDate) },
+      }).lean();
 
-    // Add type identifiers
-    guestBookings = guestBookings.map(b => ({
-      ...b,
-      bookingType: 'guest',
-      isHallBooking: false,
-    }));
+      guestBookings = guestBookings.map(b => ({
+        ...b,
+        bookingType: 'guest',
+        isHallBooking: false,
+      }));
+    } catch (guestError) {
+      console.error('⚠️ Guest booking fetch failed (isolated):', guestError.message);
+    }
 
-    hallBookings = hallBookings.map(b => ({
-      ...b,
-      bookingType: 'hall',
-      isHallBooking: true,
-      guest: b.name,
-      hostel: b.hall,
-      from: b.checkInDate,
-      to: b.checkOutDate,
-    }));
+    try {
+      hallBookings = await HallBooking.find({
+        checkInDate: { $lte: endDate },
+        checkOutDate: { $gte: startDate },
+      }).lean();
 
-    // Role-based filtering
+      hallBookings = hallBookings.map(b => ({
+        ...b,
+        bookingType: 'hall',
+        isHallBooking: true,
+        guest: b.name,
+        hostel: b.hall,
+        from: b.checkInDate,
+        to: b.checkOutDate,
+      }));
+    } catch (hallError) {
+      console.error('⚠️ Hall booking fetch failed (isolated):', hallError.message);
+    }
+
     let filteredBookings = [];
 
     if (userRole === 'admin') {

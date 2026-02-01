@@ -2,11 +2,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Filter, Search } from "lucide-react";
-import * as XLSX from 'xlsx';
+import { Filter, Search, Home, Calendar } from "lucide-react";
 
 // Component Imports
-import HallBookingsLayout from "../components/HallBookings/HallBookingsLayout";
 import HallGrid from "../components/HallBookings/HallGrid";
 import SelectionFooter from "../components/AllHostels/SelectionFooter";
 import FilterModal from "../components/AllHostels/FilterModal";
@@ -66,7 +64,7 @@ const filterActiveBookingsFromHallData = (hallData) => {
 
 export default function HallBookingsPortal({
   hallData = {},
-  setHallData,
+  setHallData = () => {}, 
   theme,
   onBackHome,
 }) {
@@ -98,7 +96,7 @@ export default function HallBookingsPortal({
 
   const stableHallData = useMemo(() => {
     return filteredHallData;
-  }, [JSON.stringify(filteredHallData)]);
+  }, [filteredHallData]); // Fixed: removed JSON.stringify dependency
 
   // Memoize callbacks
   const stableSetSelectedRooms = useCallback(setSelectedRooms, []);
@@ -208,201 +206,232 @@ export default function HallBookingsPortal({
   };
 
   return (
-    <HallBookingsLayout 
-      theme={theme} 
-      onBackHome={onBackHome}
-      onAddBooking={handleAddBooking}
-    >
-      {/* Hall Grid */}
-      <HallGrid
-        hallData={stableHallData}
-        theme={theme}
-        selectedRooms={selectedRooms}
-        toggleRoomSelect={vacancyHandlers.toggleRoomSelect}
-        selectionMode={selectionMode}
-        hallBookingModal={hallBookingModal}
-        bookingCompleted={bookingCompleted}
-        onRoomClick={bookingHandlers.onRoomClick}
-        showToast={showToast}
-      />
+    <div className="h-full w-full overflow-y-auto bg-gradient-to-b from-red-50 to-white">
+      {/* Simple Header for Portal Mode */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="flex justify-between items-center px-6 py-4 border-b-2 bg-white/95 backdrop-blur-md border-gray-200 shadow-lg sticky top-0 z-30"
+      >
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+          Hall Booking Portal
+        </h2>
+        
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleAddBooking}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold"
+          >
+            <Calendar size={18} />
+            Add Booking
+          </motion.button>
 
-      {/* Selection Footer - Shows when in selection mode */}
-      {selectionMode && 
-       !hallBookingModal && 
-       !bookingCompleted && 
-       selectedRooms.length > 0 && (
-        <SelectionFooter
-          selectedCount={selectedRooms.length}
-          onDone={onDoneSelection}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onBackHome}
+            className="flex items-center gap-2 px-4 py-2.5 border-2 border-red-400 text-red-700 hover:bg-red-50 rounded-xl shadow transition"
+          >
+            <Home size={18} />
+            Back
+          </motion.button>
+        </div>
+      </motion.div>
+
+      <div className="p-6">
+        {/* Hall Grid */}
+        <HallGrid
+          hallData={stableHallData}
+          theme={theme}
+          selectedRooms={selectedRooms}
+          toggleRoomSelect={vacancyHandlers.toggleRoomSelect}
+          selectionMode={selectionMode}
+          hallBookingModal={hallBookingModal}
+          bookingCompleted={bookingCompleted}
+          onRoomClick={bookingHandlers.onRoomClick}
+          showToast={showToast}
         />
-      )}
 
-      {/* Floating Action Buttons - Bottom Right */}
-      <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
-        {/* Search Button */}
-        <motion.button
-          whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setSearchFilterModal(true)}
-          className={`p-4 rounded-full shadow-2xl transition-all ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
-              : "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500"
-          } text-white`}
-          title="Search Bookings"
-        >
-          <Search size={24} />
-        </motion.button>
-
-        {/* Filter Button */}
-        <motion.button
-          whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setFilterModal(true)}
-          className={`p-4 rounded-full shadow-2xl transition-all ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
-              : "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500"
-          } text-white`}
-          title="Filter by Date Range (Check Vacancy)"
-        >
-          <Filter size={24} />
-        </motion.button>
-      </div>
-
-      {/* Modals */}
-      <AnimatePresence mode="wait">
-        {filterModal && (
-          <FilterModal
-            theme={theme}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            setCheckIn={setCheckIn}
-            setCheckOut={setCheckOut}
-            onClose={() => setFilterModal(false)}
-            onSubmit={vacancyHandlers.handleFilterSubmit}
+        {/* Selection Footer - Shows when in selection mode */}
+        {selectionMode && 
+        !hallBookingModal && 
+        !bookingCompleted && 
+        selectedRooms.length > 0 && (
+          <SelectionFooter
+            selectedCount={selectedRooms.length}
+            onDone={onDoneSelection}
           />
         )}
-      </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {searchFilterModal && (
-          <SearchFilterModal
-            theme={theme}
-            hallData={stableHallData}
-            onClose={() => setSearchFilterModal(false)}
-          />
-        )}
-      </AnimatePresence>
+        {/* Floating Action Buttons - Bottom Right */}
+        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
+          {/* Search Button */}
+          <motion.button
+            whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setSearchFilterModal(true)}
+            className={`p-4 rounded-full shadow-2xl transition-all ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
+                : "bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500"
+            } text-white`}
+            title="Search Bookings"
+          >
+            <Search size={24} />
+          </motion.button>
 
-      <AnimatePresence mode="wait">
-        {vacantRooms && vacantRooms.length > 0 && (
-          <VacantRoomsModal
-            theme={theme}
-            vacantRooms={vacantRooms}
-            onClose={() => setVacantRooms([])}
-            onBookRoom={openDirectBookingForVacant}
-          />
-        )}
-      </AnimatePresence>
+          {/* Filter Button */}
+          <motion.button
+            whileHover={{ scale: 1.1, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.4)" }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setFilterModal(true)}
+            className={`p-4 rounded-full shadow-2xl transition-all ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
+                : "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500"
+            } text-white`}
+            title="Filter by Date Range (Check Vacancy)"
+          >
+            <Filter size={24} />
+          </motion.button>
+        </div>
 
-      <AnimatePresence mode="wait">
-        {hallBookingModal && (
-          <HallBookingModal
-            theme={theme}
-            selectedRooms={selectedRooms}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            onClose={() => {
-              setHallBookingModal(false);
-              setSelectionMode(false);
-              setSelectedRooms([]);
-            }}
-            onSubmit={bookingHandlers.handleHallBooking}
-          />
-        )}
-      </AnimatePresence>
+        {/* Modals */}
+        <AnimatePresence mode="wait">
+          {filterModal && (
+            <FilterModal
+              theme={theme}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              setCheckIn={setCheckIn}
+              setCheckOut={setCheckOut}
+              onClose={() => setFilterModal(false)}
+              onSubmit={vacancyHandlers.handleFilterSubmit}
+            />
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {bookingListModal && (
-          <BookingListModal
-            theme={theme}
-            modal={bookingListModal}
-            onClose={() => setBookingListModal(null)}
-            onSelectBooking={(booking) => {
-              setBookingListModal(null);
-              setBookingDetailsModal({
-                hall: bookingListModal.hall,
-                room: bookingListModal.room,
-                booking,
-              });
-            }}
-          />
-        )}
-      </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {searchFilterModal && (
+            <SearchFilterModal
+              theme={theme}
+              hallData={stableHallData}
+              onClose={() => setSearchFilterModal(false)}
+            />
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {bookingDetailsModal && (
-          <BookingDetailsModal
-            theme={theme}
-            modal={bookingDetailsModal}
-            onClose={() => setBookingDetailsModal(null)}
-            onExtend={() => {
-              const booking = bookingDetailsModal.booking;
-              setExtensionModal({
-                hall: bookingDetailsModal.hall,
-                roomNo: bookingDetailsModal.room.roomNo,
-                booking: {
-                  ...booking,
-                  _originalTo: booking.to,
-                },
-              });
-            }}
-            onCancel={(payload) => {
-              setBookingDetailsModal(null);
-              setTimeout(() => {
-                setCancelModal({
-                  hall: payload.hall,
-                  room: payload.room,
-                  booking: payload.booking,
-                  remarksText: "",
+        <AnimatePresence mode="wait">
+          {vacantRooms && vacantRooms.length > 0 && (
+            <VacantRoomsModal
+              theme={theme}
+              vacantRooms={vacantRooms}
+              onClose={() => setVacantRooms([])}
+              onBookRoom={openDirectBookingForVacant}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {hallBookingModal && (
+            <HallBookingModal
+              theme={theme}
+              selectedRooms={selectedRooms}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onClose={() => {
+                setHallBookingModal(false);
+                setSelectionMode(false);
+                setSelectedRooms([]);
+              }}
+              onSubmit={bookingHandlers.handleHallBooking}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {bookingListModal && (
+            <BookingListModal
+              theme={theme}
+              modal={bookingListModal}
+              onClose={() => setBookingListModal(null)}
+              onSelectBooking={(booking) => {
+                setBookingListModal(null);
+                setBookingDetailsModal({
+                  hall: bookingListModal.hall,
+                  room: bookingListModal.room,
+                  booking,
                 });
-              }, 100);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {bookingDetailsModal && (
+            <BookingDetailsModal
+              theme={theme}
+              modal={bookingDetailsModal}
+              onClose={() => setBookingDetailsModal(null)}
+              onExtend={() => {
+                const booking = bookingDetailsModal.booking;
+                setExtensionModal({
+                  hall: bookingDetailsModal.hall,
+                  roomNo: bookingDetailsModal.room.roomNo,
+                  booking: {
+                    ...booking,
+                    _originalTo: booking.to,
+                  },
+                });
+              }}
+              onCancel={(payload) => {
+                setBookingDetailsModal(null);
+                setTimeout(() => {
+                  setCancelModal({
+                    hall: payload.hall,
+                    room: payload.room,
+                    booking: payload.booking,
+                    remarksText: "",
+                  });
+                }, 100);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {cancelModal && (
+          <CancelModal
+            key={`cancel-${cancelModal.booking?.id || cancelModal.booking?._id || Date.now()}`}
+            modal={cancelModal}
+            remarksText={cancelModal.remarksText || ""}
+            setRemarksText={(val) =>
+              setCancelModal((prev) => {
+                if (!prev) return null;
+                return { ...prev, remarksText: val };
+              })
+            }
+            onClose={() => {
+              setCancelModal(null);
+              setBookingDetailsModal(null);
+              setBookingListModal(null);
             }}
+            onDone={(remarks) => bookingHandlers.onCancelDone(remarks, cancelModal)}
           />
         )}
-      </AnimatePresence>
 
-      {cancelModal && (
-        <CancelModal
-          key={`cancel-${cancelModal.booking?.id || cancelModal.booking?._id || Date.now()}`}
-          modal={cancelModal}
-          remarksText={cancelModal.remarksText || ""}
-          setRemarksText={(val) =>
-            setCancelModal((prev) => {
-              if (!prev) return null;
-              return { ...prev, remarksText: val };
-            })
-          }
-          onClose={() => {
-            setCancelModal(null);
-            setBookingDetailsModal(null);
-            setBookingListModal(null);
-          }}
-          onDone={(remarks) => bookingHandlers.onCancelDone(remarks, cancelModal)}
-        />
-      )}
-
-      <AnimatePresence mode="wait">
-        {extensionModal && (
-          <HallExtensionModal
-            modal={extensionModal}
-            onClose={() => setExtensionModal(null)}
-            onExtend={handleExtendBooking}
-            theme={theme}
-          />
-        )}
-      </AnimatePresence>
-    </HallBookingsLayout>
+        <AnimatePresence mode="wait">
+          {extensionModal && (
+            <HallExtensionModal
+              modal={extensionModal}
+              onClose={() => setExtensionModal(null)}
+              onExtend={handleExtendBooking}
+              theme={theme}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

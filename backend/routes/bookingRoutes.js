@@ -8,6 +8,16 @@ import Hostel from "../models/Hostel.js";
 
 const router = express.Router();
 
+// Health check - isolated from hall system
+router.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    system: 'guest-room',
+    isolated: true,
+    timestamp: new Date().toISOString()
+  });
+});
+
 import {
   createBooking,
   cancelBooking,

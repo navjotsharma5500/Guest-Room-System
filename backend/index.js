@@ -299,6 +299,7 @@ app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use('/hall-bookings', hallBookingRoutes);
+app.use('/api/bookings', bookingRoutes);
 app.use('/api/unified-bookings', unifiedBookingRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -308,6 +309,9 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("âœ… Payment routes mounted at /api/payments");
+console.log('✅ Hall booking routes registered at /hall-bookings (isolated)');
+console.log('✅ Guest room routes registered at /api/bookings (isolated)');
+console.log('✅ Unified booking routes registered at /api/unified-bookings (optional)');
 
 /* =========================================================
    SOCKET.IO HANDLER

@@ -10,6 +10,7 @@ import {
 import Login from "./pages/Login";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
+import HallBookingDashboard from "./pages/HallBookingDashboard";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 
 import { useAuth } from "./context/AuthContext";
@@ -60,8 +61,6 @@ export default function App() {
           element={
             currentUser && role === "admin" ? (
               <DashboardSelectorGlass />
-            ) : currentUser ? (
-              <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/" replace />
             )
@@ -80,25 +79,12 @@ export default function App() {
           }
         />
 
-        {/* ---------- HALL BOOKING DASHBOARD (PLACEHOLDER) ---------- */}
+        {/* ---------- HALL BOOKING DASHBOARD ---------- */}
         <Route
           path="/hall/dashboard"
           element={
-            currentUser && role === "assistant" ? (
-              <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
-                <div className="text-center p-12 bg-white rounded-3xl shadow-2xl border-2 border-red-200">
-                  <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center">
-                    <span className="text-4xl">🎭</span>
-                  </div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                    Hall Booking Dashboard
-                  </h1>
-                  <p className="text-xl text-gray-600 mb-2">Coming Soon</p>
-                  <p className="text-sm text-gray-500">
-                    This feature is currently under development
-                  </p>
-                </div>
-              </div>
+            currentUser && (role === "admin" || role === "assistant") ? (
+              <HallBookingDashboard />
             ) : currentUser ? (
               <Navigate to="/dashboard" replace />
             ) : (

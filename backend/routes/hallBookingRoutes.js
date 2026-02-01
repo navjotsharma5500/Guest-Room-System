@@ -4,51 +4,54 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create new hall booking
-router.post('/', protect, hallBookingController.createHallBooking);
+// Health check - isolated from guest room system
+router.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    system: 'hall-booking',
+    isolated: true,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Middleware for admin/assistant only
+const adminAssistantOnly = (req, res, next) => {
+  if (!['admin', 'assistant'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Access denied: Admin or Assistant role required' });
+  }
+  next();
+};
 
 // Get all hall bookings (admin/assistant only)
-router.get(
-  '/',
-  protect,
-  (req, res, next) => {
-    if (!['admin', 'assistant'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-  },
-  hallBookingController.getAllHallBookings
-);
+router.get('/', protect, adminAssistantOnly, hallBookingController.getAllHallBookings);
 
-// Get hall bookings by date range
-router.get('/date-range', protect, hallBookingController.getHallBookingsByDateRange);
+// Create hall booking (admin/assistant only)
+router.post('/', protect, adminAssistantOnly, hallBookingController.createHallBooking);
 
-// Get hall bookings by hall
-router.get('/hall/:hall', protect, hallBookingController.getHallBookingsByHall);
+// Get hall bookings by date range (admin/assistant only)
+router.get('/date-range', protect, adminAssistantOnly, hallBookingController.getHallBookingsByDateRange);
 
-// Get single hall booking by ID
-router.get('/:id', protect, hallBookingController.getHallBookingById);
+// Get hall bookings by hall (admin/assistant only)
+router.get('/hall/:hall', protect, adminAssistantOnly, hallBookingController.getHallBookingsByHall);
 
-// Extend hall booking
-router.patch('/:id/extend', protect, hallBookingController.extendHallBooking);
+// Get single hall booking by ID (admin/assistant only)
+router.get('/:id', protect, adminAssistantOnly, hallBookingController.getHallBookingById);
 
-// Cancel hall booking
-router.patch('/:id/cancel', protect, hallBookingController.cancelHallBooking);
+// Extend hall booking (admin/assistant only)
+router.patch('/:id/extend', protect, adminAssistantOnly, hallBookingController.extendHallBooking);
 
-// Update hall booking status
-router.patch('/:id/status', protect, hallBookingController.updateHallBookingStatus);
+// Cancel hall booking (admin/assistant only)
+router.patch('/:id/cancel', protect, adminAssistantOnly, hallBookingController.cancelHallBooking);
+
+// Update hall booking status (admin/assistant only)
+router.patch('/:id/status', protect, adminAssistantOnly, hallBookingController.updateHallBookingStatus);
 
 // Delete hall booking (admin only)
-router.delete(
-  '/:id',
-  protect,
-  (req, res, next) => {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-    next();
-  },
-  hallBookingController.deleteHallBooking
-);
+router.delete('/:id', protect, (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+}, hallBookingController.deleteHallBooking);
 
 export default router;

@@ -87,18 +87,33 @@ socket.on("enquiry-booked", (data) => {
 
 // Hall Booking events
 socket.on("hallBookingCreated", (data) => {
-  console.log("🎪 Hall booking created:", data);
-  window.dispatchEvent(new CustomEvent("hallBookingCreated", { detail: data }));
+  try {
+    console.log("🎪 Hall booking created:", data);
+    window.dispatchEvent(new CustomEvent("hallBookingCreated", { detail: data }));
+  } catch (error) {
+    console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
+    // Don't crash the app
+  }
 });
 
 socket.on("hallBookingCancelled", (data) => {
-  console.log("🎪 Hall booking cancelled:", data);
-  window.dispatchEvent(new CustomEvent("hallBookingCancelled", { detail: data }));
+  try {
+    console.log("🎪 Hall booking Cancelled:", data);
+    window.dispatchEvent(new CustomEvent("hallBookingCancelled", { detail: data }));
+  } catch (error) {
+    console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
+    // Don't crash the app
+  }
 });
 
 socket.on("hallBookingExtended", (data) => {
-  console.log("🎪 Hall booking extended:", data);
-  window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
+  try {
+    console.log("🎪 Hall booking Extended:", data);
+    window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
+  } catch (error) {
+    console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
+    // Don't crash the app
+  }
 });
 
 export default socket;

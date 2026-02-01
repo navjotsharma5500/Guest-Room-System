@@ -1,11 +1,26 @@
 // src/utils/unifiedBookingApi.js
+// ⚠️ ADMIN-ONLY API - DO NOT USE IN HALL OR GUEST ROOM DASHBOARDS
+// This combines both systems and should only be used for:
+// - Admin analytics
+// - Unified calendar view
+// - Cross-system reports
+
 import { BACKEND_URL } from "./apiConfig";
 
 const API = BACKEND_URL;
 
 /**
- * Fetch all unified bookings (guest + hall) with role-based filtering
+ * ⚠️ ADMIN ONLY: Fetch all unified bookings (guest + hall)
  * Backend handles role filtering automatically based on JWT token
+ * 
+ * DO NOT USE IN:
+ * - HallBookingDashboard (use useHallDataPolling instead)
+ * - GuestRoomDashboard (use existing guest room APIs)
+ * 
+ * SAFE TO USE IN:
+ * - Admin analytics pages
+ * - Unified calendar components
+ * - Admin reports
  */
 export const fetchUnifiedBookings = async () => {
   try {
@@ -35,12 +50,13 @@ export const fetchUnifiedBookings = async () => {
     return data.bookings || [];
   } catch (error) {
     console.error('❌ Error fetching unified bookings:', error);
+    // Don't throw - return empty array to prevent cascading failures
     return [];
   }
 };
 
 /**
- * Fetch unified bookings by date range
+ * ⚠️ ADMIN ONLY: Fetch unified bookings by date range
  */
 export const fetchUnifiedBookingsByDateRange = async (startDate, endDate) => {
   try {
@@ -73,6 +89,7 @@ export const fetchUnifiedBookingsByDateRange = async (startDate, endDate) => {
     return data.bookings || [];
   } catch (error) {
     console.error('❌ Error fetching bookings by date range:', error);
+    // Don't throw - return empty array to prevent cascading failures
     return [];
   }
 };
