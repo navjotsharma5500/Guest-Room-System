@@ -178,20 +178,23 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     // ✅ TAB FILTERING
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
-        // Show in pending: has outstanding balance
-        return d.totalDue > 0;
+        // Show in pending: has outstanding balance AND no rollbacks
+        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        return d.totalDue > 0 && !hasRollbacks;
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(d => {
-        // Show in completed: balance fully cleared (0 or negative)
-        // AND does NOT have rollback/waiver records
+        // Show in completed: balance fully cleared by PAYMENT (not rollback/waiver)
+        // This means: paidAmount + discount = totalAmount AND no rollbacks
         const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        return d.totalDue <= 0 && !hasRollbacks;
+        const fullyPaid = d.totalDue <= 0;
+        return fullyPaid && !hasRollbacks;
       });
     } else if (activeTab === 'rollback') {
       filtered = filtered.filter(d => {
-        // Show in rollback: has waiver/rollback records
-        return d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        // Show in rollback: has ANY rollback/waiver records
+        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+        return hasRollbacks;
       });
     }
 
@@ -205,11 +208,21 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
-  const pendingDefaulters = defaulters.filter(d => d.totalDue > 0);
-  
-  const completedPayments = defaulters.filter(d => d.totalDue === 0);
-  
-  const rollbackCount = defaulters.filter(d => d.paymentRollbacks && d.paymentRollbacks.length > 0).length;
+  const pendingDefaulters = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return d.totalDue > 0 && !hasRollbacks;  
+  });
+
+  const completedPayments = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    const fullyPaid = d.totalDue <= 0;
+    return fullyPaid && !hasRollbacks;  
+  });
+
+  const rollbackCount = defaulters.filter(d => {
+    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+    return hasRollbacks;  
+  }).length;
 
   const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
   const avgDaysOverdue = pendingDefaulters.length > 0 
