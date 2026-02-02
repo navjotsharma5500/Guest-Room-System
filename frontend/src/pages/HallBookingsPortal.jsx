@@ -1,4 +1,4 @@
-// src/pages/HallBookingsPortal.jsx - Glassmorphism Version
+// src/pages/HallBookingsPortal.jsx - Complete Fixed Version
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
@@ -178,16 +178,16 @@ export default function HallBookingsPortalGlass({
     }
   }, [bookingCompleted]);
 
-  // Handle Add Booking button click
+  // ✅ FIXED: Handle Add Booking button click
   const handleAddBooking = () => {
     console.log("📅 Add Booking clicked - entering selection mode");
     setSelectionMode(true);
     setSelectedRooms([]);
     setBookingCompleted(false);
-    showToast("✅ Select hall rooms for booking (checkboxes enabled)", "info");
+    showToast("✅ Selection mode enabled - Click rooms to select (checkboxes visible)", "info");
   };
 
-  // Handle Done Selection
+  // ✅ FIXED: Handle Done Selection
   const onDoneSelection = () => {
     if (selectedRooms.length === 0) {
       showToast("⚠️ Please select at least one hall room", "warning");
@@ -198,12 +198,31 @@ export default function HallBookingsPortalGlass({
     setHallBookingModal(true);
   };
 
+  // ✅ NEW: Handle direct booking via + button
+  const handleDirectBook = (hallName, room) => {
+    console.log("➕ Direct booking for:", hallName, room.roomNo);
+    setSelectedRooms([{ hall: hallName, roomNo: room.roomNo }]);
+    setSelectionMode(false);
+    setHallBookingModal(true);
+  };
+
   // Open direct booking for vacant room
   const openDirectBookingForVacant = ({ hall, room }) => {
     setSelectedRooms([{ hall, roomNo: room.roomNo }]);
     setHallBookingModal(true);
     setVacantRooms([]);
   };
+
+  // ✅ FIXED: Handle booking list selection
+  const handleSelectBookingFromList = useCallback((booking) => {
+    console.log("📋 Selected booking from list:", booking);
+    setBookingListModal(null);
+    setBookingDetailsModal({
+      hall: bookingListModal?.hall,
+      room: bookingListModal?.room,
+      booking: booking
+    });
+  }, [bookingListModal]);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -230,6 +249,11 @@ export default function HallBookingsPortalGlass({
               <h2 className="text-2xl font-bold gradient-text">
                 Hall Booking Portal
               </h2>
+              {selectionMode && (
+                <span className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm font-medium animate-pulse">
+                  Selection Mode Active
+                </span>
+              )}
             </div>
             
             <div className="flex items-center gap-3">
@@ -266,17 +290,13 @@ export default function HallBookingsPortalGlass({
           selectedRooms={selectedRooms}
           toggleRoomSelect={vacancyHandlers.toggleRoomSelect}
           selectionMode={selectionMode}
-          hallBookingModal={hallBookingModal}
-          bookingCompleted={bookingCompleted}
           onRoomClick={bookingHandlers.onRoomClick}
+          onDirectBook={handleDirectBook}
           showToast={showToast}
         />
 
-        {/* Selection Footer - Shows when in selection mode */}
-        {selectionMode && 
-        !hallBookingModal && 
-        !bookingCompleted && 
-        selectedRooms.length > 0 && (
+        {/* ✅ FIXED: Selection Footer - Shows when in selection mode */}
+        {selectionMode && selectedRooms.length > 0 && (
           <SelectionFooter
             selectedCount={selectedRooms.length}
             onDone={onDoneSelection}
@@ -303,151 +323,148 @@ export default function HallBookingsPortalGlass({
           <motion.button
             whileHover={{ 
               scale: 1.1, 
-              boxShadow: "0 15px 40px rgba(220, 38, 38, 0.5)" 
+              boxShadow: "0 15px 40px rgba(16, 185, 129, 0.5)" 
             }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setFilterModal(true)}
-            className="glassmorphism-card p-4 rounded-full shadow-2xl transition-all bg-gradient-to-br from-red-500/90 to-red-600/90 text-white border-2 border-white/40 pulse-glow"
-            title="Filter by Date Range (Check Vacancy)"
+            className="glassmorphism-card p-4 rounded-full shadow-2xl transition-all bg-gradient-to-br from-green-500/90 to-green-600/90 text-white border-2 border-white/40"
+            title="Filter by Date"
           >
             <Filter size={24} />
           </motion.button>
         </div>
+      </div>
 
-        {/* Modals */}
-        <AnimatePresence mode="wait">
-          {filterModal && (
-            <FilterModal
-              theme={theme}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              setCheckIn={setCheckIn}
-              setCheckOut={setCheckOut}
-              onClose={() => setFilterModal(false)}
-              onSubmit={vacancyHandlers.handleFilterSubmit}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {searchFilterModal && (
-            <SearchFilterModal
-              theme={theme}
-              hallData={stableHallData}
-              onClose={() => setSearchFilterModal(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {vacantRooms && vacantRooms.length > 0 && (
-            <VacantRoomsModal
-              theme={theme}
-              vacantRooms={vacantRooms}
-              onClose={() => setVacantRooms([])}
-              onBookRoom={openDirectBookingForVacant}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {hallBookingModal && (
-            <HallBookingModal
-              theme={theme}
-              selectedRooms={selectedRooms}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              onClose={() => {
-                setHallBookingModal(false);
-                setSelectionMode(false);
-                setSelectedRooms([]);
-              }}
-              onSubmit={bookingHandlers.handleHallBooking}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {bookingListModal && (
-            <BookingListModal
-              theme={theme}
-              modal={bookingListModal}
-              onClose={() => setBookingListModal(null)}
-              onSelectBooking={(booking) => {
-                setBookingListModal(null);
-                setBookingDetailsModal({
-                  hall: bookingListModal.hall,
-                  room: bookingListModal.room,
-                  booking,
-                });
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {bookingDetailsModal && (
-            <BookingDetailsModal
-              theme={theme}
-              modal={bookingDetailsModal}
-              onClose={() => setBookingDetailsModal(null)}
-              onExtend={() => {
-                const booking = bookingDetailsModal.booking;
-                setExtensionModal({
-                  hall: bookingDetailsModal.hall,
-                  roomNo: bookingDetailsModal.room.roomNo,
-                  booking: {
-                    ...booking,
-                    _originalTo: booking.to,
-                  },
-                });
-              }}
-              onCancel={(payload) => {
-                setBookingDetailsModal(null);
-                setTimeout(() => {
-                  setCancelModal({
-                    hall: payload.hall,
-                    room: payload.room,
-                    booking: payload.booking,
-                    remarksText: "",
-                  });
-                }, 100);
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {cancelModal && (
-          <HallCancelModal
-            key={`cancel-${cancelModal.booking?.id || cancelModal.booking?._id || Date.now()}`}
-            modal={cancelModal}
-            remarksText={cancelModal.remarksText || ""}
-            setRemarksText={(val) =>
-              setCancelModal((prev) => {
-                if (!prev) return null;
-                return { ...prev, remarksText: val };
-              })
-            }
-            onClose={() => {
-              setCancelModal(null);
-              setBookingDetailsModal(null);
-              setBookingListModal(null);
-            }}
-            onDone={(remarks) => bookingHandlers.onCancelDone(remarks, cancelModal)}
+      {/* Modals */}
+      <AnimatePresence>
+        {filterModal && (
+          <FilterModal
+            theme={theme}
+            onClose={() => setFilterModal(false)}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            setCheckIn={setCheckIn}
+            setCheckOut={setCheckOut}
+            onSubmit={vacancyHandlers.handleFilterSubmit}
           />
         )}
 
-        <AnimatePresence mode="wait">
-          {extensionModal && (
-            <HallExtensionModal
-              modal={extensionModal}
-              onClose={() => setExtensionModal(null)}
-              onExtend={handleExtendBooking}
-              theme={theme}
-            />
-          )}
-        </AnimatePresence>
-      </div>
+        {vacantRooms.length > 0 && (
+          <VacantRoomsModal
+            vacantRooms={vacantRooms}
+            onClose={() => setVacantRooms([])}
+            onBook={openDirectBookingForVacant}
+            theme={theme}
+          />
+        )}
+
+        {hallBookingModal && (
+          <HallBookingModal
+            theme={theme}
+            selectedRooms={selectedRooms}
+            onClose={() => {
+              setHallBookingModal(false);
+              setSelectionMode(false);
+              setSelectedRooms([]);
+            }}
+            onSubmit={bookingHandlers.handleHallBooking}
+          />
+        )}
+
+        {bookingListModal && (
+          <BookingListModal
+            theme={theme}
+            modal={bookingListModal}
+            onClose={() => setBookingListModal(null)}
+            onSelectBooking={handleSelectBookingFromList}
+          />
+        )}
+
+        {bookingDetailsModal && (
+          <BookingDetailsModal
+            theme={theme}
+            modal={bookingDetailsModal}
+            onClose={() => setBookingDetailsModal(null)}
+            onCancel={() => {
+              setCancelModal(bookingDetailsModal);
+              setBookingDetailsModal(null);
+            }}
+            onExtend={() => {
+              setExtensionModal(bookingDetailsModal);
+              setBookingDetailsModal(null);
+            }}
+          />
+        )}
+
+        {cancelModal && (
+          <HallCancelModal
+            theme={theme}
+            modal={cancelModal}
+            onClose={() => setCancelModal(null)}
+            onConfirm={(remarks) => bookingHandlers.onCancelDone(remarks, cancelModal)}
+          />
+        )}
+
+        {extensionModal && (
+          <HallExtensionModal
+            theme={theme}
+            modal={extensionModal}
+            onClose={() => setExtensionModal(null)}
+            onSubmit={handleExtendBooking}
+          />
+        )}
+
+        {searchFilterModal && (
+          <SearchFilterModal
+            theme={theme}
+            hallData={stableHallData}
+            onClose={() => setSearchFilterModal(false)}
+            onSelectBooking={(booking) => {
+              setBookingDetailsModal({
+                hall: booking.hall,
+                room: { roomNo: booking.roomNo },
+                booking: booking
+              });
+              setSearchFilterModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Custom Styles */}
+      <style>{`
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        
+        .glassmorphism-card {
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .gradient-text {
+          background: linear-gradient(135deg, #DC2626 0%, #EA580C 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      `}</style>
     </div>
   );
 }

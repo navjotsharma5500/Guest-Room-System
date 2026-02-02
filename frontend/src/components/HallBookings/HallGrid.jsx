@@ -1,9 +1,18 @@
 // src/components/HallBookings/HallGrid.jsx
 import React from "react";
 import { motion } from "framer-motion";
-import { Building2, Users, Calendar, MapPin } from "lucide-react";
+import { Building2, Users, Calendar, MapPin, Plus } from "lucide-react";
 
-export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal }) {
+export default function HallGrid({ 
+  hallData, 
+  theme, 
+  selectedRooms = [],
+  toggleRoomSelect,
+  selectionMode,
+  onRoomClick,
+  onDirectBook, // NEW: For + button click
+  showToast 
+}) {
   const extractInitial = (hallName) => {
     const match = hallName.match(/\(([^)]+)\)/);
     if (match && match[1]) {
@@ -21,6 +30,29 @@ export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
+  };
+
+  const isRoomSelected = (hallName, roomNo) => {
+    return selectedRooms.some(r => r.hall === hallName && r.roomNo === roomNo);
+  };
+
+  const handleRoomClick = (hallName, room, hasActiveBooking, e) => {
+    // Don't trigger if clicking the + button
+    if (e.target.closest('.direct-book-button')) {
+      return;
+    }
+
+    if (selectionMode) {
+      toggleRoomSelect(hallName, room.roomNo);
+    } else if (hasActiveBooking) {
+      // Show booking details
+      onRoomClick(hallName, room, true);
+    }
+  };
+
+  const handleDirectBook = (hallName, room, e) => {
+    e.stopPropagation();
+    onDirectBook(hallName, room);
   };
 
   return (
@@ -159,7 +191,7 @@ export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal
                   </div>
                 </div>
 
-                {/* Rooms Grid */}
+                {/* Rooms Grid with + Button */}
                 <div>
                   <h4 className={`text-sm font-bold mb-3 ${
                     theme === "dark" ? "text-white" : "text-gray-900"
@@ -171,12 +203,18 @@ export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal
                       const hasActiveBooking = (room.bookings || []).some(
                         b => ["booked", "checked_in"].includes(b.status)
                       );
+                      const selected = isRoomSelected(hallName, room.roomNo);
 
                       return (
                         <motion.div
                           key={room.roomNo}
                           whileHover={{ scale: 1.05 }}
-                          className={`p-2 rounded-lg text-center text-sm font-medium ${
+                          onClick={(e) => handleRoomClick(hallName, room, hasActiveBooking, e)}
+                          className={`relative p-2 rounded-lg text-center text-sm font-medium cursor-pointer transition-all group ${
+                            selected
+                              ? "ring-2 ring-blue-500 ring-offset-2"
+                              : ""
+                          } ${
                             hasActiveBooking
                               ? "bg-red-500 text-white"
                               : theme === "dark"
@@ -184,7 +222,35 @@ export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal
                               : "bg-green-100 text-green-700"
                           }`}
                         >
-                          {room.roomNo}
+                          <span className="block mb-1">{room.roomNo}</span>
+                          
+                          {/* + Button - shows on hover for vacant rooms */}
+                          {!hasActiveBooking && (
+                            <button
+                              onClick={(e) => handleDirectBook(hallName, room, e)}
+                              className="direct-book-button absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-blue-700"
+                              title="Book this room"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          )}
+
+                          {/* Selection checkbox */}
+                          {selectionMode && (
+                            <div className="absolute top-1 left-1">
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                selected
+                                  ? "bg-blue-600 border-blue-600"
+                                  : "bg-white border-gray-300"
+                              }`}>
+                                {selected && (
+                                  <svg className="w-3 h-3 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path d="M5 13l4 4L19 7"></path>
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}
