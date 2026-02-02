@@ -1,478 +1,378 @@
-// src/components/HallBookings/SearchFilterModal.jsx
+// src/components/HallBookings/SearchFilterModal.jsx - FIXED VERSION
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Filter, Calendar, User, Building, Download } from "lucide-react";
-import * as XLSX from 'xlsx';
+import { X, Search, Filter, Calendar, MapPin, User, Mail } from "lucide-react";
 
 export default function SearchFilterModal({ theme, hallData, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [selectedHall, setSelectedHall] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  // Get all bookings from hall data
-  const allBookings = useMemo(() => {
+  // Calculate filtered bookings
+  const filteredBookings = useMemo(() => {
     const bookings = [];
-    
-    if (!hallData) return bookings;
 
-    Object.entries(hallData).forEach(([hallName, hallInfo]) => {
-      (hallInfo.rooms || []).forEach(room => {
-        (room.bookings || []).forEach(booking => {
-          bookings.push({
-            ...booking,
-            hallName,
-            roomNo: room.roomNo,
-          });
+    Object.keys(hallData || {}).forEach(hallName => {
+      const hall = hallData[hallName];
+      hall.rooms?.forEach(room => {
+        room.bookings?.forEach(booking => {
+          // Apply filters
+          const matchesHall = selectedHall === "all" || booking.hall === selectedHall || hallName === selectedHall;
+          const matchesStatus = selectedStatus === "all" || booking.status === selectedStatus;
+          
+          const matchesSearch = !searchTerm || 
+            booking.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            booking.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            booking.eventName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            booking.societyName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+          const matchesDateFrom = !dateFrom || booking.checkInDate >= dateFrom;
+          const matchesDateTo = !dateTo || booking.checkOutDate <= dateTo;
+
+          if (matchesHall && matchesStatus && matchesSearch && matchesDateFrom && matchesDateTo) {
+            bookings.push({
+              ...booking,
+              hall: hallName,
+              roomNo: room.roomNo
+            });
+          }
         });
       });
     });
 
-    return bookings;
-  }, [hallData]);
+    return bookings.sort((a, b) => 
+      new Date(b.checkInDate) - new Date(a.checkInDate)
+    );
+  }, [hallData, searchTerm, selectedHall, selectedStatus, dateFrom, dateTo]);
 
-  // Filter bookings based on search criteria
-  const filteredBookings = useMemo(() => {
-    let filtered = [...allBookings];
-
-    // Search by name, society, event, contact, email
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(b => 
-        (b.name || "").toLowerCase().includes(search) ||
-        (b.societyName || "").toLowerCase().includes(search) ||
-        (b.eventName || "").toLowerCase().includes(search) ||
-        (b.contact || "").toLowerCase().includes(search) ||
-        (b.email || "").toLowerCase().includes(search)
-      );
-    }
-
-    // Filter by date range
-    if (startDate) {
-      filtered = filtered.filter(b => {
-        const checkIn = new Date(b.checkInDate || b.from);
-        return checkIn >= new Date(startDate);
-      });
-    }
-
-    if (endDate) {
-      filtered = filtered.filter(b => {
-        const checkOut = new Date(b.checkOutDate || b.to);
-        return checkOut <= new Date(endDate);
-      });
-    }
-
-    // Filter by hall
-    if (selectedHall !== "all") {
-      filtered = filtered.filter(b => b.hallName === selectedHall);
-    }
-
-    // Filter by status
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter(b => b.status === selectedStatus);
-    }
-
-    // Sort by check-in date (newest first)
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.checkInDate || a.from);
-      const dateB = new Date(b.checkInDate || b.from);
-      return dateB - dateA;
-    });
-
-    return filtered;
-  }, [allBookings, searchTerm, startDate, endDate, selectedHall, selectedStatus]);
-
-  // Get unique hall names
-  const hallNames = useMemo(() => {
-    if (!hallData) return [];
-    return Object.keys(hallData);
-  }, [hallData]);
-
-  // Download filtered bookings as Excel
-  const handleDownload = () => {
-    if (filteredBookings.length === 0) {
-      alert("No bookings to download");
-      return;
-    }
-
-    const exportData = filteredBookings.map((booking, index) => ({
-      "S.No": index + 1,
-      "Name": booking.name || "—",
-      "Society": booking.societyName || "—",
-      "Event": booking.eventName || "—",
-      "Contact": booking.contact || "—",
-      "Email": booking.email || "—",
-      "Hall": booking.hallName || "—",
-      "Room": booking.roomNo || "—",
-      "Check-in Date": booking.checkInDate || booking.from || "—",
-      "Check-in Time": booking.checkInTime || "—",
-      "Check-out Date": booking.checkOutDate || booking.to || "—",
-      "Check-out Time": booking.checkOutTime || "—",
-      "Status": booking.status || "—",
-      "Purpose": booking.purpose || "—",
-      "Description": booking.description || "—",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Hall Bookings");
-
-    // Auto-size columns
-    const maxWidth = 30;
-    const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-      wch: Math.min(
-        maxWidth,
-        Math.max(
-          key.length,
-          ...exportData.map(row => String(row[key] || "").length)
-        )
-      )
-    }));
-    worksheet['!cols'] = colWidths;
-
-    const fileName = `Hall_Bookings_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+  const handleReset = () => {
+    setSearchTerm("");
+    setSelectedHall("all");
+    setSelectedStatus("all");
+    setDateFrom("");
+    setDateTo("");
   };
 
-  // Format date display
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric' 
-    });
+  const halls = Object.keys(hallData || {});
+  const statuses = [
+    { value: "all", label: "All Statuses" },
+    { value: "booked", label: "Booked" },
+    { value: "checked_in", label: "Checked In" },
+    { value: "checked_out", label: "Checked Out" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "no_show", label: "No Show" },
+  ];
+
+  const getStatusColor = (status) => {
+    const colors = {
+      booked: "bg-blue-100 text-blue-700",
+      checked_in: "bg-green-100 text-green-700",
+      checked_out: "bg-gray-100 text-gray-700",
+      cancelled: "bg-red-100 text-red-700",
+      no_show: "bg-orange-100 text-orange-700",
+    };
+    return colors[status] || "bg-gray-100 text-gray-700";
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-50 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
+    <AnimatePresence>
       <motion.div
-        onClick={(e) => e.stopPropagation()}
-        className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden ${
-          theme === "dark" 
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" 
-            : "bg-gradient-to-br from-white via-red-50 to-white"
-        }`}
-        initial={{ scale: 0.9, y: 30 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 30 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
       >
-        {/* Header */}
-        <div className={`px-8 py-6 border-b-2 ${
-          theme === "dark" 
-            ? "border-gray-700 bg-gradient-to-r from-red-900/30 to-orange-900/30" 
-            : "border-red-100 bg-gradient-to-r from-red-600 to-red-700"
-        }`}>
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className={`text-3xl font-bold flex items-center gap-3 ${
-                theme === "dark" ? "text-red-400" : "text-white"
-              }`}>
-                <Search className="w-8 h-8" />
-                Search & Filter Bookings
-              </h2>
-              <p className={`text-sm mt-1 ${
-                theme === "dark" ? "text-red-300" : "text-red-100"
-              }`}>
-                Found {filteredBookings.length} booking(s)
-              </p>
-            </div>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className={`w-full max-w-6xl rounded-2xl p-6 max-h-[90vh] overflow-hidden flex flex-col ${
+            theme === "dark"
+              ? "bg-gray-800 border border-gray-700"
+              : "bg-white border border-gray-200"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleDownload}
-                className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-2 ${
-                  theme === "dark"
-                    ? "bg-green-700 hover:bg-green-600 text-white"
-                    : "bg-white hover:bg-green-50 text-green-700"
-                }`}
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </motion.button>
-              <motion.button
-                whileHover={{ rotate: 90, scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                className={`p-2 rounded-full transition-colors ${
-                  theme === "dark"
-                    ? "text-gray-400 hover:text-red-400 hover:bg-gray-800"
-                    : "text-white hover:text-red-200 hover:bg-red-600"
-                }`}
-              >
-                <X size={28} />
-              </motion.button>
+              <div className="p-2 rounded-lg bg-red-500/10">
+                <Filter className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h2 className={`text-2xl font-bold ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Search & Filter Bookings
+                </h2>
+                <p className={`text-sm ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''} found
+                </p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-lg hover:bg-gray-700 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className={`px-8 py-6 border-b ${
-          theme === "dark" ? "border-gray-700" : "border-gray-200"
-        }`}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Search Input */}
-            <div className="lg:col-span-2">
-              <label className={`block text-sm font-semibold mb-2 ${
+          {/* Search & Filters */}
+          <div className="space-y-4 mb-6">
+            {/* Search Box */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               }`}>
-                Search
+                <Search className="w-4 h-4 inline mr-2" />
+                Search by Name, Email, Event, or Society
               </label>
-              <div className="relative">
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${
-                  theme === "dark" ? "text-gray-500" : "text-gray-400"
-                }`} />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Name, Society, Event, Contact..."
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 transition-all ${
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Type to search..."
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+
+            {/* Filters Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Hall Filter */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  <MapPin className="w-4 h-4 inline mr-2" />
+                  Hall
+                </label>
+                <select
+                  value={selectedHall}
+                  onChange={(e) => setSelectedHall(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border ${
                     theme === "dark"
-                      ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500"
-                      : "border-gray-300 bg-white focus:border-red-500"
-                  } outline-none`}
+                      ? "bg-gray-700 border-gray-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900"
+                  }`}
+                >
+                  <option value="all">All Halls</option>
+                  {halls.map(hall => (
+                    <option key={hall} value={hall}>
+                      {hall}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  <User className="w-4 h-4 inline mr-2" />
+                  Status
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900"
+                  }`}
+                >
+                  {statuses.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  <Calendar className="w-4 h-4 inline mr-2" />
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900"
+                  }`}
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  <Calendar className="w-4 h-4 inline mr-2" />
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900"
+                  }`}
                 />
               </div>
             </div>
 
-            {/* Start Date */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
+            {/* Active Filters Display */}
+            {(searchTerm || selectedHall !== "all" || selectedStatus !== "all" || dateFrom || dateTo) && (
+              <div className={`p-4 rounded-lg ${
+                theme === "dark" ? "bg-gray-700/50" : "bg-gray-50"
               }`}>
-                From Date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all ${
-                  theme === "dark"
-                    ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500"
-                    : "border-gray-300 bg-white focus:border-red-500"
-                } outline-none`}
-              />
-            </div>
-
-            {/* End Date */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}>
-                To Date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all ${
-                  theme === "dark"
-                    ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500"
-                    : "border-gray-300 bg-white focus:border-red-500"
-                } outline-none`}
-              />
-            </div>
-
-            {/* Hall Filter */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}>
-                Hall
-              </label>
-              <select
-                value={selectedHall}
-                onChange={(e) => setSelectedHall(e.target.value)}
-                className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all ${
-                  theme === "dark"
-                    ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500"
-                    : "border-gray-300 bg-white focus:border-red-500"
-                } outline-none`}
-              >
-                <option value="all">All Halls</option>
-                {hallNames.map(name => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-            </div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className={`text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Active Filters:
+                  </p>
+                  <button
+                    onClick={handleReset}
+                    className="text-sm text-red-600 hover:text-red-700"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs">
+                      Search: {searchTerm}
+                    </span>
+                  )}
+                  {selectedHall !== "all" && (
+                    <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">
+                      Hall: {selectedHall}
+                    </span>
+                  )}
+                  {selectedStatus !== "all" && (
+                    <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs">
+                      Status: {selectedStatus}
+                    </span>
+                  )}
+                  {dateFrom && (
+                    <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs">
+                      From: {dateFrom}
+                    </span>
+                  )}
+                  {dateTo && (
+                    <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs">
+                      To: {dateTo}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Clear Filters Button */}
-          <div className="mt-4">
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setStartDate("");
-                setEndDate("");
-                setSelectedHall("all");
-                setSelectedStatus("all");
-              }}
-              className={`text-sm font-semibold ${
-                theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-600 hover:text-red-700"
-              }`}
-            >
-              Clear All Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Results */}
-        <div className="px-8 py-6 overflow-y-auto max-h-[50vh]">
-          {filteredBookings.length === 0 ? (
-            <div className="text-center py-12">
-              <div className={`text-6xl mb-4`}>🔍</div>
-              <p className={`text-lg font-semibold ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                No bookings found
-              </p>
-              <p className={`text-sm mt-2 ${
-                theme === "dark" ? "text-gray-500" : "text-gray-500"
-              }`}>
-                Try adjusting your search filters
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredBookings.map((booking, index) => (
+          {/* Results */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+            {filteredBookings.length === 0 ? (
+              <div className="text-center py-12">
+                <p className={`text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  No bookings match your filters
+                </p>
+              </div>
+            ) : (
+              filteredBookings.map((booking, idx) => (
                 <motion.div
-                  key={booking._id || index}
-                  initial={{ opacity: 0, y: 10 }}
+                  key={booking._id || idx}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-lg ${
+                  transition={{ delay: idx * 0.05 }}
+                  className={`p-4 rounded-lg border ${
                     theme === "dark"
-                      ? "border-gray-700 bg-gray-800 hover:border-red-600"
-                      : "border-gray-200 bg-white hover:border-red-400"
+                      ? "bg-gray-700 border-gray-600"
+                      : "bg-white border-gray-200"
                   }`}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Column 1: Basic Info */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="w-4 h-4 text-red-600" />
-                        <p className={`font-bold ${
-                          theme === "dark" ? "text-gray-100" : "text-gray-800"
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className={`font-bold ${
+                          theme === "dark" ? "text-white" : "text-gray-900"
                         }`}>
-                          {booking.name}
-                        </p>
-                      </div>
-                      <p className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
-                        {booking.societyName}
-                      </p>
-                      <p className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
-                        {booking.eventName}
-                      </p>
-                      <p className={`text-xs mt-1 ${
-                        theme === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}>
-                        📞 {booking.contact}
-                      </p>
-                    </div>
-
-                    {/* Column 2: Hall & Room */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building className="w-4 h-4 text-blue-600" />
-                        <p className={`font-semibold ${
-                          theme === "dark" ? "text-gray-100" : "text-gray-800"
-                        }`}>
-                          {booking.hallName}
-                        </p>
-                      </div>
-                      <p className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
-                        Room: {booking.roomNo}
-                      </p>
-                      <div className="mt-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          booking.status === "checked_in" ? "bg-red-100 text-red-700" :
-                          booking.status === "booked" ? "bg-yellow-100 text-yellow-700" :
-                          booking.status === "checked_out" ? "bg-green-100 text-green-700" :
-                          booking.status === "cancelled" ? "bg-gray-100 text-gray-700" :
-                          "bg-blue-100 text-blue-700"
-                        }`}>
-                          {booking.status?.toUpperCase() || "BOOKED"}
+                          {booking.eventName}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                          {booking.status.replace("_", " ").toUpperCase()}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Column 3: Dates */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-green-600" />
-                        <p className={`text-sm font-semibold ${
-                          theme === "dark" ? "text-gray-100" : "text-gray-800"
-                        }`}>
-                          Check-in
-                        </p>
-                      </div>
-                      <p className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
-                        {formatDate(booking.checkInDate || booking.from)} at {booking.checkInTime || "—"}
-                      </p>
                       
-                      <div className="flex items-center gap-2 mt-2 mb-2">
-                        <Calendar className="w-4 h-4 text-red-600" />
-                        <p className={`text-sm font-semibold ${
-                          theme === "dark" ? "text-gray-100" : "text-gray-800"
-                        }`}>
-                          Check-out
-                        </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Guest: <span className="font-medium text-white">{booking.name}</span>
+                          </p>
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Society: <span className="font-medium text-white">{booking.societyName}</span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Hall: <span className="font-medium text-white">{booking.hall} - Room {booking.roomNo}</span>
+                          </p>
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Contact: <span className="font-medium text-white">{booking.contact}</span>
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Check-in: <span className="font-medium text-white">{booking.checkInDate} at {booking.checkInTime}</span>
+                          </p>
+                          <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Check-out: <span className="font-medium text-white">{booking.checkOutDate} at {booking.checkOutTime}</span>
+                          </p>
+                        </div>
                       </div>
-                      <p className={`text-sm ${
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      }`}>
-                        {formatDate(booking.checkOutDate || booking.to)} at {booking.checkOutTime || "—"}
-                      </p>
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
+              ))
+            )}
+          </div>
 
-        {/* Footer */}
-        <div className={`px-8 py-4 border-t ${
-          theme === "dark" ? "border-gray-700" : "border-gray-200"
-        }`}>
-          <div className="flex justify-between items-center">
-            <p className={`text-sm ${
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            }`}>
-              Showing {filteredBookings.length} of {allBookings.length} total bookings
-            </p>
+          {/* Footer */}
+          <div className="flex gap-3 pt-4 mt-4 border-t border-gray-700">
             <button
               onClick={onClose}
-              className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+              className={`flex-1 py-3 rounded-xl font-medium ${
                 theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                  ? "bg-gray-700 hover:bg-gray-600 text-white"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-900"
               }`}
             >
               Close
             </button>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </AnimatePresence>
   );
 }

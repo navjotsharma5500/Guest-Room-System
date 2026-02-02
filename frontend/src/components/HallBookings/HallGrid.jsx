@@ -1,443 +1,195 @@
 // src/components/HallBookings/HallGrid.jsx
-import React, { useMemo } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Users, CheckCircle2, Clock, AlertCircle, User, Calendar } from "lucide-react";
+import { Building2, Users, Calendar, MapPin } from "lucide-react";
 
-// Hall data structure configuration
-const HALL_STRUCTURE = {
-  "Hall": {
-    rooms: ["MAIN AUDITORIUM", "TAN AUDITORIUM", "C-Hall"],
-    icon: "🎭",
-    color: "purple"
-  },
-  "Rooms": {
-    rooms: ["T105", "T106"],
-    icon: "🚪",
-    color: "blue"
-  },
-  "Creativity Rooms": {
-    rooms: ["CR-1", "CR-2", "CR-5 (Sur Room)", "CR-6", "CR-7", "CR-8"],
-    icon: "🎨",
-    color: "pink"
-  },
-  "Green Rooms": {
-    rooms: ["GR-1", "GR-2"],
-    icon: "🌿",
-    color: "green"
-  },
-  "Open Area": {
-    rooms: ["SBI Lawns", "FETE Area", "OAT (Open Air Theater)"],
-    icon: "🏞️",
-    color: "teal"
-  },
-  "Desk Area": {
-    rooms: ["Street Cafe", "Jaggi", "Street Cafe & Jaggi Area"],
-    icon: "☕",
-    color: "orange"
-  },
-  "Common Rooms": {
-    rooms: ["G-Block", "Tan Rooms", "E-Block", "F-Block", "Activity Room", "Activity Space", "LP Rooms"],
-    icon: "🛋️",
-    color: "indigo"
-  }
-};
+export default function HallGrid({ hallData, theme, onRefresh, setExtensionModal }) {
+  const extractInitial = (hallName) => {
+    const match = hallName.match(/\(([^)]+)\)/);
+    if (match && match[1]) {
+      return match[1].trim().toUpperCase();
+    }
+    return hallName.charAt(0).toUpperCase();
+  };
 
-// Get room status based on booking dates/times
-const getRoomStatus = (room) => {
-  const now = new Date();
-  
-  const activeBookings = (room.bookings || []).filter(b => {
-    const activeStatuses = ["booked", "checked_in"];
-    return activeStatuses.includes(b.status);
+  const sortedHalls = Object.entries(hallData || {}).sort(([nameA], [nameB]) => {
+    const initialA = extractInitial(nameA);
+    const initialB = extractInitial(nameB);
+    return initialA.localeCompare(initialB, undefined, { sensitivity: 'base', numeric: true });
   });
-
-  if (activeBookings.length === 0) {
-    return { status: "available", color: "green", label: "Available" };
-  }
-
-  // Check if any booking has started (check-in time passed)
-  const hasActiveBooking = activeBookings.some(b => {
-    const checkInDate = new Date(b.from || b.checkInDate);
-    const checkInTime = b.checkInTime || "00:00";
-    const [hours, minutes] = checkInTime.split(':').map(Number);
-    checkInDate.setHours(hours, minutes, 0, 0);
-    
-    return now >= checkInDate;
-  });
-
-  if (hasActiveBooking) {
-    return { status: "active", color: "red", label: "Active" };
-  }
-
-  // Upcoming booking
-  return { status: "upcoming", color: "yellow", label: "Upcoming" };
-};
-
-// Format date/time helper
-const formatDateTime = (dateString, timeString) => {
-  if (!dateString) return "—";
-  try {
-    const date = new Date(dateString);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const formattedDate = `${String(day).padStart(2, "0")} ${month}`;
-
-    if (!timeString) return formattedDate;
-
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const period = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-
-    return `${formattedDate}, ${String(displayHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
-  } catch {
-    return dateString;
-  }
-};
-
-export default function HallGrid({
-  hallData,
-  theme,
-  selectedRooms,
-  toggleRoomSelect,
-  selectionMode,
-  hallBookingModal,
-  bookingCompleted,
-  onRoomClick,
-  showToast,
-}) {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
 
-  // Helper function to filter only ACTIVE bookings
-  const getActiveBookings = (bookings = []) => {
-    return bookings.filter(booking => {
-      const activeStatuses = ["booked", "checked_in"];
-      return activeStatuses.includes(booking.status);
-    });
-  };
-
-  // Sort halls in the defined order
-  const sortedHalls = Object.keys(HALL_STRUCTURE);
-
-  // Calculate total statistics
-  const totalStats = useMemo(() => {
-    let totalRooms = 0;
-    let totalAvailable = 0;
-    let totalActive = 0;
-    let totalUpcoming = 0;
-
-    sortedHalls.forEach(hallName => {
-      const hallDataEntry = hallData?.[hallName] || {};
-      const rooms = hallDataEntry.rooms || [];
-      
-      totalRooms += rooms.length;
-      
-      rooms.forEach(room => {
-        const status = getRoomStatus(room);
-        if (status.status === "available") totalAvailable++;
-        else if (status.status === "active") totalActive++;
-        else if (status.status === "upcoming") totalUpcoming++;
-      });
-    });
-
-    return { totalRooms, totalAvailable, totalActive, totalUpcoming };
-  }, [hallData, sortedHalls]);
-
-  console.log("🎯 HallGrid Render:", {
-    hallDataKeys: Object.keys(hallData || {}),
-    sortedHalls,
-    hasData: !!hallData,
-    totalStats
-  });
-
   return (
-    <div className="space-y-8">
-      {/* Statistics Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
-      >
-        <div className={`p-4 rounded-2xl border-2 ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-            : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-blue-600">{totalStats.totalRooms}</p>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Total Rooms
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+        All Halls
+      </h2>
 
-        <div className={`p-4 rounded-2xl border-2 ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-            : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-100 rounded-xl">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-green-600">{totalStats.totalAvailable}</p>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Available
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className={`p-4 rounded-2xl border-2 ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-            : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-red-100 rounded-xl">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-red-600">{totalStats.totalActive}</p>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Active Now
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className={`p-4 rounded-2xl border-2 ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-800 to-gray-700 border-gray-600"
-            : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-yellow-100 rounded-xl">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-yellow-600">{totalStats.totalUpcoming}</p>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Upcoming
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Hall Cards Grid */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {sortedHalls.map((hallName, hallIndex) => {
-          const hallConfig = HALL_STRUCTURE[hallName];
-          const hallDataEntry = hallData?.[hallName] || {};
-          const rooms = hallDataEntry.rooms || [];
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        {sortedHalls.map(([hallName, hall]) => {
+          const rooms = hall.rooms || [];
           
-          console.log(`📋 Hall "${hallName}":`, {
-            hasDataEntry: !!hallDataEntry,
-            roomsCount: rooms.length,
-            configRooms: hallConfig.rooms
-          });
-          
-          // Count rooms by status
-          const availableCount = rooms.filter(r => getRoomStatus(r).status === "available").length;
-          const activeCount = rooms.filter(r => getRoomStatus(r).status === "active").length;
-          const upcomingCount = rooms.filter(r => getRoomStatus(r).status === "upcoming").length;
+          const activeBookings = rooms.reduce((count, room) => {
+            const active = (room.bookings || []).filter(
+              b => ["booked", "checked_in"].includes(b.status)
+            );
+            return count + active.length;
+          }, 0);
+
+          const totalBookings = rooms.reduce((count, room) => {
+            return count + (room.bookings?.length || 0);
+          }, 0);
+
+          const occupiedRooms = rooms.filter((r) => {
+            const activeBookings = (r.bookings || []).filter(
+              b => ["booked", "checked_in"].includes(b.status)
+            );
+            return activeBookings.length > 0;
+          }).length;
+
+          const available = rooms.length - occupiedRooms;
 
           return (
             <motion.div
               key={hallName}
               variants={itemVariants}
-              initial="hidden"
-              animate="show"
-              transition={{ delay: hallIndex * 0.1 }}
-              whileHover={{ y: -4, boxShadow: "0 20px 40px rgba(220, 38, 38, 0.15)" }}
-              className={`rounded-3xl shadow-xl border-2 overflow-hidden transition-all duration-300 ${
+              whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}
+              className={`rounded-2xl backdrop-blur-xl border shadow-xl overflow-hidden ${
                 theme === "dark"
-                  ? "border-gray-600 bg-gradient-to-br from-gray-800 via-gray-750 to-gray-800"
-                  : "border-red-100 bg-gradient-to-br from-white via-red-25 to-white"
+                  ? "border-gray-700 bg-gray-800/60"
+                  : "border-red-200 bg-white/60"
               }`}
             >
               {/* Header */}
               <div
-                className={`px-6 py-5 border-b-2 ${
+                className={`px-5 py-4 border-b ${
                   theme === "dark"
-                    ? "border-gray-700 bg-gradient-to-r from-red-900/20 to-orange-900/20"
-                    : "border-red-100 bg-gradient-to-r from-red-50 to-orange-50"
+                    ? "border-gray-700 bg-gradient-to-r from-gray-800 to-gray-700"
+                    : "border-red-200 bg-gradient-to-r from-red-50 to-white"
                 }`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <motion.div 
-                      whileHover={{ rotate: 360, scale: 1.15 }} 
-                      transition={{ duration: 0.5 }}
-                      className="text-4xl"
-                    >
-                      {hallConfig.icon}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
+                      <Building2 className="w-5 h-5 text-red-600" />
                     </motion.div>
-                    <div>
-                      <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-                        {hallName}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-0.5">{rooms.length} Total Rooms</p>
-                    </div>
+                    <h3 className="text-lg font-bold tracking-wide text-red-700">
+                      {hallName}
+                    </h3>
                   </div>
-                </div>
-                
-                {/* Status Badges */}
-                <div className="flex flex-wrap gap-2">
-                  {availableCount > 0 && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-green-100 to-green-200 border border-green-300 shadow-sm"
+                  <div className="flex flex-col gap-2">
+                    <motion.span
+                      whileHover={{ scale: 1.1 }}
+                      className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 font-medium"
                     >
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      <span className="font-bold text-green-700">Available: {availableCount}</span>
-                    </motion.div>
-                  )}
-                  {activeCount > 0 && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-red-100 to-red-200 border border-red-300 shadow-sm"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                      <span className="font-bold text-red-700">Active: {activeCount}</span>
-                    </motion.div>
-                  )}
-                  {upcomingCount > 0 && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 border border-yellow-300 shadow-sm"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                      <span className="font-bold text-yellow-700">Upcoming: {upcomingCount}</span>
-                    </motion.div>
-                  )}
+                      {rooms.length} Rooms
+                    </motion.span>
+                  </div>
                 </div>
               </div>
 
-              {/* Rooms Grid - New Card-based Layout */}
-              <div className="p-5">
-                {rooms.length > 0 ? (
-                  <div className="space-y-3">
+              {/* Stats */}
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`p-3 rounded-lg ${
+                    theme === "dark" ? "bg-gray-700" : "bg-gray-50"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-green-500" />
+                      <span className={`text-xs font-medium ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        Active
+                      </span>
+                    </div>
+                    <p className={`text-2xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {activeBookings}
+                    </p>
+                  </div>
+
+                  <div className={`p-3 rounded-lg ${
+                    theme === "dark" ? "bg-gray-700" : "bg-gray-50"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <span className={`text-xs font-medium ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        Total
+                      </span>
+                    </div>
+                    <p className={`text-2xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {totalBookings}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-lg ${
+                  theme === "dark" ? "bg-gray-700" : "bg-gray-50"
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-medium ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Occupancy
+                    </span>
+                    <span className={`text-xs font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all"
+                      style={{ width: `${rooms.length > 0 ? (occupiedRooms / rooms.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs">
+                    <span className="text-red-600 font-medium">{occupiedRooms} Occupied</span>
+                    <span className="text-green-600 font-medium">{available} Available</span>
+                  </div>
+                </div>
+
+                {/* Rooms Grid */}
+                <div>
+                  <h4 className={`text-sm font-bold mb-3 ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    Rooms
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
                     {rooms.map((room) => {
-                      const activeBookings = getActiveBookings(room.bookings || []);
-                      const roomStatus = getRoomStatus(room);
-                      const isSelected = selectedRooms.some(
-                        (r) => r.hall === hallName && r.roomNo === room.roomNo
+                      const hasActiveBooking = (room.bookings || []).some(
+                        b => ["booked", "checked_in"].includes(b.status)
                       );
 
                       return (
                         <motion.div
-                          key={`${hallName}_${room.roomNo}`}
-                          whileHover={{ scale: 1.02, x: 4 }}
-                          onClick={() => {
-                            if (selectionMode) {
-                              toggleRoomSelect(hallName, room.roomNo);
-                            } else {
-                              onRoomClick(hallName, room, activeBookings.length > 0);
-                            }
-                          }}
-                          className={`p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                            isSelected
-                              ? "border-red-600 bg-red-50 dark:bg-red-900/20"
-                              : roomStatus.status === "available"
-                              ? theme === "dark"
-                                ? "border-green-700 bg-green-900/20 hover:bg-green-800/30"
-                                : "border-green-300 bg-green-50 hover:bg-green-100"
-                              : roomStatus.status === "active"
-                              ? theme === "dark"
-                                ? "border-red-700 bg-red-900/20 hover:bg-red-800/30"
-                                : "border-red-300 bg-red-50 hover:bg-red-100"
+                          key={room.roomNo}
+                          whileHover={{ scale: 1.05 }}
+                          className={`p-2 rounded-lg text-center text-sm font-medium ${
+                            hasActiveBooking
+                              ? "bg-red-500 text-white"
                               : theme === "dark"
-                              ? "border-yellow-700 bg-yellow-900/20 hover:bg-yellow-800/30"
-                              : "border-yellow-300 bg-yellow-50 hover:bg-yellow-100"
+                              ? "bg-gray-600 text-gray-300"
+                              : "bg-green-100 text-green-700"
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {selectionMode && (
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                />
-                              )}
-                              <span className={`font-bold text-lg ${
-                                theme === "dark" ? "text-gray-100" : "text-gray-900"
-                              }`}>
-                                {room.roomNo}
-                              </span>
-                            </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              roomStatus.status === "available"
-                                ? "bg-green-500 text-white"
-                                : roomStatus.status === "active"
-                                ? "bg-red-500 text-white"
-                                : "bg-yellow-500 text-white"
-                            }`}>
-                              {roomStatus.label}
-                            </div>
-                          </div>
-
-                          {/* Show booking info if exists */}
-                          {activeBookings.length > 0 && (
-                            <div className={`mt-3 pt-3 border-t ${
-                              theme === "dark" ? "border-gray-700" : "border-gray-200"
-                            }`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <User className="w-4 h-4 text-gray-500" />
-                                <span className={`text-sm font-semibold ${
-                                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                                }`}>
-                                  {activeBookings[0].name || activeBookings[0].guest || "—"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-500" />
-                                <span className={`text-xs ${
-                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                }`}>
-                                  {formatDateTime(activeBookings[0].from || activeBookings[0].checkInDate, activeBookings[0].checkInTime)}
-                                </span>
-                              </div>
-                              {activeBookings.length > 1 && (
-                                <div className="mt-2 text-xs text-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                                  +{activeBookings.length - 1} more booking{activeBookings.length > 2 ? 's' : ''}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          {room.roomNo}
                         </motion.div>
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Users className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-600">No Rooms Available</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Expected: {hallConfig.rooms.slice(0, 3).join(", ")}
-                          {hallConfig.rooms.length > 3 && "..."}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </motion.div>
           );
