@@ -104,9 +104,12 @@ export default function useHallBookingHandlers({
         console.log("📤 Submitting booking payload:", bookingPayload);
 
         // Submit booking
-        const response = await fetch(`${API}/hall-bookings`, {
+        const response = await fetch(`${API}/api/hall-bookings`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}` 
+          },
           credentials: "include",
           body: JSON.stringify(bookingPayload),
         });
@@ -193,9 +196,12 @@ export default function useHallBookingHandlers({
 
         console.log("🚫 Cancelling booking:", booking._id);
 
-        const response = await fetch(`${API}/hall-bookings/${booking._id}/cancel`, {
+        const response = await fetch(`${API}/api/hall-bookings/${booking._id}/cancel`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}` // ✅ ADD THIS
+          },
           credentials: "include",
           body: JSON.stringify({ remarks }),
         });
@@ -232,9 +238,12 @@ export default function useHallBookingHandlers({
 
         console.log("⏰ Extending booking:", booking._id);
 
-        const response = await fetch(`${API}/hall-bookings/${booking._id}/extend`, {
+        const response = await fetch(`${API}/api/hall-bookings/${booking._id}/extend`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}` // ✅ ADD THIS
+          },
           credentials: "include",
           body: JSON.stringify({
             extendedDate,

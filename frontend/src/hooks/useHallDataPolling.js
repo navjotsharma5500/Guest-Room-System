@@ -67,6 +67,7 @@ export default function useHallDataPolling(initialData = {}) {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
