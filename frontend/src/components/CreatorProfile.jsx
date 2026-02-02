@@ -44,7 +44,7 @@ export default function CreatorProfile({ open, onClose }) {
             >
               <div className="w-36 h-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white">
                 <img
-                  src="/navjot.jpg"
+                  src="https://ik.imagekit.io/7khjnlfow/email-assets/IMG_4888.JPG"
                   alt="Navjot Sharma"
                   className="w-full h-full object-cover"
                   onError={(e) => {
