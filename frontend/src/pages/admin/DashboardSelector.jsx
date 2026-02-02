@@ -8,11 +8,15 @@ import {
   Calendar,
   ArrowRight,
   Sparkles,
-  Lock
+  Lock,
+  Mail,
+  HelpCircle
 } from "lucide-react";
+import CreatorProfile from "../../components/CreatorProfile";
 
 const DashboardSelector = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const navigate = useNavigate();
 
   const dashboards = [
@@ -118,7 +122,7 @@ const DashboardSelector = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="text-center mb-16"
         >
-          {/* Logo/Icon */}
+          {/* Thapar Logo */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -128,9 +132,13 @@ const DashboardSelector = () => {
               damping: 15,
               delay: 0.2 
             }}
-            className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-gradient-to-br from-blue-600 to-red-600 rounded-3xl shadow-2xl"
+            className="inline-flex items-center justify-center mb-6"
           >
-            <Users className="w-10 h-10 text-white" />
+            <img 
+              src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" 
+              alt="Thapar Institute Logo"
+              className="h-24 w-auto object-contain"
+            />
           </motion.div>
 
           {/* Title */}
@@ -306,6 +314,43 @@ const DashboardSelector = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Bottom Right Corner - Creator & Support */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 1.4, duration: 0.8 }}
+        className="fixed bottom-6 right-6 flex flex-col items-end gap-3 z-20"
+      >
+        {/* Support Button */}
+        <motion.a
+          href="mailto:navjot.sharma@thapar.edu"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border-2 border-blue-200 hover:border-blue-400 rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-300 group"
+        >
+          <HelpCircle className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
+          <span className="text-sm font-semibold text-blue-600">Support</span>
+        </motion.a>
+
+        {/* Creator Profile Button */}
+        <motion.button
+          onClick={() => setShowCreatorProfile(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="bg-white/90 backdrop-blur-sm border-2 border-slate-200 hover:border-slate-300 rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <span className="text-xs text-slate-600">
+            Created by <span className="font-semibold text-slate-900">Navjot Sharma</span>
+          </span>
+        </motion.button>
+      </motion.div>
+
+      {/* Creator Profile Modal */}
+      <CreatorProfile 
+        open={showCreatorProfile} 
+        onClose={() => setShowCreatorProfile(false)} 
+      />
 
       {/* Font Import */}
       <style>{`
