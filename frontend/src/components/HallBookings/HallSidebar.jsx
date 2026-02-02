@@ -1,24 +1,80 @@
-// src/components/HallBookings/HallSidebar.jsx
+// src/components/HallBookings/HallSidebar.jsx - UPDATED VERSION
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, Grid } from "lucide-react";
+import { Home, Grid, Calendar, Building2 } from "lucide-react";
 import Creator from "../Creator";
 
 export default function HallSidebar({ theme, onNavigate, activeSection = "home" }) {
-  const logoPublicPath = "https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744";
+  // ❌ REMOVED: Logo section completely
 
   const menuItems = [
     {
       id: "home",
       label: "Dashboard",
       icon: Home,
-      description: "Hall Booking Overview"
+      description: "Overview"
     },
     {
-      id: "portal",
+      id: "manage-bookings",  // ✅ NEW: Changed from "portal"
       label: "Manage Bookings",
       icon: Grid,
-      description: "All Hall Bookings"
+      description: "All Bookings"
+    },
+    {
+      id: "calendar",  // ✅ NEW: Calendar page
+      label: "Calendar",
+      icon: Calendar,
+      description: "View by Date"
+    },
+    // ✅ NEW: Hall Category Buttons
+    {
+      id: "hall",
+      label: "Hall",
+      icon: Building2,
+      description: "Main Auditoriums",
+      isCategory: true
+    },
+    {
+      id: "rooms",
+      label: "Rooms",
+      icon: Building2,
+      description: "T105, T106",
+      isCategory: true
+    },
+    {
+      id: "creativity-rooms",
+      label: "Creativity Rooms",
+      icon: Building2,
+      description: "CR Spaces",
+      isCategory: true
+    },
+    {
+      id: "green-rooms",
+      label: "Green Rooms",
+      icon: Building2,
+      description: "GR Spaces",
+      isCategory: true
+    },
+    {
+      id: "open-area",
+      label: "Open Area",
+      icon: Building2,
+      description: "Lawns & OAT",
+      isCategory: true
+    },
+    {
+      id: "desk-area",
+      label: "Desk Area",
+      icon: Building2,
+      description: "Cafe & Jaggi",
+      isCategory: true
+    },
+    {
+      id: "common-rooms",
+      label: "Common Rooms",
+      icon: Building2,
+      description: "Block Rooms",
+      isCategory: true
     }
   ];
 
@@ -35,18 +91,17 @@ export default function HallSidebar({ theme, onNavigate, activeSection = "home" 
         rounded-r-3xl
       "
     >
-      {/* Logo */}
-      <div className="flex flex-col items-center gap-2 py-6 border-b border-slate-200 dark:border-gray-700">
-        <img
-          src={logoPublicPath}
-          alt="Thapar Logo"
-          className="w-32 h-16 object-contain rounded-xl shadow-sm mb-2"
-        />
-        <p className={`text-[11px] ${
-          theme === "dark" ? "text-gray-400" : "text-slate-500"
+      {/* ❌ REMOVED: Logo Section - No logo anymore */}
+      
+      {/* ✅ NEW: Simple Title at top */}
+      <div className={`px-4 py-4 border-b ${
+        theme === "dark" ? "border-gray-700" : "border-slate-200"
+      }`}>
+        <h2 className={`text-lg font-bold ${
+          theme === "dark" ? "text-white" : "text-gray-900"
         }`}>
-          Hall Booking System
-        </p>
+          Hall Booking
+        </h2>
       </div>
 
       {/* NAVIGATION */}
@@ -70,6 +125,7 @@ export default function HallSidebar({ theme, onNavigate, activeSection = "home" 
                     ? "border-red-500 shadow-md"
                     : "border-transparent hover:bg-white/80 dark:hover:bg-gray-700/80"
                 }
+                ${item.isCategory ? "mt-1" : ""}
               `}
             >
               <Icon className={`w-5 h-5 ${

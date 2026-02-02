@@ -1,15 +1,16 @@
-// src/HallBookingDashboard.jsx - CORRECTED VERSION WITH HOOK INTEGRATION
+// src/HallBookingDashboard.jsx - UPDATED VERSION
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings } from "lucide-react";
 
-// ✅ FIX: Import the polling hook
 import useHallDataPolling from "./hooks/useHallDataPolling";
 
 import HallSidebar from "./components/HallBookings/HallSidebar";
 import HallMainContent from "./components/HallBookings/HallMainContent";
 import HallBookingsPortal from "./pages/HallBookingsPortal";
+import HallCalendarPage from "./pages/HallCalendarPage"; // ✅ NEW: Calendar page
+import HallCategoryPortal from "./pages/HallCategoryPortal"; // ✅ NEW: Category portal
 import SettingsPage from "./pages/SettingsPage";
 import ProfileModal from "./components/ProfileModal";
 import HallExtensionModal from "./components/HallBookings/HallExtensionModal";
@@ -30,7 +31,6 @@ export default function HallBookingDashboard() {
   const role = currentUser?.role || "guest";
   const { showToast } = useToast();
 
-  // ✅ FIX: Use the polling hook instead of manual fetch
   const { 
     hallData, 
     loading: hallLoading, 
@@ -41,40 +41,35 @@ export default function HallBookingDashboard() {
     refresh: refreshHallData 
   } = useHallDataPolling();
 
-  // Screen Saver
   const isIdle = useIdleTimeout(5);
   const [showScreenSaver, setShowScreenSaver] = useState(false);
 
-  // Profile Modal
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Navigation
-  const [activeSection, setActiveSection] = useState("home"); // "home" or "portal"
+  // ✅ UPDATED: Navigation now includes calendar and category portals
+  const [activeSection, setActiveSection] = useState("home"); 
+  // Possible values: "home", "manage-bookings", "calendar", "settings", 
+  // "hall", "rooms", "creativity-rooms", "green-rooms", "open-area", "desk-area", "common-rooms"
 
-  // Modal States
   const [extensionModal, setExtensionModal] = useState(null);
 
-  // Settings
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     localStorage.getItem("notificationsEnabled") === "true"
   );
 
-  // User Data
   const [currentUserData, setCurrentUserData] = useState(currentUser);
 
   useEffect(() => {
     setCurrentUserData(currentUser);
   }, [currentUser]);
 
-  // Show screen saver when idle
   useEffect(() => {
     if (isIdle) {
       setShowScreenSaver(true);
     }
   }, [isIdle]);
 
-  // Theme + notifications save
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.body.classList.toggle("dark", theme === "dark");
@@ -87,11 +82,6 @@ export default function HallBookingDashboard() {
     );
   }, [theme, notificationsEnabled]);
 
-  // ✅ REMOVED: Manual fetch function - using hook instead
-
-  // ✅ REMOVED: useEffect for fetching - hook handles this
-
-  // Extension modal listener
   useEffect(() => {
     const handleExtensionOpen = (e) => {
       const { hall, roomNo, booking } = e.detail;
@@ -108,13 +98,11 @@ export default function HallBookingDashboard() {
       window.removeEventListener("open-hall-extension-modal", handleExtensionOpen);
   }, []);
 
-  // ✅ FIX: Refresh handler now uses hook's refresh function
   const handleRefresh = useCallback((silent = false) => {
     console.log('🔄 Hall Dashboard refresh triggered - silent:', silent);
     refreshHallData();
   }, [refreshHallData]);
 
-  // Handle extension submission
   const handleExtensionModalExtend = async (extensionData) => {
     try {
       const token = localStorage.getItem("token");
@@ -142,8 +130,6 @@ export default function HallBookingDashboard() {
 
       showToast("Booking extended successfully", "success");
       setExtensionModal(null);
-      // ✅ FIX: Refresh will be triggered automatically by Socket.IO
-      // handleRefresh(true); // No longer needed - hook will auto-refresh
     } catch (error) {
       console.error("Extension error:", error);
       showToast(error.message || "Failed to extend booking", "error");
@@ -155,7 +141,32 @@ export default function HallBookingDashboard() {
     navigate("/");
   };
 
-  // Access control - only admin and assistant
+  // ✅ NEW: Handle navigation between sections
+  const handleNavigate = (section) => {
+    setActiveSection(section);
+  };
+
+  // ✅ NEW: Map category IDs to hall names
+  const getCategoryHallName = (categoryId) => {
+    const mapping = {
+      "hall": "Hall",
+      "rooms": "Rooms",
+      "creativity-rooms": "Creativity Rooms",
+      "green-rooms": "Green Rooms",
+      "open-area": "Open Area",
+      "desk-area": "Desk Area",
+      "common-rooms": "Common Rooms"
+    };
+    return mapping[categoryId] || null;
+  };
+
+  // ✅ NEW: Check if current section is a category portal
+  const isCategoryPortal = [
+    "hall", "rooms", "creativity-rooms", "green-rooms", 
+    "open-area", "desk-area", "common-rooms"
+  ].includes(activeSection);
+
+  // Access control
   if (!loading && currentUser && !["admin", "assistant"].includes(role)) {
     return (
       <main className="flex items-center justify-center h-screen text-gray-500">
@@ -187,7 +198,6 @@ export default function HallBookingDashboard() {
     return null;
   }
 
-  // ✅ FIX: Updated loading check to use hook's loading state
   if (hallLoading && !hasData) {
     return (
       <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
@@ -202,7 +212,6 @@ export default function HallBookingDashboard() {
     );
   }
 
-  // ✅ FIX: Updated error handling
   if (hallError && !hasData) {
     return (
       <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
@@ -253,7 +262,7 @@ export default function HallBookingDashboard() {
             <div className="absolute -bottom-40 left-20 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
           </div>
 
-          {/* HEADER */}
+          {/* HEADER - ✅ UPDATED: Removed unnecessary buttons */}
           <div
             className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b ${
               theme === "dark"
@@ -279,8 +288,20 @@ export default function HallBookingDashboard() {
                 </div>
               </div>
 
-              {/* Right Side Actions */}
+              {/* Right Side Actions - ✅ Only essential buttons */}
               <div className="flex items-center gap-4">
+                {/* Switch Dashboard Button - ✅ Routes to DashboardSelector */}
+                <button
+                  onClick={() => navigate("/dashboard-selector")}
+                  className={`px-4 py-2 rounded-lg border transition ${
+                    theme === "dark"
+                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  Switch Dashboard
+                </button>
+
                 {/* Settings Button */}
                 <button
                   onClick={() => setActiveSection("settings")}
@@ -331,13 +352,16 @@ export default function HallBookingDashboard() {
               <HallSidebar
                 theme={theme}
                 activeSection={activeSection}
-                onNavigate={(section) => setActiveSection(section)}
+                onNavigate={handleNavigate}
               />
             </motion.div>
           </AnimatePresence>
 
-          {/* MAIN CONTENT */}
-          <main className={`flex-1 overflow-y-auto mt-16 ${activeSection === "home" ? "ml-64" : "ml-20"}`}>
+          {/* MAIN CONTENT - ✅ UPDATED: Added routing for all sections */}
+          <main className={`flex-1 overflow-y-auto mt-16 ${
+            activeSection === "home" ? "ml-64" : "ml-64"
+          }`}>
+            {/* Dashboard Home - ✅ NO rooms grid */}
             {activeSection === "home" && (
               <HallMainContent
                 hallData={hallData}
@@ -345,19 +369,46 @@ export default function HallBookingDashboard() {
                 currentUser={currentUser}
                 onRefresh={handleRefresh}
                 setExtensionModal={setExtensionModal}
+                onNavigate={handleNavigate}
               />
             )}
 
-            {activeSection === "portal" && (
+            {/* Manage Bookings Portal - ✅ Shows ALL bookings */}
+            {activeSection === "manage-bookings" && (
               <HallBookingsPortal
                 hallData={hallData}
                 theme={theme}
                 currentUser={currentUser}
                 onRefresh={handleRefresh}
                 setExtensionModal={setExtensionModal}
+                onBackHome={() => handleNavigate("home")}
               />
             )}
 
+            {/* Calendar Page - ✅ NEW */}
+            {activeSection === "calendar" && (
+              <HallCalendarPage
+                hallData={hallData}
+                theme={theme}
+                onBack={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Category Portals - ✅ NEW: For each hall category */}
+            {isCategoryPortal && (
+              <HallCategoryPortal
+                hallData={hallData}
+                theme={theme}
+                categoryId={activeSection}
+                categoryName={getCategoryHallName(activeSection)}
+                currentUser={currentUser}
+                onRefresh={handleRefresh}
+                setExtensionModal={setExtensionModal}
+                onBackHome={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Settings Page */}
             {activeSection === "settings" && (
               <SettingsPage
                 theme={theme}

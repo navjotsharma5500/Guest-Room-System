@@ -6,6 +6,14 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext"; 
 import ImageKitProvider from "./providers/ImageKitProvider";
 
+// 🔒 Hide browser console logs in production (frontend only)
+if (process.env.NODE_ENV === "production") {
+  console.log = () => {};
+  console.warn = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
