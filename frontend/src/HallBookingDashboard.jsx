@@ -1,338 +1,469 @@
-// src/pages/HallBookingDashboard.jsx - Rooms Tab with Bigger Cards and Better Layout
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Building2, Users, Calendar, Plus, Search, Filter } from "lucide-react";
+// src/HallBookingDashboard.jsx - UPDATED VERSION
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Settings } from "lucide-react";
 
-export default function RoomsTab({ hallData, theme, onRoomClick, onDirectBook, selectionMode, selectedRooms, toggleRoomSelect }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+import useHallDataPolling from "./hooks/useHallDataPolling";
 
-  const extractInitial = (hallName) => {
-    const match = hallName.match(/\(([^)]+)\)/);
-    if (match && match[1]) {
-      return match[1].trim().toUpperCase();
-    }
-    return hallName.charAt(0).toUpperCase();
-  };
+import HallSidebar from "./components/HallBookings/HallSidebar";
+import HallMainContent from "./components/HallBookings/HallMainContent";
+import HallBookingsPortal from "./pages/HallBookingsPortal";
+import HallCalendarPage from "./pages/HallCalendarPage"; // ✅ NEW: Calendar page
+import HallCategoryPortal from "./pages/HallCategoryPortal"; // ✅ NEW: Category portal
+import SettingsPage from "./pages/SettingsPage";
+import ProfileModal from "./components/ProfileModal";
+import HallExtensionModal from "./components/HallBookings/HallExtensionModal";
 
-  const sortedHalls = Object.entries(hallData || {}).sort(([nameA], [nameB]) => {
-    const initialA = extractInitial(nameA);
-    const initialB = extractInitial(nameB);
-    return initialA.localeCompare(initialB, undefined, { sensitivity: 'base', numeric: true });
-  });
+import { ToastProvider, useToast } from "./context/ToastContext";
+import { useAuth } from "./context/AuthContext.js";
+import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
+import useIdleTimeout from "./hooks/useIdleTimeout";
+import ScreenSaver from "./components/ScreenSaver";
 
-  // Filter halls by search
-  const filteredHalls = sortedHalls.filter(([hallName]) =>
-    hallName.toLowerCase().includes(searchTerm.toLowerCase())
+import { BACKEND_URL } from "./utils/apiConfig";
+
+const API = BACKEND_URL;
+
+export default function HallBookingDashboard() {
+  const navigate = useNavigate();
+  const { currentUser, loading, logout } = useAuth();
+  const role = currentUser?.role || "guest";
+  const { showToast } = useToast();
+
+  const { 
+    hallData, 
+    loading: hallLoading, 
+    hasData, 
+    error: hallError,
+    lastUpdate,
+    connected,
+    refresh: refreshHallData 
+  } = useHallDataPolling();
+
+  const isIdle = useIdleTimeout(5);
+  const [showScreenSaver, setShowScreenSaver] = useState(false);
+
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  // ✅ UPDATED: Navigation now includes calendar and category portals
+  const [activeSection, setActiveSection] = useState("home"); 
+  // Possible values: "home", "manage-bookings", "calendar", "settings", 
+  // "hall", "rooms", "creativity-rooms", "green-rooms", "open-area", "desk-area", "common-rooms"
+
+  const [extensionModal, setExtensionModal] = useState(null);
+
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    localStorage.getItem("notificationsEnabled") === "true"
   );
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div>
-          <h2 className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            All Halls & Rooms
-          </h2>
-          <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            Manage your hall bookings and room availability
-          </p>
-        </div>
+  const [currentUserData, setCurrentUserData] = useState(currentUser);
 
-        <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search halls..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 focus:ring-2 focus:ring-red-200 transition ${
-                theme === "dark"
-                  ? "bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-                  : "bg-white border-gray-300 placeholder-gray-500"
-              }`}
-            />
+  useEffect(() => {
+    setCurrentUserData(currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (isIdle) {
+      setShowScreenSaver(true);
+    }
+  }, [isIdle]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.body.classList.toggle("dark", theme === "dark");
+    document.body.classList.toggle("light", theme === "light");
+
+    localStorage.setItem("theme", theme);
+    localStorage.setItem(
+      "notificationsEnabled",
+      notificationsEnabled ? "true" : "false"
+    );
+  }, [theme, notificationsEnabled]);
+
+  useEffect(() => {
+    const handleExtensionOpen = (e) => {
+      const { hall, roomNo, booking } = e.detail;
+      setExtensionModal({
+        open: true,
+        hall,
+        roomNo,
+        booking
+      });
+    };
+
+    window.addEventListener("open-hall-extension-modal", handleExtensionOpen);
+    return () =>
+      window.removeEventListener("open-hall-extension-modal", handleExtensionOpen);
+  }, []);
+
+  const handleRefresh = useCallback((silent = false) => {
+    console.log('🔄 Hall Dashboard refresh triggered - silent:', silent);
+    refreshHallData();
+  }, [refreshHallData]);
+
+  const handleExtensionModalExtend = async (extensionData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(
+        `${API}/api/hall-bookings/${extensionData.bookingId}/extend`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            extendedDate: extensionData.newCheckOutDate,
+            extendedTime: extensionData.newCheckOutTime,
+            remarks: extensionData.remarks,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Extension failed");
+      }
+
+      showToast("Booking extended successfully", "success");
+      setExtensionModal(null);
+    } catch (error) {
+      console.error("Extension error:", error);
+      showToast(error.message || "Failed to extend booking", "error");
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  // ✅ NEW: Handle navigation between sections
+  const handleNavigate = (section) => {
+    setActiveSection(section);
+  };
+
+  // ✅ NEW: Map category IDs to hall names
+  const getCategoryHallName = (categoryId) => {
+    const mapping = {
+      "hall": "Hall",
+      "rooms": "Rooms",
+      "creativity-rooms": "Creativity Rooms",
+      "green-rooms": "Green Rooms",
+      "open-area": "Open Area",
+      "desk-area": "Desk Area",
+      "common-rooms": "Common Rooms"
+    };
+    return mapping[categoryId] || null;
+  };
+
+  // ✅ NEW: Check if current section is a category portal
+  const isCategoryPortal = [
+    "hall", "rooms", "creativity-rooms", "green-rooms", 
+    "open-area", "desk-area", "common-rooms"
+  ].includes(activeSection);
+
+  // Access control
+  if (!loading && currentUser && !["admin", "assistant"].includes(role)) {
+    return (
+      <main className="flex items-center justify-center h-screen text-gray-500">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p>You don't have permission to access Hall Bookings</p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Loading states
+  if (loading) {
+    return (
+      <main className="flex items-center justify-center h-screen text-gray-500">
+        Loading Hall Booking Dashboard...
+      </main>
+    );
+  }
+
+  if (!currentUser) {
+    window.location.href = "/";
+    return null;
+  }
+
+  if (hallLoading && !hasData) {
+    return (
+      <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
+        <div className="text-xl font-semibold">Loading Hall Bookings...</div>
+        <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
+          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+          <span>{connected ? 'Connected' : 'Connecting...'}</span>
+        </div>
+        <div className="text-xs text-gray-400">API: {API}</div>
+      </main>
+    );
+  }
+
+  if (hallError && !hasData) {
+    return (
+      <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
+        <div className="text-xl font-semibold text-red-600">⚠️ Connection Error</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 max-w-md text-center">
+          {hallError}
+        </div>
+        <div className="text-xs text-gray-400">Trying to connect to: {API}</div>
+        <button
+          onClick={refreshHallData}
+          className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          Retry Connection
+        </button>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="px-6 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
+        >
+          Back to Main Dashboard
+        </button>
+      </main>
+    );
+  }
+
+  const sidebarVariants = {
+    hidden: { x: -250, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
+
+  return (
+    <DashboardRefreshProvider onRefresh={handleRefresh}>
+      <ToastProvider theme={theme}>
+        <div
+          className={`min-h-screen relative overflow-hidden ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+              : "bg-gradient-to-br from-gray-50 via-white to-red-50"
+          }`}
+        >
+          {/* Glassmorphism Background Effects */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 -left-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            <div className="absolute top-0 -right-40 w-80 h-80 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-40 left-20 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
           </div>
 
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={`px-4 py-2.5 rounded-xl border-2 focus:ring-2 focus:ring-red-200 transition ${
+          {/* HEADER - ✅ UPDATED: Removed unnecessary buttons */}
+          <div
+            className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b ${
               theme === "dark"
-                ? "bg-gray-800 border-gray-700 text-white"
-                : "bg-white border-gray-300"
+                ? "bg-gray-900/80 border-gray-700"
+                : "bg-white/80 border-gray-200"
             }`}
           >
-            <option value="all">All Rooms</option>
-            <option value="vacant">Vacant Only</option>
-            <option value="occupied">Occupied Only</option>
-          </select>
-        </div>
-      </div>
+            <div className="flex items-center justify-between px-6 py-3">
+              {/* Logo & Title */}
+              <div className="flex items-center gap-4">
+                <img
+                  src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                  alt="Thapar Logo"
+                  className="w-12 h-12 object-contain"
+                />
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+                    Hall Booking System
+                  </h1>
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Management Dashboard
+                  </p>
+                </div>
+              </div>
 
-      {/* Hall Cards Grid - Bigger Cards */}
-      <div className="grid gap-8 grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
-        {filteredHalls.map(([hallName, hall]) => (
-          <HallCard
-            key={hallName}
-            hallName={hallName}
-            hall={hall}
-            theme={theme}
-            onRoomClick={onRoomClick}
-            onDirectBook={onDirectBook}
-            selectionMode={selectionMode}
-            selectedRooms={selectedRooms}
-            toggleRoomSelect={toggleRoomSelect}
-            filterStatus={filterStatus}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Large Hall Card Component
-function HallCard({ hallName, hall, theme, onRoomClick, onDirectBook, selectionMode, selectedRooms, toggleRoomSelect, filterStatus }) {
-  const rooms = hall.rooms || [];
-
-  // Filter rooms based on filterStatus
-  const filteredRooms = rooms.filter(room => {
-    const hasActiveBooking = (room.bookings || []).some(
-      b => ["booked", "checked_in"].includes(b.status)
-    );
-
-    if (filterStatus === "vacant") return !hasActiveBooking;
-    if (filterStatus === "occupied") return hasActiveBooking;
-    return true;
-  });
-
-  const activeBookings = rooms.reduce((count, room) => {
-    const active = (room.bookings || []).filter(
-      b => ["booked", "checked_in"].includes(b.status)
-    );
-    return count + active.length;
-  }, 0);
-
-  const occupiedRooms = rooms.filter((r) => {
-    const activeBookings = (r.bookings || []).filter(
-      b => ["booked", "checked_in"].includes(b.status)
-    );
-    return activeBookings.length > 0;
-  }).length;
-
-  const available = rooms.length - occupiedRooms;
-  const occupancyRate = rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 100) : 0;
-
-  const isRoomSelected = (roomNo) => {
-    return selectedRooms?.some(r => r.hall === hallName && r.roomNo === roomNo);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8, boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }}
-      className={`rounded-3xl backdrop-blur-xl border-2 shadow-2xl overflow-hidden ${
-        theme === "dark"
-          ? "border-gray-700 bg-gray-800/80"
-          : "border-red-200 bg-white/90"
-      }`}
-    >
-      {/* Header */}
-      <div
-        className={`px-8 py-6 border-b-2 ${
-          theme === "dark"
-            ? "border-gray-700 bg-gradient-to-r from-gray-800 to-gray-700"
-            : "border-red-200 bg-gradient-to-r from-red-50 to-white"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-              className="p-3 rounded-xl bg-red-600 text-white"
-            >
-              <Building2 className="w-7 h-7" />
-            </motion.div>
-            <div>
-              <h3 className="text-2xl font-bold text-red-700">
-                {hallName}
-              </h3>
-              <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                {rooms.length} Total Rooms
-              </p>
-            </div>
-          </div>
-          
-          <div className="text-right">
-            <div className={`text-4xl font-bold ${
-              occupancyRate > 75 ? "text-red-600" :
-              occupancyRate > 50 ? "text-orange-600" :
-              "text-green-600"
-            }`}>
-              {occupancyRate}%
-            </div>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Occupancy
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="px-8 py-6 space-y-5">
-        <div className="grid grid-cols-3 gap-4">
-          <StatBox
-            label="Active"
-            value={activeBookings}
-            icon={<Users className="w-5 h-5" />}
-            color="green"
-            theme={theme}
-          />
-          <StatBox
-            label="Occupied"
-            value={occupiedRooms}
-            icon={<Calendar className="w-5 h-5" />}
-            color="red"
-            theme={theme}
-          />
-          <StatBox
-            label="Available"
-            value={available}
-            icon={<Building2 className="w-5 h-5" />}
-            color="blue"
-            theme={theme}
-          />
-        </div>
-
-        {/* Progress Bar */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Room Occupancy
-            </span>
-            <span className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              {occupiedRooms} / {rooms.length}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-            <div
-              className={`h-4 rounded-full transition-all duration-500 ${
-                occupancyRate > 75 ? "bg-gradient-to-r from-red-500 to-red-600" :
-                occupancyRate > 50 ? "bg-gradient-to-r from-orange-500 to-orange-600" :
-                "bg-gradient-to-r from-green-500 to-green-600"
-              }`}
-              style={{ width: `${occupancyRate}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Rooms Grid - Bigger Room Cards */}
-        <div>
-          <h4 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Rooms
-          </h4>
-          <div className="grid grid-cols-3 gap-3">
-            {filteredRooms.map((room) => {
-              const hasActiveBooking = (room.bookings || []).some(
-                b => ["booked", "checked_in"].includes(b.status)
-              );
-              const selected = isRoomSelected(room.roomNo);
-
-              return (
-                <motion.div
-                  key={room.roomNo}
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
-                    if (!e.target.closest('.direct-book-button')) {
-                      if (selectionMode) {
-                        toggleRoomSelect(hallName, room.roomNo);
-                      } else if (hasActiveBooking) {
-                        onRoomClick(hallName, room, true);
-                      }
-                    }
-                  }}
-                  className={`relative p-4 rounded-2xl text-center font-bold cursor-pointer transition-all group shadow-lg ${
-                    selected
-                      ? "ring-4 ring-blue-500 ring-offset-2 scale-105"
-                      : ""
-                  } ${
-                    hasActiveBooking
-                      ? "bg-gradient-to-br from-red-500 to-red-600 text-white"
-                      : theme === "dark"
-                      ? "bg-gradient-to-br from-gray-700 to-gray-600 text-gray-200"
-                      : "bg-gradient-to-br from-green-400 to-green-500 text-white"
+              {/* Right Side Actions - ✅ Only essential buttons */}
+              <div className="flex items-center gap-4">
+                {/* Switch Dashboard Button - ✅ Routes to DashboardSelector */}
+                <button
+                  onClick={() => navigate("/dashboard-selector")}
+                  className={`px-4 py-2 rounded-lg border transition ${
+                    theme === "dark"
+                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span className="block text-lg mb-1">{room.roomNo}</span>
-                  <span className="text-xs opacity-80">
-                    {hasActiveBooking ? "Occupied" : "Vacant"}
-                  </span>
+                  Switch Dashboard
+                </button>
 
-                  {/* + Button */}
-                  {!hasActiveBooking && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDirectBook(hallName, room);
-                      }}
-                      className="direct-book-button absolute -top-2 -right-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xl hover:bg-blue-700 hover:scale-110"
-                      title="Book this room"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  )}
+                {/* Settings Button */}
+                <button
+                  onClick={() => setActiveSection("settings")}
+                  className={`p-2 rounded-lg transition ${
+                    theme === "dark"
+                      ? "hover:bg-gray-700 text-gray-300"
+                      : "hover:bg-gray-100 text-gray-700"
+                  }`}
+                  title="Settings"
+                >
+                  <motion.div whileHover={{ rotate: 90 }} transition={{ duration: 0.3 }}>
+                    <Settings className="w-5 h-5" />
+                  </motion.div>
+                </button>
 
-                  {/* Selection checkbox */}
-                  {selectionMode && (
-                    <div className="absolute top-2 left-2">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        selected
-                          ? "bg-blue-600 border-blue-600"
-                          : "bg-white border-gray-300"
-                      }`}>
-                        {selected && (
-                          <svg className="w-4 h-4 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" viewBox="0 0 24 24" stroke="currentColor">
-                            <path d="M5 13l4 4L19 7"></path>
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
+                {/* Profile Button */}
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">
+                    {currentUser?.name?.charAt(0) || "A"}
+                  </div>
+                  <span className="text-sm font-medium">{currentUser?.name}</span>
+                </button>
+
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* SIDEBAR */}
+          <AnimatePresence>
+            <motion.div
+              key="hall-sidebar"
+              variants={sidebarVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="z-20"
+            >
+              <HallSidebar
+                theme={theme}
+                activeSection={activeSection}
+                onNavigate={handleNavigate}
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* MAIN CONTENT - ✅ UPDATED: Added routing for all sections */}
+          <main className={`flex-1 overflow-y-auto mt-16 ${
+            activeSection === "home" ? "ml-64" : "ml-64"
+          }`}>
+            {/* Dashboard Home - ✅ NO rooms grid */}
+            {activeSection === "home" && (
+              <HallMainContent
+                hallData={hallData}
+                theme={theme}
+                currentUser={currentUser}
+                onRefresh={handleRefresh}
+                setExtensionModal={setExtensionModal}
+                onNavigate={handleNavigate}
+              />
+            )}
+
+            {/* Manage Bookings Portal - ✅ Shows ALL bookings */}
+            {activeSection === "manage-bookings" && (
+              <HallBookingsPortal
+                hallData={hallData}
+                theme={theme}
+                currentUser={currentUser}
+                onRefresh={handleRefresh}
+                setExtensionModal={setExtensionModal}
+                onBackHome={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Calendar Page - ✅ NEW */}
+            {activeSection === "calendar" && (
+              <HallCalendarPage
+                hallData={hallData}
+                theme={theme}
+                onBack={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Category Portals - ✅ NEW: For each hall category */}
+            {isCategoryPortal && (
+              <HallCategoryPortal
+                hallData={hallData}
+                theme={theme}
+                categoryId={activeSection}
+                categoryName={getCategoryHallName(activeSection)}
+                currentUser={currentUser}
+                onRefresh={handleRefresh}
+                setExtensionModal={setExtensionModal}
+                onBackHome={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Settings Page */}
+            {activeSection === "settings" && (
+              <SettingsPage
+                theme={theme}
+                setTheme={setTheme}
+                notificationsEnabled={notificationsEnabled}
+                setNotificationsEnabled={setNotificationsEnabled}
+                setActiveTab={() => setActiveSection("home")}
+                hostelData={hallData}
+              />
+            )}
+          </main>
         </div>
-      </div>
-    </motion.div>
-  );
-}
 
-// Stat Box Component
-function StatBox({ label, value, icon, color, theme }) {
-  const colorClasses = {
-    green: "from-green-500 to-green-600",
-    red: "from-red-500 to-red-600",
-    blue: "from-blue-500 to-blue-600",
-  };
+        {/* Extension Modal */}
+        {extensionModal && (
+          <HallExtensionModal
+            modal={extensionModal}
+            onClose={() => setExtensionModal(null)}
+            onExtend={handleExtensionModalExtend}
+          />
+        )}
 
-  return (
-    <div className={`p-4 rounded-2xl ${
-      theme === "dark" ? "bg-gray-700/50" : "bg-gray-50"
-    }`}>
-      <div className={`inline-flex p-2 rounded-lg bg-gradient-to-br ${colorClasses[color]} text-white mb-2`}>
-        {icon}
-      </div>
-      <div className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-        {value}
-      </div>
-      <div className={`text-xs font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-        {label}
-      </div>
-    </div>
+        {/* Profile Modal */}
+        <ProfileModal
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          currentUser={currentUserData}
+          onUpdate={(updatedUser) => {
+            console.log("✅ Profile updated:", updatedUser);
+            setCurrentUserData(updatedUser);
+
+            try {
+              const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
+              localStorage.setItem(
+                "user",
+                JSON.stringify({
+                  ...existingUser,
+                  ...updatedUser,
+                })
+              );
+            } catch (e) {
+              console.error("Failed to update localStorage:", e);
+            }
+
+            window.dispatchEvent(
+              new CustomEvent("userProfileUpdated", {
+                detail: updatedUser,
+              })
+            );
+          }}
+        />
+
+        {/* Screen Saver */}
+        <ScreenSaver isActive={showScreenSaver} onDismiss={() => setShowScreenSaver(false)} />
+      </ToastProvider>
+    </DashboardRefreshProvider>
   );
 }
