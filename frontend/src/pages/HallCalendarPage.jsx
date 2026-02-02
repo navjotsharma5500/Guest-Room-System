@@ -355,7 +355,7 @@ function BookingListItem({ booking, onViewDetails, theme }) {
 }
 
 // Main Calendar Page Component
-export default function HallCalendarPage({ setActiveTab, hallData, theme = "light" }) {
+export default function HallCalendarPage({ onBack, hallData, theme = "light" }) {
   const { showToast } = useToast();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeTab, setActiveTabLocal] = useState('active');
@@ -515,7 +515,7 @@ export default function HallCalendarPage({ setActiveTab, hallData, theme = "ligh
           >
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setActiveTab("home")}
+                onClick={onBack}
                 className={`p-2 rounded-xl transition ${
                   theme === 'dark' 
                     ? 'hover:bg-gray-700 text-gray-300' 

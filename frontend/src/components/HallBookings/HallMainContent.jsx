@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Users, TrendingUp, Clock } from "lucide-react";
 import Calendar from "react-calendar";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
-import HallLiveBookingCounter from "./HallLiveBookingCounter";
 import HallUpcomingBookings from "./HallUpcomingBookings";
 // ❌ REMOVED: import HallGrid from "./HallGrid";
 
@@ -156,13 +155,8 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
         />
       </div>
 
-      {/* Live Booking Counter & Calendar Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Live Counter */}
-        <div className="lg:col-span-2">
-          <HallLiveBookingCounter theme={theme} currentUser={currentUser} hallData={hallData} />
-        </div>
-
+      {/* Calendar Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Mini Calendar - ✅ Now clickable to navigate to calendar page */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
