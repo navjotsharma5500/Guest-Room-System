@@ -1,18 +1,19 @@
-// src/components/HallBookings/HallMainContent.jsx - UPDATED VERSION
+// src/components/HallBookings/HallMainContent.jsx - UPDATED WITH BIGGER CALENDAR
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Users, TrendingUp, Clock } from "lucide-react";
-import Calendar from "react-calendar";
+import { Calendar as CalendarIcon, Users, TrendingUp, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import HallUpcomingBookings from "./HallUpcomingBookings";
-// ❌ REMOVED: import HallGrid from "./HallGrid";
+import BookingDetailsModal from "./BookingDetailsModal";
 
 import "react-calendar/dist/Calendar.css";
 import "../../styles/calendarCustom.css";
 
 export default function HallMainContent({ hallData, theme, currentUser, onRefresh, setExtensionModal, onNavigate }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dateBookings, setDateBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   // Calculate stats
   const calculateStats = useCallback(() => {
@@ -55,6 +56,30 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
 
   const stats = calculateStats();
 
+  // Get bookings count for a specific date
+  const getBookingsForDate = useCallback((date) => {
+    const targetDate = startOfDay(date);
+    let count = 0;
+
+    Object.keys(hallData || {}).forEach(hallName => {
+      const hall = hallData[hallName];
+      hall.rooms?.forEach(room => {
+        room.bookings?.forEach(booking => {
+          try {
+            const checkIn = startOfDay(parseISO(booking.checkInDate));
+            const checkOut = endOfDay(parseISO(booking.checkOutDate));
+
+            if (isWithinInterval(targetDate, { start: checkIn, end: checkOut })) {
+              count++;
+            }
+          } catch (error) {}
+        });
+      });
+    });
+
+    return count;
+  }, [hallData]);
+
   // Get bookings for selected date
   useEffect(() => {
     const bookings = [];
@@ -85,45 +110,77 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
     setDateBookings(bookings);
   }, [selectedDate, hallData]);
 
-  // ✅ NEW: Handle calendar click - navigate to calendar page
-  const handleCalendarClick = () => {
-    if (onNavigate) {
-      onNavigate("calendar");
-    }
-  };
-
-  // Calendar tile styling
-  const tileClassName = ({ date, view }) => {
-    if (view !== "month") return "";
-
-    const bookingsOnDate = [];
-    const targetDate = startOfDay(date);
-
-    Object.keys(hallData || {}).forEach(hallName => {
-      const hall = hallData[hallName];
-      hall.rooms?.forEach(room => {
-        room.bookings?.forEach(booking => {
-          try {
-            const checkIn = startOfDay(parseISO(booking.checkInDate));
-            const checkOut = endOfDay(parseISO(booking.checkOutDate));
-
-            if (isWithinInterval(targetDate, { start: checkIn, end: checkOut })) {
-              bookingsOnDate.push(booking);
-            }
-          } catch (error) {}
-        });
+  // Generate calendar days
+  const calendarDays = useCallback(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const prevLastDay = new Date(year, month, 0);
+    
+    const startingDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const daysInPrevMonth = prevLastDay.getDate();
+    
+    const days = [];
+    
+    // Previous month days
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        date: new Date(year, month - 1, daysInPrevMonth - i),
+        isCurrentMonth: false
       });
-    });
+    }
+    
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true
+      });
+    }
+    
+    // Next month days
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      days.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false
+      });
+    }
+    
+    return days;
+  }, [currentMonth]);
 
-    if (bookingsOnDate.length === 0) return "";
-
-    const hasActive = bookingsOnDate.some(b => ["booked", "checked_in"].includes(b.status));
-    return hasActive ? "has-bookings" : "has-inactive-bookings";
+  const isToday = (date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
   };
+
+  const isSelected = (date) => {
+    return date.toDateString() === selectedDate.toDateString();
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+  };
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="p-6 space-y-6">
-      {/* ✅ Stats Cards - Made smaller and more compact */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Halls"
@@ -155,56 +212,130 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
         />
       </div>
 
-      {/* Calendar Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Mini Calendar - ✅ Now clickable to navigate to calendar page */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl cursor-pointer hover:shadow-2xl transition ${
-            theme === "dark"
-              ? "bg-gray-800/60 border-gray-700 hover:border-red-500"
-              : "bg-white/60 border-gray-200 hover:border-red-500"
-          }`}
-          onClick={handleCalendarClick}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Booking Calendar
-            </h3>
-            <button
-              className="text-sm text-red-600 hover:text-red-700 font-medium"
-            >
-              View Full
-            </button>
-          </div>
-          
-          <div className="hall-calendar-mini pointer-events-none">
-            <Calendar
-              value={selectedDate}
-              onChange={setSelectedDate}
-              tileClassName={tileClassName}
-              className={theme === "dark" ? "dark-calendar" : ""}
-            />
-          </div>
+      {/* Big Calendar with Booking Counts */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`p-8 rounded-2xl backdrop-blur-xl border shadow-xl ${
+          theme === "dark"
+            ? "bg-gray-800/60 border-gray-700"
+            : "bg-white/60 border-gray-200"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+            Booking Calendar
+          </h3>
+          <button
+            onClick={() => onNavigate("calendar")}
+            className="text-sm text-red-600 hover:text-red-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition"
+          >
+            View Full Calendar →
+          </button>
+        </div>
 
-          {dateBookings.length > 0 && (
-            <div className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
-              <p className="text-sm font-medium text-red-700 dark:text-red-400">
-                {dateBookings.length} booking{dateBookings.length !== 1 ? "s" : ""} on{" "}
-                {format(selectedDate, "MMM dd, yyyy")}
-              </p>
-            </div>
-          )}
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={handlePrevMonth}
+            className={`p-3 rounded-xl transition-all hover:scale-110 ${
+              theme === 'dark'
+                ? 'hover:bg-gray-700 bg-gray-700/30 text-gray-300'
+                : 'hover:bg-gray-100 bg-white/50 text-gray-700'
+            }`}
+          >
+            <ChevronLeft size={24} />
+          </button>
           
-          {/* ✅ Click hint */}
-          <p className={`text-xs text-center mt-3 ${
-            theme === "dark" ? "text-gray-400" : "text-gray-500"
-          }`}>
-            Click to view detailed calendar →
-          </p>
-        </motion.div>
-      </div>
+          <div className="text-center">
+            <h3 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            </h3>
+          </div>
+          
+          <button
+            onClick={handleNextMonth}
+            className={`p-3 rounded-xl transition-all hover:scale-110 ${
+              theme === 'dark'
+                ? 'hover:bg-gray-700 bg-gray-700/30 text-gray-300'
+                : 'hover:bg-gray-100 bg-white/50 text-gray-700'
+            }`}
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+
+        {/* Day Names */}
+        <div className="grid grid-cols-7 gap-3 mb-4">
+          {dayNames.map(day => (
+            <div
+              key={day}
+              className={`text-center text-sm font-bold py-3 rounded-lg ${
+                theme === 'dark' 
+                  ? 'text-gray-300 bg-gray-700/30' 
+                  : 'text-gray-700 bg-gray-100/50'
+              }`}
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-3">
+          {calendarDays().map((day, index) => {
+            const bookingCount = getBookingsForDate(day.date);
+            const today = isToday(day.date);
+            const selected = isSelected(day.date);
+            
+            return (
+              <motion.button
+                key={index}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDateClick(day.date)}
+                className={`
+                  relative aspect-square rounded-xl p-3 transition-all
+                  ${!day.isCurrentMonth && 'opacity-40'}
+                  ${today && 'ring-2 ring-blue-500'}
+                  ${selected 
+                    ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg' 
+                    : theme === 'dark'
+                    ? 'hover:bg-gray-700/60 bg-gray-700/30 text-gray-200'
+                    : 'hover:bg-white bg-gray-50/50 text-gray-800'
+                  }
+                `}
+              >
+                <div className="flex flex-col items-center justify-center h-full">
+                  <span className={`text-lg font-bold ${selected ? 'text-white' : ''}`}>
+                    {day.date.getDate()}
+                  </span>
+                  
+                  {bookingCount > 0 && (
+                    <div className={`mt-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                      selected
+                        ? 'bg-white/30 text-white'
+                        : 'bg-red-500 text-white'
+                    }`}>
+                      {bookingCount}
+                    </div>
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Info */}
+        {dateBookings.length > 0 && (
+          <div className="mt-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20">
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">
+              {dateBookings.length} booking{dateBookings.length !== 1 ? "s" : ""} on{" "}
+              {format(selectedDate, "MMMM dd, yyyy")}
+            </p>
+          </div>
+        )}
+      </motion.div>
 
       {/* Upcoming Bookings */}
       <HallUpcomingBookings
@@ -212,14 +343,41 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
         theme={theme}
         onRefresh={onRefresh}
         setExtensionModal={setExtensionModal}
+        onBookingClick={setSelectedBooking}
       />
 
-      {/* ❌ REMOVED: Hall Grid completely - no rooms shown on dashboard */}
+      {/* Unified Booking Details Modal */}
+      <AnimatePresence>
+        {selectedBooking && (
+          <BookingDetailsModal
+            theme={theme}
+            modal={{
+              hall: selectedBooking.hall,
+              room: { roomNo: selectedBooking.roomNo },
+              booking: selectedBooking
+            }}
+            onClose={() => setSelectedBooking(null)}
+            onCancel={() => {
+              // Handle cancel
+              setSelectedBooking(null);
+            }}
+            onExtend={() => {
+              setExtensionModal({
+                open: true,
+                hall: selectedBooking.hall,
+                roomNo: selectedBooking.roomNo,
+                booking: selectedBooking
+              });
+              setSelectedBooking(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// Stats Card Component - ✅ Made smaller
+// Stats Card Component
 function StatCard({ title, value, icon, color, theme }) {
   const colorClasses = {
     blue: "from-blue-500 to-blue-600",
