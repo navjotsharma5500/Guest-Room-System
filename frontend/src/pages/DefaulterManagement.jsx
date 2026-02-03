@@ -178,29 +178,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     // ✅ TAB FILTERING
     if (activeTab === 'pending') {
       filtered = filtered.filter(d => {
-        // Show in pending: has outstanding balance AND no rollbacks
-        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        return d.totalDue > 0 && !hasRollbacks;
+        // Show in pending: has outstanding balance (unpaid, partially paid, or partially rolled back)
+        return d.totalDue > 0;
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(d => {
-        // Show in completed: payment completed AFTER checkout
-        const checkoutDate = new Date(d.checkoutDate);
-        checkoutDate.setHours(0, 0, 0, 0);
-        
-        // Check if payment was made after checkout
-        const hasPaymentAfterCheckout = d.bills && d.bills.some(bill => {
-          const paymentDate = new Date(bill.date);
-          paymentDate.setHours(0, 0, 0, 0);
-          return paymentDate > checkoutDate;
-        });
-        
-        return d.totalDue <= 0 && hasPaymentAfterCheckout;
+        // Show in completed: has made some payment (full or partial)
+        return d.paidAmount > 0;
       });
     } else if (activeTab === 'rollback') {
       filtered = filtered.filter(d => {
-        // Show in rollback: entries with rollback records AND still has balance due
-        return d.paymentRollbacks && d.paymentRollbacks.length > 0 && d.totalDue > 0;
+        // Show in rollback: has rollback records (full or partial)
+        return d.paymentRollbacks && d.paymentRollbacks.length > 0;
       });
     }
 
@@ -215,27 +204,18 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
     const pendingDefaulters = defaulters.filter(d => {
-      const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-      return d.totalDue > 0 && !hasRollbacks;  
+      // Pending: has outstanding balance
+      return d.totalDue > 0;
     });
 
     const completedPayments = defaulters.filter(d => {
-      // ✅ FIXED: Match the same logic as the completed tab filter
-      const checkoutDate = new Date(d.checkoutDate);
-      checkoutDate.setHours(0, 0, 0, 0);
-      
-      const hasPaymentAfterCheckout = d.bills && d.bills.some(bill => {
-        const paymentDate = new Date(bill.date);
-        paymentDate.setHours(0, 0, 0, 0);
-        return paymentDate > checkoutDate;
-      });
-      
-      return d.totalDue <= 0 && hasPaymentAfterCheckout;
+      // Completed: has made some payment
+      return d.paidAmount > 0;
     });
 
     const rollbackCount = defaulters.filter(d => {
-      // ✅ FIXED: Match the same logic as the rollback tab filter
-      return d.paymentRollbacks && d.paymentRollbacks.length > 0 && d.totalDue > 0;
+      // Rollback: has rollback records
+      return d.paymentRollbacks && d.paymentRollbacks.length > 0;
     }).length;
 
     const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
