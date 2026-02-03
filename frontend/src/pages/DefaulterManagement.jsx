@@ -184,59 +184,73 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(d => {
-        // Show in completed: balance fully cleared by PAYMENT (not rollback/waiver)
-        // This means: paidAmount + discount = totalAmount AND no rollbacks
-        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        const fullyPaid = d.totalDue <= 0;
-        return fullyPaid && !hasRollbacks;
+        // Show in completed: payment completed AFTER checkout
+        const checkoutDate = new Date(d.checkoutDate);
+        checkoutDate.setHours(0, 0, 0, 0);
+        
+        // Check if payment was made after checkout
+        const hasPaymentAfterCheckout = d.bills && d.bills.some(bill => {
+          const paymentDate = new Date(bill.date);
+          paymentDate.setHours(0, 0, 0, 0);
+          return paymentDate > checkoutDate;
+        });
+        
+        return d.totalDue <= 0 && hasPaymentAfterCheckout;
       });
     } else if (activeTab === 'rollback') {
       filtered = filtered.filter(d => {
-        // Show in rollback: has ANY rollback/waiver records
-        const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-        return hasRollbacks;
+        // Show in rollback: entries with rollback records AND still has balance due
+        return d.paymentRollbacks && d.paymentRollbacks.length > 0 && d.totalDue > 0;
       });
     }
 
     setFilteredDefaulters(filtered);
     setCurrentPage(1);
-  }, [searchQuery, selectedHostel, dateFrom, dateTo, activeTab, defaulters]);
+    }, [searchQuery, selectedHostel, dateFrom, dateTo, activeTab, defaulters]);
 
-  const totalPages = Math.ceil(filteredDefaulters.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedDefaulters = filteredDefaulters.slice(startIndex, startIndex + itemsPerPage);
+    const totalPages = Math.ceil(filteredDefaulters.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedDefaulters = filteredDefaulters.slice(startIndex, startIndex + itemsPerPage);
 
-  const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
+    const hostels = ['All', ...new Set(defaulters.map(d => d.hostel))];
 
-  const pendingDefaulters = defaulters.filter(d => {
-    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-    return d.totalDue > 0 && !hasRollbacks;  
-  });
+    const pendingDefaulters = defaulters.filter(d => {
+      const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
+      return d.totalDue > 0 && !hasRollbacks;  
+    });
 
-  const completedPayments = defaulters.filter(d => {
-    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-    const fullyPaid = d.totalDue <= 0;
-    return fullyPaid && !hasRollbacks;  
-  });
+    const completedPayments = defaulters.filter(d => {
+      // ✅ FIXED: Match the same logic as the completed tab filter
+      const checkoutDate = new Date(d.checkoutDate);
+      checkoutDate.setHours(0, 0, 0, 0);
+      
+      const hasPaymentAfterCheckout = d.bills && d.bills.some(bill => {
+        const paymentDate = new Date(bill.date);
+        paymentDate.setHours(0, 0, 0, 0);
+        return paymentDate > checkoutDate;
+      });
+      
+      return d.totalDue <= 0 && hasPaymentAfterCheckout;
+    });
 
-  const rollbackCount = defaulters.filter(d => {
-    const hasRollbacks = d.paymentRollbacks && d.paymentRollbacks.length > 0;
-    return hasRollbacks;  
-  }).length;
+    const rollbackCount = defaulters.filter(d => {
+      // ✅ FIXED: Match the same logic as the rollback tab filter
+      return d.paymentRollbacks && d.paymentRollbacks.length > 0 && d.totalDue > 0;
+    }).length;
 
-  const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
-  const avgDaysOverdue = pendingDefaulters.length > 0 
-    ? Math.round(pendingDefaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / pendingDefaulters.length)
-    : 0;
-  const criticalCount = pendingDefaulters.filter(d => d.daysOverdue > 30).length;
+    const totalOutstanding = pendingDefaulters.reduce((sum, d) => sum + d.totalDue, 0);
+    const avgDaysOverdue = pendingDefaulters.length > 0 
+      ? Math.round(pendingDefaulters.reduce((sum, d) => sum + d.daysOverdue, 0) / pendingDefaulters.length)
+      : 0;
+    const criticalCount = pendingDefaulters.filter(d => d.daysOverdue > 30).length;
 
-  const handleBackClick = () => {
-    if (onBack && typeof onBack === 'function') {
-      onBack();
-    } else {
-      window.history.go(-2);
-    }
-  };
+    const handleBackClick = () => {
+      if (onBack && typeof onBack === 'function') {
+        onBack();
+      } else {
+        window.history.go(-2);
+      }
+    };
 
   const handleDownload = () => {
     const headers = [
