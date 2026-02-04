@@ -1,11 +1,10 @@
 // src/components/HallBookings/HallSidebar.jsx - UPDATED VERSION
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, Grid, Calendar, Building2 } from "lucide-react";
+import { Home, Grid, Calendar, Building2, CalendarCheck } from "lucide-react";
 import Creator from "../Creator";
 
 export default function HallSidebar({ theme, onNavigate, activeSection = "home" }) {
-  // ❌ REMOVED: Logo section completely
 
   const menuItems = [
     {
@@ -25,6 +24,12 @@ export default function HallSidebar({ theme, onNavigate, activeSection = "home" 
       label: "Calendar",
       icon: Calendar,
       description: "View by Date"
+    },
+    {
+      id: "event-calendar",
+      label: "Event Calendar",
+      icon: CalendarCheck,
+      description: "Public Events"
     },
     // ✅ NEW: Hall Category Buttons
     {

@@ -11,7 +11,6 @@ import connectDB from "./config/db.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
-// âœ… FIXED: Removed duplicate startNoShowCronJob import
 import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
@@ -29,6 +28,7 @@ import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import hallBookingRoutes from './routes/hallBookingRoutes.js';
 import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
+import eventCalendarRoutes from './routes/eventCalendarRoutes.js';
 
 const app = express();
 
@@ -307,6 +307,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use('/api/event-calendar', eventCalendarRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("âœ… Payment routes mounted at /api/payments");

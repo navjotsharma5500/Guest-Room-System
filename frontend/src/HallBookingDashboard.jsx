@@ -10,6 +10,7 @@ import HallSidebar from "./components/HallBookings/HallSidebar";
 import HallMainContent from "./components/HallBookings/HallMainContent";
 import HallBookingsPortal from "./pages/HallBookingsPortal";
 import HallCalendarPage from "./pages/HallCalendarPage"; // ✅ NEW: Calendar page
+import EventCalendarPage from "./pages/EventCalendarPage"; // ✅ NEW: Event Calendar page
 import HallCategoryPortal from "./pages/HallCategoryPortal"; // ✅ NEW: Category portal
 import SettingsPage from "./pages/SettingsPage";
 import ProfileModal from "./components/ProfileModal";
@@ -397,6 +398,14 @@ export default function HallBookingDashboard() {
                 onBack={() => handleNavigate("home")}
               />
             )}
+            {/* Event Calendar Page - ✅ NEW */}
+            {activeSection === "event-calendar" && (
+              <EventCalendarPage
+                theme={theme}
+                onBack={() => handleNavigate("home")}
+              />
+            )}
+
 
             {/* Category Portals - ✅ NEW: For each hall category */}
             {isCategoryPortal && (
