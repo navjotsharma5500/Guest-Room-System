@@ -1,4 +1,4 @@
-// src/components/AllHostels/HostelGrid.jsx - FIXED VERSION
+// src/components/AllHostels/HostelGrid.js - FIXED VERSION
 import React from "react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";

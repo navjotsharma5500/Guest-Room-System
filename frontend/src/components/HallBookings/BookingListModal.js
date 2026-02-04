@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, CalendarDays, Clock, CheckCircle2, User2 } from "lucide-react";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function BookingListModal({
   theme,
@@ -9,6 +10,7 @@ export default function BookingListModal({
   onClose,
   onSelectBooking,
 }) {
+  useEscapeKey(onClose);
   if (!modal || !modal.bookings) {
     console.error("❌ BookingListModal: Invalid modal data", modal);
     return null;

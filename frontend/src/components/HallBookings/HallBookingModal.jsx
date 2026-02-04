@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Calendar, Clock, User, Mail, Phone, Building, FileText, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { 
   IMAGEKIT_PUBLIC_KEY, 
   IMAGEKIT_URL_ENDPOINT, 
@@ -44,6 +45,7 @@ export default function HallBookingModal({
   onClose,
   onSubmit,
 }) {
+  useEscapeKey(onClose);
   const { showToast } = useToast();
 
   // Form state

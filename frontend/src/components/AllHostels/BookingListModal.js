@@ -1,4 +1,4 @@
-// BookingListModal.jsx - COMPLETE FIXED VERSION
+// BookingListModal.js - COMPLETE FIXED VERSION
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, CalendarDays, Clock, CheckCircle2, User2 } from "lucide-react";

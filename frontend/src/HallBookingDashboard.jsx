@@ -248,13 +248,11 @@ export default function HallBookingDashboard() {
   return (
     <DashboardRefreshProvider onRefresh={handleRefresh}>
       <ToastProvider theme={theme}>
-        <div
-          className={`min-h-screen relative overflow-hidden ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-              : "bg-gradient-to-br from-gray-50 via-white to-red-50"
-          }`}
-        >
+        <div className={`min-h-screen relative overflow-hidden ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+            : "bg-gradient-to-br from-gray-50 via-white to-red-50"
+        } pb-safe-bottom`}> {/* Add safe bottom padding for mobile */}
           {/* Glassmorphism Background Effects */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 -left-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -263,14 +261,12 @@ export default function HallBookingDashboard() {
           </div>
 
           {/* HEADER - ✅ UPDATED: Removed unnecessary buttons */}
-          <div
-            className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b ${
-              theme === "dark"
-                ? "bg-gray-900/80 border-gray-700"
-                : "bg-white/80 border-gray-200"
-            }`}
-          >
-            <div className="flex items-center justify-between px-6 py-3">
+          <div className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b ${
+            theme === "dark"
+              ? "bg-gray-900/80 border-gray-700"
+              : "bg-white/80 border-gray-200"
+          }`}>
+            <div className="flex items-center justify-between px-4 md:px-6 py-3"> {/* Add responsive padding */}
               {/* Logo & Title */}
               <div className="flex items-center gap-4">
                 <img
@@ -290,17 +286,19 @@ export default function HallBookingDashboard() {
 
               {/* Right Side Actions - ✅ Only essential buttons */}
               <div className="flex items-center gap-4">
-                {/* Switch Dashboard Button - ✅ Routes to DashboardSelector */}
-                <button
-                  onClick={() => navigate("/dashboard-selector")}
-                  className={`px-4 py-2 rounded-lg border transition ${
-                    theme === "dark"
-                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  Switch Dashboard
-                </button>
+                {/* Switch Dashboard Button - Only show for Admin */}
+                {role === "admin" && (
+                  <button
+                    onClick={() => navigate("/dashboard-selector")}
+                    className={`px-4 py-2 rounded-lg border transition ${
+                      theme === "dark"
+                        ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Switch Dashboard
+                  </button>
+                )}
 
                 {/* Settings Button */}
                 <button
@@ -341,26 +339,32 @@ export default function HallBookingDashboard() {
 
           {/* SIDEBAR */}
           <AnimatePresence>
-            <motion.div
+            <motion.aside
               key="hall-sidebar"
               variants={sidebarVariants}
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="z-20"
+              className="
+                fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 flex-col z-20
+                hidden md:flex
+                bg-white/70 backdrop-blur-xl
+                dark:bg-gray-900/70
+                border-r-4 border-red-500
+                shadow-[0_18px_45px_rgba(15,23,42,0.18)]
+                rounded-r-3xl
+              "
             >
               <HallSidebar
                 theme={theme}
                 activeSection={activeSection}
                 onNavigate={handleNavigate}
               />
-            </motion.div>
+            </motion.aside>
           </AnimatePresence>
 
           {/* MAIN CONTENT - ✅ UPDATED: Added routing for all sections */}
-          <main className={`flex-1 overflow-y-auto mt-16 ${
-            activeSection === "home" ? "ml-64" : "ml-64"
-          }`}>
+          <main className={`flex-1 overflow-y-auto mt-16 ml-0 md:ml-64`}>
             {/* Dashboard Home - ✅ NO rooms grid */}
             {activeSection === "home" && (
               <HallMainContent

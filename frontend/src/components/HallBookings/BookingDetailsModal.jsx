@@ -7,6 +7,7 @@ import {
   MessageSquare, Paperclip, ArrowRight
 } from "lucide-react";
 import AttachmentGrid from "../AttachmentGrid";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function BookingDetailsModal({
   theme,
@@ -15,6 +16,7 @@ export default function BookingDetailsModal({
   onExtend,
   onCancel,
 }) {
+  useEscapeKey(onClose);
   const [showFullDescription, setShowFullDescription] = useState(false);
   
   if (!modal || !modal.booking) return null;
@@ -142,13 +144,13 @@ export default function BookingDetailsModal({
                 {getStatusBadge(booking.status || "booked")}
               </div>
 
-              {/* Extend Button */}
+              {/* Extend Button - FIX: Call onExtend correctly */}
               {canExtend && (booking.status === "booked" || booking.status === "checked_in") && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   title="Extend Booking"
-                  onClick={() => onExtend(booking)}
+                  onClick={onExtend} // ✅ CORRECT - onExtend is already a function
                   className={`px-4 py-2 rounded-xl font-semibold transition-all ${
                     theme === "dark"
                       ? "bg-blue-700 hover:bg-blue-600 text-white"

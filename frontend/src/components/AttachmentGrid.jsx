@@ -1,3 +1,4 @@
+//AttachmentGrid.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";

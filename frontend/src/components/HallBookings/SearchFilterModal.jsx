@@ -2,8 +2,10 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, Filter, Calendar, MapPin, User, Mail } from "lucide-react";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function SearchFilterModal({ theme, hallData, onClose }) {
+  useEscapeKey(onClose);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHall, setSelectedHall] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");

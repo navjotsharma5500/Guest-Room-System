@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, Search } from "lucide-react";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function FilterModal({
   theme,
@@ -12,6 +13,7 @@ export default function FilterModal({
   onClose,
   onSubmit,
 }) {
+  useEscapeKey(onClose);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!checkIn || !checkOut) {

@@ -1,3 +1,4 @@
+// src/components/CancelModal.jsx - THEME-ENABLED VERSION
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XCircle } from "lucide-react";

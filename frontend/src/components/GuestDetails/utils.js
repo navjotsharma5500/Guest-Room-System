@@ -1,4 +1,4 @@
-// src/components/utils.js - Date and Time Utility Functions
+// src/components/GuestDetails/utils.js - Date and Time Utility Functions
 
 export const combineDateAndTime = (date, time) => {
   if (!date || !time) return "";

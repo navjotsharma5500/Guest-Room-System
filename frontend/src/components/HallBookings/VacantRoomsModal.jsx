@@ -2,8 +2,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { X, CheckCircle } from "lucide-react";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRoom }) {
+  useEscapeKey(onClose);
   return (
     <motion.div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"

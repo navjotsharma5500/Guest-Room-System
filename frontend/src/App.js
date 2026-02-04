@@ -1,10 +1,10 @@
 // src/App.js - COMPLETE VERSION WITH HALL BOOKING INTEGRATION
 // ============================================================================
 // ROUTING STRUCTURE:
-// - Login (/) → Auto-redirects based on user role
-// - Admin → /admin/dashboard-selector → Can choose between dashboards
-// - Assistant → /hall/dashboard → Direct access to hall bookings only
-// - Other Users → /dashboard → Guest room bookings only
+// - Login (/) â†’ Auto-redirects based on user role
+// - Admin â†’ /admin/dashboard-selector â†’ Can choose between dashboards
+// - Assistant â†’ /hall/dashboard â†’ Direct access to hall bookings only
+// - Other Users â†’ /dashboard â†’ Guest room bookings only
 // ============================================================================
 
 import React from "react";
@@ -193,16 +193,16 @@ export default function App() {
 /*
   ROUTE                         | ADMIN | ASSISTANT | OTHER | UNAUTHENTICATED
   ------------------------------|-------|-----------|-------|----------------
-  /                             |   ✓   |     ✓     |   ✓   |       ✓
-  /admin/dashboard-selector     |   ✓   |     ✗     |   ✗   |       ✗
-  /dashboard                    |   ✓   |     ✗     |   ✓   |       ✗
-  /hall/dashboard               |   ✓   |     ✓     |   ✗   |       ✗
-  /guest-enquiry                |   ✓   |     ✓     |   ✓   |       ✓
+  /                             |   âœ“   |     âœ“     |   âœ“   |       âœ“
+  /admin/dashboard-selector     |   âœ“   |     âœ—     |   âœ—   |       âœ—
+  /dashboard                    |   âœ“   |     âœ—     |   âœ“   |       âœ—
+  /hall/dashboard               |   âœ“   |     âœ“     |   âœ—   |       âœ—
+  /guest-enquiry                |   âœ“   |     âœ“     |   âœ“   |       âœ“
   
   AUTO-REDIRECTS ON LOGIN:
-  - Admin      → /admin/dashboard-selector
-  - Assistant  → /hall/dashboard
-  - Others     → /dashboard
+  - Admin      â†’ /admin/dashboard-selector
+  - Assistant  â†’ /hall/dashboard
+  - Others     â†’ /dashboard
 */
 
 // ============================================================================

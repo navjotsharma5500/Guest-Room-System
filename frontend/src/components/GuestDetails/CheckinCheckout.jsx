@@ -1,3 +1,4 @@
+//CheckinCheckout.jsx
 import React from "react";
 import { motion } from "framer-motion";
 import { X, LogOut, AlertTriangle } from "lucide-react";

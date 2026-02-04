@@ -224,16 +224,14 @@ export default function HallGrid({
                         >
                           <span className="block mb-1">{room.roomNo}</span>
                           
-                          {/* + Button - shows on hover for vacant rooms */}
-                          {!hasActiveBooking && (
-                            <button
-                              onClick={(e) => handleDirectBook(hallName, room, e)}
-                              className="direct-book-button absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-blue-700"
-                              title="Book this room"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          )}
+                          {/* + Button - always visible for all rooms */}
+                          <button
+                            onClick={(e) => handleDirectBook(hallName, room, e)}
+                            className="direct-book-button absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:bg-blue-700 hover:scale-110"
+                            title="Book this room"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
 
                           {/* Selection checkbox */}
                           {selectionMode && (

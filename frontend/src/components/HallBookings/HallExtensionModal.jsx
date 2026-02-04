@@ -3,8 +3,10 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function HallExtensionModal({ modal, onClose, onExtend }) {
+  useEscapeKey(onClose);
   const [newCheckOutDate, setNewCheckOutDate] = useState("");
   const [newCheckOutTime, setNewCheckOutTime] = useState("");
   const [remarks, setRemarks] = useState("");

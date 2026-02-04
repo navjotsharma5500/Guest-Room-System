@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XCircle, AlertTriangle, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 
 export default function HallCancelModal({
   modal,
@@ -11,6 +12,7 @@ export default function HallCancelModal({
   onClose,
   onDone,
 }) {
+  useEscapeKey(onClose);
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {

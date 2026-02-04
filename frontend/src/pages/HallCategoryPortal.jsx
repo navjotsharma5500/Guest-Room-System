@@ -1,7 +1,7 @@
 // src/pages/HallCategoryPortal.jsx
 import React, { useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Home, Plus, Calendar, Users, CheckCircle, AlertCircle } from "lucide-react";
+import { Home, Plus, Calendar, Users, CheckCircle, AlertCircle, Building2 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
 // Component Imports
@@ -305,7 +305,28 @@ export default function HallCategoryPortal({
                 </p>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              <>
+              {/* Hall Name Header */}
+              <div className={`mb-4 p-4 rounded-xl border-2 ${
+                theme === "dark"
+                  ? "bg-gradient-to-r from-blue-900/30 to-blue-800/30 border-blue-700"
+                  : "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300"
+              }`}>
+                <h2 className={`text-xl font-bold flex items-center gap-2 ${
+                  theme === "dark" ? "text-blue-400" : "text-blue-700"
+                }`}>
+                  <Building2 className="w-6 h-6" />
+                  {categoryName}
+                </h2>
+                <p className={`text-sm mt-1 ${
+                  theme === "dark" ? "text-blue-300" : "text-blue-600"
+                }`}>
+                  {categoryRooms.length} room{categoryRooms.length !== 1 ? 's' : ''} available
+                </p>
+              </div>
+
+              {/* Rooms as Tiles */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {categoryRooms.map((room, index) => {
                   const hasActive = hasActiveBookings(room);
                   const isSelected = isRoomSelected(room);
@@ -317,75 +338,78 @@ export default function HallCategoryPortal({
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: selectionMode ? 1 : 1.05, y: -5 }}
-                      className={`relative rounded-2xl p-4 border-2 transition-all shadow-lg ${
+                      whileHover={{ scale: selectionMode ? 1 : 1.05, y: -3 }}
+                      className={`relative p-3 rounded-lg border-2 transition-all cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-blue-500/50"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-lg shadow-blue-500/50"
                           : hasActive
-                          ? "border-red-500 bg-red-50 dark:bg-red-900/30 hover:shadow-red-500/50 cursor-pointer"
-                          : "border-green-500 bg-green-50 dark:bg-green-900/30 hover:shadow-green-500/50 cursor-pointer"
+                          ? "border-red-400 bg-red-50 dark:bg-red-900/20 hover:shadow-lg hover:shadow-red-500/30"
+                          : "border-green-400 bg-green-50 dark:bg-green-900/20 hover:shadow-lg hover:shadow-green-500/30"
                       }`}
                       onClick={() => handleRoomClick(room)}
                     >
-                      {/* Checkbox (only in selection mode) */}
+                      {/* Selection Checkbox */}
                       {selectionMode && (
                         <div
-                          className="absolute top-2 left-2 z-10"
+                          className="absolute top-1 left-1 z-10"
                           onClick={(e) => toggleRoomSelect(e, room)}
                         >
-                          <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition ${
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition ${
                             isSelected
                               ? "bg-blue-600 border-blue-600"
                               : "bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600"
                           }`}>
                             {isSelected && (
-                              <CheckCircle className="w-4 h-4 text-white" />
+                              <CheckCircle className="w-3 h-3 text-white" />
                             )}
                           </div>
                         </div>
                       )}
 
-                      {/* Direct Booking Button (only when NOT in selection mode) */}
+                      {/* Direct Booking Button */}
                       {!selectionMode && (
                         <motion.button
                           whileHover={{ scale: 1.1, rotate: 90 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => handleDirectBooking(e, room)}
-                          className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1.5 shadow-lg transition z-10"
+                          className="absolute top-1 right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1 shadow-lg transition z-10"
                           title="Direct Booking"
                         >
-                          <Plus size={16} />
+                          <Plus size={14} />
                         </motion.button>
                       )}
 
-                      {/* Room Number */}
-                      <div className="text-center mt-2 mb-3">
-                        <p className={`text-xl font-bold ${
+                      {/* Room Number - Centered */}
+                      <div className="text-center mb-2">
+                        <p className={`text-lg font-bold ${
                           hasActive 
                             ? "text-red-700 dark:text-red-400" 
                             : "text-green-700 dark:text-green-400"
                         }`}>
                           {room.roomNo}
                         </p>
-                        {activeCount > 0 && (
-                          <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold">
-                            {activeCount} Active Booking{activeCount !== 1 ? "s" : ""}
-                          </p>
-                        )}
                       </div>
 
-                      {/* Status Badge */}
-                      <div className={`text-center py-1.5 rounded-full text-xs font-bold shadow-sm ${
+                      {/* Status Badge - Full width */}
+                      <div className={`text-center py-1 rounded-md text-xs font-bold shadow-sm ${
                         hasActive
                           ? "bg-red-500 text-white"
                           : "bg-green-500 text-white"
                       }`}>
                         {hasActive ? "OCCUPIED" : "VACANT"}
                       </div>
+
+                      {/* Active Count */}
+                      {activeCount > 0 && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1 text-center font-semibold">
+                          {activeCount} Active
+                        </p>
+                      )}
                     </motion.div>
                   );
                 })}
               </div>
+              </>
             )}
           </div>
 
