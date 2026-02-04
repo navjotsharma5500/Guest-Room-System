@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Sun, Moon } from "lucide-react";
-import '../styles/hallbooking.css';
+import "./styles/hallbooking.css";
 
 import useHallDataPolling from "./hooks/useHallDataPolling";
 

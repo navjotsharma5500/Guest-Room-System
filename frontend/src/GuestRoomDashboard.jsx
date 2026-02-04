@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
 import { AlertCircle } from "lucide-react";
-import '../styles/guestroom.css';
+import "./styles/guestroom.css";
 
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
