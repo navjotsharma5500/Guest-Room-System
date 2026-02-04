@@ -1,4 +1,4 @@
-// src/components/HallBookings/HallCancelModal.jsx - Glassmorphism Version
+// src/components/HallBookings/HallCancelModal.jsx - Google Material Design Version
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XCircle, AlertTriangle, X } from "lucide-react";
@@ -11,6 +11,7 @@ export default function HallCancelModal({
   setRemarksText,
   onClose,
   onDone,
+  theme = "dark",
 }) {
   useEscapeKey(onClose);
   const toastContext = useToast();
@@ -58,61 +59,86 @@ export default function HallCancelModal({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={handleClose}
       >
         <motion.div
-          className="glassmorphism-card rounded-2xl p-6 w-full max-w-md shadow-2xl border-2 border-white/40 relative overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          className={`
+            rounded-lg p-6 w-full max-w-md shadow-2xl
+            ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}
+          `}
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, type: "spring" }}
         >
-          {/* Decorative Background Pattern */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-full blur-3xl -z-10" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-br from-pink-500/10 to-red-500/10 rounded-full blur-3xl -z-10" />
-
           {/* Header */}
-          <div className="flex justify-between items-start mb-5">
+          <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg">
-                <XCircle size={24} />
+              <div className={`p-2 rounded-full ${
+                theme === "dark" ? "bg-[#5f1111]" : "bg-[#fce8e6]"
+              }`}>
+                <XCircle className={`w-6 h-6 ${
+                  theme === "dark" ? "text-[#f28b82]" : "text-[#d93025]"
+                }`} />
               </div>
               <div>
-                <h3 className="text-xl font-bold gradient-text">
+                <h3 className={`text-xl font-normal ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}>
                   Cancel Booking
                 </h3>
-                <p className="text-sm text-gray-600 mt-0.5">
+                <p className={`text-sm mt-0.5 ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                }`}>
                   This action cannot be undone
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="p-2 rounded-lg hover:bg-red-100/50 text-gray-500 hover:text-red-700 transition-all"
-              title="Close"
+              className={`
+                p-2 rounded-full transition-colors
+                ${theme === "dark" 
+                  ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                  : "hover:bg-[#f1f3f4] text-[#5f6368]"
+                }
+              `}
             >
-              <X size={20} />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Booking Info Card */}
-          <div className="mb-5 p-4 rounded-xl bg-gradient-to-br from-red-50/80 to-orange-50/80 backdrop-blur-sm border border-red-200/50">
+          <div className={`mb-5 p-4 rounded-lg border ${
+            theme === "dark"
+              ? "bg-[#3c4043] border-[#5f6368]"
+              : "bg-[#fce8e6] border-[#f28b82]"
+          }`}>
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                theme === "dark" ? "text-[#f28b82]" : "text-[#d93025]"
+              }`} />
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className={`text-sm font-medium ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}>
                   {modal.booking?.name || "Guest"} - {modal.booking?.eventName || "Event"}
                 </p>
-                <p className="text-xs text-gray-600 mt-1">
+                <p className={`text-xs mt-1 ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                }`}>
                   Hall: <span className="font-medium">{modal.hall || "—"}</span>
                   {" • "}
                   Room: <span className="font-medium">{modal.room?.roomNo || "—"}</span>
                 </p>
                 {modal.booking?.checkInDate && (
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <p className={`text-xs mt-0.5 ${
+                    theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                  }`}>
                     Check-in: <span className="font-medium">{modal.booking.checkInDate}</span>
                   </p>
                 )}
@@ -122,7 +148,9 @@ export default function HallCancelModal({
 
           {/* Remarks Input */}
           <div className="mb-5">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className={`block text-sm font-medium mb-2 ${
+              theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+            }`}>
               Cancellation Reason *
             </label>
             <textarea
@@ -132,38 +160,55 @@ export default function HallCancelModal({
                 setRemarksText(e.target.value);
               }}
               placeholder="Please provide a reason for cancellation..."
-              className="w-full border-2 border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none resize-none transition-all bg-white/50 backdrop-blur-sm"
+              className={`
+                w-full px-4 py-3 rounded border text-sm
+                transition-all duration-200 outline-none resize-none
+                ${theme === "dark"
+                  ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8] placeholder-[#9aa0a6]"
+                  : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] placeholder-[#5f6368]"
+                }
+              `}
               rows={4}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className={`text-xs mt-2 ${
+              theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+            }`}>
               Required field - Please explain why this booking is being cancelled
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={handleClose}
-              className="px-5 py-2.5 glassmorphism-card border border-gray-300 rounded-xl hover:bg-gray-50/80 transition-all font-medium text-gray-700"
+              className={`
+                px-5 py-2.5 rounded text-sm font-medium
+                transition-all duration-200
+                ${theme === "dark"
+                  ? "bg-transparent border border-[#5f6368] text-[#e8eaed] hover:bg-[#3c4043]"
+                  : "bg-transparent border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]"
+                }
+              `}
             >
               Cancel
-            </motion.button>
+            </button>
 
-            <motion.button
-              whileHover={{ scale: safeTrim(localRemarks) ? 1.02 : 1 }}
-              whileTap={{ scale: safeTrim(localRemarks) ? 0.98 : 1 }}
+            <button
               onClick={handleDone}
               disabled={!safeTrim(localRemarks)}
-              className={`px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg ${
-                safeTrim(localRemarks)
-                  ? "bg-gradient-to-r from-red-600 to-red-700 text-white hover:shadow-xl hover:from-red-700 hover:to-red-800"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
+              className={`
+                px-5 py-2.5 rounded text-sm font-medium
+                transition-all duration-200
+                ${safeTrim(localRemarks)
+                  ? theme === "dark"
+                    ? "bg-[#f28b82] text-[#202124] hover:bg-[#fca19a]"
+                    : "bg-[#d93025] text-white hover:bg-[#c5221f]"
+                  : "opacity-50 cursor-not-allowed bg-[#5f6368] text-[#9aa0a6]"
+                }
+              `}
             >
               Confirm Cancellation
-            </motion.button>
+            </button>
           </div>
 
           {/* Warning Footer */}
@@ -171,9 +216,15 @@ export default function HallCancelModal({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-3 rounded-xl bg-red-100/50 backdrop-blur-sm border border-red-200/50"
+              className={`mt-4 p-3 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-[#5f1111] border-[#f28b82]"
+                  : "bg-[#fce8e6] border-[#f28b82]"
+              }`}
             >
-              <p className="text-xs text-red-700 font-medium text-center">
+              <p className={`text-xs font-medium text-center ${
+                theme === "dark" ? "text-[#f28b82]" : "text-[#d93025]"
+              }`}>
                 ⚠️ This booking will be permanently cancelled
               </p>
             </motion.div>

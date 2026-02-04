@@ -1,17 +1,18 @@
-// src/HallBookingDashboard.jsx - UPDATED VERSION
+// src/HallBookingDashboard.jsx - UPDATED WITH GOOGLE DESIGN PATCHES
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings } from "lucide-react";
+import { Settings, Sun, Moon } from "lucide-react";
+import '../styles/hallbooking.css';
 
 import useHallDataPolling from "./hooks/useHallDataPolling";
 
 import HallSidebar from "./components/HallBookings/HallSidebar";
 import HallMainContent from "./components/HallBookings/HallMainContent";
 import HallBookingsPortal from "./pages/HallBookingsPortal";
-import HallCalendarPage from "./pages/HallCalendarPage"; // ✅ NEW: Calendar page
-import EventCalendarPage from "./pages/EventCalendarPage"; // ✅ NEW: Event Calendar page
-import HallCategoryPortal from "./pages/HallCategoryPortal"; // ✅ NEW: Category portal
+import HallCalendarPage from "./pages/HallCalendarPage";
+import EventCalendarPage from "./pages/EventCalendarPage";
+import HallCategoryPortal from "./pages/HallCategoryPortal";
 import SettingsPage from "./pages/SettingsPage";
 import ProfileModal from "./components/ProfileModal";
 import HallExtensionModal from "./components/HallBookings/HallExtensionModal";
@@ -25,6 +26,11 @@ import ScreenSaver from "./components/ScreenSaver";
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
+
+const sidebarVariants = {
+  hidden: { x: -280, opacity: 0 },
+  visible: { x: 0, opacity: 1, transition: { type: "spring", stiffness: 120 } },
+};
 
 export default function HallBookingDashboard() {
   const navigate = useNavigate();
@@ -47,10 +53,7 @@ export default function HallBookingDashboard() {
 
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // ✅ UPDATED: Navigation now includes calendar and category portals
-  const [activeSection, setActiveSection] = useState("home"); 
-  // Possible values: "home", "manage-bookings", "calendar", "settings", 
-  // "hall", "rooms", "creativity-rooms", "green-rooms", "open-area", "desk-area", "common-rooms"
+  const [activeSection, setActiveSection] = useState("home");
 
   const [extensionModal, setExtensionModal] = useState(null);
 
@@ -142,12 +145,10 @@ export default function HallBookingDashboard() {
     navigate("/");
   };
 
-  // ✅ NEW: Handle navigation between sections
   const handleNavigate = (section) => {
     setActiveSection(section);
   };
 
-  // ✅ NEW: Map category IDs to hall names
   const getCategoryHallName = (categoryId) => {
     const mapping = {
       "hall": "Hall",
@@ -161,7 +162,6 @@ export default function HallBookingDashboard() {
     return mapping[categoryId] || null;
   };
 
-  // ✅ NEW: Check if current section is a category portal
   const isCategoryPortal = [
     "hall", "rooms", "creativity-rooms", "green-rooms", 
     "open-area", "desk-area", "common-rooms"
@@ -176,7 +176,7 @@ export default function HallBookingDashboard() {
           <p>You don't have permission to access Hall Bookings</p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="hallbooking-primary-btn mt-4 px-6 py-2 rounded-lg"
           >
             Back to Dashboard
           </button>
@@ -185,11 +185,25 @@ export default function HallBookingDashboard() {
     );
   }
 
-  // Loading states
+  // Loading states with Google Design (PATCH 20)
   if (loading) {
     return (
-      <main className="flex items-center justify-center h-screen text-gray-500">
-        Loading Hall Booking Dashboard...
+      <main className={`
+        flex flex-col items-center justify-center h-screen gap-4
+        ${theme === "dark" ? "bg-[#202124]" : "bg-white"}
+      `}>
+        <div className={`
+          w-12 h-12 border-4 rounded-full animate-spin
+          ${theme === "dark"
+            ? "border-[#3c4043] border-t-[#8ab4f8]"
+            : "border-[#f1f3f4] border-t-[#1a73e8]"
+          }
+        `} />
+        <div className={`text-base ${
+          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+        }`}>
+          Loading Hall Booking Dashboard...
+        </div>
       </main>
     );
   }
@@ -201,142 +215,174 @@ export default function HallBookingDashboard() {
 
   if (hallLoading && !hasData) {
     return (
-      <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
-        <div className="text-xl font-semibold">Loading Hall Bookings...</div>
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
+      <main className={`
+        flex flex-col items-center justify-center h-screen gap-4
+        ${theme === "dark" ? "bg-[#202124]" : "bg-white"}
+      `}>
+        <div className={`
+          w-12 h-12 border-4 rounded-full animate-spin
+          ${theme === "dark"
+            ? "border-[#3c4043] border-t-[#8ab4f8]"
+            : "border-[#f1f3f4] border-t-[#1a73e8]"
+          }
+        `} />
+        <div className={`text-base ${
+          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+        }`}>
+          Loading Hall Bookings...
+        </div>
+        <div className={`flex items-center gap-2 text-xs ${
+          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+        }`}>
           <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
           <span>{connected ? 'Connected' : 'Connecting...'}</span>
         </div>
-        <div className="text-xs text-gray-400">API: {API}</div>
       </main>
     );
   }
 
   if (hallError && !hasData) {
     return (
-      <main className="flex flex-col items-center justify-center h-screen text-gray-500 gap-4">
-        <div className="text-xl font-semibold text-red-600">⚠️ Connection Error</div>
-        <div className="text-sm text-gray-600 dark:text-gray-400 max-w-md text-center">
+      <main className={`
+        flex flex-col items-center justify-center h-screen gap-4
+        ${theme === "dark" ? "bg-[#202124]" : "bg-white"}
+      `}>
+        <div className={`text-xl font-medium ${
+          theme === "dark" ? "text-[#f28b82]" : "text-[#d93025]"
+        }`}>
+          ⚠️ Connection Error
+        </div>
+        <div className={`text-sm max-w-md text-center ${
+          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+        }`}>
           {hallError}
         </div>
-        <div className="text-xs text-gray-400">Trying to connect to: {API}</div>
         <button
           onClick={refreshHallData}
-          className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          className={`
+            mt-4 px-6 py-2 rounded-lg font-medium transition-colors
+            ${theme === "dark"
+              ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
+              : "bg-[#1a73e8] hover:bg-[#1967d2] text-white"
+            }
+          `}
         >
           Retry Connection
-        </button>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="px-6 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
-        >
-          Back to Main Dashboard
         </button>
       </main>
     );
   }
 
-  const sidebarVariants = {
-    hidden: { x: -250, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
-  };
-
   return (
     <DashboardRefreshProvider onRefresh={handleRefresh}>
-      <ToastProvider theme={theme}>
-        <div className={`min-h-screen relative overflow-hidden ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-            : "bg-gradient-to-br from-gray-50 via-white to-red-50"
-        } pb-safe-bottom`}> {/* Add safe bottom padding for mobile */}
-          {/* Glassmorphism Background Effects */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 -left-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-            <div className="absolute top-0 -right-40 w-80 h-80 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+      <ToastProvider>
+        <div className={`min-h-screen ${
+          theme === "dark" ? "bg-[#202124]" : "bg-[#f8f9fa]"
+        }`}>
+          {/* Animated Background */}
+          <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
             <div className="absolute -bottom-40 left-20 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
           </div>
 
-          {/* HEADER - ✅ UPDATED: Removed unnecessary buttons */}
-          <div className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b ${
-            theme === "dark"
-              ? "bg-gray-900/80 border-gray-700"
-              : "bg-white/80 border-gray-200"
-          }`}>
-            <div className="flex items-center justify-between px-4 md:px-6 py-3"> {/* Add responsive padding */}
-              {/* Logo & Title */}
-              <div className="flex items-center gap-4">
-                <img
-                  src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                  alt="Thapar Logo"
-                  className="w-12 h-12 object-contain"
-                />
-                <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-                    Hall Booking System
-                  </h1>
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Management Dashboard
-                  </p>
-                </div>
-              </div>
-
-              {/* Right Side Actions - ✅ Only essential buttons */}
-              <div className="flex items-center gap-4">
-                {/* Switch Dashboard Button - Only show for Admin */}
-                {role === "admin" && (
-                  <button
-                    onClick={() => navigate("/dashboard-selector")}
-                    className={`px-4 py-2 rounded-lg border transition ${
-                      theme === "dark"
-                        ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    Switch Dashboard
-                  </button>
-                )}
-
-                {/* Settings Button */}
-                <button
-                  onClick={() => setActiveSection("settings")}
-                  className={`p-2 rounded-lg transition ${
-                    theme === "dark"
-                      ? "hover:bg-gray-700 text-gray-300"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                  title="Settings"
-                >
-                  <motion.div whileHover={{ rotate: 90 }} transition={{ duration: 0.3 }}>
-                    <Settings className="w-5 h-5" />
-                  </motion.div>
-                </button>
-
-                {/* Profile Button */}
-                <button
-                  onClick={() => setProfileOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition"
-                >
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">
-                    {currentUser?.name?.charAt(0) || "A"}
-                  </div>
-                  <span className="text-sm font-medium">{currentUser?.name}</span>
-                </button>
-
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                >
-                  Logout
-                </button>
-              </div>
+          {/* HEADER - PATCH 19: Dashboard Top Bar with Google Design */}
+          <header className={`
+            fixed top-0 left-0 right-0 h-16 z-30
+            flex items-center justify-between px-6
+            border-b transition-colors duration-200
+            ${theme === "dark"
+              ? "bg-[#292a2d] border-[#3c4043]"
+              : "bg-white border-[#dadce0]"
+            }
+          `}>
+            <div className="flex items-center gap-4">
+              <h1 className={`text-xl font-normal ${
+                theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+              }`}>
+                Hall Booking Portal
+              </h1>
             </div>
-          </div>
+            <div className="flex items-center gap-2">
+              {/* Switch Dashboard Button - Only show for Admin */}
+              {role === "admin" && (
+                <button
+                  onClick={() => navigate("/admin/dashboard-selector")}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${theme === "dark"
+                      ? "text-[#8ab4f8] hover:bg-[#3c4043]"
+                      : "text-[#1a73e8] hover:bg-[#f1f3f4]"
+                    }
+                  `}
+                >
+                  Switch Dashboard
+                </button>
+              )}
+
+              {/* Theme Toggle */}
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className={`
+                  p-2 rounded-full transition-colors
+                  ${theme === "dark" 
+                    ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                    : "hover:bg-[#f1f3f4] text-[#5f6368]"
+                  }
+                `}
+              >
+                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+
+              {/* Settings */}
+              <button
+                onClick={() => setActiveSection("settings")}
+                className={`
+                  p-2 rounded-full transition-colors
+                  ${theme === "dark" 
+                    ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                    : "hover:bg-[#f1f3f4] text-[#5f6368]"
+                  }
+                `}
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {/* Profile */}
+              <button
+                onClick={() => setProfileOpen(true)}
+                className={`
+                  flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
+                  ${theme === "dark" 
+                    ? "hover:bg-[#3c4043] text-[#e8eaed]" 
+                    : "hover:bg-[#f1f3f4] text-[#202124]"
+                  }
+                `}
+              >
+                <div className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  ${theme === "dark" ? "bg-[#8ab4f8] text-[#202124]" : "bg-[#1a73e8] text-white"}
+                `}>
+                  {currentUser?.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <span className="text-sm">{currentUser?.name}</span>
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className={`
+                  px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${theme === "dark"
+                    ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
+                    : "bg-[#1a73e8] hover:bg-[#1967d2] text-white"
+                  }
+                `}
+              >
+                Logout
+              </button>
+            </div>
+          </header>
 
           {/* SIDEBAR */}
           <AnimatePresence>
@@ -346,15 +392,15 @@ export default function HallBookingDashboard() {
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="
+              className={`
                 fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 flex-col z-20
                 hidden md:flex
-                bg-white/70 backdrop-blur-xl
-                dark:bg-gray-900/70
-                border-r-4 border-red-500
-                shadow-[0_18px_45px_rgba(15,23,42,0.18)]
-                rounded-r-3xl
-              "
+                border-r transition-colors duration-200
+                ${theme === "dark"
+                  ? "bg-[#292a2d] border-[#3c4043]"
+                  : "bg-white border-[#dadce0]"
+                }
+              `}
             >
               <HallSidebar
                 theme={theme}
@@ -364,9 +410,9 @@ export default function HallBookingDashboard() {
             </motion.aside>
           </AnimatePresence>
 
-          {/* MAIN CONTENT - ✅ UPDATED: Added routing for all sections */}
+          {/* MAIN CONTENT */}
           <main className={`flex-1 overflow-y-auto mt-16 ml-0 md:ml-64`}>
-            {/* Dashboard Home - ✅ NO rooms grid */}
+            {/* Dashboard Home */}
             {activeSection === "home" && (
               <HallMainContent
                 hallData={hallData}
@@ -378,7 +424,7 @@ export default function HallBookingDashboard() {
               />
             )}
 
-            {/* Manage Bookings Portal - ✅ Shows ALL bookings */}
+            {/* Manage Bookings Portal */}
             {activeSection === "manage-bookings" && (
               <HallBookingsPortal
                 hallData={hallData}
@@ -390,7 +436,7 @@ export default function HallBookingDashboard() {
               />
             )}
 
-            {/* Calendar Page - ✅ NEW */}
+            {/* Calendar Page */}
             {activeSection === "calendar" && (
               <HallCalendarPage
                 hallData={hallData}
@@ -398,7 +444,8 @@ export default function HallBookingDashboard() {
                 onBack={() => handleNavigate("home")}
               />
             )}
-            {/* Event Calendar Page - ✅ NEW */}
+
+            {/* Event Calendar Page */}
             {activeSection === "event-calendar" && (
               <EventCalendarPage
                 theme={theme}
@@ -406,8 +453,7 @@ export default function HallBookingDashboard() {
               />
             )}
 
-
-            {/* Category Portals - ✅ NEW: For each hall category */}
+            {/* Category Portals */}
             {isCategoryPortal && (
               <HallCategoryPortal
                 hallData={hallData}

@@ -149,13 +149,19 @@ export default function HallBookingModal({
       if (!formData.checkOutDate) newErrors.checkOutDate = "Check-out date is required";
       if (!formData.checkOutTime) newErrors.checkOutTime = "Check-out time is required";
 
-      // Date validation
-      if (formData.checkInDate && formData.checkOutDate) {
-        const checkIn = new Date(formData.checkInDate);
-        const checkOut = new Date(formData.checkOutDate);
+      // Date & Time validation - Allow same-day bookings
+      if (formData.checkInDate && formData.checkOutDate && formData.checkInTime && formData.checkOutTime) {
+        const checkInDateTime = new Date(`${formData.checkInDate}T${formData.checkInTime}`);
+        const checkOutDateTime = new Date(`${formData.checkOutDate}T${formData.checkOutTime}`);
         
-        if (checkOut <= checkIn) {
-          newErrors.checkOutDate = "Check-out must be after check-in";
+        if (checkOutDateTime <= checkInDateTime) {
+          newErrors.checkOutTime = "Check-out must be after check-in time";
+        }
+        
+        // Minimum booking duration: 5 minutes
+        const durationInMinutes = (checkOutDateTime - checkInDateTime) / (1000 * 60);
+        if (durationInMinutes < 5) {
+          newErrors.checkOutTime = "Minimum booking duration is 5 minutes";
         }
       }
     }
@@ -182,13 +188,15 @@ export default function HallBookingModal({
       );
     }
     if (step === 2) {
-      return (
-        formData.checkInDate &&
-        formData.checkInTime &&
-        formData.checkOutDate &&
-        formData.checkOutTime &&
-        new Date(formData.checkOutDate) > new Date(formData.checkInDate)
-      );
+      if (!formData.checkInDate || !formData.checkInTime || !formData.checkOutDate || !formData.checkOutTime) {
+        return false;
+      }
+      
+      const checkInDateTime = new Date(`${formData.checkInDate}T${formData.checkInTime}`);
+      const checkOutDateTime = new Date(`${formData.checkOutDate}T${formData.checkOutTime}`);
+      const durationInMinutes = (checkOutDateTime - checkInDateTime) / (1000 * 60);
+      
+      return checkOutDateTime > checkInDateTime && durationInMinutes >= 5;
     }
     if (step === 3) {
       return formData.attachments.length > 0;
@@ -229,72 +237,45 @@ export default function HallBookingModal({
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className={`rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden ${
-            theme === "dark" 
-              ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" 
-              : "bg-gradient-to-br from-white via-red-50 to-white"
-          }`}
-          initial={{ scale: 0.9, y: 30 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 30 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          onClick={(e) => e.stopPropagation()}
+          className={`
+            relative w-full max-w-2xl max-h-[90vh] overflow-hidden
+            rounded-lg shadow-2xl
+            ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}
+          `}
         >
           {/* Header */}
-          <div className={`px-8 py-6 border-b-2 ${
-            theme === "dark" 
-              ? "border-gray-700 bg-gradient-to-r from-red-900/30 to-orange-900/30" 
-              : "border-red-100 bg-gradient-to-r from-red-600 to-red-700"
-          }`}>
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className={`text-3xl font-bold flex items-center gap-3 ${
-                  theme === "dark" ? "text-red-400" : "text-white"
-                }`}>
-                  <motion.div
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Building className="w-8 h-8" />
-                  </motion.div>
-                  New Hall Booking
-                </h2>
-                <p className={`text-sm mt-1 ${
-                  theme === "dark" ? "text-red-300" : "text-red-100"
-                }`}>
-                  Step {step} of 4
-                </p>
-              </div>
-              <motion.button
-                whileHover={{ rotate: 90, scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                className={`p-2 rounded-full transition-colors ${
-                  theme === "dark"
-                    ? "text-gray-400 hover:text-red-400 hover:bg-gray-800"
-                    : "text-white hover:text-red-200 hover:bg-red-600"
-                }`}
-              >
-                <X size={28} />
-              </motion.button>
+          <div className={`
+            px-6 py-4 border-b flex items-center justify-between
+            ${theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"}
+          `}>
+            <div>
+              <h2 className={`text-xl font-normal ${
+                theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+              }`}>
+                {step === 1 ? "Guest Information" : step === 2 ? "Booking Details" : step === 3 ? "Attachments" : "Review"}
+              </h2>
+              <p className={`text-sm mt-1 ${
+                theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+              }`}>
+                Step {step} of 4
+              </p>
             </div>
-
-            {/* Progress Bar */}
-            <div className="mt-4 flex gap-2">
-              {[1, 2, 3, 4].map((s) => (
-                <motion.div
-                  key={s}
-                  className={`h-2 flex-1 rounded-full ${
-                    s <= step
-                      ? "bg-gradient-to-r from-yellow-400 to-orange-500"
-                      : theme === "dark"
-                      ? "bg-gray-700"
-                      : "bg-red-300"
-                  }`}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: s <= step ? 1 : 0.3 }}
-                  transition={{ duration: 0.3 }}
-                />
-              ))}
-            </div>
+            <button
+              onClick={onClose}
+              className={`
+                p-2 rounded-full transition-colors
+                ${theme === "dark" 
+                  ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                  : "hover:bg-[#f1f3f4] text-[#5f6368]"
+                }
+              `}
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Body */}
@@ -368,13 +349,16 @@ export default function HallBookingModal({
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.name 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.name 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                         placeholder="Your name"
                       />
                       {errors.name && (
@@ -402,13 +386,16 @@ export default function HallBookingModal({
                         name="societyName"
                         value={formData.societyName}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.societyName 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.societyName 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                         placeholder="Society name"
                       />
                       {errors.societyName && (
@@ -436,13 +423,16 @@ export default function HallBookingModal({
                         name="eventName"
                         value={formData.eventName}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.eventName 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.eventName 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                         placeholder="Event name"
                       />
                       {errors.eventName && (
@@ -473,13 +463,16 @@ export default function HallBookingModal({
                         value={formData.contact}
                         onChange={handleChange}
                         maxLength={10}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.contact 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.contact 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                         placeholder="10 digit number"
                       />
                       {errors.contact && (
@@ -507,13 +500,16 @@ export default function HallBookingModal({
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.email 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.email 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                         placeholder="example@thapar.edu"
                       />
                       {errors.email && (
@@ -568,13 +564,16 @@ export default function HallBookingModal({
                         name="checkInDate"
                         value={formData.checkInDate}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.checkInDate 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.checkInDate 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
-                            : "border-gray-300 bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                       />
                       {errors.checkInDate && (
                         <motion.p
@@ -601,13 +600,16 @@ export default function HallBookingModal({
                         name="checkInTime"
                         value={formData.checkInTime}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.checkInTime 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.checkInTime 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
-                            : "border-gray-300 bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                       />
                       {errors.checkInTime && (
                         <motion.p
@@ -635,13 +637,16 @@ export default function HallBookingModal({
                         value={formData.checkOutDate}
                         onChange={handleChange}
                         min={formData.checkInDate}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.checkOutDate 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.checkOutDate 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                       />
                       {errors.checkOutDate && (
                         <motion.p
@@ -668,13 +673,16 @@ export default function HallBookingModal({
                         name="checkOutTime"
                         value={formData.checkOutTime}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          errors.checkOutTime 
-                            ? "border-red-500 focus:ring-4 focus:ring-red-500/20" 
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${errors.checkOutTime 
+                            ? "border-red-500 focus:border-red-500" 
                             : theme === "dark"
-                            ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                            : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                        } outline-none`}
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
                       />
                       {errors.checkOutTime && (
                         <motion.p
@@ -726,11 +734,14 @@ export default function HallBookingModal({
                       name="purpose"
                       value={formData.purpose}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                        theme === "dark"
-                          ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                          : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                      } outline-none`}
+                      className={`
+                        w-full px-4 py-3 rounded border text-sm
+                        transition-all duration-200 outline-none
+                        ${theme === "dark"
+                          ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                          : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                        }
+                      `}
                       placeholder="Booking purpose (optional)"
                     />
                   </div>
@@ -747,11 +758,14 @@ export default function HallBookingModal({
                       value={formData.description}
                       onChange={handleChange}
                       rows={4}
-                      className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                        theme === "dark"
-                          ? "border-gray-600 bg-gray-800 text-gray-100 focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                          : "border-gray-300 bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/20"
-                      } outline-none resize-none`}
+                      className={`
+                        w-full px-4 py-3 rounded border text-sm
+                        transition-all duration-200 outline-none resize-none
+                        ${theme === "dark"
+                          ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                          : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                        }
+                      `}
                       placeholder="Additional information (optional)"
                     />
                   </div>
@@ -815,11 +829,19 @@ export default function HallBookingModal({
 
                       <label
                         htmlFor="file-upload"
-                        className={`cursor-pointer inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                          uploading
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl"
-                        } text-white`}
+                        className={`
+                          cursor-pointer inline-flex items-center gap-2 
+                          px-6 py-2.5 rounded text-sm font-medium
+                          transition-all duration-200
+                          ${uploading
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                          }
+                          ${theme === "dark"
+                            ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                            : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                          }
+                        `}
                       >
                         <Upload className="w-5 h-5" />
                         {uploading ? "Uploading..." : "Upload File"}
@@ -1080,11 +1102,14 @@ export default function HallBookingModal({
                   whileHover={{ scale: 1.05, x: -5 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setStep((prev) => prev - 1)}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                  }`}
+                  className={`
+                    px-6 py-2.5 rounded text-sm font-medium
+                    transition-all duration-200 flex items-center gap-2
+                    ${theme === "dark"
+                      ? "bg-transparent border border-[#5f6368] text-[#e8eaed] hover:bg-[#3c4043]"
+                      : "bg-transparent border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]"
+                    }
+                  `}
                 >
                   ← Back
                 </motion.button>
@@ -1097,11 +1122,14 @@ export default function HallBookingModal({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                }`}
+                className={`
+                  px-6 py-2.5 rounded text-sm font-medium
+                  transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-transparent border border-[#5f6368] text-[#e8eaed] hover:bg-[#3c4043]"
+                    : "bg-transparent border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]"
+                  }
+                `}
               >
                 Cancel
               </motion.button>
@@ -1111,30 +1139,42 @@ export default function HallBookingModal({
                   type="button"
                   whileHover={{ 
                     scale: canProceedToNext() ? 1.05 : 1,
-                    x: canProceedToNext() ? 5 : 0,
-                    boxShadow: canProceedToNext() ? "0 10px 25px rgba(220, 38, 38, 0.3)" : "none"
+                    x: canProceedToNext() ? 5 : 0
                   }}
                   whileTap={{ scale: canProceedToNext() ? 0.95 : 1 }}
                   onClick={handleNext}
                   disabled={!canProceedToNext()}
-                  className={`px-8 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    canProceedToNext()
-                      ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg cursor-pointer"
-                      : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  }`}
+                  className={`
+                    px-6 py-2.5 rounded text-sm font-medium
+                    transition-all duration-200 flex items-center gap-2
+                    ${canProceedToNext()
+                      ? theme === "dark"
+                        ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                        : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                      : "opacity-50 cursor-not-allowed"
+                    }
+                    ${theme === "dark"
+                      ? "bg-[#8ab4f8] text-[#202124]"
+                      : "bg-[#1a73e8] text-white"
+                    }
+                  `}
                 >
                   Next →
                 </motion.button>
               ) : (
                 <motion.button
                   type="button"
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 10px 25px rgba(34, 197, 94, 0.4)",
-                  }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleSubmit}
-                  className="px-10 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl shadow-lg font-bold transition-all flex items-center gap-2"
+                  className={`
+                    px-6 py-2.5 rounded text-sm font-medium
+                    transition-all duration-200 flex items-center gap-2
+                    ${theme === "dark"
+                      ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                      : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                    }
+                  `}
                 >
                   <CheckCircle className="w-5 h-5" />
                   Confirm Booking

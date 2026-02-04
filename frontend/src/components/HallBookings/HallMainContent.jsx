@@ -124,7 +124,7 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
   return (
     <div className="p-6 space-y-6">
       {/* âœ… Stats Cards - Made smaller and more compact */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Halls"
           value={stats.totalHalls}
@@ -219,39 +219,44 @@ export default function HallMainContent({ hallData, theme, currentUser, onRefres
   );
 }
 
-// Stats Card Component - âœ… Made smaller
+// Google-inspired Stats Card
 function StatCard({ title, value, icon, color, theme }) {
   const colorClasses = {
-    blue: "from-blue-500 to-blue-600",
-    green: "from-green-500 to-green-600",
-    purple: "from-purple-500 to-purple-600",
-    orange: "from-orange-500 to-orange-600",
+    blue: theme === "dark" ? "text-[#8ab4f8]" : "text-[#1a73e8]",
+    green: theme === "dark" ? "text-[#81c995]" : "text-[#1e8e3e]",
+    purple: theme === "dark" ? "text-[#c58af9]" : "text-[#9334e6]",
+    orange: theme === "dark" ? "text-[#ffa726]" : "text-[#e37400]",
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}
-      className={`p-4 rounded-2xl backdrop-blur-xl border shadow-xl ${
-        theme === "dark"
-          ? "bg-gray-800/60 border-gray-700"
-          : "bg-white/60 border-gray-200"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className={`text-xs font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+    <div className={`
+      p-6 rounded-lg transition-all duration-200
+      ${theme === "dark" 
+        ? "bg-[#292a2d] hover:shadow-lg hover:shadow-black/20" 
+        : "bg-white hover:shadow-lg hover:shadow-gray-200 border border-[#dadce0]"
+      }
+    `}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className={`text-sm font-normal mb-2 ${
+            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+          }`}>
             {title}
           </p>
-          <p className={`text-2xl font-bold mt-1 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+          <p className={`text-3xl font-normal ${
+            theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+          }`}>
             {value}
           </p>
         </div>
-        <div className={`p-2 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white`}>
-          {icon}
+        <div className={`p-3 rounded-full ${
+          theme === "dark" ? "bg-[#3c4043]" : "bg-[#f1f3f4]"
+        }`}>
+          <div className={colorClasses[color]}>
+            {icon}
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

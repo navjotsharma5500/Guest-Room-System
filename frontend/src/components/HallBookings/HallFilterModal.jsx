@@ -1,4 +1,4 @@
-// src/components/HallBookings/HallFilterModal.jsx - NEW FILE
+// src/components/HallBookings/HallFilterModal.jsx - Google Material Design
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, Search } from "lucide-react";
@@ -34,27 +34,30 @@ export default function FilterModal({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`w-full max-w-md rounded-2xl p-6 ${
-          theme === "dark"
-            ? "bg-gray-800 border border-gray-700"
-            : "bg-white border border-gray-200"
-        }`}
+        className={`
+          w-full max-w-md rounded-lg p-6 shadow-2xl
+          ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}
+        `}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/10">
-              <Search className="w-6 h-6 text-red-500" />
+            <div className={`p-2 rounded-full ${
+              theme === "dark" ? "bg-[#3c4043]" : "bg-[#e8f0fe]"
+            }`}>
+              <Search className={`w-5 h-5 ${
+                theme === "dark" ? "text-[#8ab4f8]" : "text-[#1a73e8]"
+              }`} />
             </div>
             <div>
-              <h2 className={`text-2xl font-bold ${
-                theme === "dark" ? "text-white" : "text-gray-900"
+              <h2 className={`text-xl font-normal ${
+                theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
               }`}>
                 Check Vacancy
               </h2>
               <p className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
+                theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
               }`}>
                 Find available hall rooms
               </p>
@@ -62,9 +65,13 @@ export default function FilterModal({
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-lg hover:bg-gray-700 ${
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            }`}
+            className={`
+              p-2 rounded-full transition-colors
+              ${theme === "dark" 
+                ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                : "hover:bg-[#f1f3f4] text-[#5f6368]"
+              }
+            `}
           >
             <X className="w-5 h-5" />
           </button>
@@ -74,7 +81,7 @@ export default function FilterModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className={`block text-sm font-medium mb-2 ${
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
+              theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
             }`}>
               <Calendar className="w-4 h-4 inline mr-2" />
               Check-in Date
@@ -83,18 +90,21 @@ export default function FilterModal({
               type="date"
               value={checkIn}
               onChange={(e) => setCheckIn(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              }`}
+              className={`
+                w-full px-4 py-3 rounded border text-sm
+                transition-all duration-200 outline-none
+                ${theme === "dark"
+                  ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                  : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                }
+              `}
               required
             />
           </div>
 
           <div>
             <label className={`block text-sm font-medium mb-2 ${
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
+              theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
             }`}>
               <Calendar className="w-4 h-4 inline mr-2" />
               Check-out Date
@@ -104,11 +114,14 @@ export default function FilterModal({
               value={checkOut}
               onChange={(e) => setCheckOut(e.target.value)}
               min={checkIn}
-              className={`w-full px-4 py-3 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              }`}
+              className={`
+                w-full px-4 py-3 rounded border text-sm
+                transition-all duration-200 outline-none
+                ${theme === "dark"
+                  ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                  : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                }
+              `}
               required
             />
           </div>
@@ -118,17 +131,25 @@ export default function FilterModal({
             <button
               type="button"
               onClick={onClose}
-              className={`flex-1 py-3 rounded-xl font-medium ${
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-900"
-              }`}
+              className={`
+                flex-1 py-2.5 rounded text-sm font-medium transition-colors
+                ${theme === "dark"
+                  ? "bg-transparent border border-[#5f6368] text-[#e8eaed] hover:bg-[#3c4043]"
+                  : "bg-transparent border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]"
+                }
+              `}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl font-medium bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+              className={`
+                flex-1 py-2.5 rounded text-sm font-medium transition-colors
+                ${theme === "dark"
+                  ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                  : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                }
+              `}
             >
               Search Vacancy
             </button>

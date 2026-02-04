@@ -1,9 +1,10 @@
-// src/GuestRoomDashboard.jsx - UPDATED WITH CENTRALIZED REFRESH
+// src/GuestRoomDashboard.jsx - UPDATED WITH GUESTROOM CSS CLASSES
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
 import { AlertCircle } from "lucide-react";
+import '../styles/guestroom.css';
 
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
@@ -65,7 +66,7 @@ export default function GuestRoomDashboard() {
   const [activeRoomRef, setActiveRoomRef] = useState(null);
 
   // 🔍 DEBUG: track active tab
- console.log("🧭 Dashboard activeTab =", activeTab);
+  console.log("🧭 Dashboard activeTab =", activeTab);
 
   // Modal States
   const [bookingSelectModal, setBookingSelectModal] = useState(null);
@@ -210,7 +211,7 @@ export default function GuestRoomDashboard() {
         </div>
         <button
           onClick={refresh}
-          className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+          className="guestroom-primary-btn mt-4 px-6 py-2 rounded-lg transition"
         >
           🔄 Retry Connection
         </button>
@@ -652,7 +653,7 @@ export default function GuestRoomDashboard() {
     <DashboardRefreshProvider onRefresh={handleRefresh}>
       <ToastProvider theme={theme}>
         <div
-          className={`flex h-screen font-sans transition-colors duration-300 ${
+          className={`guestroom-dashboard flex h-screen font-sans transition-colors duration-300 ${
             theme === "dark"
               ? "bg-gray-900 text-gray-100"
               : "bg-gray-50 text-gray-900"
@@ -683,7 +684,7 @@ export default function GuestRoomDashboard() {
               <button
                 onClick={refresh}
                 disabled={hostelLoading}
-                className={`px-3 py-1 text-xs rounded-md transition ${
+                className={`guestroom-btn px-3 py-1 text-xs rounded-md transition ${
                   hostelLoading
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-500 text-white hover:bg-blue-600'
@@ -718,7 +719,7 @@ export default function GuestRoomDashboard() {
               {activeTab !== "AllHostelsPortal" && (
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  className="guestroom-btn flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 >
                   <span className="font-medium">{currentUserData?.name || "Profile"}</span>
                 </button>
@@ -727,7 +728,7 @@ export default function GuestRoomDashboard() {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                className="guestroom-primary-btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
               >
                 Logout
               </button>

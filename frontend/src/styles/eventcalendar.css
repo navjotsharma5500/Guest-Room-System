@@ -1,0 +1,358 @@
+/* ============================= */
+/* 📅 EVENT CALENDAR PAGE        */
+/* PUBLIC STYLING                */
+/* ============================= */
+
+/* Calendar Theme Variables */
+:root {
+  --calendar-primary: #3b82f6;
+  --calendar-secondary: #8b5cf6;
+  --calendar-accent: #ec4899;
+}
+
+/* ============================= */
+/* 🎨 CALENDAR GRADIENTS         */
+/* ============================= */
+
+.calendar-gradient-bg {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+}
+
+.calendar-gradient-text {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================= */
+/* 📅 CALENDAR GRID STYLING      */
+/* ============================= */
+
+.calendar-day {
+  transition: all 0.3s ease;
+}
+
+.calendar-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.calendar-day-today {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.calendar-day-has-events {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 2px solid #3b82f6;
+}
+
+.calendar-day-has-events:hover {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+}
+
+/* Dark mode calendar days */
+body.dark .calendar-day-has-events {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  border-color: #3b82f6;
+}
+
+body.dark .calendar-day-has-events:hover {
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+}
+
+/* ============================= */
+/* 🎯 EVENT INDICATORS           */
+/* ============================= */
+
+.event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* ============================= */
+/* 🎴 EVENT CARD STYLING         */
+/* ============================= */
+
+.event-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.event-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.2);
+}
+
+.event-card-image {
+  transition: transform 0.5s ease;
+}
+
+.event-card:hover .event-card-image {
+  transform: scale(1.1);
+}
+
+/* ============================= */
+/* 🌟 STATUS BADGES              */
+/* ============================= */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-upcoming {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+}
+
+.status-ongoing {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: #166534;
+}
+
+.status-completed {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #4b5563;
+}
+
+.status-cancelled {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+}
+
+/* Dark mode status badges */
+body.dark .status-upcoming {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  color: #bfdbfe;
+}
+
+body.dark .status-ongoing {
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  color: #bbf7d0;
+}
+
+body.dark .status-completed {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  color: #d1d5db;
+}
+
+body.dark .status-cancelled {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  color: #fecaca;
+}
+
+/* ============================= */
+/* 💫 FLOATING ANIMATIONS        */
+/* ============================= */
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ============================= */
+/* 🌈 GRADIENT BACKGROUNDS       */
+/* ============================= */
+
+.gradient-blue-purple {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+}
+
+.gradient-purple-pink {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+}
+
+.gradient-blue-light {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+}
+
+/* ============================= */
+/* 🎭 MODAL ANIMATIONS           */
+/* ============================= */
+
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body.dark .modal-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================= */
+/* 📱 RESPONSIVE ADJUSTMENTS     */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .calendar-day {
+    padding: 8px 4px;
+    font-size: 0.875rem;
+  }
+
+  .event-dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .status-badge {
+    font-size: 0.625rem;
+    padding: 3px 8px;
+  }
+}
+
+/* ============================= */
+/* 🌑 DARK MODE OVERRIDES        */
+/* ============================= */
+
+body.dark .calendar-gradient-bg {
+  background: linear-gradient(135deg, #1e40af, #6366f1, #a855f7);
+}
+
+body.dark .event-card {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(75, 85, 99, 0.6);
+}
+
+body.dark .event-card:hover {
+  background: rgba(31, 41, 55, 1);
+  border-color: #3b82f6;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.3);
+}
+
+/* ============================= */
+/* ✨ SCROLLBAR STYLING          */
+/* ============================= */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+}
+
+body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #1e40af, #6366f1);
+}
+
+/* ============================= */
+/* 🎪 LOADING STATE              */
+/* ============================= */
+
+.loading-spinner {
+  border: 4px solid rgba(59, 130, 246, 0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================= */
+/* 🎨 IMAGE OVERLAY EFFECTS      */
+/* ============================= */
+
+.image-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-overlay:hover::after {
+  opacity: 1;
+}
+
+/* ============================= */
+/* 🏆 FEATURED EVENT HIGHLIGHT   */
+/* ============================= */
+
+.featured-event {
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-event::before {
+  content: '⭐ Featured';
+  position: absolute;
+  top: 12px;
+  right: -32px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 4px 40px;
+  transform: rotate(45deg);
+  font-size: 0.75rem;
+  font-weight: bold;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}

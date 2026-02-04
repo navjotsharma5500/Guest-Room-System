@@ -1,10 +1,13 @@
-// src/App.js - COMPLETE VERSION WITH HALL BOOKING INTEGRATION
+// src/App.js - COMPLETE VERSION WITH EVENT CALENDAR
 // ============================================================================
 // ROUTING STRUCTURE:
-// - Login (/) â†’ Auto-redirects based on user role
-// - Admin â†’ /admin/dashboard-selector â†’ Can choose between dashboards
-// - Assistant â†’ /hall/dashboard â†’ Direct access to hall bookings only
-// - Other Users â†’ /dashboard â†’ Guest room bookings only
+// - Login (/) → Auto-redirects based on user role
+// - Admin → /admin/dashboard-selector → Can choose between dashboards
+// - Assistant → /hall/dashboard → Direct access to hall bookings only
+// - Other Users → /dashboard → Guest room bookings only
+// - PUBLIC ROUTES:
+//   * /guest-enquiry → Public enquiry form
+//   * /events → Public event calendar (NEW)
 // ============================================================================
 
 import React from "react";
@@ -23,6 +26,7 @@ import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import HallBookingDashboard from './HallBookingDashboard';
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
+import EventCalendarPage from "./pages/EventCalendarPage";
 
 // ============================================================================
 // STYLES IMPORT
@@ -43,7 +47,6 @@ export default function App() {
   // ==========================================================================
   // LOADING STATE
   // ==========================================================================
-  // Shows a centered loading spinner while authentication state is being determined
   if (loading) {
     return (
       <main className="flex items-center justify-center h-screen text-gray-500">
@@ -58,8 +61,6 @@ export default function App() {
   // ==========================================================================
   // ROLE EXTRACTION
   // ==========================================================================
-  // Safely extract user role from currentUser object
-  // Handles both direct role property and nested user.role structure
   const role = currentUser?.role || currentUser?.user?.role;
 
   // ==========================================================================
@@ -71,12 +72,7 @@ export default function App() {
 
         {/* ====================================================================
             LOGIN ROUTE WITH AUTO-REDIRECT
-            ==================================================================== 
-            - Unauthenticated: Shows login page
-            - Admin: Redirects to dashboard selector
-            - Assistant: Redirects to hall booking dashboard
-            - Other users: Redirects to guest room dashboard
-        */}
+            ==================================================================== */}
         <Route
           path="/"
           element={
@@ -96,11 +92,7 @@ export default function App() {
 
         {/* ====================================================================
             ADMIN DASHBOARD SELECTOR
-            ==================================================================== 
-            - Access: Admin only
-            - Purpose: Choose between Guest Room or Hall Booking dashboard
-            - Unauthorized: Redirects to login
-        */}
+            ==================================================================== */}
         <Route
           path="/admin/dashboard-selector"
           element={
@@ -114,12 +106,7 @@ export default function App() {
 
         {/* ====================================================================
             GUEST ROOM DASHBOARD
-            ==================================================================== 
-            - Access: Admin and regular users (NOT assistants)
-            - Purpose: Manage guest room bookings
-            - Assistant access: Redirects to hall dashboard
-            - Unauthenticated: Redirects to login
-        */}
+            ==================================================================== */}
         <Route
           path="/dashboard"
           element={
@@ -135,18 +122,7 @@ export default function App() {
 
         {/* ====================================================================
             HALL BOOKING DASHBOARD
-            ==================================================================== 
-            - Access: Admin and Assistant only
-            - Purpose: Manage hall event bookings
-            - Features:
-              * Calendar-based booking view
-              * Create/Edit/Delete bookings
-              * Payment tracking
-              * Status management
-              * Real-time Firebase integration
-            - Other users: Redirects to guest room dashboard
-            - Unauthenticated: Redirects to login
-        */}
+            ==================================================================== */}
         <Route
           path="/hall/dashboard"
           element={
@@ -161,22 +137,24 @@ export default function App() {
         />
 
         {/* ====================================================================
-            GUEST ENQUIRY PAGE
-            ==================================================================== 
-            - Access: Public (no authentication required)
-            - Purpose: Allow guests to submit enquiries
-        */}
+            PUBLIC ROUTES (NO AUTHENTICATION REQUIRED)
+            ==================================================================== */}
+        
+        {/* Guest Enquiry Page */}
         <Route
           path="/guest-enquiry"
           element={<GuestEnquiryPage />}
         />
 
+        {/* Event Calendar Page - PUBLIC ACCESS */}
+        <Route
+          path="/events"
+          element={<EventCalendarPage />}
+        />
+
         {/* ====================================================================
             FALLBACK ROUTE
-            ==================================================================== 
-            - Catches all undefined routes
-            - Redirects to home/login page
-        */}
+            ==================================================================== */}
         <Route
           path="*"
           element={<Navigate to="/" replace />}
@@ -193,47 +171,15 @@ export default function App() {
 /*
   ROUTE                         | ADMIN | ASSISTANT | OTHER | UNAUTHENTICATED
   ------------------------------|-------|-----------|-------|----------------
-  /                             |   âœ“   |     âœ“     |   âœ“   |       âœ“
-  /admin/dashboard-selector     |   âœ“   |     âœ—     |   âœ—   |       âœ—
-  /dashboard                    |   âœ“   |     âœ—     |   âœ“   |       âœ—
-  /hall/dashboard               |   âœ“   |     âœ“     |   âœ—   |       âœ—
-  /guest-enquiry                |   âœ“   |     âœ“     |   âœ“   |       âœ“
+  /                             |   ✓   |     ✓     |   ✓   |       ✓
+  /admin/dashboard-selector     |   ✓   |     ✗     |   ✗   |       ✗
+  /dashboard                    |   ✓   |     ✗     |   ✓   |       ✗
+  /hall/dashboard               |   ✓   |     ✓     |   ✗   |       ✗
+  /guest-enquiry                |   ✓   |     ✓     |   ✓   |       ✓ (PUBLIC)
+  /events                       |   ✓   |     ✓     |   ✓   |       ✓ (PUBLIC)
   
   AUTO-REDIRECTS ON LOGIN:
-  - Admin      â†’ /admin/dashboard-selector
-  - Assistant  â†’ /hall/dashboard
-  - Others     â†’ /dashboard
-*/
-
-// ============================================================================
-// FIREBASE REQUIREMENTS
-// ============================================================================
-/*
-  For Hall Booking Dashboard to work, ensure:
-  
-  1. FIRESTORE COLLECTION: 'hallBookings'
-     - Contains booking documents with proper structure
-     - Security rules configured for role-based access
-  
-  2. AUTHENTICATION CUSTOM CLAIMS:
-     - Admin users: { role: 'admin' }
-     - Assistant users: { role: 'assistant' }
-  
-  3. SECURITY RULES:
-     - Admin: Full CRUD access to hallBookings
-     - Assistant: Read, Create, Update access (no delete)
-     - Others: No access
-*/
-
-// ============================================================================
-// DEPENDENCIES REQUIRED
-// ============================================================================
-/*
-  Ensure these packages are installed:
-  
-  npm install react-router-dom
-  npm install react-calendar
-  npm install date-fns
-  npm install lucide-react
-  npm install firebase
+  - Admin      → /admin/dashboard-selector
+  - Assistant  → /hall/dashboard
+  - Others     → /dashboard
 */

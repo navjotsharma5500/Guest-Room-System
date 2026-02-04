@@ -1,8 +1,8 @@
-// src/pages/HallBookingsPortal.jsx - Complete Fixed Version
+// src/pages/HallBookingsPortal.jsx - GOOGLE MATERIAL DESIGN 3
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Filter, Search, Home, Calendar, Sparkles } from "lucide-react";
+import { Filter, Search, Home, Calendar, X } from "lucide-react";
 
 // Component Imports
 import HallGrid from "../components/HallBookings/HallGrid";
@@ -27,7 +27,6 @@ const filterActiveBookingsFromHallData = (hallData) => {
   }
 
   const validStatuses = ["booked", "checked_in"];
-  
   const filtered = {};
   
   Object.keys(hallData).forEach(hallName => {
@@ -62,7 +61,7 @@ const filterActiveBookingsFromHallData = (hallData) => {
   return filtered;
 };
 
-export default function HallBookingsPortalGlass({
+export default function HallBookingsPortal({
   hallData = {},
   setHallData = () => {}, 
   theme,
@@ -140,7 +139,7 @@ export default function HallBookingsPortalGlass({
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      console.log("🚀 HallBookingsPortalGlass initialized");
+      console.log("🚀 HallBookingsPortal initialized");
       hasInitializedRef.current = true;
     }
   }, []);
@@ -178,16 +177,16 @@ export default function HallBookingsPortalGlass({
     }
   }, [bookingCompleted]);
 
-  // ✅ FIXED: Handle Add Booking button click
+  // Handle Add Booking button click
   const handleAddBooking = () => {
     console.log("📅 Add Booking clicked - entering selection mode");
     setSelectionMode(true);
     setSelectedRooms([]);
     setBookingCompleted(false);
-    showToast("✅ Selection mode enabled - Click rooms to select (checkboxes visible)", "info");
+    showToast("✅ Selection mode enabled - Click rooms to select", "info");
   };
 
-  // ✅ FIXED: Handle Done Selection
+  // Handle Done Selection
   const onDoneSelection = () => {
     if (selectedRooms.length === 0) {
       showToast("⚠️ Please select at least one hall room", "warning");
@@ -198,7 +197,7 @@ export default function HallBookingsPortalGlass({
     setHallBookingModal(true);
   };
 
-  // ✅ NEW: Handle direct booking via + button
+  // Handle direct booking via + button
   const handleDirectBook = (hallName, room) => {
     console.log("➕ Direct booking for:", hallName, room.roomNo);
     setSelectedRooms([{ hall: hallName, roomNo: room.roomNo }]);
@@ -213,7 +212,7 @@ export default function HallBookingsPortalGlass({
     setVacantRooms([]);
   };
 
-  // ✅ FIXED: Handle booking list selection
+  // Handle booking list selection
   const handleSelectBookingFromList = useCallback((booking) => {
     console.log("📋 Selected booking from list:", booking);
     setBookingListModal(null);
@@ -225,64 +224,82 @@ export default function HallBookingsPortalGlass({
   }, [bookingListModal]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Glassmorphism Background with Animated Blobs */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-white to-orange-50" />
-        
-        {/* Animated Background Blobs */}
-        <div className="absolute top-0 -left-4 w-72 h-72 bg-red-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob" />
-        <div className="absolute top-0 -right-4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000" />
-      </div>
-
-      {/* Glassmorphism Header */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-30 mx-6 mt-6 mb-6"
-      >
-        <div className="glassmorphism-card rounded-2xl px-6 py-4 shadow-xl border-2 border-white/40">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-red-600" />
-              <h2 className="text-2xl font-bold gradient-text">
+    <div className={`min-h-screen transition-colors duration-200 ${
+      theme === "dark" ? "bg-[#202124]" : "bg-[#f8f9fa]"
+    }`}>
+      {/* Google Design Header */}
+      <header className={`
+        sticky top-0 z-30 border-b transition-colors duration-200
+        ${theme === "dark"
+          ? "bg-[#292a2d] border-[#3c4043]"
+          : "bg-white border-[#dadce0]"
+        }
+      `}>
+        <div className="max-w-[1400px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left Section */}
+            <div className="flex items-center gap-4">
+              <h1 className={`text-xl font-normal ${
+                theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+              }`}>
                 Hall Booking Portal
-              </h2>
+              </h1>
+              
               {selectionMode && (
-                <span className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm font-medium animate-pulse">
-                  Selection Mode Active
+                <span className={`
+                  px-3 py-1 rounded-full text-xs font-medium
+                  ${theme === "dark"
+                    ? "bg-[#8ab4f8]/20 text-[#8ab4f8]"
+                    : "bg-[#d3e3fd] text-[#1967d2]"
+                  }
+                `}>
+                  Selection Mode
                 </span>
               )}
             </div>
             
-            <div className="flex items-center gap-3">
+            {/* Right Section */}
+            <div className="flex items-center gap-2">
               <motion.button
-                whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(220, 38, 38, 0.3)" }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={handleAddBooking}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold"
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                  transition-colors duration-200
+                  ${theme === "dark"
+                    ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
+                    : "bg-[#1a73e8] hover:bg-[#1967d2] text-white"
+                  }
+                `}
               >
-                <Calendar size={18} />
-                Add Booking
+                <Calendar size={16} />
+                <span>Add Booking</span>
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={onBackHome}
-                className="flex items-center gap-2 px-4 py-2.5 glassmorphism-card border-2 border-red-400/50 text-red-700 hover:bg-red-50/50 rounded-xl shadow transition"
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                  transition-colors duration-200
+                  ${theme === "dark"
+                    ? "bg-[#3c4043] hover:bg-[#4a4d50] text-[#e8eaed]"
+                    : "bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#202124]"
+                  }
+                `}
               >
-                <Home size={18} />
-                Back
+                <Home size={16} />
+                <span>Back</span>
               </motion.button>
             </div>
           </div>
         </div>
-      </motion.div>
+      </header>
 
       {/* Main Content */}
-      <div className="px-6 pb-20">
+      <main className="max-w-[1400px] mx-auto px-6 py-6">
         {/* Hall Grid */}
         <HallGrid
           hallData={stableHallData}
@@ -295,44 +312,50 @@ export default function HallBookingsPortalGlass({
           showToast={showToast}
         />
 
-        {/* ✅ FIXED: Selection Footer - Shows when in selection mode */}
+        {/* Selection Footer */}
         {selectionMode && selectedRooms.length > 0 && (
           <SelectionFooter
             selectedCount={selectedRooms.length}
             onDone={onDoneSelection}
           />
         )}
+      </main>
 
-        {/* Floating Action Buttons - Bottom Right with Glassmorphism */}
-        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
-          {/* Search Button */}
-          <motion.button
-            whileHover={{ 
-              scale: 1.1, 
-              boxShadow: "0 15px 40px rgba(59, 130, 246, 0.5)" 
-            }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setSearchFilterModal(true)}
-            className="glassmorphism-card p-4 rounded-full shadow-2xl transition-all bg-gradient-to-br from-blue-500/90 to-blue-600/90 text-white border-2 border-white/40"
-            title="Search Bookings"
-          >
-            <Search size={24} />
-          </motion.button>
+      {/* Floating Action Buttons - Google Style */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+        {/* Search Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setSearchFilterModal(true)}
+          className={`
+            p-4 rounded-full shadow-lg transition-all duration-200
+            ${theme === "dark"
+              ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
+              : "bg-[#1a73e8] hover:bg-[#1967d2] text-white"
+            }
+          `}
+          title="Search Bookings"
+        >
+          <Search size={20} />
+        </motion.button>
 
-          {/* Filter Button */}
-          <motion.button
-            whileHover={{ 
-              scale: 1.1, 
-              boxShadow: "0 15px 40px rgba(16, 185, 129, 0.5)" 
-            }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setFilterModal(true)}
-            className="glassmorphism-card p-4 rounded-full shadow-2xl transition-all bg-gradient-to-br from-green-500/90 to-green-600/90 text-white border-2 border-white/40"
-            title="Filter by Date"
-          >
-            <Filter size={24} />
-          </motion.button>
-        </div>
+        {/* Filter Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setFilterModal(true)}
+          className={`
+            p-4 rounded-full shadow-lg transition-all duration-200
+            ${theme === "dark"
+              ? "bg-[#81c995] hover:bg-[#a8dab5] text-[#202124]"
+              : "bg-[#137333] hover:bg-[#0d652d] text-white"
+            }
+          `}
+          title="Filter by Date"
+        >
+          <Filter size={20} />
+        </motion.button>
       </div>
 
       {/* Modals */}
@@ -430,41 +453,6 @@ export default function HallBookingsPortalGlass({
           />
         )}
       </AnimatePresence>
-
-      {/* Custom Styles */}
-      <style>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        
-        .glassmorphism-card {
-          background: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-        }
-        
-        .gradient-text {
-          background: linear-gradient(135deg, #DC2626 0%, #EA580C 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-      `}</style>
     </div>
   );
 }

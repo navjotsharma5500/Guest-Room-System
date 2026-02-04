@@ -1,4 +1,4 @@
-// src/components/HallBookings/VacantRoomsModal.jsx
+// src/components/HallBookings/VacantRoomsModal.jsx - Google Material Design
 import React from "react";
 import { motion } from "framer-motion";
 import { X, CheckCircle } from "lucide-react";
@@ -8,41 +8,40 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
   useEscapeKey(onClose);
   return (
     <motion.div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onClick={onClose}
     >
       <motion.div
-        className={`rounded-2xl p-6 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[80vh] ${
-          theme === "dark"
-            ? "bg-gray-800 text-gray-100"
-            : "bg-white text-gray-900"
-        }`}
+        onClick={(e) => e.stopPropagation()}
+        className={`
+          rounded-lg p-6 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[80vh]
+          ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}
+        `}
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2
-            className={`text-2xl font-semibold flex items-center gap-2 ${
-              theme === "dark" ? "text-red-400" : "text-red-700"
-            }`}
-          >
+          <h2 className={`text-xl font-normal flex items-center gap-2 ${
+            theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+          }`}>
             <CheckCircle className="w-6 h-6" /> Available Hall Rooms
           </h2>
-          <motion.button
-            whileHover={{ rotate: 90, scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={onClose}
-            className={
-              theme === "dark"
-                ? "text-gray-400 hover:text-red-400"
-                : "text-gray-500 hover:text-red-600"
-            }
+            className={`
+              p-2 rounded-full transition-colors
+              ${theme === "dark" 
+                ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                : "hover:bg-[#f1f3f4] text-[#5f6368]"
+              }
+            `}
           >
-            <X size={22} />
-          </motion.button>
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -52,44 +51,47 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
-              className={`p-4 border-2 rounded-xl flex justify-between items-center transition-all ${
-                theme === "dark"
-                  ? "border-gray-700 bg-gray-700/50 hover:bg-gray-700"
-                  : "border-gray-300 bg-white hover:bg-gray-50"
-              }`}
+              className={`
+                p-4 rounded-lg flex justify-between items-center transition-all
+                ${theme === "dark"
+                  ? "bg-[#3c4043] hover:bg-[#4a4d50]"
+                  : "bg-[#f8f9fa] hover:bg-[#f1f3f4] border border-[#dadce0]"
+                }
+              `}
             >
               <div>
-                <p
-                  className={`font-semibold text-lg ${
-                    theme === "dark" ? "text-gray-100" : "text-gray-800"
-                  }`}
-                >
-                  {v.hall} – {v.room.roomNo}
+                <p className={`font-medium text-base ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}>
+                  {v.hall} — {v.room.roomNo}
                 </p>
-                <p
-                  className={`text-sm ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
+                <p className={`text-sm ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                }`}>
                   Hall Room
                 </p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => onBookRoom({ hall: v.hall, room: v.room })}
-                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                className={`
+                  px-4 py-2 rounded text-sm font-medium transition-colors
+                  ${theme === "dark"
+                    ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                    : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                  }
+                `}
               >
                 Book Now
-              </motion.button>
+              </button>
             </motion.div>
           ))}
         </div>
 
         {vacantRooms.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg">No vacant hall rooms found for the selected dates.</p>
+          <div className={`text-center py-12 ${
+            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+          }`}>
+            <p className="text-base">No vacant hall rooms found for the selected dates.</p>
           </div>
         )}
       </motion.div>
