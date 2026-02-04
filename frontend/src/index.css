@@ -253,3 +253,46 @@ button:hover {
   from { transform: scale(1); }
   to { transform: scale(1.06); }
 }
+
+/* ============================= */
+/* 🎨 BLUE GRADIENT THEME        */
+/* ============================= */
+
+/* Gradient Theme Variables */
+:root {
+  --gradient-primary: linear-gradient(90deg, #2C6CBC, #71C3F7, #F6F6F6);
+  --color-blue-primary: #2C6CBC;
+  --color-blue-light: #71C3F7;
+  --color-gray-light: #F6F6F6;
+}
+
+/* Apply gradient to headers, cards, and accent elements */
+.gradient-bg {
+  background: linear-gradient(90deg, #2C6CBC, #71C3F7, #F6F6F6);
+}
+
+.gradient-text-blue {
+  background: linear-gradient(90deg, #2C6CBC, #71C3F7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Override red theme with blue gradient */
+.bg-gradient-to-r.from-red-600.to-red-700,
+.bg-gradient-to-r.from-red-500.to-red-600,
+.bg-gradient-to-br.from-red-600.to-red-700 {
+  background: linear-gradient(90deg, #2C6CBC, #71C3F7) !important;
+}
+
+.text-red-600, .text-red-700, .text-red-400 {
+  color: #2C6CBC !important;
+}
+
+.border-red-500, .border-red-600, .border-red-700 {
+  border-color: #71C3F7 !important;
+}
+
+.hover\:from-red-700:hover {
+  background: linear-gradient(90deg, #71C3F7, #2C6CBC) !important;
+}
