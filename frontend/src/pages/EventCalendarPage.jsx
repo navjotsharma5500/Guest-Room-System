@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import DateEventsModal from "../components/EventCalendar/DateEventsModal";
 import EventDetailsModal from "../components/EventCalendar/EventDetailsModal";
+import AddEventModal from "../components/EventCalendar/AddEventModal";
 
 export default function EventCalendarPage() {
   // ==========================================================================
@@ -30,6 +31,8 @@ export default function EventCalendarPage() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('eventCalendarTheme') || 'light';
   });
+
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
 
   // ==========================================================================
   // THEME TOGGLE
@@ -184,30 +187,63 @@ export default function EventCalendarPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Theme Toggle */}
+              {/* Add Event Button - PRIMARY ACTION */}
               <button
-                onClick={toggleTheme}
-                className={`p-3 rounded-xl transition ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                  onClick={() => setShowAddEventModal(true)}
+                  className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium 
+                  transition-all shadow-sm hover:shadow-md
+                  ${theme === 'dark'
+                      ? 'bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]'
+                      : 'bg-[#1a73e8] text-white hover:bg-[#1765cc]'
+                  }
+                  `}
               >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                  <svg 
+                  className="w-5 h-5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  >
+                  <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M12 4v16m8-8H4" 
+                  />
+                  </svg>
+                  <span>Add Event</span>
               </button>
 
-              {/* Back to Home */}
-              <a
-                href="/"
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
+              {/* Theme Toggle - Icon only, subtle */}
+              <button
+                  onClick={toggleTheme}
+                  className={`
+                  p-2.5 rounded-lg transition-all
+                  ${theme === 'dark'
+                      ? 'bg-[#3c4043] hover:bg-[#4a4d50] text-[#fdd663]'
+                      : 'bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#5f6368]'
+                  }
+                  `}
+                  title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
-                <Home size={18} />
-                <span className="hidden sm:inline">Back to Home</span>
+                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+
+              {/* Back to Home - Outlined button */}
+              <a
+                  href="/"
+                  className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg font-medium 
+                  transition-all
+                  ${theme === 'dark'
+                      ? 'bg-transparent border border-[#5f6368] text-[#e8eaed] hover:bg-[#3c4043]'
+                      : 'bg-transparent border border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]'
+                  }
+                  `}
+              >
+                  <Home size={18} />
+                  <span className="hidden sm:inline">Back to Home</span>
               </a>
             </div>
           </div>
@@ -455,26 +491,38 @@ export default function EventCalendarPage() {
 
       {/* Modals */}
       <AnimatePresence>
-        {selectedDate && (
+      {selectedDate && (
           <DateEventsModal
-            theme={theme}
-            date={selectedDate}
-            onClose={() => setSelectedDate(null)}
-            onEventClick={(event) => {
+          theme={theme}
+          date={selectedDate}
+          onClose={() => setSelectedDate(null)}
+          onEventClick={(event) => {
               setSelectedDate(null);
               setSelectedEvent(event);
             }}
           />
-        )}
+      )}
 
-        {selectedEvent && (
+      {selectedEvent && (
           <EventDetailsModal
-            theme={theme}
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
+          theme={theme}
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
           />
-        )}
-      </AnimatePresence>
+      )}
+
+      {showAddEventModal && (
+          <AddEventModal
+          theme={theme}
+          onClose={() => setShowAddEventModal(false)}
+          onEventCreated={() => {
+              setShowAddEventModal(false);
+              fetchEvents();
+              fetchUpcomingEvents();
+          }}
+        />
+      )}
+    </AnimatePresence>
     </div>
   );
 }
