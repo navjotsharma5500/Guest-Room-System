@@ -475,15 +475,8 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
         Object.values(data.hostels).forEach(hostel => {
           hostel.rooms.forEach(room => {
             room.bookings.forEach(booking => {
-              // Include both manually checked out AND auto-checked-out guests
-              const isManuallyCheckedOut = booking.status === 'checked_out';
-              
-              // Check if checkout date/time has passed (for auto-checkout)
-              const checkoutDateTime = new Date(`${booking.to}T${booking.checkoutTime || '12:00'}`);
-              const isAutoCheckedOut = checkoutDateTime <= now;
-              
-              // Include if either condition is true
-              if (isManuallyCheckedOut || isAutoCheckedOut) {
+              // Only rely on backend status - no frontend date checks
+              if (booking.status === "checked_out") {
                 allBookings.push({
                   ...booking,
                   hostel: hostel.name,

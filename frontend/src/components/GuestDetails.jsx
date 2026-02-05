@@ -90,6 +90,38 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     };
   }, [booking, onCancel]);
 
+  useEffect(() => {
+    const handleBookingDataUpdated = (event) => {
+      if (!booking?._id) return;
+
+      console.log("📡 Booking data updated by cron, refreshing booking...");
+
+      const authToken = token || localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
+      fetch(`${API}/api/bookings/${booking._id}`, {
+        method: "GET",
+        credentials: "include",
+        headers
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data?.success && data.booking) {
+            setBooking(normalizeBooking(data.booking));
+          }
+        })
+        .catch(err => console.error("❌ Failed to refresh after cron:", err));
+    };
+
+    window.addEventListener("bookingDataUpdated", handleBookingDataUpdated);
+
+    return () => {
+      window.removeEventListener("bookingDataUpdated", handleBookingDataUpdated);
+    };
+  }, [booking?._id, token]);
+
+
   // Fetch enquiry files when booking has enquiryId
   useEffect(() => {
     if (!booking?.enquiryId) {

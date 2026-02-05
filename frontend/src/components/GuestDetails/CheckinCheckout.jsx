@@ -19,22 +19,28 @@ export default function CheckinCheckout({
         <h3 className={`font-semibold mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
           Check-in / Check-out Actions
         </h3>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => setShowCheckOutModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md"
-          >
-            <LogOut size={18} />
-            Check Out Guest
-          </button>
-          <button 
-            onClick={onReport}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition shadow-md"
-          >
-            <AlertTriangle size={18} />
-            Report Guest
-          </button>
-        </div>
+        
+        {/* Only show buttons if booking is NOT already checked out, cancelled, or no-show */}
+        {booking.status !== "checked_out" &&
+         booking.status !== "cancelled" &&
+         booking.status !== "no_show" && (
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setShowCheckOutModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md"
+            >
+              <LogOut size={18} />
+              Check Out Guest
+            </button>
+            <button 
+              onClick={onReport}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition shadow-md"
+            >
+              <AlertTriangle size={18} />
+              Report Guest
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Check Out Modal */}
