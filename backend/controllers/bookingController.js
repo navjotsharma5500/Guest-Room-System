@@ -725,7 +725,7 @@ export const markNotReported = async (req, res) => {
 export const checkOutGuest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { checkOutComment, actualCheckOutTime } = req.body;
+    const { checkOutComment, actualCheckOutTime, actualCheckoutDate, actualCheckoutTime } = req.body;
 
     const booking = await Booking.findById(id);
     if (!booking) {
@@ -742,6 +742,14 @@ export const checkOutGuest = async (req, res) => {
     booking.status = "checked_out";
     booking.checkedOutAt = actualCheckOutTime ? new Date(actualCheckOutTime) : new Date();
     booking.checkOutComment = checkOutComment || "";
+    
+    // ✅ FIXED: Store actual checkout date and time for early checkouts
+    if (actualCheckoutDate) {
+      booking.actualCheckoutDate = actualCheckoutDate;
+    }
+    if (actualCheckoutTime) {
+      booking.actualCheckoutTime = actualCheckoutTime;
+    }
 
     await booking.save();
 
@@ -1376,8 +1384,10 @@ export const autoCheckoutOverdueGuests = async () => {
         booking.status = "checked_out";
         booking.reportedStatus = "reported_out";
         booking.checkedOutAt = now;  // Same as manual checkout
-        booking.checkoutDate = now;
-        booking.checkoutTime = now.toTimeString().slice(0, 5);
+        
+        // ✅ FIXED: Store actual checkout date and time for auto-checkouts
+        booking.actualCheckoutDate = now.toISOString().split("T")[0];
+        booking.actualCheckoutTime = now.toTimeString().slice(0, 5);
         
         if (hasPendingPayment) {
           // Move to defaulters (status remains "checked_out" with pending balance)

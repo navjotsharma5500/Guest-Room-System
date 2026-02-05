@@ -1019,7 +1019,22 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 Check-out Date
               </p>
               <p className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                {formatDate(b.to)} at {formatTimeWithAMPM(b.checkOutTime)}
+                {/* ✅ FIXED: Show actual checkout date/time if guest checked out early, otherwise show planned checkout */}
+                {b.status === "checked_out" && (b.actualCheckoutDate || b.actualCheckoutTime) ? (
+                  <>
+                    {formatDate(b.actualCheckoutDate || b.checkedOutAt)} at {formatTimeWithAMPM(b.actualCheckoutTime)}
+                    <span className="ml-2 text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                      Actual
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Planned: {formatDate(b.to)} at {formatTimeWithAMPM(b.checkOutTime)}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {formatDate(b.to)} at {formatTimeWithAMPM(b.checkOutTime)}
+                  </>
+                )}
               </p>
             </div>
             {(b.remarks || b.freeRemarks) && (

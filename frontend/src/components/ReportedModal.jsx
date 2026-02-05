@@ -141,6 +141,7 @@ export default function ReportedModal({
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
+      const actualCheckoutDateTime = new Date();
       const response = await fetch(
         `${API}/api/bookings/${bookingToCheckout._id}/checkout`,
         {
@@ -148,11 +149,12 @@ export default function ReportedModal({
           credentials: "include",
           headers,
           body: JSON.stringify({
-            checkoutDate: new Date().toISOString().split("T")[0],
-            checkoutTime: new Date().toTimeString().slice(0, 5),
-            remarks: isOccupant 
+            checkOutComment: isOccupant 
               ? `Checked out to accommodate incoming guest: ${booking.guest}`
               : remarks.trim(),
+            actualCheckOutTime: actualCheckoutDateTime.toISOString(),
+            actualCheckoutDate: actualCheckoutDateTime.toISOString().split("T")[0],
+            actualCheckoutTime: actualCheckoutDateTime.toTimeString().slice(0, 5),
           }),
         }
       );
