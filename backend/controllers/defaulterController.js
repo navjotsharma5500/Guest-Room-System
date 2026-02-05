@@ -31,7 +31,7 @@ export const getDefaulters = async (req, res) => {
     }
 
     // Role-based filtering
-    if (userRole === "caretaker" && assignedHostel) {
+    if ((userRole === "caretaker" || userRole === "warden") && assignedHostel) {
       query.hostel = assignedHostel;
     }
 
@@ -192,7 +192,7 @@ export const getDefaulterStats = async (req, res) => {
     };
 
     // Role-based filtering
-    if (userRole === "caretaker" && assignedHostel) {
+    if ((userRole === "caretaker" || userRole === "warden") && assignedHostel) {
       query.hostel = assignedHostel;
     }
 

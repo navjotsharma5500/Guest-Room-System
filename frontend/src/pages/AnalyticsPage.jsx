@@ -201,12 +201,12 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // Role-based redirect
   useEffect(() => {
-    if (role === "caretaker") {
+    if (role === "caretaker" || role === "warden") {
       setActiveTab("Home");
     }
   }, [role, setActiveTab]);
 
-  if (role === "caretaker") {
+  if (role === "caretaker" || role === "warden") {
     return (
       <main className="flex-1 ml-64 p-8 text-center text-gray-500">
         Redirecting...

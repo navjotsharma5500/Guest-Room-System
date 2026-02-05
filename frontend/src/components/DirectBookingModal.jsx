@@ -453,30 +453,30 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       authenticator={authenticator}
     >
       <motion.div
-        className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         <motion.div
-          className="bg-white rounded-2xl p-6 w-[750px] max-h-[90vh] overflow-y-auto shadow-xl"
+          className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[750px] max-h-[90vh] overflow-y-auto shadow-xl"
           initial={{ scale: 0.95 }}
           animate={{ scale: 1 }}
         >
           {/* HEADER */}
-          <h2 className="text-xl font-bold text-red-700 mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-red-700 mb-3 sm:mb-4">
             Direct Booking — {hostel} / Room {room?.roomNo}
           </h2>
 
           {/* ------------------ STEP 1: DATE SELECTION ------------------ */}
           {step === 1 && (
             <>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 Select booking date range
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="text-sm mb-1 block">From</label>
+                  <label className="text-xs sm:text-sm mb-1 block">From</label>
                   <input
                     type="date"
                     value={from}
@@ -493,7 +493,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         setValidationErrors(prev => ({ ...prev, dates: "" }));
                       }
                     }}
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                   />
                 </div>
 
@@ -515,22 +515,22 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         setValidationErrors(prev => ({ ...prev, dates: "" }));
                       }
                     }}
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
                 <div className="flex-1">
-                  <label className="text-sm mb-1 block">Check-in Time</label>
+                  <label className="text-xs sm:text-sm mb-1 block">Check-in Time</label>
                   <input
                     type="time"
                     value={checkInTime}
                     onChange={(e) => setCheckInTime(e.target.value)}
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                   />
                   {checkInTime && (
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
                       {formatTimeWithAMPM(checkInTime)}
                     </p>
                   )}
@@ -541,10 +541,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                     type="time"
                     value={checkOutTime}
                     onChange={(e) => setCheckOutTime(e.target.value)}
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                   />
                   {checkOutTime && (
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
                       {formatTimeWithAMPM(checkOutTime)}
                     </p>
                   )}
@@ -566,10 +566,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </p>
               )}
 
-              <div className="flex justify-end mt-6 gap-3">
+              <div className="flex flex-col sm:flex-row justify-end mt-4 sm:mt-6 gap-2 sm:gap-3">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gray-200 rounded hover:bg-gray-300 transition-colors"
                 >
                   Close
                 </button>
@@ -592,9 +592,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
           {/* ------------------ STEP 2: GUEST DETAILS ------------------ */}
           {step === 2 && (
             <>
-              <p className="text-sm text-gray-600 mb-3">Enter guest details</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-3">Enter guest details</p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <input
                   className={`border p-2 rounded ${!form.guest.trim() ? 'border-red-500' : 'border-green-500'}`}
                   placeholder="Guest Name / Society Name"
@@ -604,7 +604,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 <div className="col-span-2">
                   <input
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                     placeholder="Roll No / Emp ID (max 12 digits, numbers only)"
                     value={form.rollno}
                     maxLength={12}
@@ -671,7 +671,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 />
 
                 <select
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
                 >
@@ -682,7 +682,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 <input
                   type="number"
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   placeholder="Total Guests"
                   value={form.numGuests}
                   min={1}
@@ -696,7 +696,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 <input
                   type="number"
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   placeholder="Females"
                   value={form.females}
                   min={0}
@@ -710,7 +710,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 <input
                   type="number"
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   placeholder="Males"
                   value={form.males}
                   min={0}
@@ -729,7 +729,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 )}
 
                 <select
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   value={form.state}
                   onChange={(e) => {
                     const s = e.target.value;
@@ -747,7 +747,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </select>
 
                 <select
-                  className="border p-2 rounded"
+                  className="border p-2 text-sm sm:text-base rounded"
                   value={form.city}
                   disabled={!cityList.length}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -761,7 +761,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </select>
 
                 <input
-                  className="border p-2 rounded col-span-2"
+                  className="border p-2 text-sm sm:text-base rounded col-span-2"
                   placeholder="Reference"
                   value={form.reference}
                   onChange={(e) =>
@@ -770,14 +770,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 />
 
                 <input
-                  className="border p-2 rounded col-span-2"
+                  className="border p-2 text-sm sm:text-base rounded col-span-2"
                   placeholder="Purpose"
                   value={form.purpose}
                   onChange={(e) => setForm({ ...form, purpose: e.target.value })}
                 />
 
                 {/* Validation Guidelines */}
-                <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                <div className="col-span-1 sm:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-[10px] sm:text-xs text-blue-700">
                   <p className="font-semibold mb-2">📋 Input Guidelines:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong>Roll No/Emp ID:</strong> Numbers only, maximum 12 digits</li>
@@ -788,8 +788,8 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </div>
 
                 {/* ADDRESS PROOF UPLOAD */}
-                <div className="col-span-2">
-                  <label className="text-sm font-medium block mb-1">
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="text-xs sm:text-sm font-medium block mb-1">
                     Upload Address Proof (up to 5 files) * — {form.files.length} file(s) uploaded
                   </label>
 
@@ -875,7 +875,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                       {form.files.map((file, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded text-sm"
+                          className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded text-sm sm:text-base"
                         >
                           <div className="flex items-center gap-2">
                             📄 Address Proof {i + 1}
@@ -901,10 +901,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
               </div>
 
               {/* NAVIGATION */}
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gray-200 rounded hover:bg-gray-300 transition-colors"
                 >
                   Back
                 </button>
@@ -936,17 +936,17 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
           {/* ------------------ STEP 3: PAYMENT DETAILS ------------------ */}
           {step === 3 && (
             <>
-              <p className="text-sm text-gray-600 mb-3">Payment Information</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-3">Payment Information</p>
 
               <div className="grid grid-cols-1 gap-4">
                 {/* PAYMENT TYPE SELECTION */}
                 <div>
-                  <label className="text-sm font-medium block mb-2">
+                  <label className="text-xs sm:text-sm font-medium block mb-2">
                     Payment Type <span className="text-red-600">*</span>
                   </label>
 
                   <select
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                     value={form.paymentType}
                     onChange={(e) =>
                       setForm({
@@ -969,7 +969,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         Total Bill Amount (â‚¹) <span className="text-red-600">*</span>
                       </label>
                       <input
-                        className="border p-2 rounded w-full"
+                        className="border p-2 text-sm sm:text-base rounded w-full"
                         type="number"
                         min={1}
                         placeholder="Enter total bill amount"
@@ -985,7 +985,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         Remarks (Optional)
                       </label>
                       <textarea
-                        className="border p-2 rounded w-full h-20 resize-none"
+                        className="border p-2 text-sm sm:text-base rounded w-full h-20 resize-none"
                         placeholder="Any additional remarks (optional)"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
@@ -1114,7 +1114,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                         Remarks (Why Free?) <span className="text-red-600">*</span>
                       </label>
                       <textarea
-                        className="border p-2 rounded w-full h-20 resize-none"
+                        className="border p-2 text-sm sm:text-base rounded w-full h-20 resize-none"
                         placeholder="Enter reason for free booking (e.g., Official Guest, Staff, Emergency)"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
@@ -1237,10 +1237,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
               </div>
 
               {/* NAVIGATION */}
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gray-200 rounded hover:bg-gray-300 transition-colors"
                 >
                   Back
                 </button>
@@ -1347,10 +1347,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={() => setStep(3)}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gray-200 rounded hover:bg-gray-300 transition-colors"
                 >
                   Back
                 </button>

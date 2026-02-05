@@ -64,7 +64,7 @@ export default function CancelModal({
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className="bg-white rounded-2xl p-6 w-96 shadow-xl"
+          className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md mx-4 shadow-xl"
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
@@ -72,7 +72,7 @@ export default function CancelModal({
         >
           {/* ===== Header ===== */}
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-red-700 flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-semibold text-red-700 flex items-center gap-2">
               <XCircle size={20} /> Cancel Booking
             </h3>
             <button
@@ -84,7 +84,7 @@ export default function CancelModal({
             </button>
           </div>
 
-          <p className="text-sm text-gray-600 mb-3">
+          <p className="text-xs sm:text-sm text-gray-600 mb-3">
             Room: <strong>{modal.room?.roomNo || "â€”"}</strong> â€”{" "}
             {modal.hostel || "â€”"}
           </p>

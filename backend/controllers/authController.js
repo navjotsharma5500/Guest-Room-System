@@ -108,7 +108,7 @@ export const createUser = async (req, res) => {
       email,
       password,
       role,
-      assignedHostel: role === "caretaker" ? assignedHostel : null,
+      assignedHostel: (role === "caretaker" || role === "warden") ? assignedHostel : null,
     });
 
     createLog("user_created", req.user?._id, { newUser: newUser._id });
@@ -147,7 +147,7 @@ export const updateProfile = async (req, res) => {
     if (name !== undefined) user.name = name;
     if (hostel !== undefined) {
       // For caretakers, update assignedHostel; for others, update hostel
-      if (user.role === "caretaker") {
+      if (user.role === "caretaker" || user.role === "warden") {
         user.assignedHostel = hostel;
       } else {
         user.hostel = hostel;

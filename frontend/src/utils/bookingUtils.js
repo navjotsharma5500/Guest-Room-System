@@ -51,7 +51,7 @@ export const filterBookingsByRole = (bookings, role) => {
     return bookings.filter(isHallBooking);
   }
   
-  if (role === "manager" || role === "caretaker") {
+  if (role === "manager" || role === "caretaker" || role === "warden") {
     // Manager/Caretaker see only guest room bookings
     return bookings.filter(booking => !isHallBooking(booking));
   }

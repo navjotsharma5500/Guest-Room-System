@@ -14,7 +14,8 @@ export default function LiveBookingCounter({ theme, currentUser }) {
   const [loading, setLoading] = useState(true);
 
   // Get user role and assigned hostel from props
-  const userRole = currentUser?.role || 'caretaker';
+  const userRole = currentUser?.role || currentUser?.user?.role || 'caretaker';
+  const isRestrictedRole = userRole === 'caretaker' || userRole === 'warden';
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
   // ✅ ALL useCallback HOOKS BEFORE ANY CONDITIONAL RETURNS
@@ -109,7 +110,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
   }, [userRole, fetchBookingCount]);
 
   useEffect(() => {
-    if (userRole === 'caretaker') return;
+    if (isRestrictedRole) return;
 
     const interval = setInterval(() => {
       fetchBookingCount();
@@ -119,7 +120,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
   }, [userRole, fetchBookingCount]);
 
   useEffect(() => {
-    if (userRole === 'caretaker') return;
+    if (isRestrictedRole) return;
 
     const handleBookingChange = () => {
       console.log("🔄 Booking changed, updating count...");
@@ -138,7 +139,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
   }, [userRole, fetchBookingCount]);
 
   // ✅ NOW CONDITIONAL RETURNS AFTER ALL HOOKS
-  if (userRole === 'caretaker') {
+  if (isRestrictedRole) {
     return null;
   }
 
@@ -156,7 +157,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl shadow-lg border-2 ${
+      className={`inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg border-2 ${
         isUpdating
           ? "border-green-400 bg-gradient-to-r from-green-50 to-blue-50"
           : theme === "dark"
@@ -171,7 +172,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
           theme === "dark" ? "bg-red-600" : "bg-red-500"
         }`}
       >
-        <Users className="w-5 h-5 text-white" />
+        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
       </motion.div>
 
       <div className="flex flex-col">
@@ -190,7 +191,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`text-3xl font-bold ${
+            className={`text-2xl sm:text-3xl font-bold ${
               theme === "dark" ? "text-red-400" : "text-red-600"
             }`}
           >

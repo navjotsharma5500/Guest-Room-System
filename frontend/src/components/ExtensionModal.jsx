@@ -230,39 +230,39 @@ function ExtensionModal({ modal, onClose, onExtend }) {
       authenticator={authenticator}
     >
       <motion.div
-        className="fixed inset-0 bg-black/40 flex justify-center items-center z-50"
+        className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         <motion.div
-          className="bg-white rounded-xl p-5 w-[500px] shadow-xl max-h-[90vh] overflow-y-auto"
+          className="bg-white rounded-xl p-4 sm:p-5 w-full max-w-[95%] sm:max-w-[500px] shadow-xl max-h-[90vh] overflow-y-auto"
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
         >
-          <h2 className="text-lg font-semibold text-red-700 mb-3">
+          <h2 className="text-base sm:text-lg font-semibold text-red-700 mb-3">
             Extend Booking {step === 2 && "- Payment Details"}
           </h2>
 
           {step === 1 && (
             <>
               <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2">
                   <strong>Current Checkout:</strong> {formatDate(modal.booking?.to)}
                 </p>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                   <strong>Guest:</strong> {modal.booking?.guest || "Guest"}
                 </p>
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
                   Select a date after {formatDate(modal.booking?.to)}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm mb-1 font-medium">New Checkout Date</label>
+                  <label className="block text-xs sm:text-sm mb-1 font-medium">New Checkout Date</label>
                   <input
                     type="date"
-                    className="border rounded px-3 py-2 w-full"
+                    className="border rounded px-3 py-2 text-sm sm:text-base w-full"
                     value={newTo}
                     min={minDate}
                     onChange={(e) => {
@@ -273,9 +273,9 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-1 font-medium">Extension Remarks</label>
+                  <label className="block text-xs sm:text-sm mb-1 font-medium">Extension Remarks</label>
                   <textarea
-                    className="border rounded px-3 py-2 w-full h-20 resize-none"
+                    className="border rounded px-3 py-2 text-sm sm:text-base w-full h-20 resize-none"
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
                     placeholder="Reason for extension..."
@@ -283,7 +283,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-1 font-medium">
+                  <label className="block text-xs sm:text-sm mb-1 font-medium">
                     Extension Attachments (Max 5) - {files.length} uploaded
                   </label>
                   <IKUpload
@@ -312,11 +312,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                       }
                       return true;
                     }}
-                    className="text-sm border p-2 rounded w-full"
+                    className="text-xs sm:text-sm border p-2 rounded w-full"
                   />
 
                   {uploading && (
-                    <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+                    <div className="mt-2 text-xs sm:text-sm text-blue-600 flex items-center gap-2">
                       <span className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></span>
                       Uploading file...
                     </div>
@@ -331,7 +331,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                       {files.map((file, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between bg-gray-50 border px-3 py-1.5 rounded text-sm"
+                          className="flex items-center justify-between bg-gray-50 border px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm"
                         >
                           <div className="flex items-center gap-2 truncate max-w-[200px]">
                             📄 File {i + 1}
@@ -355,10 +355,10 @@ function ExtensionModal({ modal, onClose, onExtend }) {
 
               {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
 
-              <div className="flex justify-end gap-3 mt-5">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-5">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base rounded bg-gray-200 hover:bg-gray-300 transition"
                   disabled={loading}
                 >
                   Cancel
@@ -383,11 +383,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
               <div className="space-y-4">
                 {/* Payment Type Selection */}
                 <div>
-                  <label className="text-sm font-medium block mb-2">
+                  <label className="text-xs sm:text-sm font-medium block mb-2">
                     Payment Type <span className="text-red-600">*</span>
                   </label>
                   <select
-                    className="border p-2 rounded w-full"
+                    className="border p-2 text-sm sm:text-base rounded w-full"
                     value={extensionPaymentType}
                     onChange={(e) => {
                       setExtensionPaymentType(e.target.value);
@@ -405,12 +405,12 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                 {extensionPaymentType === "Paid" && (
                   <>
                     <div>
-                      <label className="text-sm font-medium block mb-2">
+                      <label className="text-xs sm:text-sm font-medium block mb-2">
                         Extension Amount (₹) <span className="text-red-600">*</span>
                       </label>
                       <input
                         type="number"
-                        className="border p-2 rounded w-full"
+                        className="border p-2 text-sm sm:text-base rounded w-full"
                         value={extensionAmount}
                         onChange={(e) => setExtensionAmount(e.target.value)}
                         placeholder="Enter extension amount"
@@ -419,7 +419,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium block mb-2">
+                      <label className="text-xs sm:text-sm font-medium block mb-2">
                         Remarks (Optional)
                       </label>
                       <textarea
@@ -431,7 +431,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium block mb-2">
+                      <label className="text-xs sm:text-sm font-medium block mb-2">
                         Attachments (Optional) - {paymentFiles.length} uploaded
                       </label>
                       <p className="text-xs text-gray-600 mb-2">Upload payment documents if needed</p>
@@ -462,11 +462,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                           }
                           return true;
                         }}
-                        className="text-sm border p-2 rounded w-full"
+                        className="text-xs sm:text-sm border p-2 rounded w-full"
                       />
 
                       {uploading && (
-                        <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+                        <div className="mt-2 text-xs sm:text-sm text-blue-600 flex items-center gap-2">
                           <span className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></span>
                           Uploading...
                         </div>
@@ -504,7 +504,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                 {extensionPaymentType === "Free" && (
                   <>
                     <div>
-                      <label className="text-sm font-medium block mb-2">
+                      <label className="text-xs sm:text-sm font-medium block mb-2">
                         Remarks (Why Free?) <span className="text-red-600">*</span>
                       </label>
                       <textarea
@@ -516,7 +516,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium block mb-2">
+                      <label className="text-xs sm:text-sm font-medium block mb-2">
                         Upload Approval Documents <span className="text-red-600">*</span> - {paymentFiles.length} uploaded
                       </label>
                       <p className="text-xs text-gray-600 mb-2">Required for free extensions</p>
@@ -547,11 +547,11 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                           }
                           return true;
                         }}
-                        className="text-sm border p-2 rounded w-full"
+                        className="text-xs sm:text-sm border p-2 rounded w-full"
                       />
 
                       {uploading && (
-                        <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+                        <div className="mt-2 text-xs sm:text-sm text-blue-600 flex items-center gap-2">
                           <span className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></span>
                           Uploading...
                         </div>
@@ -588,10 +588,10 @@ function ExtensionModal({ modal, onClose, onExtend }) {
 
               {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
 
-              <div className="flex justify-end gap-3 mt-5">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-5">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                  className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base rounded bg-gray-200 hover:bg-gray-300 transition"
                   disabled={loading}
                 >
                   Back

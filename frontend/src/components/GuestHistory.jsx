@@ -86,18 +86,18 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
+        className={`w-full max-w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
           theme === "dark" ? "bg-gray-800 text-gray-100" : "bg-white text-gray-800"
         }`}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center shrink-0">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 flex justify-between items-center shrink-0">
           <div>
-            <h3 className="text-xl font-bold flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
               <HistoryIcon size={24} />
               Guest Booking History
             </h3>
-            <p className="text-blue-100 text-sm mt-1">
+            <p className="text-blue-100 text-xs sm:text-sm mt-1">
               Past stays for {contact || email}
             </p>
           </div>
@@ -110,7 +110,7 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 space-y-4">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
@@ -131,7 +131,7 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
               {history.map((booking, index) => (
                 <div
                   key={booking._id || booking.id || index}
-                  className={`p-4 rounded-xl border transition hover:shadow-md ${
+                  className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border transition hover:shadow-md ${
                     theme === "dark"
                       ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
                       : "bg-white border-gray-200 hover:border-blue-300"
@@ -139,7 +139,7 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className="font-bold text-lg">{booking.hostel || "—"}</h4>
+                      <h4 className="font-bold text-base sm:text-lg">{booking.hostel || "—"}</h4>
                       <div className="flex items-center gap-2 text-sm opacity-80">
                         <MapPin size={14} />
                         <span>Room {booking.roomNo || "—"}</span>
@@ -158,7 +158,7 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-blue-500" />
                       <span>

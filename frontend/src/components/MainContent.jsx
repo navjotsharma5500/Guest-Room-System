@@ -69,7 +69,9 @@ export default function MainContent(props) {
   } = props;
 
   const { currentUser, loadingUser } = useAuth();
-  const role = currentUser?.role || "caretaker";
+  const role = currentUser?.role || currentUser?.user?.role;
+  const isRestrictedRole = role === 'caretaker' || role === 'warden';
+  const isAdminLike = role === 'admin' || role === 'manager';
   const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
   // ✅ STATE HELPER - Add after state declarations
@@ -226,7 +228,7 @@ export default function MainContent(props) {
   const upcoming = allBookings
     .filter((b) => {
       // ✅ Filter by user role
-      if (role === "admin" || role === "manager") return true;
+      if (isAdminLike) return true;
       return b.hostel === userHostel;
     })
     .filter((b) => {
@@ -301,7 +303,7 @@ export default function MainContent(props) {
 
       // ✅ CRITICAL FIX: Only fetch enquiries for admin/manager
       let enquiries = [];
-      if (role === "admin" || role === "manager") {
+      if (isAdminLike) {
         const enquiriesData = await fetchEnquiries();
         enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
         console.log("✅ Enquiries fetched:", enquiries.length);
@@ -320,7 +322,7 @@ export default function MainContent(props) {
       // ✅ CRITICAL FIX: Filter by user's hostel for caretakers
       (bookingsData.hostels || []).forEach((hostel) => {
         // Skip this hostel if caretaker and it's not their assigned hostel
-        if (role === "caretaker" && userHostel && hostel.name !== userHostel) {
+        if (isRestrictedRole && userHostel && hostel.name !== userHostel) {
           return;
         }
         
@@ -546,13 +548,13 @@ export default function MainContent(props) {
         : "";
 
       // ✅ Add role to filename for clarity
-      const rolePrefix = role === "caretaker" ? `${userHostel}_` : "";
+      const rolePrefix = isRestrictedRole ? `${userHostel}_` : "";
       a.download = `${rolePrefix}complete_data_with_payment${dateRange}.csv`;
 
       a.click();
       URL.revokeObjectURL(link);
 
-      const recordType = role === "caretaker" 
+      const recordType = isRestrictedRole 
         ? `${rows.length} booking records (${userHostel} only)` 
         : `${rows.length} records (${rows.filter(r => r.Type === 'Booking').length} bookings, ${rows.filter(r => r.Type === 'Enquiry').length} enquiries)`;
       
@@ -714,7 +716,7 @@ export default function MainContent(props) {
   return (
     <main
       className={`flex-1 flex flex-col overflow-y-auto transition-all duration-500 ${
-        activeTab === "Enquiry" ? "p-0 ml-0" : "p-6 ml-64"
+        activeTab === "Enquiry" ? "p-0 ml-0" : "p-3 sm:p-4 lg:p-6 ml-0 lg:ml-64"
       } ${theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
     >
       {/* ========================================================= */}
@@ -723,53 +725,46 @@ export default function MainContent(props) {
 
       {activeTab !== "Enquiry" && (
         <header
-          className={`flex justify-between items-center mb-6 border-b pb-4 ${
+          className={`flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-6 border-b pb-3 lg:pb-4 gap-4 ${
             theme === "dark" ? "border-gray-700" : "border-gray-200"
           }`}
         >
-          <a
+          {/* Logo & Title */}
+          <div
             onClick={() => {
               setActiveTab("Home");
               setActiveHostel(null);
               setRightPanelToRoom(null, null);
               setActiveRoomRef(null);
             }}
-            className="flex items-center gap-3 cursor-pointer select-none"
+            className="flex items-center gap-2 lg:gap-3 cursor-pointer select-none"
           >
             <img
               src={hotelIcon}
               alt="Hostel Icon"
-              className="w-10 h-10 object-contain drop-shadow-sm"
+              className="w-8 h-8 lg:w-10 lg:h-10 object-contain drop-shadow-sm"
             />
-
             <h1
-              className="text-2xl font-semibold tracking-wide"
+              className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-wide"
               style={{
                 color: "#555",
-                WebkitTextStroke: "0.7px #ff7a7a",
-                letterSpacing: "0.5px",
+                WebkitTextStroke: "0.5px #ff7a7a",
+                letterSpacing: "0.3px",
               }}
             >
-              Hostel Guest Room Booking
+              <span className="hidden sm:inline">Hostel Guest Room Booking</span>
+              <span className="sm:hidden">HGRB</span>
             </h1>
-          </a>
-          
-          <header
-            className={`flex justify-between items-center mb-6 border-b pb-4 ${
-              theme === "dark" ? "border-gray-700" : "border-gray-200"
-            }`}
-          >
-        </header>    
+          </div>
 
-          <div className="flex items-center gap-4">
-            <LiveBookingCounter
-              theme={theme}
-              currentUser={currentUser}
-            />    
-            {currentUser?.role !== "caretaker" && (
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 lg:gap-4 w-full lg:w-auto">
+            <LiveBookingCounter theme={theme} currentUser={currentUser} />
+            
+            {!isRestrictedRole && (
               <button
                 onClick={() => setActiveTab("Enquiry")}
-                className={`px-6 py-2 rounded-lg font-medium border text-lg transition ${
+                className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
                   activeTab === "Enquiry"
                     ? "bg-red-600 text-white border-red-700"
                     : theme === "dark"
@@ -777,9 +772,10 @@ export default function MainContent(props) {
                     : "bg-white text-red-700 border-red-300 hover:bg-red-100"
                 }`}
               >
-                Enquiry
+                <span className="hidden sm:inline">Enquiry</span>
+                <span className="sm:hidden">📧</span>
               </button>
-            )}   
+            )}
 
             <button
               onClick={() => {
@@ -788,7 +784,7 @@ export default function MainContent(props) {
                 setRightPanelToRoom(null, null);
                 setActiveRoomRef(null);
               }}
-              className={`px-6 py-2 rounded-lg font-medium border text-lg transition ${
+              className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
                 activeTab === "Home"
                   ? "bg-red-600 text-white border-red-700"
                   : theme === "dark"
@@ -796,25 +792,25 @@ export default function MainContent(props) {
                   : "bg-white text-red-700 border-red-300 hover:bg-red-100"
               }`}
             >
-              Home
+              🏠
             </button>
 
             <button
               onClick={() => setSearchModal(true)}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium border text-lg transition ${
+              className={`flex items-center gap-1 lg:gap-2 px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
                 theme === "dark"
                   ? "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
                   : "bg-white text-red-700 border-red-300 hover:bg-red-100"
               }`}
             >
-              <Search className="w-5 h-5" /> Search
+              <Search className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="hidden sm:inline">Search</span>
             </button>
 
-            {(currentUser?.role === "admin" ||
-              currentUser?.role === "manager") && (
+            {isAdminLike && (
               <button
                 onClick={() => setActiveTab("Analytics")}
-                className={`px-6 py-2 rounded-lg font-medium border text-lg transition ${
+                className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
                   activeTab === "Analytics"
                     ? "bg-red-600 text-white border-red-700"
                     : theme === "dark"
@@ -822,22 +818,24 @@ export default function MainContent(props) {
                     : "bg-white text-red-700 border-red-300 hover:bg-red-100"
                 }`}
               >
-                Analytics
+                <span className="hidden sm:inline">Analytics</span>
+                <span className="sm:hidden">📊</span>
               </button>
             )}
 
             <button
               onClick={handleDownloadClick}
-              className="flex items-center gap-2 bg-red-600 text-white px-5 py-2 rounded-lg shadow hover:bg-red-700 text-lg"
+              className="flex items-center gap-1 lg:gap-2 bg-red-600 text-white px-3 py-1.5 lg:px-5 lg:py-2 rounded-lg shadow hover:bg-red-700 text-sm lg:text-lg"
             >
-              Download
+              <span className="hidden sm:inline">Download</span>
+              <span className="sm:hidden">⬇️</span>
             </button>
 
-            {currentUser?.role !== "caretaker" && (
+            {!isRestrictedRole && (
               <div className="relative notif-wrapper">
                 <button
                   onClick={() => setShowNotifDropdown((prev) => !prev)}
-                  className={`relative p-3 border rounded-full shadow-md transition ${
+                  className={`relative p-2 lg:p-3 border rounded-full shadow-md transition ${
                     theme === "dark"
                       ? "bg-gray-800 border-gray-600 hover:bg-gray-700"
                       : "bg-white border-gray-200 hover:bg-red-50"
@@ -964,7 +962,7 @@ export default function MainContent(props) {
           {activeTab === "Home" && !activeHostel && (
             <>
               {/* -------- TOP GRID: CALENDAR + GUEST DETAILS -------- */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
                 
                 {/* ========== LEFT: CALENDAR PANEL ========== */}
                 <div className={`shadow-md rounded-2xl p-6 flex flex-col items-center ${
@@ -1044,7 +1042,7 @@ export default function MainContent(props) {
                 </div>
 
                 {upcoming.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4">
                     {upcoming.map((u, idx) => {
                       const isSelected = activeRoomRef?.booking?.id === u.booking.id || 
                                         activeRoomRef?.booking?._id === u.booking._id;
@@ -1244,7 +1242,7 @@ export default function MainContent(props) {
           {/* HOME DASHBOARD – HOSTEL SELECTED (Room List + Details) */}
           {/* ========================================================= */}
           {activeHostel && activeTab === "Home" && (
-            <div className="grid grid-cols-2 gap-6 flex-grow">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-grow">
 
               {/* ------------------------ */}
               {/* LEFT PANEL – ROOM LIST */}
@@ -1410,9 +1408,8 @@ export default function MainContent(props) {
 
                         {/* ✅ RIGHT SIDE - THREE DOTS MENU (Role + Hostel scoped) */}
                         {(
-                          role === "admin" ||
-                          role === "manager" ||
-                          (role === "caretaker" && activeHostel === userHostel)
+                          isAdminLike ||
+                          (isRestrictedRole && activeHostel === userHostel)
                         ) && (
                           <>
                             {console.log("🔍 Passing rooms to HostelMenuButton:", {
@@ -1544,16 +1541,16 @@ export default function MainContent(props) {
       {/* ========================================================= */}
       {/* FLOATING BUTTONS (SETTINGS / CLEAR CACHE / FILTER) */}
       {/* ========================================================= */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3">
+      <div className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 flex flex-col gap-2 lg:gap-3 z-40">
         <button
-          className="p-3 bg-white border shadow-lg rounded-full hover:bg-red-50"
+          className="p-2 lg:p-3 bg-white border shadow-lg rounded-full hover:bg-red-50 text-sm lg:text-base"
           onClick={() => setActiveTab("Settings")}
         >
-          <Settings className="text-red-700" />
+          <Settings className="text-red-700 w-4 h-4 lg:w-5 lg:h-5" />
         </button>
 
         <button
-          className="p-3 bg-white border shadow-lg rounded-full hover:bg-red-50"
+          className="p-2 lg:p-3 bg-white border shadow-lg rounded-full hover:bg-red-50 text-sm lg:text-base"
           onClick={() => {
             const confirmClear = window.confirm(
               "Clear all cache and cookies? The app will reload."
@@ -1571,14 +1568,14 @@ export default function MainContent(props) {
             }
           }}
         >
-          <Trash2 className="text-red-700" />
+          <Trash2 className="text-red-700 w-4 h-4 lg:w-5 lg:h-5" />
         </button>
 
         <button
-          className="p-3 bg-white border shadow-lg rounded-full hover:bg-red-50"
+          className="p-2 lg:p-3 bg-white border shadow-lg rounded-full hover:bg-red-50 text-sm lg:text-base"
           onClick={() => setFilterModal(true)}
         >
-          <Filter className="text-red-700" />
+          <Filter className="text-red-700 w-4 h-4 lg:w-5 lg:h-5" />
         </button>
       </div>
 

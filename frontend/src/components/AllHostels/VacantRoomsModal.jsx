@@ -12,7 +12,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className={`rounded-2xl p-6 max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[80vh] ${
+        className={`rounded-2xl p-4 sm:p-6 max-w-[95%] sm:max-w-2xl w-full mx-4 shadow-2xl overflow-y-auto max-h-[80vh] ${
           theme === "dark"
             ? "bg-gray-800 text-gray-100"
             : "bg-white text-gray-900"
@@ -23,7 +23,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
       >
         <div className="flex justify-between items-center mb-6">
           <h2
-            className={`text-2xl font-semibold flex items-center gap-2 ${
+            className={`text-xl sm:text-2xl font-semibold flex items-center gap-2 ${
               theme === "dark" ? "text-red-400" : "text-red-700"
             }`}
           >
@@ -43,7 +43,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
           </motion.button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {vacantRooms.map((v, i) => (
             <motion.div
               key={`${v.hostel}_${v.room.roomNo}_${i}`}
@@ -51,7 +51,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
-              className={`p-4 border-2 rounded-xl flex justify-between items-center transition-all ${
+              className={`p-3 sm:p-4 border-2 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all ${
                 theme === "dark"
                   ? "border-gray-700 bg-gray-700/50 hover:bg-gray-700"
                   : "border-gray-300 bg-white hover:bg-gray-50"
@@ -59,7 +59,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
             >
               <div>
                 <p
-                  className={`font-semibold text-lg ${
+                  className={`font-semibold text-base sm:text-lg ${
                     theme === "dark" ? "text-gray-100" : "text-gray-800"
                   }`}
                 >
@@ -77,7 +77,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onBookRoom({ hostel: v.hostel, room: v.room })}
-                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all"
               >
                 Book Now
               </motion.button>

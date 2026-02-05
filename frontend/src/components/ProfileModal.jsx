@@ -284,11 +284,11 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
   // ==========================
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2">
-      <div className="bg-white rounded-2xl w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl p-6">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-[95%] sm:max-w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-xl font-bold text-red-700">Profile</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-red-700">Profile</h2>
           <button className="hover:bg-red-100 p-1 rounded" onClick={onClose}>
             <X className="text-red-700" size={22} />
           </button>
@@ -302,21 +302,21 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
           authenticator={authenticator}
         >
           <div className="mb-5">
-            <label className="text-sm font-medium block mb-2">Profile Picture</label>
+            <label className="text-xs sm:text-sm font-medium block mb-2">Profile Picture</label>
             <div className="flex flex-col items-center">
               <div className="relative">
                 {previewUrl ? (
                   <img
                     src={previewUrl}
                     alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-red-300 shadow-lg"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-red-300 shadow-lg"
                     onError={(e) => {
                       console.warn("⚠️ Profile image failed to load:", previewUrl);
                       // Keep showing the broken image - it will load when ImageKit processes it
                     }}
                   />
                 ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-dashed border-gray-300">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-dashed border-gray-300">
                     <Camera className="text-gray-400" size={32} />
                   </div>
                 )}
@@ -372,7 +372,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500 mt-2 text-center">
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-2 text-center">
                 Click the camera icon to upload<br />Max size: 5MB
               </p>
               {uploadError && (
@@ -385,9 +385,9 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
         {/* Form Fields */}
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium">Name</label>
+            <label className="text-xs sm:text-sm font-medium">Name</label>
             <input
-              className="w-full border rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full border rounded p-2 mt-1 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-red-500"
               disabled={!editing}
               value={form.name || ""}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -413,10 +413,10 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
             />
           </div>
 
-          <div className="flex justify-end gap-2 mt-3">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 w-full sm:w-auto text-sm sm:text-base bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
               Close
             </button>
@@ -463,7 +463,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
                 <label className="text-sm font-medium">Old Password</label>
                 <input
                   type="password"
-                  className="w-full border rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full border rounded p-2 mt-1 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-red-500"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   placeholder="Enter current password"
@@ -474,7 +474,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
                 <label className="text-sm font-medium">New Password</label>
                 <input
                   type="password"
-                  className="w-full border rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full border rounded p-2 mt-1 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-red-500"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter new password (min 6 characters)"
@@ -483,7 +483,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
 
               {passMessage && (
                 <p
-                  className={`text-sm font-medium ${
+                  className={`text-xs sm:text-sm font-medium ${
                     passMessage.includes("successfully")
                       ? "text-green-600"
                       : "text-red-700"
@@ -495,7 +495,7 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
 
               <button
                 onClick={changePasswordForCurrentUser}
-                className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors font-medium"
+                className="w-full bg-red-600 text-white py-2 text-sm sm:text-base rounded hover:bg-red-700 transition-colors font-medium"
               >
                 Update Password
               </button>

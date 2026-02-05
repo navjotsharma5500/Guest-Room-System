@@ -100,7 +100,7 @@ export default function HostelMenuButton({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className={`absolute right-0 top-full mt-1 w-64 rounded-lg shadow-xl border z-50 ${
+            className={`absolute right-0 top-full mt-1 w-56 sm:w-64 rounded-lg shadow-xl border z-50 ${
               theme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"

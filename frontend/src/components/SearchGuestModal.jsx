@@ -20,7 +20,10 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
   const inputRef = useRef(null);
   const { currentUser } = useAuth();
 
-  const allowedHostels = currentUser.role === "caretaker"
+  const role = currentUser?.role || currentUser?.user?.role;
+  const isRestrictedRole = role === 'caretaker' || role === 'warden';
+
+  const allowedHostels = isRestrictedRole
     ? [currentUser.assignedHostel]
     : Object.keys(hostelData);
 
@@ -39,13 +42,13 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
 
     const matches = Object.entries(hostelData)
       .filter(([hostel]) => {
-        // Caretaker → only their hostel
-        if (currentUser?.role === "caretaker") {
+        // Caretaker/Warden → only their hostel
+        if (isRestrictedRole) {
           return allowedHostels.includes(hostel);
         }
         // Admin + Manager → full access
-        return true; // admin + manager → full access
-      })    
+        return true;
+      })   
       .flatMap(([hostel, hData]) =>
         (hData.rooms || []).flatMap((room) =>
           (room.bookings || [])
@@ -111,13 +114,13 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl p-6 w-[600px] max-w-[95%] shadow-xl"
+        className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[600px] mx-4 shadow-xl"
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-red-700 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-red-700 flex items-center gap-2">
             <Search className="w-5 h-5 text-red-700" /> Search Guest
           </h2>
           <button
@@ -136,19 +139,19 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
             placeholder="Search by name, contact, or email..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 border p-2 rounded-lg focus:ring-2 focus:ring-red-400 outline-none"
+            className="flex-1 border p-2 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-red-400 outline-none"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
             onClick={handleSearch}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            className="flex items-center gap-1 sm:gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg hover:bg-red-700 transition"
           >
             <Search className="w-4 h-4" /> Search
           </button>
         </div>
 
         {/* Results */}
-        <div className="max-h-72 overflow-y-auto space-y-2">
+        <div className="max-h-60 sm:max-h-72 overflow-y-auto space-y-2">
           {results.length === 0 ? (
             <p className="text-gray-500 italic text-sm text-center">
               No results found. Try searching by name, contact, or email.

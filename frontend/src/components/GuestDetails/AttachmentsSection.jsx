@@ -31,7 +31,7 @@ export default function AttachmentsSection({
   // ✅ Show empty state if no attachments
   if (!hasAnyAttachments) {
     return (
-      <div className={`px-6 py-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+      <div className={`px-4 sm:px-6 py-3 sm:py-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
         <div className="flex items-center gap-2 mb-2">
           <Paperclip className="w-5 h-5 text-gray-500" />
           <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
@@ -46,7 +46,7 @@ export default function AttachmentsSection({
   }
 
   return (
-    <div className={`px-6 py-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+    <div className={`px-4 sm:px-6 py-3 sm:py-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
       <div className="flex items-center gap-2 mb-4">
         <Paperclip className="w-5 h-5 text-gray-500" />
         <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
@@ -55,7 +55,7 @@ export default function AttachmentsSection({
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
         <Tab 
           label="Enquiry" 
           count={enquiryFiles.length} 
@@ -101,7 +101,7 @@ function Tab({ label, count, active, onClick, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
         active 
           ? "bg-blue-600 text-white shadow-md" 
           : theme === "dark"

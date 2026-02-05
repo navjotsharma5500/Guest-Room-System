@@ -35,20 +35,21 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
   const [showAllBookings, setShowAllBookings] = useState(false);
 
   // Get user role and assigned hostel
-  const userRole = currentUser?.role || "caretaker";
+  const userRole = currentUser?.role || currentUser?.user?.role;
+  const isRestrictedRole = userRole === 'caretaker' || userRole === 'warden';
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
-  // Get all hostels (filtered for caretakers)
-  const allHostels = userRole === "caretaker" && assignedHostel
+  // Get all hostels (filtered for caretakers/wardens)
+  const allHostels = isRestrictedRole && assignedHostel
     ? [assignedHostel]
     : Object.keys(hostelData);
 
-  // Auto-set hostel for caretakers
+  // Auto-set hostel for caretakers/wardens
   useEffect(() => {
-    if (userRole === "caretaker" && assignedHostel) {
+    if (isRestrictedRole && assignedHostel) {
       setFilters(prev => ({ ...prev, hostel: assignedHostel }));
     }
-  }, [userRole, assignedHostel]);
+  }, [isRestrictedRole, assignedHostel]);
 
   // Show all bookings on mount
   useEffect(() => {
@@ -62,8 +63,8 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     const now = new Date();
     const matches = Object.entries(hostelData)
       .filter(([hostel]) => {
-        // Caretaker can only see their assigned hostel
-        if (userRole === "caretaker" && assignedHostel) {
+        // Caretaker/Warden can only see their assigned hostel
+        if (isRestrictedRole && assignedHostel) {
           return hostel === assignedHostel;
         }
         return true;
@@ -163,7 +164,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     const now = new Date();
     const allBookings = Object.entries(hostelData)
       .filter(([hostel]) => {
-        if (userRole === "caretaker" && assignedHostel) {
+        if (isRestrictedRole && assignedHostel) {
           return hostel === assignedHostel;
         }
         return true;
@@ -184,7 +185,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     setResults(allBookings);
     showToast(
       `📋 Showing all ${allBookings.length} booking(s)${
-        userRole === "caretaker" ? ` for ${assignedHostel}` : ""
+        isRestrictedRole ? ` for ${assignedHostel}` : ""
       }`,
       "info"
     );
@@ -227,7 +228,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
 
   const resetFilters = () => {
     setFilters({
-      hostel: userRole === "caretaker" && assignedHostel ? assignedHostel : "",
+      hostel: isRestrictedRole ? assignedHostel : "",
       roomNo: "",
       guest: "",
       contact: "",
@@ -267,7 +268,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
               <Filter className="w-6 h-6" /> Advanced Filter
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {userRole === "caretaker" 
+              {isRestrictedRole
                 ? `Searching in: ${assignedHostel}`
                 : "Search across all hostels"}
             </p>

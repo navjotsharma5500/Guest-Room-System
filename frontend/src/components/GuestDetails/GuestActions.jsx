@@ -82,7 +82,7 @@ export default function GuestActions({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ duration: 0.15 }}
-              className={`absolute right-0 mt-2 w-56 rounded-xl shadow-xl border z-50 overflow-hidden ${
+              className={`absolute right-0 mt-2 w-48 sm:w-56 rounded-xl shadow-xl border z-50 overflow-hidden ${
                 theme === "dark"
                   ? "bg-gray-800 border-gray-700"
                   : "bg-white border-gray-200"
@@ -203,7 +203,7 @@ function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp
       onClick={() => {
         onClick();
       }}
-      className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+      className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 text-left flex items-center gap-2 sm:gap-3 transition-colors ${
         danger
           ? theme === "dark"
             ? "text-red-400 hover:bg-red-900/30"
@@ -226,7 +226,7 @@ function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp
       }`}
     >
       {icon}
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-xs sm:text-sm font-medium">{label}</span>
     </button>
   );
 }

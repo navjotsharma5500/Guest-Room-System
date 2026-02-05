@@ -163,7 +163,7 @@ export const getAllFeedbacks = async (req, res) => {
     const filter = {};
 
     // Role-based filtering
-    if (req.user.role === "caretaker") {
+    if (req.user.role === "caretaker" || req.user.role === "warden") {
       const assignedHostel = req.user.assignedHostel || req.user.hostel;
       if (!assignedHostel) {
         return res.status(400).json({
@@ -176,7 +176,7 @@ export const getAllFeedbacks = async (req, res) => {
     }
 
     // Hostel filter (admin/manager)
-    if (hostel && req.user.role !== "caretaker") {
+    if (hostel && req.user.role !== "caretaker" && req.user.role !== "warden") {
       filter.hostel = hostel;
     }
 
@@ -321,7 +321,7 @@ export const getFeedbackStats = async (req, res) => {
     const filter = {};
     
     // Role-based filtering
-    if (req.user.role === "caretaker") {
+    if (req.user.role === "caretaker" || req.user.role === "warden") {
       filter.hostel = req.user.assignedHostel || req.user.hostel;
     } else if (hostel) {
       filter.hostel = hostel;

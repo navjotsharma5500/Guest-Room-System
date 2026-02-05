@@ -230,7 +230,7 @@ export default function AttachmentGrid({ files = [], theme }) {
   return (
     <>
       {/* ===== GRID ===== */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
         {resolvedFiles.map((f) => (
           <motion.div
             key={f.id}
@@ -238,7 +238,7 @@ export default function AttachmentGrid({ files = [], theme }) {
             initial={false}
             whileHover={{ scale: 1.03 }}
             transition={{ duration: 0.2 }}
-            className={`rounded-xl border p-3 shadow-sm cursor-pointer transition ${
+            className={`rounded-lg sm:rounded-xl border p-2 sm:p-3 shadow-sm cursor-pointer transition ${
               theme === "dark"
                 ? "bg-gray-700 border-gray-600 hover:bg-gray-600"
                 : "bg-white border-gray-200 hover:bg-gray-50"
@@ -249,7 +249,7 @@ export default function AttachmentGrid({ files = [], theme }) {
               <img
                 src={f.url}
                 alt={f.name}
-                className="w-full h-28 object-contain rounded bg-white"
+                className="w-full h-20 sm:h-28 object-contain rounded bg-white"
                 loading="lazy"
                 draggable={false}
                 onError={(e) => {

@@ -305,10 +305,10 @@ export const blockRoom = async (req, res) => {
       // allowed
     }
     // Caretaker → only own hostel
-    else if (role === "caretaker") {
+    else if (role === "caretaker" || role === "warden") {
       if (assignedHostel !== hostelName) {
         return res.status(403).json({
-          message: "Caretaker can block rooms only in their assigned hostel",
+          message: "You can block rooms only in your assigned hostel",
         });
       }
     }
@@ -485,10 +485,10 @@ export const unblockRoom = async (req, res) => {
       // allowed
     }
     // Caretaker → only own hostel
-    else if (role === "caretaker") {
+    else if (role === "caretaker" || role === "warden") {
       if (assignedHostel !== hostelName) {
         return res.status(403).json({
-          message: "Caretaker can block rooms only in their assigned hostel",
+          message: "You can unblock rooms only in your assigned hostel",
         });
       }
     }

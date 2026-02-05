@@ -400,9 +400,9 @@ export default function CalendarGuestsPage({
 
   // ✅ Auto-select caretaker's hostel on mount
   useEffect(() => {
-    if (role === "caretaker" && userHostel) {
+    if (isRestrictedRole && userHostel) {
       setSelectedHostel(userHostel);
-      console.log(`🔒 Auto-selected hostel for caretaker: ${userHostel}`);
+      console.log(`🔒 Auto-selected hostel for ${role}: ${userHostel}`);
     }
   }, [role, userHostel]);
 
@@ -742,7 +742,7 @@ export default function CalendarGuestsPage({
             <div>
               <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
                 <Filter size={16} className="inline mr-1" />
-                {role === "caretaker" ? "Your Hostel" : "Filter by Hostel"}
+                {isRestrictedRole ? "Your Hostel" : "Filter by Hostel"}
               </label>
               <select
                 value={selectedHostel}
@@ -752,7 +752,7 @@ export default function CalendarGuestsPage({
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
                     : 'bg-white border-gray-300 focus:border-red-500'
-                } ${role === "caretaker" ? 'opacity-75 cursor-not-allowed' : ''}`}
+                } ${isRestrictedRole ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
                 {hostels.length > 0 ? (
                   hostels.map(hostel => (
