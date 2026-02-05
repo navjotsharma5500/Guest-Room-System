@@ -429,6 +429,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
   const { currentUser } = useAuth();
   const role = currentUser?.role || "caretaker";
   const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
+  const isRestrictedRole = role === 'caretaker' || role === 'warden';
 
   const [checkedOutGuests, setCheckedOutGuests] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
@@ -440,7 +441,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedHostel, setSelectedHostel] = useState(role === 'caretaker' ? userHostel : 'All');
+  const [selectedHostel, setSelectedHostel] = useState(isRestrictedRole ? userHostel : 'All');
   const [dateFilter, setDateFilter] = useState('');
   const [ratingFilter, setRatingFilter] = useState('All');
 
@@ -487,8 +488,8 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
           });
         });
 
-        // Filter by role
-        const filteredBookings = role === 'caretaker'
+        // Filter by role (caretaker and warden)
+        const filteredBookings = isRestrictedRole
           ? allBookings.filter(b => b.hostel === userHostel)
           : allBookings;
 
@@ -626,10 +627,10 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
 
   // Get unique hostels
   const hostels = useMemo(() => {
-    if (role === 'caretaker') return [userHostel];
+    if (isRestrictedRole) return [userHostel];
     const unique = [...new Set(checkedOutGuests.map(g => g.hostel))];
     return ['All', ...unique];
-  }, [checkedOutGuests, role, userHostel]);
+  }, [checkedOutGuests, isRestrictedRole, userHostel]);
 
   return (
     <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-purple-50 to-blue-50'} overflow-y-auto`}>
@@ -688,12 +689,12 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
               <select
                 value={selectedHostel}
                 onChange={(e) => setSelectedHostel(e.target.value)}
-                disabled={role === 'caretaker'}
+                disabled={isRestrictedRole}
                 className={`w-full border-2 rounded-lg px-4 py-2 ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white' 
                     : 'bg-white border-gray-300'
-                } ${role === 'caretaker' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${isRestrictedRole ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {hostels.map(h => (
                   <option key={h} value={h}>{h}</option>

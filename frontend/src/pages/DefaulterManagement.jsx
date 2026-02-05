@@ -40,6 +40,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
 
   const canRollback = role === "admin" || role === "manager";
+  const isRestrictedRole = role === "caretaker" || role === "warden";
 
   // ✅ ADD THIS HELPER HERE
   const hasActualRollback = (d) => {
@@ -311,7 +312,7 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
     ];
     
     let dataToDownload = filteredDefaulters;
-    if (role === 'caretaker' && assignedHostel) {
+    if (isRestrictedRole && assignedHostel) {
       dataToDownload = dataToDownload.filter(d => d.hostel === assignedHostel);
     }
 
@@ -564,8 +565,8 @@ Thank you!`;
         <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
         <div className="relative z-10">
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={handleBackClick}
@@ -577,9 +578,9 @@ Thank you!`;
                 <div className="bg-white/20 p-3 rounded-2xl">
                   <AlertCircle className="w-8 h-8" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Defaulter Management</h1>
-                  <p className="text-red-100 mt-1">Outstanding Payment Tracking System</p>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">Defaulter Management</h1>
+                  <p className="text-red-100 mt-1 text-xs sm:text-sm">Outstanding Payment Tracking</p>
                 </div>
               </div>
             </div>
@@ -594,7 +595,7 @@ Thank you!`;
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mt-4 sm:mt-6">
             <motion.div 
               className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               whileHover={{ y: -5 }}
@@ -605,8 +606,8 @@ Thank you!`;
               <div className="flex items-center gap-3">
                 <DollarSign className="w-8 h-8 text-yellow-400" />
                 <div>
-                  <p className="text-xs text-gray-300">Total Outstanding</p>
-                  <p className="text-2xl font-bold text-yellow-400">₹{totalOutstanding}</p>
+                  <p className="text-xs text-gray-300 truncate">Outstanding</p>
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-400">₹{totalOutstanding.toLocaleString()}</p>
                 </div>
               </div>
             </motion.div>

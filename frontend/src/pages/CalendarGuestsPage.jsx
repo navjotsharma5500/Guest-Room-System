@@ -366,6 +366,9 @@ export default function CalendarGuestsPage({
   const user = currentUser;
   const role = user?.role || "caretaker";
   const userHostel = user?.assignedHostel || user?.hostel || null;
+
+  // ✅ NEW: Handle both caretaker and warden the same way
+  const isRestrictedRole = role === "caretaker" || role === "warden";
   
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [activeTab, setActiveTab] = useState('active');
@@ -412,13 +415,13 @@ export default function CalendarGuestsPage({
     const bookings = [];
     Object.entries(dataSource).forEach(([hostelName, hostel]) => {
       // ✅ CRITICAL FIX: Caretakers can ONLY see their assigned hostel
-      if (role === "caretaker") {
+      if (isRestrictedRole) {
         if (!userHostel) {
-          console.warn("⚠️ Caretaker has no assigned hostel");
-          return; // Skip if no hostel assigned
+          console.warn(`⚠️ ${role} has no assigned hostel`);
+          return;
         }
         if (hostelName !== userHostel) {
-          return; // Skip other hostels
+          return;
         }
       }
 
@@ -445,13 +448,13 @@ export default function CalendarGuestsPage({
     const hostelNames = Object.keys(hostelData);
     
     // ✅ Caretakers can ONLY see their assigned hostel
-    if (role === "caretaker") {
+    if (isRestrictedRole) {
       if (!userHostel) {
-        console.warn("⚠️ Caretaker has no assigned hostel");
+        console.warn(`⚠️ ${role} has no assigned hostel`);
         return [];
       }
-      console.log(`🔒 Caretaker restricted to hostel: ${userHostel}`);
-      return [userHostel]; // Only their hostel, no "All Hostels" option
+      console.log(`🔒 ${role} restricted to hostel: ${userHostel}`);
+      return [userHostel];
     }
     
     // Admin and Manager can see all hostels
@@ -685,18 +688,18 @@ export default function CalendarGuestsPage({
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={handleBack}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold">Guest Management</h1>
-                <p className="text-red-100 mt-1">
-                  <Calendar size={16} className="inline mr-2" />
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Guest Management</h1>
+                <p className="text-red-100 mt-1 text-sm sm:text-base">
+                  <Calendar size={14} className="inline mr-1 sm:mr-2" />
                   {formatDate(selectedDate)}
                 </p>
               </div>
@@ -704,10 +707,11 @@ export default function CalendarGuestsPage({
             
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg"
+              className="flex items-center gap-2 bg-white text-red-600 px-3 py-2 sm:px-6 sm:py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg text-sm sm:text-base"
             >
-              <Download size={20} />
-              Download Report
+              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Download Report</span>
+              <span className="sm:hidden">Download</span>
             </button>
           </div>
         </div>
@@ -716,7 +720,7 @@ export default function CalendarGuestsPage({
       {/* Filters Section */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* Date Picker */}
             <div>
               <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
@@ -726,7 +730,7 @@ export default function CalendarGuestsPage({
                 type="date"
                 value={selectedDate.toISOString().split('T')[0]}
                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
+                className={`w-full border-2 rounded-lg px-3 py-2 text-sm sm:text-base focus:ring-2 focus:ring-red-200 transition ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
                     : 'bg-white border-gray-300 focus:border-red-500'
@@ -743,7 +747,7 @@ export default function CalendarGuestsPage({
               <select
                 value={selectedHostel}
                 onChange={(e) => setSelectedHostel(e.target.value)}
-                disabled={role === "caretaker"} // ✅ Disable for caretakers
+                disabled={isRestrictedRole}
                 className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
@@ -758,7 +762,7 @@ export default function CalendarGuestsPage({
                   <option>No hostel assigned</option>
                 )}
               </select>
-              {role === "caretaker" && (
+              {isRestrictedRole && (
                 <p className="text-xs text-gray-500 mt-1">
                   🔒 You can only view your assigned hostel
                 </p>
@@ -790,7 +794,16 @@ export default function CalendarGuestsPage({
       {/* Tabs */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className={`flex border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
+          <div className={`flex overflow-x-auto border-b ${theme === 'dark' ? 'border-gray-700' : ''} scrollbar-hide`}>
+            <style>{`
+              .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+              }
+              .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            `}</style>
             {[
               { id: 'active', label: 'Active Guests', icon: Users },
               { id: 'upcoming', label: 'Upcoming Guests', icon: Clock },
@@ -804,7 +817,7 @@ export default function CalendarGuestsPage({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 font-semibold transition border-b-3 ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 sm:py-4 font-semibold transition border-b-3 whitespace-nowrap text-sm sm:text-base ${
                     activeTab === tab.id
                       ? 'border-red-600 text-red-600 bg-red-50'
                       : theme === 'dark'
@@ -812,8 +825,9 @@ export default function CalendarGuestsPage({
                         : 'border-transparent text-gray-600 hover:text-red-600 hover:bg-red-50'
                   }`}
                 >
-                  <Icon size={20} />
-                  {tab.label}
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                   <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
                     activeTab === tab.id
                       ? 'bg-red-600 text-white'

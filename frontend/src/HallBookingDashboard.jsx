@@ -63,6 +63,12 @@ export default function HallBookingDashboard() {
   );
 
   const [currentUserData, setCurrentUserData] = useState(currentUser);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when activeSection changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeSection]);
 
   useEffect(() => {
     setCurrentUserData(currentUser);
@@ -281,42 +287,65 @@ export default function HallBookingDashboard() {
         }`}>
           {/* Animated Background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-40 left-20 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+            <div className="absolute -top-20 sm:-top-40 -right-20 sm:-right-40 w-40 sm:w-80 h-40 sm:h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            <div className="absolute -bottom-20 sm:-bottom-40 -left-20 sm:-left-40 w-40 sm:w-80 h-40 sm:h-80 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-20 sm:-bottom-40 left-10 sm:left-20 w-40 sm:w-80 h-40 sm:h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
           </div>
 
-          {/* HEADER - PATCH 19: Dashboard Top Bar with Google Design */}
+          {/* HEADER - Mobile Responsive with Google Design */}
           <header className={`
             fixed top-0 left-0 right-0 h-16 z-30
-            flex items-center justify-between px-6
+            flex items-center justify-between px-3 sm:px-6
             border-b transition-colors duration-200
             ${theme === "dark"
               ? "bg-[#292a2d] border-[#3c4043]"
               : "bg-white border-[#dadce0]"
             }
           `}>
-            <div className="flex items-center gap-4">
-              <h1 className={`text-xl font-normal ${
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`
+                  md:hidden p-2 rounded-lg transition-colors
+                  ${theme === "dark" 
+                    ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
+                    : "hover:bg-[#f1f3f4] text-[#5f6368]"
+                  }
+                `}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+
+              <h1 className={`text-base sm:text-xl font-normal truncate ${
                 theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
               }`}>
-                Hall Booking Portal
+                <span className="hidden sm:inline">Hall Booking Portal</span>
+                <span className="sm:hidden">Hall Booking</span>
               </h1>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Switch Dashboard Button - Only show for Admin */}
               {role === "admin" && (
                 <button
                   onClick={() => navigate("/admin/dashboard-selector")}
                   className={`
-                    px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                    px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                     ${theme === "dark"
                       ? "text-[#8ab4f8] hover:bg-[#3c4043]"
                       : "text-[#1a73e8] hover:bg-[#f1f3f4]"
                     }
                   `}
                 >
-                  Switch Dashboard
+                  <span className="hidden md:inline">Switch Dashboard</span>
+                  <span className="md:hidden">Switch</span>
                 </button>
               )}
 
@@ -324,21 +353,21 @@ export default function HallBookingDashboard() {
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className={`
-                  p-2 rounded-full transition-colors
+                  p-1.5 sm:p-2 rounded-full transition-colors
                   ${theme === "dark" 
                     ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
                     : "hover:bg-[#f1f3f4] text-[#5f6368]"
                   }
                 `}
               >
-                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {theme === "dark" ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
 
-              {/* Settings */}
+              {/* Settings - Hidden on mobile */}
               <button
                 onClick={() => setActiveSection("settings")}
                 className={`
-                  p-2 rounded-full transition-colors
+                  hidden sm:block p-2 rounded-full transition-colors
                   ${theme === "dark" 
                     ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
                     : "hover:bg-[#f1f3f4] text-[#5f6368]"
@@ -348,11 +377,11 @@ export default function HallBookingDashboard() {
                 <Settings className="w-5 h-5" />
               </button>
 
-              {/* Profile */}
+              {/* Profile - Responsive */}
               <button
                 onClick={() => setProfileOpen(true)}
                 className={`
-                  flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
+                  flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors
                   ${theme === "dark" 
                     ? "hover:bg-[#3c4043] text-[#e8eaed]" 
                     : "hover:bg-[#f1f3f4] text-[#202124]"
@@ -360,34 +389,36 @@ export default function HallBookingDashboard() {
                 `}
               >
                 <div className={`
-                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
                   ${theme === "dark" ? "bg-[#8ab4f8] text-[#202124]" : "bg-[#1a73e8] text-white"}
                 `}>
                   {currentUser?.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <span className="text-sm">{currentUser?.name}</span>
+                <span className="hidden lg:inline text-sm truncate max-w-[100px]">{currentUser?.name}</span>
               </button>
 
               {/* Logout */}
               <button
                 onClick={handleLogout}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                  px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                   ${theme === "dark"
                     ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
                     : "bg-[#1a73e8] hover:bg-[#1967d2] text-white"
                   }
                 `}
               >
-                Logout
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Out</span>
               </button>
             </div>
           </header>
 
-          {/* SIDEBAR */}
+          {/* SIDEBAR - Desktop and Mobile Overlay */}
           <AnimatePresence>
+            {/* Desktop Sidebar - Always visible on md+ */}
             <motion.aside
-              key="hall-sidebar"
+              key="hall-sidebar-desktop"
               variants={sidebarVariants}
               initial="hidden"
               animate="visible"
@@ -408,10 +439,49 @@ export default function HallBookingDashboard() {
                 onNavigate={handleNavigate}
               />
             </motion.aside>
+
+            {/* Mobile Sidebar Overlay */}
+            {mobileMenuOpen && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+                
+                {/* Sliding Sidebar */}
+                <motion.aside
+                  initial={{ x: -280 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -280 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className={`
+                    fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 z-50 md:hidden
+                    border-r transition-colors duration-200
+                    ${theme === "dark"
+                      ? "bg-[#292a2d] border-[#3c4043]"
+                      : "bg-white border-[#dadce0]"
+                    }
+                  `}
+                >
+                  <HallSidebar
+                    theme={theme}
+                    activeSection={activeSection}
+                    onNavigate={(section) => {
+                      handleNavigate(section);
+                      setMobileMenuOpen(false); // Close menu after navigation
+                    }}
+                  />
+                </motion.aside>
+              </>
+            )}
           </AnimatePresence>
 
           {/* MAIN CONTENT */}
-          <main className={`flex-1 overflow-y-auto mt-16 ml-0 md:ml-64`}>
+          <main className={`flex-1 overflow-y-auto mt-16 ml-0 md:ml-64 px-2 sm:px-4 lg:px-6`}>
             {/* Dashboard Home */}
             {activeSection === "home" && (
               <HallMainContent

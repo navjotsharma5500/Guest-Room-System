@@ -38,7 +38,8 @@ export default function GuestRoomDashboard() {
   const { currentUser, loading, logout } = useAuth();
   
   // Extract user role
-  const role = currentUser?.role || currentUser?.user?.role;  
+  const role = currentUser?.role || currentUser?.user?.role;
+  const isRestrictedRole = role === 'caretaker' || role === 'warden';
 
   const { showToast } = useToast();
 
@@ -97,6 +98,14 @@ export default function GuestRoomDashboard() {
 
   // User Data
   const [currentUserData, setCurrentUserData] = useState(currentUser);
+
+  // Mobile Menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when activeTab or activeHostel changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeTab, activeHostel]);
 
   useEffect(() => {
     setCurrentUserData(currentUser);
@@ -659,24 +668,25 @@ export default function GuestRoomDashboard() {
               : "bg-gray-50 text-gray-900"
           }`}
         >
-          {/* TOP HEADER */}
+          {/* TOP HEADER - MOBILE RESPONSIVE */}
           <div
-            className={`fixed left-64 right-0 top-0 h-16 flex items-center justify-between px-6 shadow-md z-20 ${
+            className={`fixed left-0 md:left-64 right-0 top-0 h-16 flex items-center justify-between px-3 sm:px-6 shadow-md z-20 ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
           >
-            {/* LEFT SIDE: Real-time Status */}
-            <div className="flex items-center gap-4">
+            {/* LEFT SIDE: Real-time Status - Responsive */}
+            <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
               {/* Connection Status Indicator */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                <span className={`text-sm font-medium ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {connected ? '🔴 LIVE' : '⚠️ Reconnecting...'}
+                <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <span className="hidden sm:inline">{connected ? '🔴 LIVE' : '⚠️ Reconnecting...'}</span>
+                  <span className="sm:hidden">{connected ? 'LIVE' : '⚠️'}</span>
                 </span>
               </div>
 
-              {/* Last Update Time */}
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              {/* Last Update Time - Hidden on mobile */}
+              <div className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 Updated: {new Date(lastUpdate).toLocaleTimeString()}
               </div>
 
@@ -684,56 +694,129 @@ export default function GuestRoomDashboard() {
               <button
                 onClick={refresh}
                 disabled={hostelLoading}
-                className={`guestroom-btn px-3 py-1 text-xs rounded-md transition ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 text-xs rounded-md transition flex-shrink-0 ${
                   hostelLoading
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-500 text-white hover:bg-blue-600'
                 }`}
                 title="Manually refresh data"
               >
-                {hostelLoading ? '⏳ Refreshing...' : '🔄 Refresh'}
+                <span>{hostelLoading ? '⏳' : '🔄'}</span>
+                <span className="hidden sm:inline">{hostelLoading ? 'Refreshing...' : 'Refresh'}</span>
               </button>
             </div>
 
-            {/* RIGHT SIDE: Switch Dashboard (Admin only), Profile & Logout */}
-            <div className="flex items-center gap-3">
+            {/* RIGHT SIDE: Actions - Responsive */}
+            <div className="flex items-center gap-1 sm:gap-3">
               {/* Switch Dashboard Button - Admin Only */}
               {role === "admin" && (
                 <button
                   onClick={() => navigate("/admin/dashboard-selector")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 transition-all ${
                     theme === "dark"
                       ? "border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
                       : "border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
                   }`}
                   title="Switch to Dashboard Selector"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
-                  <span className="font-medium text-sm">Switch Dashboard</span>
+                  <span className="hidden md:inline font-medium text-xs sm:text-sm">Switch Dashboard</span>
+                  <span className="md:hidden font-medium text-xs">Switch</span>
                 </button>
               )}
 
-              {/* Profile Button */}
+              {/* Profile Button - Simplified on mobile */}
               {activeTab !== "AllHostelsPortal" && (
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="guestroom-btn flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  className="guestroom-btn flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 >
-                  <span className="font-medium">{currentUserData?.name || "Profile"}</span>
+                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
+                    theme === "dark" ? "bg-purple-600 text-white" : "bg-purple-100 text-purple-700"
+                  }`}>
+                    {currentUserData?.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <span className="hidden lg:inline font-medium text-sm">{currentUserData?.name || "Profile"}</span>
                 </button>
               )}
 
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="guestroom-primary-btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                className="guestroom-primary-btn bg-red-600 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-red-700 transition text-xs sm:text-sm font-medium"
               >
-                Logout
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Out</span>
               </button>
             </div>
-          </div>  
+          </div>
+
+          {/* Add scrollbar hiding CSS */}
+          <style jsx>{`
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+            .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
+
+          {/* MOBILE MENU TOGGLE - Only visible on mobile */}
+          {activeTab !== "AllHostelsPortal" && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`fixed bottom-4 right-4 md:hidden z-30 p-3 rounded-full shadow-lg ${
+                theme === "dark" ? "bg-purple-600 text-white" : "bg-purple-500 text-white"
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          )}
+
+          {/* MOBILE SIDEBAR OVERLAY */}
+          {activeTab !== "AllHostelsPortal" && mobileMenuOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              
+              {/* Mobile Sidebar */}
+              <motion.div
+                initial={{ x: -280 }}
+                animate={{ x: 0 }}
+                exit={{ x: -280 }}
+                className="fixed left-0 top-16 bottom-0 w-64 z-50 md:hidden"
+              >
+                <Sidebar
+                  activeHostel={activeHostel}
+                  setActiveHostel={(hostel) => {
+                    setActiveHostel(hostel);
+                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
+                    setMobileMenuOpen(false); // Close menu after selection
+                  }}
+                  setActiveRoomRef={setActiveRoomRef}
+                  hostelData={hostelData}
+                  activeTab={activeTab}
+                  setActiveTab={(tab) => {
+                    setActiveTab(tab);
+                    setMobileMenuOpen(false); // Close menu after selection
+                  }}
+                  theme={theme}
+                />
+              </motion.div>
+            </>
+          )}
 
           {/* SIDEBAR */}
           <AnimatePresence>
@@ -744,7 +827,7 @@ export default function GuestRoomDashboard() {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="z-20"
+                className="z-20 hidden md:block" // ✅ Hide on mobile, show on desktop
               >
                 <Sidebar
                   activeHostel={activeHostel}
@@ -765,7 +848,7 @@ export default function GuestRoomDashboard() {
           </AnimatePresence>
 
           {/* MAIN CONTENT */}
-          <main className="flex-1 overflow-y-auto mt-16">
+          <main className="flex-1 overflow-y-auto mt-16 ml-0 md:ml-0">
             {activeTab === "Home" && (
               <MainContent
                 {...{
