@@ -122,7 +122,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Star Rating - FIXED: Removed hover state to prevent fluctuation */}
+            {/* Star Rating */}
             <div className="text-center">
               <p className="text-lg font-semibold mb-4">How would you rate this guest?</p>
               <div className="flex justify-center gap-3 mb-4">
@@ -154,7 +154,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 ))}
               </div>
 
-              {/* FIXED: Rating info with fixed height to prevent layout shift */}
+              {/* Fixed height container to prevent layout shift */}
               <div className="min-h-[80px] flex items-center justify-center">
                 {ratingInfo && (
                   <div
@@ -425,7 +425,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
         Object.values(data.hostels).forEach(hostel => {
           hostel.rooms.forEach(room => {
             room.bookings.forEach(booking => {
-              // FIXED: Include both manually checked out AND auto-checked-out guests
+              // Include both manually checked out AND auto-checked-out guests
               const isManuallyCheckedOut = booking.status === 'checked_out';
               
               // Check if checkout date/time has passed (for auto-checkout)
