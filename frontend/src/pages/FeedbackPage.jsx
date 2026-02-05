@@ -102,7 +102,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto will-change-auto`}
+          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto`}
         >
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-2xl z-10 flex justify-between items-center">
@@ -122,27 +122,21 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Star Rating */}
+            {/* Star Rating - FIXED: Removed hover state to prevent fluctuation */}
             <div className="text-center">
               <p className="text-lg font-semibold mb-4">How would you rate this guest?</p>
               <div className="flex justify-center gap-3 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <motion.button
+                  <button
                     key={star}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
-                    className="focus:outline-none transition-colors duration-200"
-                    style={{ transformOrigin: 'center center' }}
+                    className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
                   >
                     <Star
                       size={48}
-                      className={`${
-                        star <= currentRating
-                          ? `fill-${RATING_CONFIG[currentRating]?.color}-500 text-${RATING_CONFIG[currentRating]?.color}-500`
-                          : 'fill-gray-300 text-gray-300'
-                      } transition-all duration-200`}
+                      className="transition-colors duration-150"
                       style={{
                         fill: star <= currentRating ? 
                           (currentRating === 5 ? '#10b981' :
@@ -156,24 +150,27 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                            currentRating === 2 ? '#f97316' : '#ef4444') : '#d1d5db'
                       }}
                     />
-                  </motion.button>
+                  </button>
                 ))}
               </div>
 
-              {ratingInfo && (
-                <div
-                  className={`inline-flex flex-col items-center gap-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                    currentRating === 5 ? 'bg-green-100 text-green-800' :
-                    currentRating === 4 ? 'bg-blue-100 text-blue-800' :
-                    currentRating === 3 ? 'bg-yellow-100 text-yellow-800' :
-                    currentRating === 2 ? 'bg-orange-100 text-orange-800' :
-                    'bg-red-100 text-red-800'
-                  }`}
-                >
-                  <p className="text-xl font-bold">{ratingInfo.label}</p>
-                  <p className="text-sm">{ratingInfo.description}</p>
-                </div>
-              )}
+              {/* FIXED: Rating info with fixed height to prevent layout shift */}
+              <div className="min-h-[80px] flex items-center justify-center">
+                {ratingInfo && (
+                  <div
+                    className={`inline-flex flex-col items-center gap-2 px-6 py-3 rounded-xl transition-colors duration-150 ${
+                      currentRating === 5 ? 'bg-green-100 text-green-800' :
+                      currentRating === 4 ? 'bg-blue-100 text-blue-800' :
+                      currentRating === 3 ? 'bg-yellow-100 text-yellow-800' :
+                      currentRating === 2 ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    <p className="text-xl font-bold">{ratingInfo.label}</p>
+                    <p className="text-sm">{ratingInfo.description}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Remarks */}
@@ -188,8 +185,8 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 rows={4}
                 className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-200 transition ${
                   theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500' 
-                    : 'bg-white border-gray-300 focus:border-purple-500'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300'
                 }`}
               />
             </div>
@@ -201,53 +198,42 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
               </label>
               
               {attachments.length < 5 && (
-                <IKUpload
-                  fileName={`feedback_${Date.now()}_${Math.random().toString(36).substring(2)}`}
-                  folder="/feedback-attachments"
-                  useUniqueFileName={true}
-                  isPrivateFile={false}
-                  tags={["feedback", "guest-rating"]}
-                  onUploadStart={() => console.log("Upload started...")}
-                  onError={(err) => {
-                    console.error("Upload error:", err);
-                    alert("Failed to upload file. Please try again.");
-                  }}
-                  onSuccess={(res) => {
-                    console.log("✅ Upload success:", res);
-                    handleFileUpload(res.url);
-                  }}
-                  validateFile={(file) => {
-                    if (attachments.length >= 5) {
-                      alert("Maximum 5 attachments allowed");
-                      return false;
-                    }
-                    if (file.size > 5 * 1024 * 1024) {
-                      alert("File size must be under 5MB");
-                      return false;
-                    }
-                    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
-                    if (!allowedTypes.includes(file.type)) {
-                      alert("Only JPG, PNG, WEBP, or GIF images allowed");
-                      return false;
-                    }
-                    return true;
-                  }}
-                  className="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-purple-500 hover:bg-purple-50 transition cursor-pointer"
-                />
+                <div className={`border-2 border-dashed rounded-lg p-4 text-center ${
+                  theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                }`}>
+                  <IKUpload
+                    onSuccess={(res) => handleFileUpload(res.url)}
+                    onError={(err) => console.error('Upload error:', err)}
+                    folder="/feedback-attachments"
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload className="mx-auto mb-2 text-purple-600" size={32} />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Click to upload images or documents
+                    </p>
+                  </label>
+                </div>
               )}
 
               {attachments.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mt-3">
-                  {attachments.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Attachment ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border-2 border-gray-300"
-                      />
+                <div className="mt-3 space-y-2">
+                  {attachments.map((url, idx) => (
+                    <div key={idx} className={`flex items-center justify-between p-2 rounded border ${
+                      theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      <a 
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-purple-600 hover:underline truncate flex-1"
+                      >
+                        Attachment {idx + 1}
+                      </a>
                       <button
-                        onClick={() => removeAttachment(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        onClick={() => removeAttachment(idx)}
+                        className="ml-2 text-red-500 hover:text-red-700"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -256,172 +242,133 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className={`sticky bottom-0 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-b-2xl border-t flex justify-end gap-3`}>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || rating === 0}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
-            </button>
+            {/* Submit Button */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={onClose}
+                className={`flex-1 py-3 rounded-lg font-semibold transition ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || rating === 0}
+                className="flex-1 py-3 rounded-lg font-semibold bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
+              </button>
+            </div>
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  </IKContext>
+        </motion.div>
+      </AnimatePresence>
+    </IKContext>
   );
 }
 
 // Guest Feedback Card Component
 function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const checkoutDate = guest.checkedOutAt 
+    ? new Date(guest.checkedOutAt).toLocaleDateString()
+    : new Date(guest.to).toLocaleDateString();
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md hover:shadow-xl transition p-6 border-l-4 border-purple-500`}
+      className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg border-2 ${
+        existingFeedback 
+          ? 'border-green-300' 
+          : 'border-gray-200'
+      } p-5 hover:shadow-xl transition-all duration-300`}
     >
-      <div className="flex items-start justify-between gap-4">
-        {/* Star Rating Section */}
-        <div className="flex flex-col items-center justify-center min-w-[120px]">
-          {existingFeedback ? (
-            <>
-              <div className="flex gap-1 mb-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={20}
-                    className={star <= existingFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-300 text-gray-300'}
-                  />
-                ))}
-              </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                existingFeedback.rating === 5 ? 'bg-green-100 text-green-800' :
-                existingFeedback.rating === 4 ? 'bg-blue-100 text-blue-800' :
-                existingFeedback.rating === 3 ? 'bg-yellow-100 text-yellow-800' :
-                existingFeedback.rating === 2 ? 'bg-orange-100 text-orange-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {RATING_CONFIG[existingFeedback.rating]?.label}
-              </span>
-            </>
-          ) : (
-            <button
-              onClick={() => onRate(guest)}
-              className="flex flex-col items-center gap-2 px-4 py-3 bg-purple-100 hover:bg-purple-200 rounded-lg transition group"
-            >
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={20}
-                    className="fill-gray-300 text-gray-300 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition"
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-bold text-purple-700">Rate Guest</span>
-            </button>
-          )}
-        </div>
-
-        {/* Guest Details */}
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            {guest.profilePicture ? (
-              <img
-                src={guest.profilePicture}
-                alt={guest.guest}
-                className="w-12 h-12 rounded-full border-4 border-purple-100"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <User size={24} className="text-purple-400" />
-              </div>
-            )}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        {/* Guest Info */}
+        <div className="flex-1 space-y-3">
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 {guest.guest}
               </h3>
-              <p className="text-sm text-gray-500">{guest.rollno || "—"}</p>
+              <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                <Building2 size={14} />
+                <span>{guest.hostel} - Room {guest.roomNo}</span>
+              </div>
             </div>
+            {existingFeedback && (
+              <div className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                <Award size={14} />
+                Rated
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Building2 size={16} className="text-purple-500" />
-              <span>{guest.hostel}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-red-500" />
-              <span>Room {guest.roomNo}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone size={16} className="text-blue-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="flex items-center gap-2 text-gray-600">
+              <Phone size={14} />
               <span>{guest.contact}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Mail size={16} className="text-green-500" />
-              <span className="truncate text-xs">{guest.email}</span>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Mail size={14} />
+              <span className="truncate">{guest.email}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-orange-500" />
-              <span>{formatDate(guest.checkedOutAt || guest.to)}</span>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Calendar size={14} />
+              <span>Checked out: {checkoutDate}</span>
             </div>
+            {guest.department && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <User size={14} />
+                <span>{guest.department}</span>
+              </div>
+            )}
           </div>
 
-          {existingFeedback?.remarks && (
-            <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <p className="text-sm italic text-gray-700">"{existingFeedback.remarks}"</p>
-            </div>
-          )}
-
-          {existingFeedback?.attachments?.length > 0 && (
-            <div className="mt-3 flex gap-2 flex-wrap">
-              {existingFeedback.attachments.map((url, idx) => (
-                <a
-                  key={idx}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-16 h-16"
-                >
-                  <img
-                    src={url}
-                    alt={`Attachment ${idx + 1}`}
-                    className="w-full h-full object-cover rounded border-2 border-gray-300 hover:border-purple-500 transition"
-                  />
-                </a>
-              ))}
+          {/* Existing Rating Display */}
+          {existingFeedback && (
+            <div className="border-t pt-3 mt-3">
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-semibold text-gray-700">Your Rating:</p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={18}
+                      className={star <= existingFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-300 text-gray-300'}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-bold text-purple-600">
+                  {RATING_CONFIG[existingFeedback.rating]?.label}
+                </span>
+              </div>
+              {existingFeedback.remarks && (
+                <p className="text-sm text-gray-600 italic">"{existingFeedback.remarks}"</p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Edit Button for existing feedback */}
-        {existingFeedback && (
+        {/* Action Button */}
+        <div className="flex items-center">
           <button
             onClick={() => onRate(guest)}
-            className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium"
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              existingFeedback
+                ? theme === 'dark'
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                : 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl'
+            }`}
           >
-            Edit
+            {existingFeedback ? 'Edit Rating' : 'Rate Guest'}
           </button>
-        )}
+        </div>
       </div>
     </motion.div>
   );
@@ -451,7 +398,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch checked-out guests
+  // FIXED: Fetch checked-out guests - now includes auto-checked-out guests
   const fetchCheckedOutGuests = useCallback(async () => {
     try {
       setLoading(true);
@@ -473,10 +420,20 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
       
       if (data.success) {
         const allBookings = [];
+        const now = new Date();
+        
         Object.values(data.hostels).forEach(hostel => {
           hostel.rooms.forEach(room => {
             room.bookings.forEach(booking => {
-              if (booking.status === 'checked_out') {
+              // FIXED: Include both manually checked out AND auto-checked-out guests
+              const isManuallyCheckedOut = booking.status === 'checked_out';
+              
+              // Check if checkout date/time has passed (for auto-checkout)
+              const checkoutDateTime = new Date(`${booking.to}T${booking.checkoutTime || '12:00'}`);
+              const isAutoCheckedOut = checkoutDateTime <= now;
+              
+              // Include if either condition is true
+              if (isManuallyCheckedOut || isAutoCheckedOut) {
                 allBookings.push({
                   ...booking,
                   hostel: hostel.name,
@@ -493,7 +450,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
           : allBookings;
 
         setCheckedOutGuests(filteredBookings);
-        console.log(`✅ Found ${filteredBookings.length} checked-out guests`);
+        console.log(`✅ Found ${filteredBookings.length} checked-out guests (manual + auto)`);
       }
     } catch (err) {
       console.error('❌ Fetch error:', err);
@@ -609,47 +566,47 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
 
       return matchesSearch && matchesHostel && matchesDate && matchesRating;
     });
-  }, [checkedOutGuests, searchQuery, selectedHostel, dateFilter, ratingFilter]);
+  }, [checkedOutGuests, searchQuery, selectedHostel, dateFilter, ratingFilter, feedbacks]);
 
   // Pagination
+  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
   const paginatedGuests = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredGuests.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredGuests, currentPage]);
+  }, [filteredGuests, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
-
-  // Reset page on filter change
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedHostel, dateFilter, ratingFilter]);
 
   // Get unique hostels
   const hostels = useMemo(() => {
-    if (role === 'caretaker') return [userHostel];
     const unique = [...new Set(checkedOutGuests.map(g => g.hostel))];
-    return ['All', ...unique];
+    return role === 'caretaker' ? [userHostel] : ['All', ...unique];
   }, [checkedOutGuests, role, userHostel]);
 
   return (
-    <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-purple-50 to-blue-50'} overflow-y-auto`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-purple-50 to-pink-50'}`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-xl rounded-3xl mx-6 mt-6">
-        <div className="px-6 py-6">
+      <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={onBack}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
+                className="hover:bg-white/20 rounded-full p-2 transition"
               >
                 <ArrowLeft size={24} />
               </button>
               <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <Award size={32} />
-                  Guest Feedback & Reviews
+                  <Star size={32} />
+                  Guest Feedback System
                 </h1>
-                <p className="text-purple-100 mt-1">Rate checked-out guests and track performance</p>
+                <p className="text-purple-100 text-sm mt-1">
+                  Rate and review checked-out guests
+                </p>
               </div>
             </div>
           </div>
@@ -657,14 +614,18 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
       </div>
 
       {/* Filters */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b`}>
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-6 mb-6`}>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Filter size={20} />
+            Filters
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div>
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                 <Search size={16} className="inline mr-1" />
-                Search
+                Search Guest
               </label>
               <input
                 type="text"
@@ -673,7 +634,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full border-2 rounded-lg px-4 py-2 ${
                   theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-gray-300'
                 }`}
               />
