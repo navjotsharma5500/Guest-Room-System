@@ -10,16 +10,14 @@ export const getDefaulters = async (req, res) => {
     const userRole = req.user.role;
     const assignedHostel = req.user.assignedHostel || req.user.hostel;
 
-    // ✅ CRITICAL FIX: Fetch bookings based on tab
-    let query = {
-      paymentType: { $ne: "Free" },
-      status: { $in: ["checked_in", "checked_out"] }
-    };
-
+    // ✅ Base query: only real defaulters
     let query = {
       paymentType: { $ne: "Free" },
       status: { $in: ["checked_in", "checked_out"] },
-      paymentResponsibility: { $ne: "DEPARTMENT" } // ✅ Exclude department-pending
+
+      // 🔑 CRITICAL RULE:
+      // Department-paid guests must NEVER be defaulters
+      paymentResponsibility: { $ne: "DEPARTMENT" }
     };
 
     // Check for 'completed' status query param
