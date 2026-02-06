@@ -30,6 +30,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
   // ✅ CALCULATE BALANCE - Handle both Free and Paid bookings + Defaulters
   const totalAmount = booking.totalAmount || booking.totalDue || 0;
   const paidSoFar = booking.paidAmount || 0;
+   const [paymentResponsibility, setPaymentResponsibility] = useState("GUEST");
   const previousDiscount = booking.discount || booking.waveOff || 0;
   const balance = totalAmount - paidSoFar - previousDiscount;
   const paymentType = booking.paymentType || "Paid";
@@ -202,7 +203,16 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       return true;
     }
 
-    // For paid bookings
+    // ✅ NEW: For department-pending, skip payment validation
+    if (paymentResponsibility === "DEPARTMENT") {
+      if (!paymentRemarks.trim()) {
+        showToast("⚠️ Please add remarks explaining why this is a department payment", "warning");
+        return false;
+      }
+      return true; // Skip all other validations
+    }
+
+    // For paid bookings (GUEST responsibility)
     if (!paymentMode) {
       showToast("⚠️ Please select payment mode", "warning");
       return false;
@@ -218,7 +228,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       return false;
     }
 
-    // UPDATED: For FULL PAYMENT - must pay the full discounted amount
     if (billPaymentType === "Full Payment") {
       if (Math.abs(paidAmount - amountAfterDiscount) > 0.01) {
         showToast(`⚠️ Full payment requires exact balance amount after discount: ₹${amountAfterDiscount.toFixed(2)}`, "warning");
@@ -226,7 +235,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       }
     }
 
-    // UPDATED: For PARTIAL PAYMENT - can be any amount up to (and including) full discounted amount
     if (billPaymentType === "Partial Payment" && paidAmount > amountAfterDiscount) {
       showToast(`⚠️ Payment amount cannot exceed balance after discount: ₹${amountAfterDiscount.toFixed(2)}`, "warning");
       return false;
@@ -275,16 +283,15 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
           credentials: "include",
           body: JSON.stringify({
             paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
-            amountPaid: paidAmount,
+            amountPaid: paymentResponsibility === "DEPARTMENT" ? 0 : paidAmount, // ✅ Zero if department
             paymentMethod: paymentMode,
             transactionId: transactionId || "",
             transactionDate: transactionDate || null,
             paymentRemarks: paymentRemarks,
-
-            // ✅ STRICT: payment proof ONLY comes from attachments
             paymentAttachments: attachments,
             discount: discountAmount,
             discountPercent: discountPercent,
+            paymentResponsibility: paymentResponsibility, // ✅ NEW FIELD
           }),
         }
       );
@@ -517,6 +524,53 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ========================================
+                PAYMENT RESPONSIBILITY
+            ======================================== */}
+            {!isFreeBedding && (
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                  Who is Paying? <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPaymentResponsibility("GUEST")}
+                    className={`px-4 py-3 rounded-lg border-2 transition text-sm font-semibold ${
+                      paymentResponsibility === "GUEST"
+                        ? "bg-green-600 text-white border-green-600 shadow-md"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-green-400"
+                    }`}
+                  >
+                    💳 Guest Payment (Now)
+                  </button>
+                  <button
+                    onClick={() => setPaymentResponsibility("DEPARTMENT")}
+                    className={`px-4 py-3 rounded-lg border-2 transition text-sm font-semibold ${
+                      paymentResponsibility === "DEPARTMENT"
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
+                    }`}
+                  >
+                    🏢 Department (Pending)
+                  </button>
+                </div>
+                
+                {/* Info Banner for Department Payment */}
+                {paymentResponsibility === "DEPARTMENT" && (
+                  <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-800">
+                      <strong className="block mb-1">Department Payment Selected</strong>
+                      <p className="text-xs">
+                        This booking will be marked as <strong>Department Pending</strong> and will NOT appear in the defaulters list. 
+                        You can skip payment details now - they can be added later when the department pays.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -197,6 +197,28 @@ export const processPayment = async (req, res) => {
       });
     }
 
+    // Update payment responsibility if provided
+    if (req.body.paymentResponsibility) {
+      booking.paymentResponsibility = req.body.paymentResponsibility;
+    }
+
+    // If department payment, set special status
+    if (req.body.paymentResponsibility === "DEPARTMENT") {
+      booking.paymentStatus = "PENDING"; // or keep as UNPAID
+      booking.paidAmount = 0;
+      booking.balanceAmount = booking.totalAmount - (booking.discount || 0);
+    } else {
+      // Normal guest payment logic
+      booking.paidAmount = (booking.paidAmount || 0) + Number(amountPaid || 0);
+      booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - (booking.discount || 0));
+      
+      if (booking.balanceAmount === 0) {
+        booking.paymentStatus = "PAID";
+      } else if (booking.paidAmount > 0) {
+        booking.paymentStatus = "PARTIALLY_PAID";
+      }
+    }
+
     // CREATE BILL
     const billNumber = await generateBillNumber();
     

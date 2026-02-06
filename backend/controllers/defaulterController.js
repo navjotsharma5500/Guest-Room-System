@@ -16,6 +16,12 @@ export const getDefaulters = async (req, res) => {
       status: { $in: ["checked_in", "checked_out"] }
     };
 
+    let query = {
+      paymentType: { $ne: "Free" },
+      status: { $in: ["checked_in", "checked_out"] },
+      paymentResponsibility: { $ne: "DEPARTMENT" } // ✅ Exclude department-pending
+    };
+
     // Check for 'completed' status query param
     const status = req.query.status;
 

@@ -29,6 +29,7 @@ import feedbackRoutes from "./routes/feedbackRoutes.js";
 import hallBookingRoutes from './routes/hallBookingRoutes.js';
 import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
 import eventCalendarRoutes from './routes/eventCalendarRoutes.js';
+import departmentPaymentRoutes from "./routes/departmentPaymentRoutes.js";
 
 const app = express();
 
@@ -308,6 +309,7 @@ app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use('/api/event-calendar', eventCalendarRoutes);
+app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("âœ… Payment routes mounted at /api/payments");

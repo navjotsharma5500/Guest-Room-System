@@ -70,7 +70,13 @@ const BookingSchema = new mongoose.Schema(
       default: "UNPAID",
     },
 
-    // ðŸ” OLD PAYMENT FIELDS (BACKWARD COMPATIBILITY)
+    paymentResponsibility: {
+      type: String,
+      enum: ["GUEST", "DEPARTMENT", ""],
+      default: "GUEST",
+    },
+
+    // OLD PAYMENT FIELDS (BACKWARD COMPATIBILITY)
     amount: { type: Number, default: 0 },
     amountToBePaid: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },

@@ -235,6 +235,32 @@ export default function Sidebar({
           </span>
         </motion.button>
 
+        {/* ✅ DEPARTMENT PAYMENTS BUTTON */}
+        <motion.button
+          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+          onClick={() => handleNavigation(() => {
+            console.log("🏢 Department Payments clicked");
+            setActiveTab("DepartmentPayments");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          })}
+          className={`
+            relative group w-full text-left px-3 py-2 rounded-xl border
+            bg-white/30 backdrop-blur-xl flex items-center gap-3
+            ${
+              activeTab === "DepartmentPayments"
+                ? "border-red-500 shadow-md"
+                : "border-transparent hover:bg-white/80"
+            }
+          `}
+        >
+          <Building2 className="w-4 h-4 text-slate-600" />
+          <span className={`text-sm ${activeTab === "DepartmentPayments" ? "font-semibold" : ""}`}>
+            Dept. Payments
+          </span>
+        </motion.button>
+
         {/* ✅ FEEDBACK BUTTON */}
         <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}

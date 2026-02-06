@@ -16,6 +16,7 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
+import DepartmentPaymentsPending from "./pages/DepartmentPaymentsPending";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -959,7 +960,20 @@ export default function GuestRoomDashboard() {
             </>   
             )}
           </main>   
-        </div>  
+        </div> 
+
+        {activeTab === "DepartmentPayments" && (
+          <DepartmentPaymentsPending
+            onBack={() => {
+              setActiveTab("Home");
+              if (currentUser?.assignedHostel) {
+                setActiveHostel(currentUser.assignedHostel);
+              }
+            }}
+            currentUser={currentUser}
+            theme={theme}
+          />
+        )} 
 
         {activeTab === "Defaulters" && (
           <DefaulterManagement
