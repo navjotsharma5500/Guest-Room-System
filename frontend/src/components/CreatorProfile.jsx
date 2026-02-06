@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Github, Star, GitFork, Code } from "lucide-react";
+import { X, Mail, User, Github, Star, GitFork, Code, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export default function CreatorProfile({ open, onClose }) {
+export default function CreatorProfileRectangular({ open, onClose }) {
   const [githubStats, setGithubStats] = useState({
     repos: 0,
-    stars: 0,
     followers: 0,
+    following: 0,
     loading: true
   });
 
@@ -23,16 +23,16 @@ export default function CreatorProfile({ open, onClose }) {
       
       setGithubStats({
         repos: data.public_repos || 0,
-        stars: data.followers || 0, // You can calculate total stars by fetching all repos
         followers: data.followers || 0,
+        following: data.following || 0,
         loading: false
       });
     } catch (error) {
       console.error('Failed to fetch GitHub stats:', error);
       setGithubStats({
         repos: 0,
-        stars: 0,
         followers: 0,
+        following: 0,
         loading: false
       });
     }
@@ -55,40 +55,49 @@ export default function CreatorProfile({ open, onClose }) {
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden"
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden"
         >
-          {/* Background Gradient */}
-          <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 -z-10" />
-          
           {/* Close Button */}
-          <div className="flex justify-end relative z-10">
+          <div className="absolute top-4 right-4 z-20">
             <button 
               onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
+              className="bg-white/90 backdrop-blur-sm hover:bg-white text-slate-700 rounded-full p-2 shadow-lg transition-all"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="flex flex-col items-center text-center relative z-10 -mt-4">
-            {/* Profile Image - Circle */}
+          {/* Header with Gradient Background */}
+          <div className="relative h-48 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 overflow-hidden">
+            <div className="absolute inset-0 bg-black/10"></div>
+            
+            {/* Decorative Elements */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+          </div>
+
+          {/* Profile Content */}
+          <div className="px-8 pb-8">
+            {/* Profile Image - Rectangular with better positioning */}
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="relative mb-6"
+              className="relative -mt-20 mb-4 flex justify-center"
             >
-              <div className="w-32 h-32 rounded-full overflow-hidden shadow-xl border-4 border-white">
-                <img
-                  src="https://ik.imagekit.io/7khjnlfow/email-assets/IMG_4888.JPG"
-                  alt="Navjot Sharma"
-                  className="w-full h-full object-cover object-center"
-                  style={{ objectPosition: '50% 30%' }}
-                />
-              </div>
-              {/* Online Badge */}
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-lg">
-                <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse" />
+              <div className="relative">
+                <div className="w-36 h-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white">
+                  <img
+                    src="https://ik.imagekit.io/7khjnlfow/email-assets/IMG_4888.JPG"
+                    alt="Navjot Sharma"
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: '50% 20%' }}
+                  />
+                </div>
+                {/* Online Badge */}
+                <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg">
+                  <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse" />
+                </div>
               </div>
             </motion.div>
 
@@ -97,52 +106,78 @@ export default function CreatorProfile({ open, onClose }) {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
+              className="text-center mb-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-1">
                 Mr. Navjot Sharma
               </h3>
               <p className="text-blue-600 font-semibold mb-1">Associate IT</p>
-              <p className="text-slate-500 text-sm mb-4">All Hostels</p>
+              <p className="text-slate-500 text-sm">All Hostels</p>
             </motion.div>
 
-            {/* GitHub Stats */}
+            {/* GitHub Section */}
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.35 }}
-              className="w-full mb-4"
+              className="mb-6"
             >
+              {/* GitHub Profile Link */}
               <a
                 href="https://github.com/navjotsharma5500"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2 transition-colors group mb-3"
+                className="flex items-center justify-between bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-3 transition-all group mb-4 shadow-lg hover:shadow-xl"
               >
-                <Github className="w-5 h-5" />
-                <span className="font-semibold">@navjotsharma5500</span>
+                <div className="flex items-center gap-3">
+                  <Github className="w-5 h-5" />
+                  <div className="text-left">
+                    <p className="text-xs text-slate-400">GitHub Profile</p>
+                    <p className="font-semibold">@navjotsharma5500</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
 
+              {/* GitHub Stats */}
               {githubStats.loading ? (
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-center py-6 bg-slate-50 rounded-xl">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3">
-                    <Code className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-purple-900">{githubStats.repos}</p>
-                    <p className="text-xs text-purple-600 font-medium">Repositories</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-3">
-                    <Star className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-yellow-900">{githubStats.followers}</p>
-                    <p className="text-xs text-yellow-600 font-medium">Followers</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3">
-                    <GitFork className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-blue-900">{githubStats.repos}</p>
-                    <p className="text-xs text-blue-600 font-medium">Projects</p>
-                  </div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center"
+                  >
+                    <Code className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-purple-900 mb-1">{githubStats.repos}</p>
+                    <p className="text-xs text-purple-600 font-medium">Repos</p>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.45 }}
+                    className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center"
+                  >
+                    <Star className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-blue-900 mb-1">{githubStats.followers}</p>
+                    <p className="text-xs text-blue-600 font-medium">Followers</p>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center"
+                  >
+                    <GitFork className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-900 mb-1">{githubStats.following}</p>
+                    <p className="text-xs text-green-600 font-medium">Following</p>
+                  </motion.div>
                 </div>
               )}
             </motion.div>
@@ -151,8 +186,8 @@ export default function CreatorProfile({ open, onClose }) {
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="w-full mt-2 space-y-3"
+              transition={{ delay: 0.55 }}
+              className="space-y-3 mb-6"
             >
               {/* Email */}
               <a
@@ -184,8 +219,8 @@ export default function CreatorProfile({ open, onClose }) {
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-6 pt-6 border-t border-slate-200 w-full"
+              transition={{ delay: 0.6 }}
+              className="pt-4 border-t border-slate-200 text-center"
             >
               <p className="text-xs text-slate-400">
                 Thapar Institute of Engineering & Technology
