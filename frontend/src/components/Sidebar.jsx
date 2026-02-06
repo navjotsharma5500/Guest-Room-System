@@ -188,7 +188,7 @@ export default function Sidebar({
                 setActiveHostel(hostelName);
                 setActiveRoomRef(null);
                 setActiveTab((prev) =>
-                  ["Defaulters", "Feedback"].includes(prev) ? prev : "Home"
+                  ["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"
                 );
               })}
               className={`

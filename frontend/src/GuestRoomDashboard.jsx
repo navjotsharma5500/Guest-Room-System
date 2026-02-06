@@ -803,7 +803,7 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"));
                     setMobileMenuOpen(false); // Close menu after selection
                   }}
                   setActiveRoomRef={setActiveRoomRef}
@@ -836,7 +836,7 @@ export default function GuestRoomDashboard() {
                     setActiveHostel(hostel);
 
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
