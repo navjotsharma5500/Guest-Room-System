@@ -58,6 +58,13 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   };
 
   const openPaymentModal = (booking) => {
+    console.log("🔍 Opening payment modal for booking:", {
+      _id: booking._id,
+      totalAmount: booking.totalAmount,
+      paidAmount: booking.paidAmount,
+      balanceAmount: booking.balanceAmount,
+      discount: booking.discount
+    });
     setPaymentModal(booking);
   };
 
@@ -269,9 +276,11 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
           booking={{
             ...paymentModal,
             _id: paymentModal._id,
-            totalAmount: paymentModal.balanceAmount,
-            paidAmount: 0,
+            // ✅ CRITICAL FIX: Use actual booking amounts from the database
+            totalAmount: paymentModal.totalAmount || paymentModal.balanceAmount,
+            paidAmount: paymentModal.paidAmount || 0,
             balanceAmount: paymentModal.balanceAmount,
+            discount: paymentModal.discount || 0,
           }}
           onClose={() => setPaymentModal(null)}
           onSuccess={() => {

@@ -30,8 +30,21 @@ router.get(
 
       const pendingPayments = await Booking.find(query)
         .populate("createdBy", "name email")
+        .select('+totalAmount +paidAmount +balanceAmount +discount') // ✅ Ensure all payment fields are returned
         .sort({ checkedOutAt: -1 })
         .lean();
+
+      // ✅ DEBUG: Log first booking to verify data structure
+      if (pendingPayments.length > 0) {
+        console.log("📋 Sample department payment data:", {
+          _id: pendingPayments[0]._id,
+          guest: pendingPayments[0].guest,
+          totalAmount: pendingPayments[0].totalAmount,
+          paidAmount: pendingPayments[0].paidAmount,
+          balanceAmount: pendingPayments[0].balanceAmount,
+          discount: pendingPayments[0].discount
+        });
+      }
 
       const stats = {
         total: pendingPayments.length,
