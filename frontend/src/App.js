@@ -17,6 +17,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // ============================================================================
 // PAGE IMPORTS
@@ -68,6 +69,7 @@ export default function App() {
   // ==========================================================================
   return (
     <Router>
+      <SpeedInsights />
       <Routes>
 
         {/* ====================================================================
