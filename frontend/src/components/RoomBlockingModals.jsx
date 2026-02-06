@@ -103,13 +103,13 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
 
   return (
     <motion.div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className={`rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
+        className={`rounded-2xl p-6 w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
           theme === "dark" ? "bg-gray-800 text-gray-100" : "bg-white text-gray-900"
         }`}
         initial={{ scale: 0.9, y: 20 }}
@@ -118,7 +118,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-red-600 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-red-600 flex items-center gap-2">
             <Lock className="w-6 h-6" />
             Block Room
           </h2>
@@ -131,8 +131,8 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
         </div>
 
         {/* Room Info */}
-        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-xl">
-          <p className="text-xs sm:text-sm font-semibold text-red-700">
+        <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+          <p className="text-sm font-semibold text-red-700">
             🏢 {hostelName} - Room {roomNo}
           </p>
           <p className="text-xs text-red-600 mt-1">
@@ -144,7 +144,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
         <div className="space-y-4">
           {/* Blocked Till Date & Time */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold mb-2">
+            <label className="block text-sm font-semibold mb-2">
               Blocked Till (Date & Time) <span className="text-red-600">*</span>
             </label>
             <input
@@ -152,7 +152,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
               value={blockedTill}
               onChange={(e) => setBlockedTill(e.target.value)}
               min={new Date().toISOString().slice(0, 16)}
-              className={`w-full border-2 p-2 sm:p-3 text-sm sm:text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
+              className={`w-full border-2 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
                 theme === "dark" 
                   ? "bg-gray-700 border-gray-600 text-gray-100" 
                   : "bg-white border-red-300"
@@ -170,7 +170,7 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="Enter reason for blocking (e.g., Maintenance, Renovation, etc.)"
-              className={`w-full border-2 p-2 sm:p-3 text-sm sm:text-base rounded-xl h-20 sm:h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-500 ${
+              className={`w-full border-2 p-3 rounded-xl h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-500 ${
                 theme === "dark" 
                   ? "bg-gray-700 border-gray-600 text-gray-100" 
                   : "bg-white border-red-300"
@@ -295,11 +295,11 @@ export function BlockRoomModal({ hostelName, roomNo, onClose, onSuccess, theme }
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
+        <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
             disabled={submitting}
-            className="px-6 py-2.5 w-full sm:w-auto text-sm sm:text-base bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold disabled:opacity-50"
+            className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold disabled:opacity-50"
           >
             Cancel
           </button>
@@ -423,7 +423,7 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className={`rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
+        className={`rounded-2xl p-6 w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
           theme === "dark" ? "bg-gray-800 text-gray-100" : "bg-white text-gray-900"
         }`}
         initial={{ scale: 0.9, y: 20 }}
@@ -505,7 +505,7 @@ export function UnblockRoomModal({ hostelName, roomNo, blockInfo, onClose, onSuc
           <button
             onClick={onClose}
             disabled={submitting}
-            className="px-6 py-2.5 w-full sm:w-auto text-sm sm:text-base bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold disabled:opacity-50"
+            className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold disabled:opacity-50"
           >
             Cancel
           </button>
@@ -544,7 +544,7 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className={`rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
+        className={`rounded-2xl p-6 w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl ${
           theme === "dark" ? "bg-gray-800 text-gray-100" : "bg-white text-gray-900"
         }`}
         initial={{ scale: 0.9, y: 20 }}
@@ -553,7 +553,7 @@ export function BlockedRoomInfoModal({ hostelName, roomNo, blockInfo, onClose, o
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-red-600 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-red-600 flex items-center gap-2">
             <Lock className="w-6 h-6" />
             Room Blocked
           </h2>

@@ -2,7 +2,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
 
-// ⚙️ CONFIGURATION - Change your profile link here
+// âš™ï¸ CONFIGURATION - Change your profile link here
 const CREATOR_CONFIG = {
   name: "Navjot Sharma",
   profileUrl: "https://github.com/navjotsharma5500",

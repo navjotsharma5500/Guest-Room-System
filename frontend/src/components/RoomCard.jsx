@@ -368,28 +368,28 @@ const RoomCard = memo(function RoomCard({
     return (
       <>
         <div
-          className={`relative rounded-xl p-3 sm:p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
+          className={`relative rounded-xl p-4 text-center cursor-pointer transition-all shadow-md border-2 hover:shadow-lg ${getCardStyle()}`}
           onClick={handleCardClick}
           aria-label={`Room ${room.roomNo} at ${currentHostel}`}
         >
           {/* ✅ REMOVED BOOK BUTTON - Click on card to book available rooms */}
 
           <div className="flex items-center justify-center gap-2">
-            <p className="font-semibold text-sm sm:text-base">Room {room.roomNo}</p>
-            <span className="text-[10px] sm:text-xs text-gray-500">
+            <p className="font-semibold text-base">Room {room.roomNo}</p>
+            <span className="text-xs text-gray-500">
               ({room.roomType || "Guest Room"})
             </span>
           </div>
 
           {currentActive ? (
             <div className="mt-2">
-              <p className="text-[10px] sm:text-xs text-red-700 font-medium flex items-center justify-center gap-1">
+              <p className="text-xs text-red-700 font-medium flex items-center justify-center gap-1">
                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 Booking Active
               </p>
 
               {firstBooking && (
-                <div className="text-[10px] sm:text-xs text-gray-600 mt-1 space-y-0.5">
+                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
                   <p className="font-medium truncate flex items-center justify-center gap-1">
                     <User2 className="w-3 h-3" />
                     {firstBooking.guest || "Guest"}
@@ -408,7 +408,7 @@ const RoomCard = memo(function RoomCard({
             <div className="mt-2">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <CheckCircle2 className="w-3 h-3 text-green-700" />
-                <p className="text-[10px] sm:text-xs text-green-700 font-medium">
+                <p className="text-xs text-green-700 font-medium">
                   {isBooked ? (
                     // ✅ Show correct status based on actual check-in
                     activeBookings.length > 1 
@@ -420,7 +420,7 @@ const RoomCard = memo(function RoomCard({
               
               {/* Show multiple bookings indicator */}
               {activeBookings.length > 1 && (
-                <p className="text-[10px] sm:text-xs text-gray-500 italic">
+                <p className="text-xs text-gray-500 italic">
                   Click to view all bookings
                 </p>
               )}
@@ -602,7 +602,7 @@ const RoomCard = memo(function RoomCard({
             : { boxShadow: "0 0 10px rgba(16,185,129,0.25)" }
         }
         onClick={isRoomBlocked ? () => onBlockedClick && onBlockedClick(hostelName, room.roomNo, blockInfo) : handleCardClick}
-        className={`relative border rounded-lg p-3 sm:p-4 mb-3 transition-all ${
+        className={`relative border rounded-lg p-4 mb-3 transition-all ${
           isRoomBlocked ? "cursor-not-allowed" : "cursor-pointer"
         } ${getCardStyle()}`}
       >
@@ -621,7 +621,7 @@ const RoomCard = memo(function RoomCard({
 
         <div className="flex justify-between items-center">
           <h3
-            className={`text-base sm:text-lg font-semibold flex items-center gap-1 ${
+            className={`text-lg font-semibold flex items-center gap-1 ${
               theme === "dark" ? "text-red-400" : "text-red-700"
             }`}
           >
@@ -631,14 +631,14 @@ const RoomCard = memo(function RoomCard({
           {!isRoomBlocked && (
             <button
               onClick={handleDirectBooking}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg"
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
             >
               <CalendarPlus className="w-4 h-4" /> Direct Booking
             </button>
           )}
         </div>
 
-        <p className="text-xs sm:text-sm mt-1">
+        <p className="text-sm mt-1">
           Status:{" "}
           {hasActive ? (
             <span className="font-semibold text-red-600">Active (Checked-in)</span>
@@ -652,7 +652,7 @@ const RoomCard = memo(function RoomCard({
         </p>
 
         {isBooked && !hasActive && !hasPastOnly && (
-          <div className={`text-[10px] sm:text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+          <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
             {activeBookings.length === 1 ? (
               <>
                 <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>

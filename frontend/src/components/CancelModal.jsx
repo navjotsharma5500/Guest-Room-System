@@ -20,7 +20,7 @@ export default function CancelModal({
   };
   const [localRemarks, setLocalRemarks] = useState(remarksText || "");
 
-  // âœ… Sync external remarksText â†’ local state
+  // Ã¢Å“â€¦ Sync external remarksText Ã¢â€ â€™ local state
   useEffect(() => {
     setLocalRemarks(remarksText || "");
   }, [remarksText]);
@@ -34,17 +34,17 @@ export default function CancelModal({
 
   const handleDone = async () => {
     if (!safeTrim(localRemarks)) {
-      showToast("âš ï¸ Please enter cancellation remarks.", "warning");
+      showToast("Ã¢Å¡ Ã¯Â¸Â Please enter cancellation remarks.", "warning");
       return;
     }
 
-    // âœ… Run parent cancel logic (which should handle MongoDB call)
+    // Ã¢Å“â€¦ Run parent cancel logic (which should handle MongoDB call)
     // The parent handler will update MongoDB and then update local state
     if (typeof onDone === "function") {
       await onDone(localRemarks);
     }
 
-    // âœ… Reset remarks after successful cancellation
+    // Ã¢Å“â€¦ Reset remarks after successful cancellation
     setLocalRemarks("");
     setRemarksText("");
   };
@@ -64,7 +64,7 @@ export default function CancelModal({
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md mx-4 shadow-xl"
+          className="bg-white rounded-2xl p-6 w-96 shadow-xl"
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
@@ -72,7 +72,7 @@ export default function CancelModal({
         >
           {/* ===== Header ===== */}
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base sm:text-lg font-semibold text-red-700 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-red-700 flex items-center gap-2">
               <XCircle size={20} /> Cancel Booking
             </h3>
             <button
@@ -80,13 +80,13 @@ export default function CancelModal({
               className="text-gray-500 hover:text-red-700"
               title="Close"
             >
-              âœ–
+              Ã¢Å“â€“
             </button>
           </div>
 
-          <p className="text-xs sm:text-sm text-gray-600 mb-3">
-            Room: <strong>{modal.room?.roomNo || "â€”"}</strong> â€”{" "}
-            {modal.hostel || "â€”"}
+          <p className="text-sm text-gray-600 mb-3">
+            Room: <strong>{modal.room?.roomNo || "Ã¢â‚¬â€"}</strong> Ã¢â‚¬â€{" "}
+            {modal.hostel || "Ã¢â‚¬â€"}
           </p>
 
           {/* ===== Remarks Input ===== */}

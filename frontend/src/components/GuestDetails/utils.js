@@ -19,7 +19,7 @@ export const formatTimeWithAMPM = (time) => {
 };
 
 export const formatDate = (dateString) => {
-  if (!dateString) return "—";
+  if (!dateString) return "â€”";
   try {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, "0");
@@ -34,7 +34,7 @@ export const formatDate = (dateString) => {
 };
 
 export const formatDateTime = (date, time) => {
-  if (!date) return "—";
+  if (!date) return "â€”";
   const formattedDate = formatDate(date);
   const formattedTime = time ? formatTimeWithAMPM(time) : "";
   return formattedTime ? `${formattedDate} ${formattedTime}` : formattedDate;

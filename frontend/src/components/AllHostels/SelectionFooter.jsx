@@ -12,7 +12,7 @@ export default function SelectionFooter({ selectedCount, onDone }) {
       whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(220, 38, 38, 0.4)" }}
       whileTap={{ scale: 0.95 }}
       onClick={onDone}
-      className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-gradient-to-r from-red-600 to-red-700 text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full shadow-2xl flex items-center gap-2 sm:gap-3 z-40 font-semibold text-base sm:text-lg"
+      className="fixed bottom-6 right-6 bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 z-40 font-semibold text-lg"
     >
       <CheckSquare size={24} />
       <span>Done</span>

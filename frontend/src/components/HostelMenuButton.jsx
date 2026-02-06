@@ -10,7 +10,7 @@ export default function HostelMenuButton({
   onUnblockRoom,
   theme 
 }) {
-  console.log("🔍 HostelMenuButton DEBUG:", { 
+  console.log("ðŸ” HostelMenuButton DEBUG:", { 
     hostelName, 
     roomsReceived: rooms,
     roomsCount: rooms?.length || 0,
@@ -51,12 +51,12 @@ export default function HostelMenuButton({
     setIsOpen(false);
   };
 
-  // ✅ Filter for Guest Rooms only
+  // âœ… Filter for Guest Rooms only
   const guestRooms = rooms.filter(room => 
     room.roomNo && room.roomNo.toLowerCase().includes("guest room")
   );
 
-  console.log("✅ Guest Rooms After Filter:", {
+  console.log("âœ… Guest Rooms After Filter:", {
     hostelName,
     totalRooms: rooms.length,
     guestRoomsFound: guestRooms.length,
@@ -67,7 +67,7 @@ export default function HostelMenuButton({
     }))
   });
 
-  // ✅ FIX: Don't return null if no rooms. Show button but with empty state.
+  // âœ… FIX: Don't return null if no rooms. Show button but with empty state.
   // This ensures the 3-dots menu always appears for authorized users.
   
   return (
@@ -100,7 +100,7 @@ export default function HostelMenuButton({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className={`absolute right-0 top-full mt-1 w-56 sm:w-64 rounded-lg shadow-xl border z-50 ${
+            className={`absolute right-0 top-full mt-1 w-64 rounded-lg shadow-xl border z-50 ${
               theme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"

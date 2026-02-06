@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 export default function SearchGuestModal({ hostelData, onSelectGuest, onClose }) {
   
 
-  // ✅ Hooks must always be declared first
+  // âœ… Hooks must always be declared first
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
@@ -27,12 +27,12 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     ? [currentUser.assignedHostel]
     : Object.keys(hostelData);
 
-  // 👇 Auto-focus input when modal opens
+  // ðŸ‘‡ Auto-focus input when modal opens
   useEffect(() => {
     if (inputRef.current) inputRef.current.focus();
   }, []);
 
-  // 🔍 Search handler
+  // ðŸ” Search handler
   const handleSearch = () => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -69,7 +69,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     setResults(matches);
   };
 
-  // 🧠 Determine booking status
+  // ðŸ§  Determine booking status
   const getBookingStatus = (from, to) => {
     const now = new Date();
     const start = new Date(from);
@@ -80,7 +80,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     return "upcoming";
   };
 
-  // 🎨 Background color by status
+  // ðŸŽ¨ Background color by status
   const getBgClass = (status) => {
     switch (status) {
       case "past":
@@ -94,11 +94,11 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     }
   };
 
-  // ✅ Toast-triggered selection handler
+  // âœ… Toast-triggered selection handler
   const handleSelectGuest = (guestData) => {
     onSelectGuest(guestData);
     showToast(
-      `✅ Guest "${guestData.booking.guest}" selected successfully!`,
+      `âœ… Guest "${guestData.booking.guest}" selected successfully!`,
       "success"
     );
     onClose();
@@ -114,13 +114,13 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[600px] mx-4 shadow-xl"
+        className="bg-white rounded-2xl p-6 w-[600px] max-w-[95%] shadow-xl"
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold text-red-700 flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-red-700 flex items-center gap-2">
             <Search className="w-5 h-5 text-red-700" /> Search Guest
           </h2>
           <button
@@ -139,26 +139,26 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
             placeholder="Search by name, contact, or email..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 border p-2 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-red-400 outline-none"
+            className="flex-1 border p-2 rounded-lg focus:ring-2 focus:ring-red-400 outline-none"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
             onClick={handleSearch}
-            className="flex items-center gap-1 sm:gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg hover:bg-red-700 transition"
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
           >
             <Search className="w-4 h-4" /> Search
           </button>
         </div>
 
         {/* Results */}
-        <div className="max-h-60 sm:max-h-72 overflow-y-auto space-y-2">
+        <div className="max-h-72 overflow-y-auto space-y-2">
           {results.length === 0 ? (
             <p className="text-gray-500 italic text-sm text-center">
               No results found. Try searching by name, contact, or email.
             </p>
           ) : (
             <>
-              {/* 🧾 Result Count */}
+              {/* ðŸ§¾ Result Count */}
               <p className="text-sm text-gray-600 mb-2 text-right">
                 Found <strong>{results.length}</strong>{" "}
                 {results.length === 1 ? "result" : "results"}
@@ -178,7 +178,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
                   >
                     <div className="flex justify-between items-center">
                       <p className="text-red-700 font-medium">
-                        {r.booking.guest} — {r.booking.email || "No Email"}
+                        {r.booking.guest} â€” {r.booking.email || "No Email"}
                       </p>
                       <span
                         className={`text-xs font-semibold uppercase ${
@@ -194,11 +194,11 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
                     </div>
 
                     <p className="text-sm text-gray-600">
-                      📞 {r.booking.contact || "No Contact"}
+                      ðŸ“ž {r.booking.contact || "No Contact"}
                     </p>
                     <p className="text-xs text-gray-500 flex items-center gap-1">
                       <CalendarDays className="w-4 h-4 text-gray-400" />
-                      {r.hostel} / Room {r.roomNo} — {r.booking.from} →{" "}
+                      {r.hostel} / Room {r.roomNo} â€” {r.booking.from} â†’{" "}
                       {r.booking.to}
                     </p>
                   </motion.div>

@@ -10,9 +10,9 @@ export default function BookingListModal({
   onSelectBooking,
   onAddNewBooking,
 }) {
-  // âœ… CRITICAL FIX: Safe navigation
+  // Ã¢Å“â€¦ CRITICAL FIX: Safe navigation
   if (!modal || !modal.bookings) {
-    console.error("âŒ BookingListModal: Invalid modal data", modal);
+    console.error("Ã¢ÂÅ’ BookingListModal: Invalid modal data", modal);
     return null;
   }
 
@@ -34,7 +34,7 @@ export default function BookingListModal({
 
   // Format date and time like RoomCard
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "â€”";
+    if (!dateString) return "Ã¢â‚¬â€";
 
     try {
       let dateObj;
@@ -73,11 +73,11 @@ export default function BookingListModal({
   };
 
   const handleSelectBooking = (booking) => {
-    console.log("âœ… Booking selected:", booking);
+    console.log("Ã¢Å“â€¦ Booking selected:", booking);
     if (onSelectBooking && typeof onSelectBooking === 'function') {
       onSelectBooking(booking);
     } else {
-      console.error("âŒ onSelectBooking is not a function");
+      console.error("Ã¢ÂÅ’ onSelectBooking is not a function");
     }
   };
 
@@ -110,16 +110,16 @@ export default function BookingListModal({
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[95%] sm:max-w-md overflow-hidden mx-4"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
       >
         {/* Header - Red gradient like RoomCard */}
-        <div className="bg-gradient-to-r from-red-500 to-red-600 p-3 sm:p-4 text-white">
+        <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <h3 className="text-lg font-bold flex items-center gap-2">
                 <CalendarDays className="w-5 h-5" />
                 Room {modal.room?.roomNo || "N/A"}
               </h3>
@@ -137,7 +137,7 @@ export default function BookingListModal({
         </div>
 
         {/* Booking Cards - Color coded like RoomCard */}
-        <div className="p-3 sm:p-4 space-y-2.5 max-h-[60vh] sm:max-h-96 overflow-y-auto">
+        <div className="p-4 space-y-2.5 max-h-96 overflow-y-auto">
           {activeBookings.map((b, idx) => {
             const bookingId = b._id || b.id || idx;
             const isActive = isActiveBooking(b);
@@ -149,7 +149,7 @@ export default function BookingListModal({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => handleSelectBooking(b)}
-                className={`relative rounded-xl p-2.5 sm:p-3 cursor-pointer transition-all border-2 ${
+                className={`relative rounded-xl p-3 cursor-pointer transition-all border-2 ${
                   isActive
                     ? "bg-red-50 border-red-300 hover:bg-red-100"
                     : "bg-green-50 border-green-300 hover:bg-green-100"
@@ -157,7 +157,7 @@ export default function BookingListModal({
               >
                 {/* Status Badge */}
                 <div
-                  className={`absolute top-1.5 sm:top-2 right-1.5 sm:right-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1 ${
+                  className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
                     isActive ? "bg-red-500 text-white" : "bg-green-500 text-white"
                   }`}
                 >
@@ -175,15 +175,15 @@ export default function BookingListModal({
                 </div>
 
                 {/* Booking Details */}
-                <div className="pr-16 sm:pr-20">
-                  <p className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 mb-2 ${
+                <div className="pr-20">
+                  <p className={`text-sm font-bold flex items-center gap-1.5 mb-2 ${
                     isActive ? "text-red-700" : "text-green-700"
                   }`}>
                     <User2 className="w-4 h-4" />
                     {getGuestName(b)}
                   </p>
 
-                  <div className="space-y-1 text-[10px] sm:text-xs text-gray-600">
+                  <div className="space-y-1 text-xs text-gray-600">
                     <div className="flex items-start gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
                       <div>
@@ -206,10 +206,10 @@ export default function BookingListModal({
         </div>
 
         {/* Footer */}
-        <div className="p-2 sm:p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition-colors text-xs sm:text-sm"
+            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition-colors text-sm"
           >
             Close
           </button>

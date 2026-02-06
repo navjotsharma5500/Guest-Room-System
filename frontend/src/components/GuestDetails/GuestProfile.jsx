@@ -43,7 +43,7 @@ export default function GuestProfile({
   };
 
   const handleProfileUploadSuccess = async (response) => {
-    console.log("✅ Profile picture uploaded to ImageKit:", response);
+    console.log("âœ… Profile picture uploaded to ImageKit:", response);
 
     const uploadedUrl = response.url;
     setUploadedProfileUrl(uploadedUrl);
@@ -69,12 +69,12 @@ export default function GuestProfile({
         });
         
         if (apiResponse.ok) {
-          showToast("✅ Profile picture uploaded successfully!", "success");
+          showToast("âœ… Profile picture uploaded successfully!", "success");
         } else {
           throw new Error("Failed to update profile picture in database");
         }
       } catch (err) {
-        console.error("❌ Failed to update profile picture:", err);
+        console.error("âŒ Failed to update profile picture:", err);
         showToast("Failed to update profile picture in database", "error");
       }
     }
@@ -83,16 +83,16 @@ export default function GuestProfile({
   };
   
   const handleProfileUploadError = (err) => {
-    console.error("❌ ImageKit upload error:", err);
+    console.error("âŒ ImageKit upload error:", err);
     showToast("Failed to upload profile picture", "error");
     setIsUploadingProfile(false);
   };
 
   return (
-    <div className={`p-4 sm:p-6 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
-      <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5">
+    <div className={`p-6 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+      <div className="flex items-start gap-5">
         {/* Profile Picture */}
-        <div className="relative group mx-auto sm:mx-0">
+        <div className="relative group">
           {profilePicture ? (
             <img
               src={profilePicture}
@@ -147,33 +147,33 @@ export default function GuestProfile({
         </div>
 
         {/* Guest Info */}
-        <div className="flex-1 w-full">
+        <div className="flex-1">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className={`text-xl sm:text-2xl font-bold text-center sm:text-left ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <h3 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 {b.guest || "Guest Name"}
               </h3>
 
               {/* Contact Details */}
-              <div className="mt-3 sm:mt-4 space-y-2">
+              <div className="mt-4 space-y-2">
                 {b.contact && (
                   <a
                     href={`https://wa.me/${b.contact.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base hover:bg-green-50 cursor-pointer px-2 sm:px-3 py-2 rounded transition group"
+                    className="flex items-center gap-3 text-base hover:bg-green-50 cursor-pointer px-3 py-2 rounded transition group"
                   >
                     <Phone className="w-5 h-5 text-gray-400 group-hover:text-green-600 transition" />
-                    <span className={`text-sm sm:text-base ${theme === "dark" ? "text-gray-300" : "text-gray-600"} group-hover:text-green-700 transition`}>
+                    <span className={`${theme === "dark" ? "text-gray-300" : "text-gray-600"} group-hover:text-green-700 transition`}>
                       {b.contact}
                     </span>
-                    <span className="ml-auto text-[10px] sm:text-xs bg-green-500 text-white px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition hidden sm:inline">
+                    <span className="ml-auto text-xs bg-green-500 text-white px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition">
                       WhatsApp
                     </span>
                   </a>
                 )}
                 {b.email && (
-                  <div className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base hover:bg-red-50 cursor-pointer px-2 sm:px-3 py-2 rounded">
+                  <div className="flex items-center gap-3 text-base hover:bg-red-50 cursor-pointer px-3 py-2 rounded">
                     <Mail className="w-5 h-5 text-gray-400" />
                     <a
                       href={`mailto:${b.email}`}

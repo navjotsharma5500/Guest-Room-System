@@ -20,7 +20,7 @@ export default function BookingDetailsModal({
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className={`rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-[95%] sm:max-w-[780px] mx-4 max-h-[85vh] overflow-y-auto ${
+        className={`rounded-2xl shadow-2xl p-6 w-[780px] max-h-[85vh] overflow-y-auto ${
           theme === "dark" ? "bg-gray-800" : "bg-white"
         }`}
         initial={{ scale: 0.9, y: 20 }}
@@ -29,7 +29,7 @@ export default function BookingDetailsModal({
       >
         <div className="flex justify-between items-center mb-4">
           <h2
-            className={`text-xl sm:text-2xl font-bold ${
+            className={`text-2xl font-bold ${
               theme === "dark" ? "text-red-400" : "text-red-700"
             }`}
           >
@@ -43,7 +43,7 @@ export default function BookingDetailsModal({
                 whileTap={{ scale: 0.95 }}
                 title="Extend Booking"
                 onClick={() => onExtend(modal.booking)}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:shadow-lg text-xs sm:text-sm font-medium"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:shadow-lg text-sm font-medium"
               >
                 Extend
               </motion.button>
@@ -77,12 +77,12 @@ export default function BookingDetailsModal({
           onAddNewBooking={onAddNewBooking}
         />
 
-        <div className="flex flex-col sm:flex-row justify-end mt-6 gap-3">
+        <div className="flex justify-end mt-6 gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClose}
-            className={`px-4 py-2 w-full sm:w-auto rounded-lg font-medium text-sm sm:text-base ${
+            className={`px-4 py-2 rounded-lg font-medium ${
               theme === "dark"
                 ? "bg-gray-700 hover:bg-gray-600"
                 : "bg-gray-200 hover:bg-gray-300"
@@ -93,7 +93,7 @@ export default function BookingDetailsModal({
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.3)" }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center gap-2 px-5 py-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium shadow-lg text-sm sm:text-base"
+            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium shadow-lg"
             onClick={onAddNewBooking}
           >
             <Plus className="w-4 h-4" />

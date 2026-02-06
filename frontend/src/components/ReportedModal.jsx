@@ -485,14 +485,14 @@ export default function ReportedModal({
             exit={{ opacity: 0 }}
           >
           <motion.div
-            className="bg-white rounded-2xl w-full max-w-[95%] sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
             {/* Header */}
-            <div className={`sticky top-0 p-4 sm:p-6 rounded-t-2xl z-10 shadow-lg ${
+            <div className={`sticky top-0 p-6 rounded-t-2xl z-10 shadow-lg ${
               isAlreadyReported 
                 ? "bg-gradient-to-r from-green-600 to-green-700" 
                 : "bg-gradient-to-r from-blue-600 to-blue-700"
@@ -507,10 +507,10 @@ export default function ReportedModal({
                     {isAlreadyReported ? <CheckCircle className="w-6 h-6" /> : <LogIn className="w-6 h-6" />}
                   </motion.div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">
+                    <h2 className="text-2xl font-bold">
                       {isAlreadyReported ? "Guest Check-in Status" : "Report Guest Arrival"}
                     </h2>
-                    <p className="text-blue-100 text-xs sm:text-sm">
+                    <p className="text-blue-100 text-sm">
                       {isAlreadyReported 
                         ? "Guest has been checked in successfully" 
                         : "Physical verification & check-in confirmation"}
@@ -528,10 +528,10 @@ export default function ReportedModal({
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="p-6 space-y-6">
               {/* Guest Info Card */}
               <motion.div
-                className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-5 rounded-xl border-2 border-blue-200 shadow-sm"
+                className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 shadow-sm"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -540,13 +540,13 @@ export default function ReportedModal({
                   <div className="bg-blue-500 p-2 rounded-lg">
                     <User className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-bold text-blue-900">Guest Information</h3>
+                  <h3 className="text-lg font-bold text-blue-900">Guest Information</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-blue-600 font-medium mb-1 text-xs sm:text-sm">Guest Name</p>
-                    <p className="text-gray-800 font-bold text-sm sm:text-base">{booking.guest || "—"}</p>
+                    <p className="text-blue-600 font-medium mb-1">Guest Name</p>
+                    <p className="text-gray-800 font-bold text-base">{booking.guest || "—"}</p>
                   </div>
                   <div>
                     <p className="text-blue-600 font-medium mb-1">Contact</p>
@@ -794,7 +794,7 @@ export default function ReportedModal({
                   transition={{ delay: 0.4 }}
                 >
                   <div>
-                    <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                       <Calendar className="w-4 h-4 text-blue-600" />
                       Actual Check-in Date
                     </label>
@@ -802,13 +802,13 @@ export default function ReportedModal({
                       type="date"
                       value={actualCheckInDate}
                       onChange={(e) => setActualCheckInDate(e.target.value)}
-                      className="w-full border-2 border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       whileFocus={{ scale: 1.01 }}
                     />
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                       <Clock className="w-4 h-4 text-blue-600" />
                       Actual Check-in Time
                     </label>
@@ -816,7 +816,7 @@ export default function ReportedModal({
                       type="time"
                       value={actualCheckInTime}
                       onChange={(e) => setActualCheckInTime(e.target.value)}
-                      className="w-full border-2 border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       whileFocus={{ scale: 1.01 }}
                     />
                   </div>
@@ -829,14 +829,14 @@ export default function ReportedModal({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
                   Remarks {isAlreadyReported && "(Optional)"}
                 </label>
                 <motion.textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder={isAlreadyReported ? "Add checkout notes..." : "Add any observations or notes about the guest arrival..."}
-                  className="w-full border-2 border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 h-20 sm:h-24 text-sm sm:text-base resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 h-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   whileFocus={{ scale: 1.01 }}
                 />
               </motion.div>
@@ -857,7 +857,7 @@ export default function ReportedModal({
               </AnimatePresence>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t-2 border-gray-200">
+              <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
                 {/* Show Reported/Not Reported buttons only if NOT already reported */}
                 {!isAlreadyReported && !isNotReported && !isNoShow && (
                   <>
