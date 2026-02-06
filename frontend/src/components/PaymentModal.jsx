@@ -1,7 +1,7 @@
 // components/PaymentModal.jsx - PART 1: COMPLETE FIXED VERSION
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, AlertCircle, Receipt, Info, CheckCircle, Trash2 } from "lucide-react";
+import { X, Upload, AlertCircle, Receipt, Info, CheckCircle, Trash2, Building2 } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useToast } from "../context/ToastContext";
 import { useDashboardRefresh } from "../context/DashboardRefreshContext";

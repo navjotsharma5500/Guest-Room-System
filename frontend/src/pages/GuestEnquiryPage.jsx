@@ -11,7 +11,7 @@ import employeeImg from "../assets/employee.png";
 import axios from "axios";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { formatTimeWithAMPM } from "../utils/dateUtils";
-import Creator from "../components/Creator";
+import CreatorProfile from "../components/CreatorProfile";
 import { 
   BACKEND_URL,
   IMAGEKIT_PUBLIC_KEY,
@@ -629,6 +629,7 @@ export default function GuestEnquiryPage() {
   const [dateError, setDateError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const [userType, setUserType] = useState(null);
 
   const validateForm = () => {
@@ -1170,10 +1171,19 @@ export default function GuestEnquiryPage() {
           </a>
         </div>
 
-        {/* FOOTER CREDIT */}
         <div className="fixed bottom-4 right-6 z-50">
-          <Creator variant="default" />
+          <button
+            onClick={() => setShowCreatorProfile(true)}
+            className="bg-white/90 backdrop-blur-sm hover:bg-white text-slate-700 px-4 py-2 rounded-full shadow-lg transition-all hover:shadow-xl text-sm font-medium"
+          >
+            Created by Navjot Sharma
+          </button>
         </div>
+      {/* Creator Profile Modal */}
+        <CreatorProfile
+          open={showCreatorProfile}
+          onClose={() => setShowCreatorProfile(false)}
+        />
       </div>
     </IKContext>
   );

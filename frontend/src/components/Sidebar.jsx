@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
-import Creator from "./Creator";
+import CreatorProfile from "./CreatorProfile";
 import HostelMenuButton from "./HostelMenuButton";
 import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 
@@ -20,6 +20,7 @@ export default function Sidebar({
   const { currentUser, loading } = useAuth();
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false); // ✅ Mobile menu state
 
   const logoPublicPath = "/Logo.jpg";
@@ -291,7 +292,12 @@ export default function Sidebar({
 
       {/* FOOTER */}
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">
-        <Creator variant="sidebar" />
+        <button
+          onClick={() => setShowCreatorProfile(true)}
+          className="w-full px-4 py-2 text-sm text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          Created by Navjot Sharma
+        </button>
       </div>
     </>
   );
@@ -389,6 +395,12 @@ export default function Sidebar({
           }}
         />
       )}
+
+      {/* Creator Profile Modal */}
+      <CreatorProfile
+        open={showCreatorProfile}
+        onClose={() => setShowCreatorProfile(false)}
+      />
     </>
   );
 }
