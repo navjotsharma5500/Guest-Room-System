@@ -949,46 +949,46 @@ export default function GuestRoomDashboard() {
               <>
                 {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
                 <FeedbackPage
+                  onBack={() => {
+                    setActiveTab("Home");
+                    if (currentUser?.assignedHostel) {
+                      setActiveHostel(currentUser.assignedHostel);
+                    }
+                  }}
+                  theme={theme}
+                />
+              </>   
+            )}
+
+            {activeTab === "Defaulters" && (
+              <DefaulterManagement
+                currentUser={currentUser}
                 onBack={() => {
                   setActiveTab("Home");
                   if (currentUser?.assignedHostel) {
                     setActiveHostel(currentUser.assignedHostel);
                   }
                 }}
+                onOpenPaymentModal={(booking) => {
+                  setDefaulterPaymentModal(booking);
+                }}
+              />
+            )}
+
+            {activeTab === "DepartmentPayments" && (
+              <DepartmentPaymentsPending
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                currentUser={currentUser}
                 theme={theme}
               />
-            </>   
             )}
           </main>   
-        </div> 
-
-        {activeTab === "DepartmentPayments" && (
-          <DepartmentPaymentsPending
-            onBack={() => {
-              setActiveTab("Home");
-              if (currentUser?.assignedHostel) {
-                setActiveHostel(currentUser.assignedHostel);
-              }
-            }}
-            currentUser={currentUser}
-            theme={theme}
-          />
-        )} 
-
-        {activeTab === "Defaulters" && (
-          <DefaulterManagement
-            currentUser={currentUser}
-            onBack={() => {
-              setActiveTab("Home");
-              if (currentUser?.assignedHostel) {
-                setActiveHostel(currentUser.assignedHostel);
-              }
-            }}
-            onOpenPaymentModal={(booking) => {
-              setDefaulterPaymentModal(booking);
-            }}
-          />
-        )}
+        </div>
 
         {extensionModal && (
           <ExtensionModal
