@@ -1,6 +1,8 @@
 // bookingRoutes.js - FIXED VERSION
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js"; 
+import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../controllers/bookingController.js";
 import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
@@ -896,7 +898,72 @@ router.get("/debug/payment-fields/:id", protect, async (req, res) => {
 router.patch(
   "/:id/mark-department-pay",
   protect,
-  authorizeRoles("admin", "manager", "caretaker", "warden"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { remarks } = req.body;
+
+      console.log("🏢 Marking booking as Department Pay Later:", id);
+
+      const booking = await Booking.findById(id);
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found"
+        });
+      }
+
+      // ✅ ONLY mark responsibility - NO payment processing
+      booking.paymentResponsibility = "DEPARTMENT";
+      booking.paymentMode = "DEPARTMENT";
+      
+      // Save remarks if provided
+      if (remarks) {
+        booking.paymentRemarks = remarks;
+      }
+
+      await booking.save();
+
+      console.log("✅ Booking marked as department responsibility:", {
+        bookingId: booking._id,
+        guest: booking.guest,
+        totalAmount: booking.totalAmount,
+        balanceAmount: booking.balanceAmount
+      });
+
+      // ✅ Emit Socket.IO event
+      const io = req.app.get('io');
+      if (io) {
+        io.to('dashboard-room').emit('department-pay-marked', {
+          bookingId: booking._id,
+          guest: booking.guest,
+          hostel: booking.hostel,
+          timestamp: Date.now()
+        });
+        console.log('📡 Emitted department-pay-marked event');
+      }
+
+      res.json({
+        success: true,
+        message: "✅ Marked as Department Pay Later - Guest can checkout",
+        booking
+      });
+
+    } catch (error) {
+      console.error("❌ Mark department pay error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to mark department payment",
+        error: error.message
+      });
+    }
+  }
+);
+
+// ✅ NEW: Mark booking as Department Pay Later (NO payment, just marking)
+router.patch(
+  "/:id/mark-department-pay",
+  protect,
   async (req, res) => {
     try {
       const { id } = req.params;
