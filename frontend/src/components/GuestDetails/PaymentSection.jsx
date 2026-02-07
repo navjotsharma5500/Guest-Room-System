@@ -1,16 +1,21 @@
 //PaymentSection.jsx
 import React from "react";
 import { Download, Building2, Receipt, AlertCircle } from "lucide-react";
-import { BACKEND_URL } from "../../utils/apiConfig";
-
-const API = BACKEND_URL;
+import { usePaymentSummary } from "../../hooks/usePaymentSummary";
 
 export default function PaymentSection({ b, theme, onPay }) {
   const paymentType = b.paymentType || "Free";
-  const amount = Number(b.amount || b.totalAmount || 0);
-  const paymentStatus = b.paymentStatus || "UNPAID";
-  const paymentResponsibility = b.paymentResponsibility || "GUEST";
-  const isDepartmentPayment = paymentResponsibility === "DEPARTMENT";
+  const isDepartmentPayment = b.paymentResponsibility === "DEPARTMENT";
+  
+  // ✅ SINGLE SOURCE OF TRUTH - Bills
+  const { 
+    hasPendingBill, 
+    totalPaid, 
+    currentBalance, 
+    totalAmount,
+    isFullyPaid,
+    loading 
+  } = usePaymentSummary(b._id || b.id);
 
   return (
     <div
@@ -28,29 +33,23 @@ export default function PaymentSection({ b, theme, onPay }) {
         </p>
 
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Payment Text */}
+          {/* Payment Type Text */}
           <p
             className={`font-semibold text-lg ${
               theme === "dark" ? "text-white" : "text-gray-900"
             }`}
           >
-            {paymentType === "Paid"
-              ? `Paid ${amount ? `(₹${amount})` : ""}`
-              : paymentType === "Free"
+            {paymentType === "Free"
               ? `Free ${
                   b.remarks || b.freeRemarks
                     ? `- Remarks: ${b.remarks || b.freeRemarks}`
                     : ""
                 }`
-              : paymentType}
+              : `Paid (₹${totalAmount || 0})`}
           </p>
 
-          {/* Make Payment Button - Only for non-department regular payments */}
-          {(() => {
-            // ✅ CRITICAL FIX: Calculate actual balance, don't trust paymentStatus
-            const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
-            return !isDepartmentPayment && actualBalance > 0;
-          })() && (
+          {/* ✅ Make Payment Button - Bill-based logic */}
+          {!isDepartmentPayment && hasPendingBill && (
             <button
               onClick={onPay}
               className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
@@ -61,37 +60,28 @@ export default function PaymentSection({ b, theme, onPay }) {
             </button>
           )}
 
-          {/* Payment Status Badge - ✅ FIXED: Use actual balance calculation */}
-          {(() => {
-            const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
-            const isPaid = actualBalance <= 0 && (b.totalAmount || 0) > 0;
-            const isPartial = (b.paidAmount || 0) > 0 && actualBalance > 0;
-            const isUnpaid = (b.paidAmount || 0) === 0 && actualBalance > 0;
-            
-            if (!isPaid && !isPartial && !isUnpaid) return null;
-            
-            return (
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  isPaid
-                    ? "bg-green-100 text-green-700"
-                    : isPartial
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {isPaid && "✅ Fully Paid"}
-                {isPartial && `⚡ Partial (₹${b.paidAmount || 0} / ₹${b.totalAmount || 0})`}
-                {isUnpaid && "⏳ Unpaid"}
-              </span>
-            );
-          })()}
+          {/* ✅ Payment Status Badge - Bill-based */}
+          {totalAmount > 0 && (
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                isFullyPaid
+                  ? "bg-green-100 text-green-700"
+                  : totalPaid > 0
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {isFullyPaid && "✅ Fully Paid"}
+              {!isFullyPaid && totalPaid > 0 && `⚡ Partial (₹${totalPaid} / ₹${totalAmount})`}
+              {!isFullyPaid && totalPaid === 0 && "⏳ Unpaid"}
+            </span>
+          )}
         </div>
 
         {/* ========================================
             DEPARTMENT PAYMENT PENDING CARD
         ======================================== */}
-        {isDepartmentPayment && b.balanceAmount > 0 && (
+        {isDepartmentPayment && hasPendingBill && (
           <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-400 rounded-xl p-5 shadow-md">
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-orange-500 rounded-lg">
@@ -112,21 +102,21 @@ export default function PaymentSection({ b, theme, onPay }) {
               <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
                 <p className="text-xs text-orange-700 font-medium mb-1">Total Amount</p>
                 <p className="text-lg font-bold text-orange-900">
-                  ₹{b.totalAmount?.toLocaleString() || 0}
+                  ₹{totalAmount?.toLocaleString() || 0}
                 </p>
               </div>
 
               <div className="bg-white/70 rounded-lg p-3 border border-green-200">
                 <p className="text-xs text-green-700 font-medium mb-1">Paid So Far</p>
                 <p className="text-lg font-bold text-green-900">
-                  ₹{(b.paidAmount || 0).toLocaleString()}
+                  ₹{totalPaid?.toLocaleString() || 0}
                 </p>
               </div>
 
               <div className="bg-white/70 rounded-lg p-3 border border-red-200">
                 <p className="text-xs text-red-700 font-medium mb-1">Balance Due</p>
                 <p className="text-lg font-bold text-red-900">
-                  ₹{b.balanceAmount?.toLocaleString() || 0}
+                  ₹{currentBalance?.toLocaleString() || 0}
                 </p>
               </div>
             </div>
@@ -163,30 +153,27 @@ export default function PaymentSection({ b, theme, onPay }) {
         {/* ========================================
             REGULAR PAYMENT BREAKDOWN (Non-Department)
         ======================================== */}
-        {(() => {
-          const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
-          return !isDepartmentPayment && actualBalance > 0 && (b.totalAmount || 0) > 0;
-        })() && (
+        {!isDepartmentPayment && hasPendingBill && totalAmount > 0 && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-blue-700 font-medium">Total Amount</p>
                 <p className="text-blue-900 font-bold text-lg">
-                  ₹{b.totalAmount || 0}
+                  ₹{totalAmount || 0}
                 </p>
               </div>
 
               <div>
                 <p className="text-green-700 font-medium">Paid So Far</p>
                 <p className="text-green-900 font-bold text-lg">
-                  ₹{b.paidAmount || 0}
+                  ₹{totalPaid || 0}
                 </p>
               </div>
 
               <div>
                 <p className="text-red-700 font-medium">Balance Due</p>
                 <p className="text-red-900 font-bold text-lg">
-                  ₹{(b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0)}
+                  ₹{currentBalance || 0}
                 </p>
               </div>
             </div>
@@ -196,10 +183,7 @@ export default function PaymentSection({ b, theme, onPay }) {
         {/* ========================================
             FULLY PAID INDICATOR
         ======================================== */}
-        {(() => {
-          const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
-          return actualBalance <= 0 && (b.totalAmount || 0) > 0;
-        })() && (
+        {isFullyPaid && (
           <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500 rounded-full">
@@ -208,8 +192,7 @@ export default function PaymentSection({ b, theme, onPay }) {
               <div className="flex-1">
                 <p className="text-green-900 font-bold text-lg">✅ Payment Complete</p>
                 <p className="text-sm text-green-700">
-                  Total Paid: ₹{b.paidAmount?.toLocaleString() || 0}
-                  {b.discount > 0 && ` | Discount: ₹${b.discount?.toLocaleString()}`}
+                  Total Paid: ₹{totalPaid?.toLocaleString() || 0}
                 </p>
               </div>
             </div>

@@ -262,9 +262,9 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       });
 
       const response = await fetch(
-        `${API}/api/bookings/${booking._id}/payment`,
+        `${API}/api/payments/bookings/${booking._id}/payment`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
