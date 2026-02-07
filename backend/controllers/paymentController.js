@@ -197,11 +197,6 @@ export const processPayment = async (req, res) => {
       });
     }
 
-    // ✅ Handle Department Payment Responsibility
-    if (req.body.paymentResponsibility) {
-      booking.paymentResponsibility = req.body.paymentResponsibility;
-    }
-
     // ✅ NORMAL PAYMENT PROCESSING (for when department actually pays or regular payments)
     if (amountPaid > 0) {
       // Process payment normally

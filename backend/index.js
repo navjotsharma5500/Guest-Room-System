@@ -120,6 +120,7 @@ console.log("ðŸ”Œ Socket.IO initialized with CORS support");
 
 app.set("io", io);
 setSocketIO(io);
+global.io = io;
 
 /* =========================================================
    HANDLE OPTIONS PREFLIGHT FIRST

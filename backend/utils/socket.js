@@ -79,6 +79,27 @@ export const emitGuestEvent = (event, data) => {
   }
 };
 
+ /**
+ *Emit department payment update (for cron jobs)
+ */
+export const emitDepartmentPaymentUpdate = (bookingId, data) => {
+  if (!io) {
+    console.error('❌ Socket.IO not initialized');
+    return;
+  }
+  
+  try {
+    io.to('dashboard-room').emit('guest-checked-out', {
+      bookingId,
+      ...data,
+      timestamp: Date.now()
+    });
+    console.log(`✅ Department payment event emitted for: ${bookingId}`);
+  } catch (error) {
+    console.error(`⚠️ Department payment emit failed: ${error.message}`);
+  }
+};
+
 // Keep default export for backward compatibility
 export default {
   setSocketIO,
@@ -86,4 +107,5 @@ export default {
   emitEvent,
   emitHallEvent,
   emitGuestEvent,
+  emitDepartmentPaymentUpdate,
 };

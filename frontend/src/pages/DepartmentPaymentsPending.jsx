@@ -19,11 +19,49 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
   const canAccessPage = ['admin', 'manager', 'caretaker', 'warden'].includes(role);
 
+  // Listen for real-time updates (manual checkout + cron auto-checkout)
   useEffect(() => {
-    if (canAccessPage) {
-      fetchPendingPayments();
-    }
-  }, [canAccessPage]);
+      if (canAccessPage) {
+        fetchPendingPayments();
+      }
+    }, [canAccessPage]);
+
+    // ✅ ADD THIS ENTIRE BLOCK HERE:
+    // Listen for real-time checkout events (manual + cron)
+    useEffect(() => {
+      if (!canAccessPage) return;
+
+      const handleGuestCheckedOut = (event) => {
+        const data = event.detail || {};
+        console.log("📡 Guest checked out event received:", data);
+        
+        // Refresh if it's a department payment
+        if (data.paymentResponsibility === "DEPARTMENT" || data.source === 'cron-auto-checkout') {
+          console.log("🔄 Refreshing department payments list...");
+          setTimeout(() => fetchPendingPayments(), 1000); // Small delay to ensure DB is updated
+        }
+      };
+
+      const handleBookingDataUpdated = (event) => {
+        const data = event.detail || {};
+        console.log("📡 Booking data updated event received:", data);
+        
+        // Refresh if it's an auto-checkout event
+        if (data.type === 'cron-auto-checkout') {
+          console.log("🔄 Cron auto-checkout detected - refreshing...");
+          setTimeout(() => fetchPendingPayments(), 1000);
+        }
+      };
+
+      // Listen to both events
+      window.addEventListener('guestCheckedOut', handleGuestCheckedOut);
+      window.addEventListener('bookingDataUpdated', handleBookingDataUpdated);
+
+      return () => {
+        window.removeEventListener('guestCheckedOut', handleGuestCheckedOut);
+        window.removeEventListener('bookingDataUpdated', handleBookingDataUpdated);
+      };
+    }, [canAccessPage]);
 
   const fetchPendingPayments = async () => {
     try {

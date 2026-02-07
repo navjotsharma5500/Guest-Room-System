@@ -116,4 +116,24 @@ socket.on("hallBookingExtended", (data) => {
   }
 });
 
+socket.on("hallBookingExtended", (data) => {
+  try {
+    console.log("🎪 Hall booking Extended:", data);
+    window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
+  } catch (error) {
+    console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
+  }
+});
+
+// ✅ ADD THIS BLOCK:
+// Cron job events
+socket.on("bookingDataUpdated", (data) => {
+  try {
+    console.log("🔄 Booking data updated (cron):", data);
+    window.dispatchEvent(new CustomEvent("bookingDataUpdated", { detail: data }));
+  } catch (error) {
+    console.error("⚠️ Booking data updated event handler failed:", error.message);
+  }
+});
+
 export default socket;

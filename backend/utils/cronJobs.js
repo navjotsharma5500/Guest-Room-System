@@ -55,6 +55,22 @@ export const startAutoCheckoutCronJob = (io) => {
         console.log("📡 Broadcast auto-checkout to all clients");
       }
       
+      // ✅ Emit individual checkout events for real-time updates
+      if (io && result.checkedOutBookings && result.checkedOutBookings.length > 0) {
+        result.checkedOutBookings.forEach((booking) => {
+          io.to('dashboard-room').emit('guest-checked-out', {
+            bookingId: booking._id,
+            hostel: booking.hostel,
+            roomNo: booking.roomNo,
+            guest: booking.guest,
+            paymentResponsibility: booking.paymentResponsibility,
+            source: 'cron-auto-checkout',
+            timestamp: now.toISOString()
+          });
+        });
+        console.log(`📡 Emitted ${result.checkedOutBookings.length} guest-checked-out events`);
+      }
+      
       // ✅ If guests moved to defaulters, emit defaulter update
       if (io && result.movedToDefaulters > 0) {
         io.to('dashboard-room').emit('defaulter-stats-updated', {
