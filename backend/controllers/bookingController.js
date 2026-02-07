@@ -732,11 +732,25 @@ export const checkOutGuest = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    if (booking.reportedStatus !== "reported") {
+    // ✅ UPDATED: Allow checkout for department-paid bookings even if not reported
+    if (booking.reportedStatus !== "reported" && booking.paymentResponsibility !== "DEPARTMENT") {
       return res.status(400).json({ 
         success: false, 
         message: "Guest must be reported before checkout" 
       });
+    }
+
+    // ✅ NEW: Check payment status before checkout (unless department pays)
+    if (booking.paymentType === "Paid" && booking.paymentResponsibility !== "DEPARTMENT") {
+      const balance = booking.totalAmount - booking.paidAmount - (booking.discount || 0);
+      
+      if (balance > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot checkout - Payment pending: ₹${balance}`,
+          pendingAmount: balance
+        });
+      }
     }
 
     booking.status = "checked_out";

@@ -191,6 +191,65 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
     }
   };
 
+  // ✅ HANDLE DEPARTMENT PAYMENT
+  const handleDepartmentPayment = async () => {
+    try {
+      setLoading(true);
+
+      if (!paymentRemarks.trim()) {
+        showToast("⚠️ Please add remarks for department payment", "warning");
+        setLoading(false);
+        return;
+      }
+
+      const bookingId = booking._id || booking.bookingId;
+      const token = localStorage.getItem("token");
+
+      console.log("🏢 Processing department payment for:", bookingId);
+
+      const response = await fetch(`${API}/api/payments/bookings/${bookingId}/payment`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          paymentType: "DEPARTMENT_PAY_LATER",
+          paymentResponsibility: "DEPARTMENT",
+          amountPaid: 0,
+          paymentRemarks: paymentRemarks,
+          paymentMethod: "DEPARTMENT",
+          transactionId: `DEPT-${Date.now()}`,
+          transactionDate: new Date().toISOString()
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to process department payment");
+      }
+
+      showToast("✅ Payment marked as Department Pay Later", "success");
+      
+      if (refreshDashboard) {
+        refreshDashboard();
+      }
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      setLoading(false);
+      onClose();
+
+    } catch (error) {
+      console.error("❌ Department payment error:", error);
+      showToast(error.message || "Failed to process department payment", "error");
+      setLoading(false);
+    }
+  };
 
   // ✅ VALIDATION FUNCTION
   const validatePayment = () => {
@@ -780,21 +839,41 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 ACTION BUTTONS
             ======================================== */}
-            <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-200">
-              <button
-                onClick={onClose}
-                disabled={loading}
-                className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold text-sm shadow-sm disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitPayment}
-                disabled={loading || uploadingFile}
-                className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-semibold shadow-lg disabled:opacity-50 text-sm"
-              >
-                {loading ? "Processing..." : isFreeBedding ? "Submit" : `Pay ₹${paidAmount}`}
-              </button>
+            <div className="flex flex-col gap-3 pt-4 border-t-2 border-gray-200">
+              {/* Primary Actions Row */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={onClose}
+                  disabled={loading}
+                  className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold text-sm shadow-sm disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitPayment}
+                  disabled={loading || uploadingFile}
+                  className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-semibold shadow-lg disabled:opacity-50 text-sm"
+                >
+                  {loading ? "Processing..." : isFreeBedding ? "Submit" : `Pay ₹${paidAmount}`}
+                </button>
+              </div>
+
+              {/* Department Pay Button - Only for Paid bookings */}
+              {!isFreeBedding && balance > 0 && (
+                <div className="border-t-2 border-gray-200 pt-3">
+                  <button
+                    onClick={handleDepartmentPayment}
+                    disabled={loading || !paymentRemarks.trim()}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition font-bold shadow-lg disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                  >
+                    <Building2 size={18} />
+                    Department Pay Later
+                  </button>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    💡 Guest can checkout - Department will pay later
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

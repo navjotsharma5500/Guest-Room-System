@@ -104,9 +104,24 @@ export default function ReportedModal({
     const discount = bookingToCheckout.discount || bookingToCheckout.waveOff || 0;
     const balanceAmount = totalAmount - paidAmount - discount;
     const paymentType = bookingToCheckout.paymentType || "Paid";
-    const hasPendingPayment = paymentType !== "Free" && balanceAmount > 0;
+    const paymentResponsibility = bookingToCheckout.paymentResponsibility || "GUEST";
+    
+    // ✅ CRITICAL FIX: Only block checkout if payment is pending AND guest is responsible
+    // Department payments should NOT block checkout
+    const hasPendingPayment = 
+      paymentType !== "Free" && 
+      balanceAmount > 0 && 
+      paymentResponsibility !== "DEPARTMENT";
 
-    // ✅ IF PAYMENT PENDING, SHOW WARNING FIRST
+    console.log("🔍 Checkout payment check:", {
+      guest: bookingToCheckout.guest,
+      balanceAmount,
+      paymentResponsibility,
+      hasPendingPayment,
+      willBlockCheckout: hasPendingPayment
+    });
+
+    // ✅ IF PAYMENT PENDING (AND NOT DEPARTMENT), SHOW WARNING FIRST
     if (hasPendingPayment) {
       setSelectedBookingForPayment(bookingToCheckout);
       setCheckoutSource(isOccupant ? "occupant" : "normal");
@@ -120,7 +135,7 @@ export default function ReportedModal({
       return; // ✅ STOP HERE - Don't show confirm dialog
     }
 
-    // ✅ NO PENDING PAYMENT - Show confirmation and proceed
+    // ✅ NO PENDING PAYMENT (or department payment) - Show confirmation and proceed
     showConfirm(
       `Are you sure you want to check out ${bookingToCheckout.guest}?`,
       async () => {
