@@ -254,10 +254,14 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
-                            onClick={() => openPaymentModal(booking)}
+                            onClick={() => {
+                              // ✅ Department has already been marked - now collecting actual payment
+                              console.log("💰 Collecting department payment for:", booking._id);
+                              openPaymentModal(booking);
+                            }}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg"
                           >
-                            Mark Paid
+                            Collect Payment
                           </button>
                         </td>
                       </motion.tr>

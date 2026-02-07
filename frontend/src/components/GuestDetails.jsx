@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Info, Save, X } from "lucide-react";
+import { Info, Save, X, Building2, Receipt } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import GuestHistory from "./GuestHistory";
 import ReportedModal from "./ReportedModal";
@@ -45,6 +45,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   };
   const { token } = useAuth();
   const [booking, setBooking] = useState(null);
+  const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
   const [loading, setLoading] = useState(false);
   const [fetchAttempts, setFetchAttempts] = useState(0);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -1215,7 +1216,216 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         </div>
 
         {/* 4. PAYMENT SECTION */}
-        <PaymentSection b={b} theme={theme} onPay={() => setPaymentModalOpen(true)} />
+        <div className={`p-6 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+          <div className="col-span-2">
+            <p className={`font-medium mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              Payment
+            </p>
+
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Payment Text */}
+              <p className={`font-semibold text-lg ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                {b.paymentType === "Paid"
+                  ? `Paid ${b.totalAmount ? `(₹${b.totalAmount})` : ""}`
+                  : b.paymentType === "Free"
+                  ? `Free ${b.remarks || b.freeRemarks ? `- Remarks: ${b.remarks || b.freeRemarks}` : ""}`
+                  : b.paymentType}
+              </p>
+
+              {/* Make Payment Button - Only for non-department regular payments */}
+              {!isDepartmentPayment &&
+                Number(b.totalAmount || b.amount || 0) > 0 &&
+                (b.paymentStatus ?? "UNPAID") !== "PAID" && (
+                  <button
+                    onClick={() => setPaymentModalOpen(true)}
+                    className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
+                              hover:bg-green-700 transition font-medium flex items-center gap-2"
+                  >
+                    <Receipt size={16} />
+                    Make Payment
+                  </button>
+                )}
+
+              {/* ✅ NEW: Department Pay Later Button */}
+              {!isDepartmentPayment &&
+                b.status !== "checked_out" &&
+                Number(b.totalAmount || b.amount || 0) > 0 &&
+                (b.paymentStatus ?? "UNPAID") !== "PAID" && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm("Mark this booking as Department Pay Later? Guest can checkout without paying.")) {
+                        return;
+                      }
+                      
+                      const remarks = prompt("Enter remarks for department payment:");
+                      if (!remarks) {
+                        alert("Remarks are required");
+                        return;
+                      }
+
+                      try {
+                        const token = localStorage.getItem("token");
+                        const response = await fetch(`${API}/api/bookings/${b._id}/mark-department-pay`, {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          credentials: "include",
+                          body: JSON.stringify({ remarks }),
+                        });
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                          throw new Error(data.message || "Failed to mark department payment");
+                        }
+
+                        showToast("✅ Marked as Department Pay Later", "success");
+                        
+                        // Refresh booking data
+                        const authToken = token || localStorage.getItem("token");
+                        const headers = { "Content-Type": "application/json" };
+                        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+                        
+                        const refreshResponse = await fetch(`${API}/api/bookings/${b._id}`, {
+                          method: "GET",
+                          credentials: "include",
+                          headers
+                        });
+                        
+                        const refreshData = await refreshResponse.json();
+                        if (refreshData.success && refreshData.booking) {
+                          setBooking(normalizeBooking(refreshData.booking));
+                        }
+                      } catch (error) {
+                        console.error("❌ Error:", error);
+                        showToast(error.message || "Failed to mark department payment", "error");
+                      }
+                    }}
+                    className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg
+                              hover:bg-blue-700 transition font-medium flex items-center gap-2"
+                  >
+                    <Building2 size={16} />
+                    Department Pay Later
+                  </button>
+                )}
+
+              {/* Payment Status Badge */}
+              {b.paymentStatus && (
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  b.paymentStatus === "PAID"
+                    ? "bg-green-100 text-green-700"
+                    : b.paymentStatus === "PARTIALLY_PAID"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-gray-100 text-gray-700"
+                }`}>
+                  {b.paymentStatus === "PAID" && "✅ Fully Paid"}
+                  {b.paymentStatus === "PARTIALLY_PAID" &&
+                    `⚡ Partial (₹${b.paidAmount || 0} / ₹${b.totalAmount || 0})`}
+                  {b.paymentStatus === "UNPAID" && "⏳ Unpaid"}
+                </span>
+              )}
+            </div>
+
+            {/* Department Payment Pending Card */}
+            {isDepartmentPayment && b.balanceAmount > 0 && (
+              <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-400 rounded-xl p-5 shadow-md">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2 bg-orange-500 rounded-lg">
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-orange-900 mb-1">
+                      💼 Department Payment Pending
+                    </h3>
+                    <p className="text-sm text-orange-700">
+                      This payment will be made by the department
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
+                    <p className="text-xs text-orange-700 font-medium mb-1">Total Amount</p>
+                    <p className="text-lg font-bold text-orange-900">
+                      ₹{b.totalAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+
+                  <div className="bg-white/70 rounded-lg p-3 border border-green-200">
+                    <p className="text-xs text-green-700 font-medium mb-1">Paid So Far</p>
+                    <p className="text-lg font-bold text-green-900">
+                      ₹{(b.paidAmount || 0).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="bg-white/70 rounded-lg p-3 border border-red-200">
+                    <p className="text-xs text-red-700 font-medium mb-1">Balance Due</p>
+                    <p className="text-lg font-bold text-red-900">
+                      ₹{b.balanceAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {b.paymentRemarks && (
+                  <div className="bg-white/50 rounded-lg p-3 border border-orange-200 mb-4">
+                    <p className="text-xs text-orange-700 font-medium mb-1">Remarks</p>
+                    <p className="text-sm text-gray-700">{b.paymentRemarks}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setPaymentModalOpen(true)}
+                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 
+                            rounded-lg hover:from-orange-700 hover:to-red-700 transition font-bold 
+                            shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  <Receipt className="w-5 h-5" />
+                  Pay Now (Department)
+                </button>
+              </div>
+            )}
+
+            {/* Regular Payment Breakdown */}
+            {!isDepartmentPayment && b.paymentStatus !== "PAID" && b.totalAmount > 0 && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-blue-700 font-medium">Total Amount</p>
+                    <p className="text-blue-900 font-bold text-lg">₹{b.totalAmount || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-700 font-medium">Paid So Far</p>
+                    <p className="text-green-900 font-bold text-lg">₹{b.paidAmount || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-red-700 font-medium">Balance Due</p>
+                    <p className="text-red-900 font-bold text-lg">₹{b.balanceAmount ?? b.totalAmount ?? 0}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fully Paid Indicator */}
+            {b.paymentStatus === "PAID" && (
+              <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500 rounded-full">
+                    <Receipt className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-green-900 font-bold text-lg">✅ Payment Complete</p>
+                    <p className="text-sm text-green-700">
+                      Total Paid: ₹{b.paidAmount?.toLocaleString() || 0}
+                      {b.discount > 0 && ` | Discount: ₹${b.discount?.toLocaleString()}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* 5. ATTACHMENTS SECTION */}
         <AttachmentsSection
