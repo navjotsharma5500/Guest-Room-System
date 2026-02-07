@@ -732,6 +732,21 @@ export const checkOutGuest = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    // ✅ Allow checkout if payment is department responsibility
+    const isDepartmentResponsibility = booking.paymentResponsibility === "DEPARTMENT";
+
+    // Check if there's any balance remaining (allow if department payment)
+    if (!isDepartmentResponsibility && (booking.balanceAmount > 0 || (booking.totalAmount - booking.paidAmount) > 0)) {
+      return res.status(400).json({
+        message: "Cannot checkout with pending payment. Use 'Department Pay Later' if department will pay."
+      });
+    }
+
+    // If department payment, mark as checked out with note
+    if (isDepartmentResponsibility && booking.balanceAmount > 0) {
+      console.log("✅ Checkout allowed - Department will pay later");
+    }
+
     // ✅ UPDATED: Allow checkout for department-paid bookings even if not reported
     if (booking.reportedStatus !== "reported" && booking.paymentResponsibility !== "DEPARTMENT") {
       return res.status(400).json({ 

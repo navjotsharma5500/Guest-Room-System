@@ -203,50 +203,47 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       }
 
       const bookingId = booking._id || booking.bookingId;
+
+      console.log("🏢 Submitting department pay later:", {
+        bookingId,
+        totalAmount: booking.totalAmount,
+        balanceAmount: booking.balanceAmount,
+        remarks: paymentRemarks
+      });
+
       const token = localStorage.getItem("token");
-
-      console.log("🏢 Processing department payment for:", bookingId);
-
       const response = await fetch(`${API}/api/payments/bookings/${bookingId}/payment`, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           paymentType: "DEPARTMENT_PAY_LATER",
           paymentResponsibility: "DEPARTMENT",
           amountPaid: 0,
-          paymentRemarks: paymentRemarks,
-          paymentMethod: "DEPARTMENT",
-          transactionId: `DEPT-${Date.now()}`,
-          transactionDate: new Date().toISOString()
-        })
+          paymentRemarks,
+        }),
       });
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to process department payment");
+      if (!data.success) {
+        throw new Error(data.message || "Failed to mark department payment");
       }
 
-      showToast("✅ Payment marked as Department Pay Later", "success");
+      console.log("✅ Department payment marked successfully");
+      showToast("✅ Marked as Department Pay Later - Guest can checkout", "success");
+      refreshDashboard();
       
-      if (refreshDashboard) {
-        refreshDashboard();
-      }
-
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      setLoading(false);
+      if (onSuccess) onSuccess();
       onClose();
 
     } catch (error) {
       console.error("❌ Department payment error:", error);
-      showToast(error.message || "Failed to process department payment", "error");
+      showToast(error.message || "Failed to mark department payment", "error");
+    } finally {
       setLoading(false);
     }
   };

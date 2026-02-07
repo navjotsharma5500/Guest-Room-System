@@ -175,7 +175,11 @@ export const processPayment = async (req, res) => {
       });
     }
 
-    if (amountPaid <= 0) {
+    // ✅ SKIP validation for DEPARTMENT_PAY_LATER
+    const isDepartmentPayLater = req.body.paymentType === "DEPARTMENT_PAY_LATER" || 
+                                 (req.body.paymentResponsibility === "DEPARTMENT" && (!amountPaid || amountPaid === 0));
+
+    if (!isDepartmentPayLater && amountPaid <= 0) {
       return res.status(400).json({
         success: false,
         message: "Payment amount must be greater than zero"

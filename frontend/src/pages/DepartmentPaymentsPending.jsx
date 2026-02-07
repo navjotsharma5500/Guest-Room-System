@@ -276,11 +276,12 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
           booking={{
             ...paymentModal,
             _id: paymentModal._id,
-            // ✅ CRITICAL FIX: Use actual booking amounts from the database
-            totalAmount: paymentModal.totalAmount || paymentModal.balanceAmount,
+            // ✅ Pass complete payment data
+            totalAmount: paymentModal.totalAmount,
             paidAmount: paymentModal.paidAmount || 0,
             balanceAmount: paymentModal.balanceAmount,
             discount: paymentModal.discount || 0,
+            paymentResponsibility: "DEPARTMENT", // ✅ Mark as department payment
           }}
           onClose={() => setPaymentModal(null)}
           onSuccess={() => {
