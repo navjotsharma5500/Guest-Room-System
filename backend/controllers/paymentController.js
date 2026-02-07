@@ -175,11 +175,7 @@ export const processPayment = async (req, res) => {
       });
     }
 
-    // ✅ SKIP validation for DEPARTMENT_PAY_LATER
-    const isDepartmentPayLater = req.body.paymentType === "DEPARTMENT_PAY_LATER" || 
-                                 (req.body.paymentResponsibility === "DEPARTMENT" && (!amountPaid || amountPaid === 0));
-
-    if (!isDepartmentPayLater && amountPaid <= 0) {
+    if (amountPaid <= 0) {
       return res.status(400).json({
         success: false,
         message: "Payment amount must be greater than zero"
@@ -204,53 +200,6 @@ export const processPayment = async (req, res) => {
     // ✅ Handle Department Payment Responsibility
     if (req.body.paymentResponsibility) {
       booking.paymentResponsibility = req.body.paymentResponsibility;
-    }
-
-    // ✅ DEPARTMENT PAY LATER - Special Handling
-    if (req.body.paymentType === "DEPARTMENT_PAY_LATER" || 
-        (req.body.paymentResponsibility === "DEPARTMENT" && (!amountPaid || amountPaid === 0))) {
-      console.log("🏢 Processing DEPARTMENT PAY LATER");
-      
-      booking.paymentResponsibility = "DEPARTMENT";
-      booking.paymentStatus = "UNPAID"; // Still unpaid, but not a defaulter
-      booking.paymentMode = "DEPARTMENT";
-      
-      // Save remarks
-      if (paymentRemarks) {
-        booking.paymentRemarks = paymentRemarks;
-      }
-      
-      // Don't change paid/balance amounts - payment hasn't happened yet
-      // Just mark it as department responsibility
-      
-      await booking.save();
-
-      console.log("✅ Department payment marked successfully:", {
-        bookingId: booking._id,
-        guest: booking.guest,
-        paymentResponsibility: booking.paymentResponsibility,
-        totalAmount: booking.totalAmount,
-        balanceAmount: booking.balanceAmount
-      });
-
-      // ✅ EMIT SOCKET.IO EVENT
-      const io = req.app.get('io');
-      if (io) {
-        io.to('dashboard-room').emit('department-payment-marked', { 
-          bookingId: booking._id,
-          guest: booking.guest,
-          hostel: booking.hostel,
-          timestamp: Date.now()
-        });
-        console.log('📡 Emitted department-payment-marked event');
-      }
-
-      return res.json({
-        success: true,
-        message: "✅ Payment marked as Department Pay Later - Guest can checkout",
-        booking,
-        remainingBalance: booking.balanceAmount
-      });
     }
 
     // ✅ NORMAL PAYMENT PROCESSING (for when department actually pays or regular payments)

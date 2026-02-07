@@ -30,7 +30,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
   // ✅ CALCULATE BALANCE - Handle both Free and Paid bookings + Defaulters
   const totalAmount = booking.totalAmount || booking.totalDue || 0;
   const paidSoFar = booking.paidAmount || 0;
-   const [paymentResponsibility, setPaymentResponsibility] = useState("GUEST");
   const previousDiscount = booking.discount || booking.waveOff || 0;
   const balance = totalAmount - paidSoFar - previousDiscount;
   const paymentType = booking.paymentType || "Paid";
@@ -191,63 +190,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
     }
   };
 
-  // ✅ HANDLE DEPARTMENT PAYMENT
-  const handleDepartmentPayment = async () => {
-    try {
-      setLoading(true);
-
-      if (!paymentRemarks.trim()) {
-        showToast("⚠️ Please add remarks for department payment", "warning");
-        setLoading(false);
-        return;
-      }
-
-      const bookingId = booking._id || booking.bookingId;
-
-      console.log("🏢 Submitting department pay later:", {
-        bookingId,
-        totalAmount: booking.totalAmount,
-        balanceAmount: booking.balanceAmount,
-        remarks: paymentRemarks
-      });
-
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/api/payments/bookings/${bookingId}/payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          paymentType: "DEPARTMENT_PAY_LATER",
-          paymentResponsibility: "DEPARTMENT",
-          amountPaid: 0,
-          paymentRemarks,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || "Failed to mark department payment");
-      }
-
-      console.log("✅ Department payment marked successfully");
-      showToast("✅ Marked as Department Pay Later - Guest can checkout", "success");
-      refreshDashboard();
-      
-      if (onSuccess) onSuccess();
-      onClose();
-
-    } catch (error) {
-      console.error("❌ Department payment error:", error);
-      showToast(error.message || "Failed to mark department payment", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // ✅ VALIDATION FUNCTION
   const validatePayment = () => {
     // For free bookings, skip payment validation
@@ -257,15 +199,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
         return false;
       }
       return true;
-    }
-
-    // ✅ NEW: For department-pending, skip payment validation
-    if (paymentResponsibility === "DEPARTMENT") {
-      if (!paymentRemarks.trim()) {
-        showToast("⚠️ Please add remarks explaining why this is a department payment", "warning");
-        return false;
-      }
-      return true; // Skip all other validations
     }
 
     // For paid bookings (GUEST responsibility)
@@ -321,7 +254,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       console.log("📤 Sending payment data:", {
         bookingId: booking._id,
         paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
-        amountPaid: paidAmount,
         paymentMethod: paymentMode,
         discountPercent,
         discountAmount,
@@ -339,7 +271,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
           credentials: "include",
           body: JSON.stringify({
             paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
-            amountPaid: paymentResponsibility === "DEPARTMENT" ? 0 : paidAmount, // ✅ Zero if department
             paymentMethod: paymentMode,
             transactionId: transactionId || "",
             transactionDate: transactionDate || null,
@@ -347,7 +278,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             paymentAttachments: attachments,
             discount: discountAmount,
             discountPercent: discountPercent,
-            paymentResponsibility: paymentResponsibility, // ✅ NEW FIELD
           }),
         }
       );
@@ -584,53 +514,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             )}
 
             {/* ========================================
-                PAYMENT RESPONSIBILITY
-            ======================================== */}
-            {!isFreeBedding && (
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">
-                  Who is Paying? <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setPaymentResponsibility("GUEST")}
-                    className={`px-4 py-3 rounded-lg border-2 transition text-sm font-semibold ${
-                      paymentResponsibility === "GUEST"
-                        ? "bg-green-600 text-white border-green-600 shadow-md"
-                        : "bg-white text-gray-700 border-gray-300 hover:border-green-400"
-                    }`}
-                  >
-                    💳 Guest Payment (Now)
-                  </button>
-                  <button
-                    onClick={() => setPaymentResponsibility("DEPARTMENT")}
-                    className={`px-4 py-3 rounded-lg border-2 transition text-sm font-semibold ${
-                      paymentResponsibility === "DEPARTMENT"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                        : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
-                    }`}
-                  >
-                    🏢 Department (Pending)
-                  </button>
-                </div>
-                
-                {/* Info Banner for Department Payment */}
-                {paymentResponsibility === "DEPARTMENT" && (
-                  <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <strong className="block mb-1">Department Payment Selected</strong>
-                      <p className="text-xs">
-                        This booking will be marked as <strong>Department Pending</strong> and will NOT appear in the defaulters list. 
-                        You can skip payment details now - they can be added later when the department pays.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ========================================
                 PAYMENT TYPE (Only for Paid)
             ======================================== */}
             {!isFreeBedding && (
@@ -854,23 +737,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                   {loading ? "Processing..." : isFreeBedding ? "Submit" : `Pay ₹${paidAmount}`}
                 </button>
               </div>
-
-              {/* Department Pay Button - Only for Paid bookings */}
-              {!isFreeBedding && balance > 0 && (
-                <div className="border-t-2 border-gray-200 pt-3">
-                  <button
-                    onClick={handleDepartmentPayment}
-                    disabled={loading || !paymentRemarks.trim()}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition font-bold shadow-lg disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                  >
-                    <Building2 size={18} />
-                    Department Pay Later
-                  </button>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    💡 Guest can checkout - Department will pay later
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </motion.div>
