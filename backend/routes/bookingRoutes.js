@@ -4,7 +4,6 @@ import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js"; 
 import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../controllers/bookingController.js";
-import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 
