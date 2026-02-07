@@ -194,27 +194,27 @@ export default function PaymentSection({ b, theme, onPay }) {
         )}
 
         {/* ========================================
-              FULLY PAID INDICATOR
-          ======================================== */}
-          {(() => {
-            const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
-            return actualBalance <= 0 && (b.totalAmount || 0) > 0;
-          })() && (
-            <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500 rounded-full">
-                  <Receipt className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-green-900 font-bold text-lg">✅ Payment Complete</p>
-                  <p className="text-sm text-green-700">
-                    Total Paid: ₹{b.paidAmount?.toLocaleString() || 0}
-                    {b.discount > 0 && ` | Discount: ₹${b.discount?.toLocaleString()}`}
-                  </p>
-                </div>
+            FULLY PAID INDICATOR
+        ======================================== */}
+        {(() => {
+          const actualBalance = (b.totalAmount || 0) - (b.paidAmount || 0) - (b.discount || 0);
+          return actualBalance <= 0 && (b.totalAmount || 0) > 0;
+        })() && (
+          <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500 rounded-full">
+                <Receipt className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-green-900 font-bold text-lg">✅ Payment Complete</p>
+                <p className="text-sm text-green-700">
+                  Total Paid: ₹{b.paidAmount?.toLocaleString() || 0}
+                  {b.discount > 0 && ` | Discount: ₹${b.discount?.toLocaleString()}`}
+                </p>
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     </div>
   );
