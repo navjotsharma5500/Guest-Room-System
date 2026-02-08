@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle, Star, X, Menu, Building2, FileText } from "lucide-react";
+import { AlertCircle, Star, X, Menu, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
@@ -23,12 +23,12 @@ export default function Sidebar({
   const logoPublicPath = "/Logo.jpg";
   const isEnquiry = activeTab === "Enquiry";
 
-  // ✅ ROLE EXTRACTION
+  // âœ… ROLE EXTRACTION
   const role = currentUser?.role || currentUser?.user?.role;
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
   const isAdminLike = role === 'admin' || role === 'manager';
 
-  // ✅ PERMISSION CHECKS
+  // âœ… PERMISSION CHECKS
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const canSeeHostels = hasPermission(currentUser, "sidebar.hostels");
 
@@ -46,7 +46,7 @@ export default function Sidebar({
     return hostelName.charAt(0).toUpperCase();
   };
 
-  // ✅ SORTED HOSTEL NAMES
+  // âœ… SORTED HOSTEL NAMES
   const hostelNames = useMemo(() => {
     return Object.keys(hostelData || {}).sort((a, b) => {
       const initialA = extractInitial(a);
@@ -55,9 +55,9 @@ export default function Sidebar({
     });
   }, [hostelData]);
 
-  // ✅ VISIBLE HOSTELS (Role-based)
+  // âœ… VISIBLE HOSTELS (Role-based)
   const visibleHostels = useMemo(() => {
-    console.log("🔍 Sidebar - Checking visible hostels:", {
+    console.log("ðŸ” Sidebar - Checking visible hostels:", {
       role,
       canSeeAllHostels,
       canSeeHostels,
@@ -66,22 +66,22 @@ export default function Sidebar({
     });
 
     if (canSeeAllHostels) {
-      console.log("✅ Admin/Manager - showing all hostels:", hostelNames);
+      console.log("âœ… Admin/Manager - showing all hostels:", hostelNames);
       return hostelNames; // admin + manager (already sorted by initial)
     } else if (canSeeHostels && assignedHostel) {
-      // ✅ FIX: Don't check if hostel exists in data - just show it
+      // âœ… FIX: Don't check if hostel exists in data - just show it
       // The data will load, and if hostel doesn't exist, it will show empty
-      console.log("✅ Caretaker/Warden - showing assigned hostel:", assignedHostel);
+      console.log("âœ… Caretaker/Warden - showing assigned hostel:", assignedHostel);
       return [assignedHostel];
     }
     
-    console.warn("❌ No hostels visible - check permissions");
+    console.warn("âŒ No hostels visible - check permissions");
     return [];
   }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames, role]);
 
   // Warn if restricted role has no hostel
   if (isRestrictedRole && !assignedHostel) {
-    console.warn(`⚠️ ${role} has no assigned hostel`);
+    console.warn(`âš ï¸ ${role} has no assigned hostel`);
   }
 
   // Auto-select hostel (only for admins with single hostel)
@@ -101,13 +101,13 @@ export default function Sidebar({
     }
   }, [loading, visibleHostels, canSeeAllHostels, activeTab, setActiveHostel]);
 
-  // ✅ NAVIGATION HANDLER (closes mobile menu)
+  // âœ… NAVIGATION HANDLER (closes mobile menu)
   const handleNavigation = (callback) => {
     callback();
     setIsMobileOpen(false);
   };
 
-  // ✅ CLOSE MOBILE MENU ON OUTSIDE CLICK
+  // âœ… CLOSE MOBILE MENU ON OUTSIDE CLICK
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (isMobileOpen && !e.target.closest('.mobile-sidebar') && !e.target.closest('.mobile-menu-button')) {
@@ -119,7 +119,7 @@ export default function Sidebar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileOpen]);
 
-  // ✅ SIDEBAR CONTENT (reusable for desktop & mobile)
+  // âœ… SIDEBAR CONTENT (reusable for desktop & mobile)
   const SidebarContent = ({ isMobile = false }) => (
     <>
       {/* LOGO */}
@@ -142,7 +142,7 @@ export default function Sidebar({
           isEnquiry ? "pointer-events-none opacity-60" : ""
         }`}
       >
-        {/* ✅ ALL HOSTELS BUTTON (Admin + Manager only) */}
+        {/* âœ… ALL HOSTELS BUTTON (Admin + Manager only) */}
         {canSeeAllHostels && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
@@ -167,7 +167,7 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ HOSTEL LIST (All roles see their visible hostels) */}
+        {/* âœ… HOSTEL LIST (All roles see their visible hostels) */}
         {visibleHostels.map((hostelName) => {
           const isActive = activeHostel === hostelName;
 
@@ -201,13 +201,13 @@ export default function Sidebar({
           );
         })}
 
-        {/* ✅ DEFAULTERS BUTTON (Admin, Manager, Caretaker, Warden) */}
+        {/* âœ… DEFAULTERS BUTTON (Admin, Manager, Caretaker, Warden) */}
         {['admin', 'manager', 'caretaker', 'warden'].includes(role) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={() => handleNavigation(() => {
-              console.log("🔴 Defaulters clicked");
+              console.log("ðŸ”´ Defaulters clicked");
               setActiveTab("Defaulters");
               setActiveHostel(null);
               setActiveRoomRef(null);
@@ -229,13 +229,13 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ DEPARTMENT PAYMENTS BUTTON (Admin, Manager, Caretaker, Warden) */}
+        {/* âœ… DEPARTMENT PAYMENTS BUTTON (Admin, Manager, Caretaker, Warden) */}
         {['admin', 'manager', 'caretaker', 'warden'].includes(role) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
             onClick={() => handleNavigation(() => {
-              console.log("🏢 Department Payments clicked");
+              console.log("ðŸ¢ Department Payments clicked");
               setActiveTab("DepartmentPayments");
               setActiveHostel(null);
               setActiveRoomRef(null);
@@ -257,13 +257,13 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ FEEDBACK BUTTON (All roles) */}
+        {/* âœ… FEEDBACK BUTTON (All roles) */}
         <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}
           whileTap={!isEnquiry ? { scale: 0.98 } : {}}
           onClick={(e) => handleNavigation(() => {
             e.stopPropagation();
-            console.log("⭐ Feedback clicked");
+            console.log("â­ Feedback clicked");
             setActiveTab("Feedback");
             setActiveHostel(null);
             setActiveRoomRef(null);
@@ -283,33 +283,6 @@ export default function Sidebar({
             Guest Feedback
           </span>
         </motion.button>
-
-        {/* ✅ BOOKINGS BUTTON (All roles) */}
-        <motion.button
-          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
-          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
-          onClick={(e) => handleNavigation(() => {
-            e.stopPropagation();
-            console.log("📋 Bookings clicked");
-            setActiveTab("Bookings");
-            setActiveHostel(null);
-            setActiveRoomRef(null);
-          })}
-          className={`
-            relative group w-full text-left px-3 py-2 rounded-xl border
-            bg-white/30 backdrop-blur-xl flex items-center gap-3
-            ${
-              activeTab === "Bookings"
-                ? "border-red-500 shadow-md"
-                : "border-transparent hover:bg-white/80"
-            }
-          `}
-        >
-          <FileText className="w-4 h-4 text-slate-600" />
-          <span className={`text-sm ${activeTab === "Bookings" ? "font-semibold" : ""}`}>
-            All Bookings
-          </span>
-        </motion.button>
       </nav>
 
       {/* FOOTER */}
@@ -321,7 +294,7 @@ export default function Sidebar({
 
   return (
     <>
-      {/* ✅ MOBILE MENU BUTTON */}
+      {/* âœ… MOBILE MENU BUTTON */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         className="mobile-menu-button fixed top-4 left-4 z-50 lg:hidden p-2 bg-white rounded-lg shadow-lg border border-red-300 hover:bg-red-50 transition"
@@ -333,7 +306,7 @@ export default function Sidebar({
         )}
       </button>
 
-      {/* ✅ DESKTOP SIDEBAR */}
+      {/* âœ… DESKTOP SIDEBAR */}
       <motion.aside
         initial={{ x: -250, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -349,7 +322,7 @@ export default function Sidebar({
         <SidebarContent />
       </motion.aside>
 
-      {/* ✅ MOBILE SIDEBAR */}
+      {/* âœ… MOBILE SIDEBAR */}
       <AnimatePresence>
         {isMobileOpen && (
           <>
@@ -383,7 +356,7 @@ export default function Sidebar({
         )}
       </AnimatePresence>
 
-      {/* ✅ MODALS */}
+      {/* âœ… MODALS */}
       {blockRoomModal && (
         <BlockRoomModal
           hostelName={blockRoomModal.hostelName}
