@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle, Star, X, Menu, Building2 } from "lucide-react";
+import { AlertCircle, Star, X, Menu, Building2, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
@@ -281,6 +281,33 @@ export default function Sidebar({
           <Star className="w-4 h-4 text-slate-600" />
           <span className={`text-sm ${activeTab === "Feedback" ? "font-semibold" : ""}`}>
             Guest Feedback
+          </span>
+        </motion.button>
+
+        {/* ✅ BOOKINGS BUTTON (All roles) */}
+        <motion.button
+          whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+          whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+          onClick={(e) => handleNavigation(() => {
+            e.stopPropagation();
+            console.log("📋 Bookings clicked");
+            setActiveTab("Bookings");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          })}
+          className={`
+            relative group w-full text-left px-3 py-2 rounded-xl border
+            bg-white/30 backdrop-blur-xl flex items-center gap-3
+            ${
+              activeTab === "Bookings"
+                ? "border-red-500 shadow-md"
+                : "border-transparent hover:bg-white/80"
+            }
+          `}
+        >
+          <FileText className="w-4 h-4 text-slate-600" />
+          <span className={`text-sm ${activeTab === "Bookings" ? "font-semibold" : ""}`}>
+            All Bookings
           </span>
         </motion.button>
       </nav>
