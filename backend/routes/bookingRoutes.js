@@ -28,9 +28,11 @@ import {
   updatePaymentDetails,
   getBookingHistory,
   checkOutGuest,
-  updateBookingDetails
+  updateBookingDetails,
+  getAllBookings
 } from "../controllers/bookingController.js";
 
+router.get("/all", protect, getAllBookings);
 router.get("/history", protect, getBookingHistory);
 router.put("/:id/details", protect, updateBookingDetails);
 router.get("/download/csv", protect, downloadBookingsCSV);  
@@ -1024,7 +1026,5 @@ router.patch(
     }
   }
 );
-
-router.get("/list", protect, getAllBookingsFlat);
 
 export default router;
