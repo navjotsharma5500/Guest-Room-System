@@ -17,7 +17,6 @@ import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
 import DepartmentPaymentsPending from "./pages/DepartmentPaymentsPending";
-import BookingsPage from "./pages/BookingsPage";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -804,7 +803,7 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"));
                     setMobileMenuOpen(false); // Close menu after selection
                   }}
                   setActiveRoomRef={setActiveRoomRef}
@@ -837,7 +836,7 @@ export default function GuestRoomDashboard() {
                     setActiveHostel(hostel);
 
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
@@ -987,10 +986,6 @@ export default function GuestRoomDashboard() {
                 currentUser={currentUser}
                 theme={theme}
               />
-            )}
-
-            {activeTab === "Bookings" && (
-              <BookingsPage />
             )}
           </main>   
         </div>
