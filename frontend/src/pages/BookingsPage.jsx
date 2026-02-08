@@ -26,8 +26,9 @@ import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../utils/checkPermission";
 import axios from "axios";
 import { format } from "date-fns";
+import { BACKEND_URL } from '../utils/apiConfig';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = BACKEND_URL;
 
 export default function BookingsPage() {
   const { currentUser } = useAuth();
@@ -61,7 +62,7 @@ export default function BookingsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/bookings/all`, {
+      const response = await axios.get(`${API}/api/bookings/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBookings(response.data.bookings || []);
