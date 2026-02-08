@@ -66,7 +66,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
         const token = localStorage.getItem("token");
 
         const response = await axios.get(
-        `${BACKEND_URL}/api/v1/bookings/list`,
+        `${BACKEND_URL}/api/bookings/list`,
         {
             headers: { Authorization: `Bearer ${token}` },
         }
@@ -74,13 +74,14 @@ export default function BookingsPage({ onBack, theme = "light" }) {
 
         setBookings(response.data.bookings || []);
         setError(null);
+
     } catch (err) {
         console.error("Error fetching bookings:", err);
         setError(err.response?.data?.message || "Failed to fetch bookings");
     } finally {
         setLoading(false);
     }
-    };
+ };
 
   // ✅ FIXED: Filter bookings by specific tab status
   const getFilteredBookingsByStatus = (bookingsArray, tabId) => {

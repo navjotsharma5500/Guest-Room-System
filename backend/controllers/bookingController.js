@@ -1608,3 +1608,40 @@ export const autoCheckoutOverdueGuests = async () => {
     };
   }
 };
+
+// GET ALL BOOKINGS (FLAT) – For Bookings Page ONLY
+export const getAllBookingsFlat = async (req, res) => {
+  try {
+    const userRole = req.user?.role;
+    const assignedHostel = req.user?.assignedHostel || req.user?.hostel;
+
+    let query = {};
+
+    if (["caretaker", "warden"].includes(userRole)) {
+      if (!assignedHostel) {
+        return res.status(403).json({
+          success: false,
+          message: "No hostel assigned"
+        });
+      }
+      query.hostel = assignedHostel;
+    }
+
+    const bookings = await Booking.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      bookings
+    });
+
+  } catch (error) {
+    console.error("❌ getAllBookingsFlat error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings"
+    });
+  }
+};
+
