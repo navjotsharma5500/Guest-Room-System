@@ -1025,4 +1025,6 @@ router.patch(
   }
 );
 
+router.get("/list", protect, getAllBookingsFlat);
+
 export default router;
