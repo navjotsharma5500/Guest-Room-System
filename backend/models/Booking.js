@@ -56,7 +56,7 @@ const BookingSchema = new mongoose.Schema(
     state: { type: String, default: "" },
     reference: { type: String, default: "" },
 
-    // Ã°Å¸â€ â€¢ NEW PAYMENT STRUCTURE
+    //NEW PAYMENT STRUCTURE
     paymentType: {
       type: String,
       enum: ["Paid", "Free"],
@@ -167,7 +167,7 @@ const BookingSchema = new mongoose.Schema(
       default: [],
     },
 
-    // Ã¢Å“â€¦ NEW: Extension Payment Fields
+    //NEW: Extension Payment Fields
     extensionPaymentType: {
       type: String,
       enum: ["Paid", "Free", ""],
@@ -239,12 +239,12 @@ const BookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Ã°Å¸â€Â¥ CRITICAL: Add virtual for real-time balance
+//CRITICAL: Add virtual for real-time balance
 BookingSchema.virtual('currentBalance').get(function() {
   return this.totalAmount - this.paidAmount;
 });
 
-// Ã°Å¸â€ â€¢ Virtual field for total wave off (discount)
+//Virtual field for total wave off (discount)
 BookingSchema.virtual('waveOff').get(function() {
   return this.discount || 0;
 });

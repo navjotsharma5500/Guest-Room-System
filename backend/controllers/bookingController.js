@@ -1396,10 +1396,19 @@ export const autoCheckoutOverdueGuests = async () => {
     const checkedOutBookings = []; // ✅ Array to collect checked-out bookings for socket emission
 
     for (const booking of overdueBookings) {
-      // Calculate exact checkout datetime
-      const checkoutDateTime = new Date(booking.to);
+      // ✅ FIX: Use extension date if exists, otherwise use original checkout date
+      const finalCheckoutDate = booking.extensionDate || booking.to;
+      const checkoutDateTime = new Date(finalCheckoutDate);
       const [hours, minutes] = (booking.checkOutTime || "12:00").split(":");
       checkoutDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // ✅ Add debug logging to track each evaluation
+      console.log(`📅 Evaluating: ${booking.guest} (${booking.hostel} - Room ${booking.roomNo})`);
+      console.log(`   Original checkout: ${booking.to}`);
+      console.log(`   Extension date: ${booking.extensionDate || 'None'}`);
+      console.log(`   Final checkout: ${checkoutDateTime.toISOString()}`);
+      console.log(`   Current time: ${now.toISOString()}`);
+      console.log(`   Should checkout: ${checkoutDateTime < now ? 'YES ✅' : 'NO ❌'}`);
 
       // Check if checkout time has passed
       if (checkoutDateTime < now) {
