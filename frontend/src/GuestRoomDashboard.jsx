@@ -32,7 +32,6 @@ import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
 
 import { BACKEND_URL } from "./utils/apiConfig";
-import Booking from "../../backend/models/Booking.js";
 
 const API = BACKEND_URL;
 
