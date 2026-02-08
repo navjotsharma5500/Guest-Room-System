@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Info, Save, X } from "lucide-react";
+import { Info, Save, X, Building2, Receipt } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import GuestHistory from "./GuestHistory";
 import ReportedModal from "./ReportedModal";
