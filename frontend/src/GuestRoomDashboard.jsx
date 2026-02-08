@@ -17,6 +17,7 @@ import FeedbackPage from "./pages/FeedbackPage";
 import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
 import DepartmentPaymentsPending from "./pages/DepartmentPaymentsPending";
+import BookingsPage from "./pages/BookingsPage";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -986,6 +987,10 @@ export default function GuestRoomDashboard() {
                 currentUser={currentUser}
                 theme={theme}
               />
+            )}
+
+            {activeTab === "Bookings" && (
+              <BookingsPage />
             )}
           </main>   
         </div>
