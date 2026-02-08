@@ -191,22 +191,6 @@ export default function Sidebar({
           <span className="text-sm font-semibold">Defaulters</span>
         </motion.button>
 
-        {/* ✅ DEFAULTERS BUTTON */}
-        <motion.button
-          onClick={() => {
-            console.log("🔴 Defaulters clicked");
-            setActiveTab("Defaulters");
-            setActiveHostel(null);
-            setActiveRoomRef(null);
-          }}
-          className="relative group w-full text-left px-3 py-2 rounded-xl
-                    border bg-gradient-to-r from-red-500 to-red-600 text-white
-                    flex items-center gap-3 shadow-lg"
-        >
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm font-semibold">Defaulters</span>
-        </motion.button>
-
         {/* ✅ DEPARTMENT PAYMENTS BUTTON */}
         <motion.button
           onClick={() => {

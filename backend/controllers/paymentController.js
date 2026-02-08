@@ -104,6 +104,10 @@ const uploadPDFToImageKit = async (pdfBuffer, fileName, folder = 'billpdf') => {
 // 🔥 PROCESS PAYMENT (FULL OR PARTIAL) - COMPLETE FIX
 export const processPayment = async (req, res) => {
   try {
+     console.log("🔥 processPayment called");
+     console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
+     console.log("🎯 Booking ID:", req.params.id);
+     console.log("👤 User:", req.user?.email || "No user");
     const { id } = req.params;
     const {
       paymentType,

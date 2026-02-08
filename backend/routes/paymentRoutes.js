@@ -2,6 +2,7 @@
 // REPLACE the entire file with this:
 
 import express from "express";
+import Booking from "../models/Booking.js";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   processPayment,
