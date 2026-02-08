@@ -28,11 +28,9 @@ import {
   updatePaymentDetails,
   getBookingHistory,
   checkOutGuest,
-  updateBookingDetails,
-  getAllBookings
+  updateBookingDetails
 } from "../controllers/bookingController.js";
 
-router.get("/all", protect, getAllBookings);
 router.get("/history", protect, getBookingHistory);
 router.put("/:id/details", protect, updateBookingDetails);
 router.get("/download/csv", protect, downloadBookingsCSV);  
