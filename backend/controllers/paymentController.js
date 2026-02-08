@@ -104,10 +104,11 @@ const uploadPDFToImageKit = async (pdfBuffer, fileName, folder = 'billpdf') => {
 // 🔥 PROCESS PAYMENT (FULL OR PARTIAL) - COMPLETE FIX
 export const processPayment = async (req, res) => {
   try {
-     console.log("🔥 processPayment called");
-     console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
-     console.log("🎯 Booking ID:", req.params.id);
-     console.log("👤 User:", req.user?.email || "No user");
+    console.log("🔥 processPayment called");
+    console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
+    console.log("🎯 Booking ID:", req.params.id);
+    console.log("👤 User:", req.user?.email || "No user");
+    
     const { id } = req.params;
     const {
       paymentType,
@@ -131,15 +132,6 @@ export const processPayment = async (req, res) => {
 
     const booking = await Booking.findById(id).select('+discount +balanceAmount');
 
-    // 🔍 DEBUG: Log the actual booking data
-    console.log("📋 BOOKING DATA FROM DB:", {
-      _id: booking._id,
-      totalAmount: booking.totalAmount,
-      paidAmount: booking.paidAmount,
-      discount: booking.discount,
-      balanceAmount: booking.balanceAmount,
-      waveOff: booking.waveOff
-    });
     if (!booking) {
       return res.status(404).json({ 
         success: false, 
@@ -147,75 +139,92 @@ export const processPayment = async (req, res) => {
       });
     }
 
+    // 🔍 DEBUG: Log the actual booking data
+    console.log("📋 BOOKING DATA FROM DB:", {
+      _id: booking._id,
+      totalAmount: booking.totalAmount,
+      paidAmount: booking.paidAmount,
+      discount: booking.discount,
+      balanceAmount: booking.balanceAmount
+    });
+
     const isFreeBedding = booking.paymentType === "Free";
     
     if (isFreeBedding) {
-      // ... free booking logic (unchanged) ...
+      booking.paymentRemarks = paymentRemarks || "Free booking";
+      await booking.save();
+      
+      return res.json({
+        success: true,
+        message: "✅ Free booking details updated",
+        booking
+      });
     }
 
-    // ✅ FOR PAID BOOKINGS - CORRECT CALCULATION
-    const previousDiscount = Number(booking.discount) || 0;
-    const originalBalance = Number(booking.totalAmount) - Number(booking.paidAmount);
-    const discountAmount = Number(discount) || 0;
-    const currentBalance = originalBalance - previousDiscount - discountAmount;
+    // ✅ SAFE NUMBER CONVERSION
+    const safeTotalAmount = Number(booking.totalAmount) || 0;
+    const safePreviousPaid = Number(booking.paidAmount) || 0;
+    const safePreviousDiscount = Number(booking.discount) || 0;
+    const safeNewPayment = Number(amountPaid) || 0;
+    const safeNewDiscount = Number(discount) || 0;
 
-    // 🔍 DEBUG LOG
-    console.log("💰 Balance Calculation Debug:", {
-      totalAmount: booking.totalAmount,
-      paidAmount: booking.paidAmount,
-      "booking.discount (raw)": booking.discount,
-      "previousDiscount (converted)": previousDiscount,
-      originalBalance,
-      newDiscount: discountAmount,
-      currentBalance,
-      "Should be": booking.totalAmount - booking.paidAmount - (booking.discount || 0)
+    // ✅ CALCULATE BALANCES SAFELY
+    const balanceBeforeThisPayment = safeTotalAmount - safePreviousPaid - safePreviousDiscount;
+    const totalNewDiscount = safePreviousDiscount + safeNewDiscount;
+    const totalNewPaid = safePreviousPaid + safeNewPayment;
+    const balanceAfterThisPayment = safeTotalAmount - totalNewPaid - totalNewDiscount;
+
+    console.log("💰 Payment Calculation:", {
+      totalAmount: safeTotalAmount,
+      previouslyPaid: safePreviousPaid,
+      previousDiscount: safePreviousDiscount,
+      newPayment: safeNewPayment,
+      newDiscount: safeNewDiscount,
+      balanceBeforePayment: balanceBeforeThisPayment,
+      balanceAfterPayment: balanceAfterThisPayment
     });
 
-    // Validation
-    if (originalBalance <= 0) {
+    // ✅ VALIDATION
+    if (balanceBeforeThisPayment <= 0) {
       return res.status(400).json({
         success: false,
         message: "Booking is already fully paid"
       });
     }
 
-    // ✅ SKIP validation for DEPARTMENT_PAY_LATER
-    if (amountPaid <= 0) {
+    if (safeNewPayment <= 0) {
       return res.status(400).json({
         success: false,
         message: "Payment amount must be greater than zero"
       });
     }
 
-    if (amountPaid > currentBalance) {
+    if (safeNewPayment > balanceBeforeThisPayment) {
       return res.status(400).json({
         success: false,
-        message: `Payment amount (₹${amountPaid}) exceeds balance after discount (₹${currentBalance.toFixed(2)})`
+        message: `Payment amount (₹${safeNewPayment}) exceeds current balance (₹${balanceBeforeThisPayment.toFixed(2)})`
       });
     }
 
-    // ✅ FIXED: Full payment validation
-    if (paymentType === "FULL" && Math.abs(amountPaid - currentBalance) > 0.01) {
+    // ✅ FULL PAYMENT VALIDATION
+    if (paymentType === "FULL" && Math.abs(safeNewPayment - balanceBeforeThisPayment) > 0.01) {
       return res.status(400).json({
         success: false,
-        message: `Full payment requires exact balance amount after discount: ₹${currentBalance.toFixed(2)}`  // ✅ Use currentBalance
+        message: `Full payment requires exact balance amount: ₹${balanceBeforeThisPayment.toFixed(2)}`
       });
     }
 
-    // ✅ NORMAL PAYMENT PROCESSING (for when department actually pays or regular payments)
-    if (amountPaid > 0) {
-      // Process payment normally
-      booking.paidAmount = (booking.paidAmount || 0) + Number(amountPaid || 0);
-      booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - (booking.discount || 0));
-      
-      if (booking.balanceAmount === 0) {
-        booking.paymentStatus = "PAID";
-      } else if (booking.paidAmount > 0) {
-        booking.paymentStatus = "PARTIALLY_PAID";
-      }
+    // ✅ NaN PROTECTION FOR BILL
+    if (isNaN(balanceBeforeThisPayment) || isNaN(balanceAfterThisPayment)) {
+      throw new Error("Invalid payment calculation - NaN detected");
     }
 
-    // CREATE BILL
+    // ✅ VALIDATE THAT BALANCE AFTER PAYMENT IS NOT NEGATIVE
+    if (balanceAfterThisPayment < -0.01) {
+      throw new Error(`Invalid calculation: balance would be negative (${balanceAfterThisPayment})`);
+    }
+
+    // ✅ CREATE BILL
     const billNumber = await generateBillNumber();
     
     const bill = await Bill.create({
@@ -223,24 +232,21 @@ export const processPayment = async (req, res) => {
       guestName: booking.guest,
       guestEmail: booking.email,
       guestContact: booking.contact,
-      department: booking.department,
-      rollno: booking.rollno,
+      department: booking.department || "",
+      rollno: booking.rollno || "",
       hostel: booking.hostel,
       roomNo: booking.roomNo,
       billNumber,
-      amountPaid,
+      amountPaid: safeNewPayment,
       paymentType,
       paymentMethod,
-      transactionId,
-      
-      // ✅ CRITICAL: Store correct balance
-      balanceBeforePayment: originalBalance,
-      balanceAfterPayment: currentBalance - amountPaid,  // ✅ Use currentBalance
-      
-      discountPercent: discountPercent || 0,
-      discountAmount: discountAmount,
+      transactionId: transactionId || "",
+      balanceBeforePayment: Math.max(0, balanceBeforeThisPayment),
+      balanceAfterPayment: Math.max(0, balanceAfterThisPayment),
+      discountPercent: Number(discountPercent) || 0,
+      discountAmount: safeNewDiscount,
       paymentProof: paymentAttachments || [],
-      remarks: paymentRemarks,
+      remarks: paymentRemarks || "",
       createdBy: req.user._id
     });
 
@@ -263,7 +269,6 @@ export const processPayment = async (req, res) => {
 
       console.log("📤 Uploading PDF to ImageKit...");
 
-      // ✅ UPLOAD TO IMAGEKIT
       const uploadResponse = await uploadPDFToImageKit(
         pdfBuffer, 
         `${bill.billNumber}.pdf`,
@@ -275,7 +280,6 @@ export const processPayment = async (req, res) => {
         console.log("✅ PDF uploaded to ImageKit:", uploadResponse.url);
       } else {
         console.error("❌ ImageKit upload failed:", uploadResponse.error);
-        // Fallback: Save locally if ImageKit fails
         const pdfPath = path.join(BILLS_DIR, `${bill.billNumber}.pdf`);
         fs.writeFileSync(pdfPath, pdfBuffer);
         bill.pdfUrl = `/api/payments/bills/${bill._id}/pdf`;
@@ -288,23 +292,21 @@ export const processPayment = async (req, res) => {
       console.error("❌ PDF generation/upload failed:", pdfErr);
     }
 
-    // ✅ UPDATE BOOKING - CRITICAL FIX
-    booking.paidAmount += amountPaid;
+    // ✅ UPDATE BOOKING (CRITICAL - DO THIS ONLY ONCE!)
+    booking.paidAmount = totalNewPaid;
+    booking.discount = totalNewDiscount;
+    booking.balanceAmount = Math.max(0, balanceAfterThisPayment);
     
-    // ✅ ACCUMULATE DISCOUNT (add to existing discount)
-    booking.discount = (booking.discount || 0) + discountAmount;
-    
-    // ✅ Calculate new balance
-    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - booking.discount);
-    
-    // Update status
+    // ✅ UNIVERSAL BALANCE CHECK - Use balanceAmount > 0, not paymentStatus
     if (booking.balanceAmount === 0) {
       booking.paymentStatus = "PAID";
     } else if (booking.paidAmount > 0) {
       booking.paymentStatus = "PARTIALLY_PAID";
+    } else {
+      booking.paymentStatus = "UNPAID";
     }
 
-    //Update payment transaction details
+    // Update payment transaction details
     booking.paymentMode = paymentMethod || booking.paymentMode;
     booking.transactionId = transactionId || booking.transactionId;
     booking.transactionDate = transactionDate ? new Date(transactionDate) : booking.transactionDate;
@@ -320,33 +322,31 @@ export const processPayment = async (req, res) => {
 
     await booking.save();
 
-    console.log("✅ Booking updated with transaction details:", {
+    console.log("✅ Booking updated:", {
       paidAmount: booking.paidAmount,
       discount: booking.discount,
       balanceAmount: booking.balanceAmount,
-      paymentStatus: booking.paymentStatus,
-      paymentMode: booking.paymentMode,
-      transactionId: booking.transactionId,
-      transactionDate: booking.transactionDate,
+      paymentStatus: booking.paymentStatus
     });
 
-    // Socket.IO
+    // ✅ Socket.IO - Emit payment-updated event
     const io = req.app.get('io');
     if (io) {
-      io.to('dashboard-room').emit('payment-processed', {
+      io.to('dashboard-room').emit('payment-updated', {
         bookingId: booking._id,
         billId: bill._id,
-        amountPaid,
+        amountPaid: safeNewPayment,
         newBalance: booking.balanceAmount,
         timestamp: Date.now()
       });
+      console.log('📡 Emitted payment-updated event');
     }
 
     res.json({
       success: true,
       message: paymentType === "FULL" 
         ? "✅ Full payment received successfully" 
-        : `✅ Partial payment of ₹${amountPaid} received`,
+        : `✅ Partial payment of ₹${safeNewPayment} received`,
       booking,
       bill,
       remainingBalance: booking.balanceAmount
@@ -354,6 +354,7 @@ export const processPayment = async (req, res) => {
 
   } catch (err) {
     console.error("❌ Payment processing error:", err);
+    console.error("Stack:", err.stack);
     res.status(500).json({
       success: false,
       message: "Payment processing failed",
