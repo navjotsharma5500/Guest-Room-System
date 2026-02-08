@@ -221,6 +221,9 @@ router.put("/:id/mark-paid", protect, async (req, res) => {
   }
 });
 
+// For BookingsPage - returns ALL bookings
+router.get("/all-bookings", protect, getAllBookings);
+
 // =============================================================
 // GET ALL BOOKINGS – ACTIVE ONLY (DASHBOARD)
 // =============================================================
