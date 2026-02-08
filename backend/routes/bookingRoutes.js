@@ -28,11 +28,9 @@ import {
   updatePaymentDetails,
   getBookingHistory,
   checkOutGuest,
-  updateBookingDetails,
-  getAllBookings
+  updateBookingDetails
 } from "../controllers/bookingController.js";
 
-router.get("/all", protect, getAllBookings);
 router.get("/history", protect, getBookingHistory);
 router.put("/:id/details", protect, updateBookingDetails);
 router.get("/download/csv", protect, downloadBookingsCSV);  
@@ -221,43 +219,30 @@ router.put("/:id/mark-paid", protect, async (req, res) => {
   }
 });
 
-// For BookingsPage - returns ALL bookings
-router.get("/all-bookings", protect, getAllBookings);
-
 // =============================================================
 // GET ALL BOOKINGS – ACTIVE ONLY (DASHBOARD)
 // =============================================================
 router.get("/all", protect, async (req, res) => {
   try {
-    console.log("📡 Fetching ALL bookings (legacy compatible)");
+    console.log("📡 Fetching ACTIVE bookings only for dashboard...");
 
-    const bookings = await Booking.find({})
-      .sort({ createdAt: -1 })
-      .lean();
-
-    res.json({
-      success: true,
-      bookings, // ✅ FLAT ARRAY (CRITICAL)
-    });
-
-  } catch (err) {
-    console.error("❌ Get all bookings error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch bookings",
-    });
-  }
-});
-
-router.get("/grouped", protect, async (req, res) => {
-  try {
+    // ✅ CRITICAL FIX: Only fetch ACTIVE bookings
+    // Active = booked (not yet arrived) OR checked_in (currently staying)
     const all = await Booking.find({
-      status: { $in: ["booked", "checked_in"] }
+      status: { $in: ["booked", "checked_in"] } // ✅ ONLY these two statuses
     }).lean();
+
+    console.log(`📊 Found ${all.length} ACTIVE bookings (excluding checked_out, cancelled, no_show)`);
 
     const hostels = {};
 
     all.forEach((b) => {
+      // Additional safety check: skip if reportedStatus indicates inactive
+      if (b.reportedStatus === "not_reported" && b.status === "no_show") {
+        console.log(`⏭️ Skipping no-show booking: ${b.guest}`);
+        return; // Skip this booking
+      }
+
       if (!hostels[b.hostel]) {
         hostels[b.hostel] = { name: b.hostel, rooms: [] };
       }
@@ -271,8 +256,10 @@ router.get("/grouped", protect, async (req, res) => {
         hostels[b.hostel].rooms.push(room);
       }
 
-      room.bookings.push(b);
+      room.bookings.push(normalizeBooking(b));
     });
+
+    console.log("✅ Active bookings grouped by hostel/room");
 
     res.json({
       success: true,
@@ -280,10 +267,10 @@ router.get("/grouped", protect, async (req, res) => {
     });
 
   } catch (err) {
+    console.error("❌ Get bookings error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 
 // =============================================================
 // GET ALL BOOKINGS – INCLUDING CANCELLED (DOWNLOAD)
