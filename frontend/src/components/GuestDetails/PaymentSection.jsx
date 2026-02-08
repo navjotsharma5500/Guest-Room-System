@@ -46,18 +46,16 @@ export default function PaymentSection({ b, theme, onPay }) {
           </p>
 
           {/* Make Payment Button - Only for non-department regular payments */}
-          {!isDepartmentPayment &&
-            Number(b.totalAmount || b.amount || 0) > 0 &&
-            (b.paymentStatus ?? "UNPAID") !== "PAID" && (
-              <button
-                onClick={onPay}
-                className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
-                          hover:bg-green-700 transition font-medium flex items-center gap-2"
-              >
-                <Receipt size={16} />
-                Make Payment
-              </button>
-            )}
+          {!isDepartmentPayment && Number(b.balanceAmount || 0) > 0 && (
+            <button
+              onClick={onPay}
+              className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
+                        hover:bg-green-700 transition font-medium flex items-center gap-2"
+            >
+              <Receipt size={16} />
+              Make Payment
+            </button>
+          )}
 
           {/* Payment Status Badge */}
           {b.paymentStatus && (
@@ -155,7 +153,7 @@ export default function PaymentSection({ b, theme, onPay }) {
         {/* ========================================
             REGULAR PAYMENT BREAKDOWN (Non-Department)
         ======================================== */}
-        {!isDepartmentPayment && b.paymentStatus !== "PAID" && b.totalAmount > 0 && (
+        {!isDepartmentPayment && Number(b.balanceAmount || 0) > 0 && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
@@ -185,7 +183,7 @@ export default function PaymentSection({ b, theme, onPay }) {
         {/* ========================================
             FULLY PAID INDICATOR
         ======================================== */}
-        {b.paymentStatus === "PAID" && (
+        {Number(b.balanceAmount || 0) === 0 && (
           <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500 rounded-full">
