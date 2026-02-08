@@ -304,7 +304,6 @@ app.use('/hall-bookings', hallBookingRoutes);
 app.use('/api/hall-bookings', hallBookingRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/bookings', bookingRoutes);
-app.use("/api/v1/booking-list", bookingListRoutes);
 app.use('/api/unified-bookings', unifiedBookingRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
