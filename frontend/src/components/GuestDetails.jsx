@@ -197,31 +197,25 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       
       if (bookingId === currentBookingId) {
         console.log("📡 Current booking extended - refreshing...");
-        // Trigger a re-fetch
-        if (activeRoomRef?.booking) {
-          const b = activeRoomRef.booking;
-          const bookingId = b?._id || b?.id || null;
-          const hasValidMongoId = typeof bookingId === "string" && !bookingId.startsWith("b_");
-          
-          if (hasValidMongoId) {
-            const authToken = token || localStorage.getItem("token");
-            const headers = { "Content-Type": "application/json" };
-            if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-            
-            fetch(`${API}/api/bookings/${bookingId}`, { 
-              method: "GET", 
-              credentials: "include", 
-              headers 
-            })
-              .then(res => res.json())
-              .then(data => {
-                if (data.success && data.booking) {
-                  setBooking(normalizeBooking(data.booking));
-                }
-              })
-              .catch(err => console.error("Failed to refresh booking:", err));
-          }
-        }
+        
+        // ✅ FORCE REFRESH FROM API
+        const authToken = token || localStorage.getItem("token");
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        
+        fetch(`${API}/api/bookings/${bookingId}`, { 
+          method: "GET", 
+          credentials: "include", 
+          headers 
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.booking) {
+              console.log("✅ Booking refreshed after extension:", data.booking);
+              setBooking(normalizeBooking(data.booking));
+            }
+          })
+          .catch(err => console.error("Failed to refresh booking:", err));
       }
     };
 
