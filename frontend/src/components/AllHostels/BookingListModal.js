@@ -1,4 +1,4 @@
-// BookingListModal.js - COMPLETE FIXED VERSION
+// BookingListModal.jsx - COMPLETE FIXED VERSION
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Calendar, CalendarDays, Clock, CheckCircle2, User2 } from "lucide-react";
@@ -10,9 +10,9 @@ export default function BookingListModal({
   onSelectBooking,
   onAddNewBooking,
 }) {
-  // Ã¢Å“â€¦ CRITICAL FIX: Safe navigation
+  // ✅ CRITICAL FIX: Safe navigation
   if (!modal || !modal.bookings) {
-    console.error("Ã¢ÂÅ’ BookingListModal: Invalid modal data", modal);
+    console.error("❌ BookingListModal: Invalid modal data", modal);
     return null;
   }
 
@@ -34,7 +34,7 @@ export default function BookingListModal({
 
   // Format date and time like RoomCard
   const formatDateTime = (dateString, timeString) => {
-    if (!dateString) return "Ã¢â‚¬â€";
+    if (!dateString) return "—";
 
     try {
       let dateObj;
@@ -73,11 +73,11 @@ export default function BookingListModal({
   };
 
   const handleSelectBooking = (booking) => {
-    console.log("Ã¢Å“â€¦ Booking selected:", booking);
+    console.log("✅ Booking selected:", booking);
     if (onSelectBooking && typeof onSelectBooking === 'function') {
       onSelectBooking(booking);
     } else {
-      console.error("Ã¢ÂÅ’ onSelectBooking is not a function");
+      console.error("❌ onSelectBooking is not a function");
     }
   };
 

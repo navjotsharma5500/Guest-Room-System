@@ -1,11 +1,9 @@
-//CalendarGUestPage.jsx
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   ArrowLeft, Download, Filter, Search, Calendar,
   Users, Clock, FileText, XCircle, User, Phone, Mail, 
   Building2, CheckCircle, DollarSign, MapPin, X
 } from 'lucide-react';
-import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Guest Details Modal Component
@@ -362,13 +360,9 @@ export default function CalendarGuestsPage({
   theme = "light",
   currentUser
 }) {
-  const { showToast } = useToast();
   const user = currentUser;
   const role = user?.role || "caretaker";
   const userHostel = user?.assignedHostel || user?.hostel || null;
-
-  // ✅ NEW: Handle both caretaker and warden the same way
-  const isRestrictedRole = role === "caretaker" || role === "warden";
   
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [activeTab, setActiveTab] = useState('active');
@@ -400,9 +394,9 @@ export default function CalendarGuestsPage({
 
   // ✅ Auto-select caretaker's hostel on mount
   useEffect(() => {
-    if (isRestrictedRole && userHostel) {
+    if (role === "caretaker" && userHostel) {
       setSelectedHostel(userHostel);
-      console.log(`🔒 Auto-selected hostel for ${role}: ${userHostel}`);
+      console.log(`🔒 Auto-selected hostel for caretaker: ${userHostel}`);
     }
   }, [role, userHostel]);
 
@@ -415,13 +409,13 @@ export default function CalendarGuestsPage({
     const bookings = [];
     Object.entries(dataSource).forEach(([hostelName, hostel]) => {
       // ✅ CRITICAL FIX: Caretakers can ONLY see their assigned hostel
-      if (isRestrictedRole) {
+      if (role === "caretaker") {
         if (!userHostel) {
-          console.warn(`⚠️ ${role} has no assigned hostel`);
-          return;
+          console.warn("⚠️ Caretaker has no assigned hostel");
+          return; // Skip if no hostel assigned
         }
         if (hostelName !== userHostel) {
-          return;
+          return; // Skip other hostels
         }
       }
 
@@ -448,13 +442,13 @@ export default function CalendarGuestsPage({
     const hostelNames = Object.keys(hostelData);
     
     // ✅ Caretakers can ONLY see their assigned hostel
-    if (isRestrictedRole) {
+    if (role === "caretaker") {
       if (!userHostel) {
-        console.warn(`⚠️ ${role} has no assigned hostel`);
+        console.warn("⚠️ Caretaker has no assigned hostel");
         return [];
       }
-      console.log(`🔒 ${role} restricted to hostel: ${userHostel}`);
-      return [userHostel];
+      console.log(`🔒 Caretaker restricted to hostel: ${userHostel}`);
+      return [userHostel]; // Only their hostel, no "All Hostels" option
     }
     
     // Admin and Manager can see all hostels
@@ -559,14 +553,14 @@ export default function CalendarGuestsPage({
     });
   }, [allBookings, filterGuestsByDate, selectedHostel, searchQuery, role, userHostel]);
 
-  // Pagination logic - USE filteredByRole instead of filteredGuests
+  // Pagination logic
   const paginatedGuests = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredGuests.slice(startIndex, endIndex); // ✅ USE filteredGuests
+    return filteredGuests.slice(startIndex, endIndex);
   }, [filteredGuests, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage); // ✅ USE filteredGuests
+  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -574,7 +568,6 @@ export default function CalendarGuestsPage({
   }, [activeTab, selectedDate, selectedHostel, searchQuery]);
 
   const handleGuestClick = (guest) => {
-    console.log('🔍 Guest clicked:', guest);
     setSelectedGuest(guest);
     setShowGuestModal(true);
   };
@@ -582,7 +575,7 @@ export default function CalendarGuestsPage({
   const handleDownload = () => {
     // ✅ FIX: Only check if there's data WHEN download is clicked
     if (filteredGuests.length === 0) {
-      showToast("No data to download for the selected filters", "info");
+      alert("No data to download for the selected filters");
       return; // ✅ CRITICAL: Stop execution here
     }
 
@@ -624,15 +617,17 @@ export default function CalendarGuestsPage({
   };
 
   // ============================================================================
-  // ✅ FIXED: Tab counts with caretaker restrictions + role-based hall/guest filtering
+  // ✅ FIXED: Tab counts with caretaker restrictions - uses same logic as filterGuestsByDate
   // ============================================================================
   const getTabCount = (tabId) => {
     return allBookings.filter(g => {
       // ✅ Apply hostel filter with role-based logic
       let matchesHostel = true;
       if (role === "caretaker") {
+        // Caretakers can ONLY see their hostel
         matchesHostel = g.hostel === userHostel;
       } else {
+        // Admin/Manager can filter by selected hostel
         matchesHostel = selectedHostel === 'All Hostels' || g.hostel === selectedHostel;
       }
       
@@ -652,7 +647,9 @@ export default function CalendarGuestsPage({
       to.setHours(0,0,0,0);
       selected.setHours(0,0,0,0);
 
+      // ✅ ACTIVE TAB: Same logic as filterGuestsByDate
       if (tabId === 'active') {
+        // If checkout time has passed, don't count in active tab
         if (isCheckoutTimePassed(g)) {
           return false;
         }
@@ -662,20 +659,23 @@ export default function CalendarGuestsPage({
         return isWithinDateRange && isActiveStatus;
       }
 
+      // ✅ UPCOMING TAB: Same logic as filterGuestsByDate
       if (tabId === 'upcoming') {
         const isFutureBooking = from > selected;
         const isBookedStatus = g.status === 'booked' && g.reportedStatus !== 'not_reported';
         return isFutureBooking && isBookedStatus;
       }
 
+      // ✅ PAST TAB: Same logic as filterGuestsByDate
       if (tabId === 'past') {
+        // If checkout time has passed, count in past tab
         if (isCheckoutTimePassed(g)) {
           return true;
         }
         const isPastDate = to < selected;
         const isCompletedStatus = g.status === 'checked_out' || 
-                                g.status === 'no_show' ||
-                                g.reportedStatus === 'not_reported';
+                                 g.status === 'no_show' ||
+                                 g.reportedStatus === 'not_reported';
         return isPastDate || isCompletedStatus;
       }
 
@@ -688,18 +688,18 @@ export default function CalendarGuestsPage({
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleBack}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
               >
-                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                <ArrowLeft size={24} />
               </button>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Guest Management</h1>
-                <p className="text-red-100 mt-1 text-sm sm:text-base">
-                  <Calendar size={14} className="inline mr-1 sm:mr-2" />
+                <h1 className="text-3xl font-bold">Guest Management</h1>
+                <p className="text-red-100 mt-1">
+                  <Calendar size={16} className="inline mr-2" />
                   {formatDate(selectedDate)}
                 </p>
               </div>
@@ -707,11 +707,10 @@ export default function CalendarGuestsPage({
             
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-white text-red-600 px-3 py-2 sm:px-6 sm:py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg text-sm sm:text-base"
+              className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg"
             >
-              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Download Report</span>
-              <span className="sm:hidden">Download</span>
+              <Download size={20} />
+              Download Report
             </button>
           </div>
         </div>
@@ -720,7 +719,7 @@ export default function CalendarGuestsPage({
       {/* Filters Section */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Date Picker */}
             <div>
               <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
@@ -730,7 +729,7 @@ export default function CalendarGuestsPage({
                 type="date"
                 value={selectedDate.toISOString().split('T')[0]}
                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                className={`w-full border-2 rounded-lg px-3 py-2 text-sm sm:text-base focus:ring-2 focus:ring-red-200 transition ${
+                className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
                     : 'bg-white border-gray-300 focus:border-red-500'
@@ -742,17 +741,17 @@ export default function CalendarGuestsPage({
             <div>
               <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
                 <Filter size={16} className="inline mr-1" />
-                {isRestrictedRole ? "Your Hostel" : "Filter by Hostel"}
+                {role === "caretaker" ? "Your Hostel" : "Filter by Hostel"}
               </label>
               <select
                 value={selectedHostel}
                 onChange={(e) => setSelectedHostel(e.target.value)}
-                disabled={isRestrictedRole}
+                disabled={role === "caretaker"} // ✅ Disable for caretakers
                 className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
                     : 'bg-white border-gray-300 focus:border-red-500'
-                } ${isRestrictedRole ? 'opacity-75 cursor-not-allowed' : ''}`}
+                } ${role === "caretaker" ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
                 {hostels.length > 0 ? (
                   hostels.map(hostel => (
@@ -762,7 +761,7 @@ export default function CalendarGuestsPage({
                   <option>No hostel assigned</option>
                 )}
               </select>
-              {isRestrictedRole && (
+              {role === "caretaker" && (
                 <p className="text-xs text-gray-500 mt-1">
                   🔒 You can only view your assigned hostel
                 </p>
@@ -794,16 +793,7 @@ export default function CalendarGuestsPage({
       {/* Tabs */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className={`flex overflow-x-auto border-b ${theme === 'dark' ? 'border-gray-700' : ''} scrollbar-hide`}>
-            <style>{`
-              .scrollbar-hide::-webkit-scrollbar {
-                display: none;
-              }
-              .scrollbar-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-              }
-            `}</style>
+          <div className={`flex border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
             {[
               { id: 'active', label: 'Active Guests', icon: Users },
               { id: 'upcoming', label: 'Upcoming Guests', icon: Clock },
@@ -817,7 +807,7 @@ export default function CalendarGuestsPage({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 sm:py-4 font-semibold transition border-b-3 whitespace-nowrap text-sm sm:text-base ${
+                  className={`flex items-center gap-2 px-6 py-4 font-semibold transition border-b-3 ${
                     activeTab === tab.id
                       ? 'border-red-600 text-red-600 bg-red-50'
                       : theme === 'dark'
@@ -825,9 +815,8 @@ export default function CalendarGuestsPage({
                         : 'border-transparent text-gray-600 hover:text-red-600 hover:bg-red-50'
                   }`}
                 >
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  <Icon size={20} />
+                  {tab.label}
                   <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
                     activeTab === tab.id
                       ? 'bg-red-600 text-white'
@@ -873,7 +862,7 @@ export default function CalendarGuestsPage({
             {totalPages > 1 && (
               <div className={`mt-6 flex items-center justify-between ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4`}>
                 <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredGuests.length)} of {filteredGuests.length} guests // ✅ USE filteredGuests
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredGuests.length)} of {filteredGuests.length} guests
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -892,6 +881,7 @@ export default function CalendarGuestsPage({
                   
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      // Show first page, last page, current page, and pages around current
                       if (
                         page === 1 ||
                         page === totalPages ||
@@ -950,11 +940,11 @@ export default function CalendarGuestsPage({
 
       {/* Guest Details Modal */}
       {showGuestModal && selectedGuest && (
-        <GuestDetailsModal
-          guest={selectedGuest}
-          onClose={() => {
-            setShowGuestModal(false);
-            setSelectedGuest(null);
+        <GuestDetailsModal 
+          guest={selectedGuest} 
+          onClose={() => { 
+            setShowGuestModal(false); 
+            setSelectedGuest(null); 
           }}
           theme={theme}
         />

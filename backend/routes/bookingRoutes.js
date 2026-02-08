@@ -6,6 +6,7 @@ import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../controllers/bookingController.js";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
+import { recalculatePaymentStatus } from "../controllers/paymentController.js";
 
 const router = express.Router();
 
@@ -153,31 +154,7 @@ const normalizeBooking = (b) => ({
 // Create a single booking (direct or enquiry approval)
 router.post("/", protect, createBooking);
 
-// =============================================================
-// PAYMENT UPDATE - ✅ FIXED: Socket.IO inside route handler
-// =============================================================
-router.put("/:id/payment", protect, async (req, res) => {
-  try {
-    const result = await updatePaymentDetails(req, res);
-    
-    // ✅ Emit Socket.IO event AFTER successful update
-    if (req.app) {
-      const io = req.app.get('io');
-      if (io) {
-        io.to('dashboard-room').emit('payment-updated', { 
-          bookingId: req.params.id,
-          timestamp: Date.now()
-        });
-        console.log('📡 Emitted payment-updated event');
-      }
-    }
-    
-    return result;
-  } catch (err) {
-    console.error("Payment update error:", err);
-    res.status(500).json({ message: "Failed to update payment" });
-  }
-});
+
 
 // =============================================================
 // MARK PAYMENT AS COMPLETED (Caretaker / Admin)
@@ -355,167 +332,102 @@ router.put("/:id/extend", protect, async (req, res) => {
     const { id } = req.params;
     const {
       newTo,
-      hostel,
-      roomNo,
       remarks,
       extensionAttachments,
-      extensionPaymentType,
+      extensionPaymentType, // "Paid" | "Free"
       extensionAmount,
       extensionPaymentRemarks,
       extensionPaymentAttachments
     } = req.body;
 
-    console.log("================================================================================");
-    console.log("🔥 BACKEND: EXTENSION REQUEST RECEIVED");
-    console.log("📦 Body:", JSON.stringify({
-      id,
-      newTo,
-      hostel,
-      roomNo,
-      remarks,
-      extensionAttachmentsCount: extensionAttachments?.length || 0,
-      extensionPaymentType,
-      extensionAmount,
-      extensionPaymentAttachmentsCount: extensionPaymentAttachments?.length || 0
-    }, null, 2));
-    console.log("================================================================================");
-
-    if (!newTo) {
-      return res.status(400).json({ message: "New checkout date is required" });
-    }
-
-    let booking = await Booking.findById(id);
+    const booking = await Booking.findById(id);
     if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    console.log("📋 Current booking snapshot:", {
-      guest: booking.guest,
-      email: booking.email,
-      caretakerEmail: booking.caretakerEmail,
-      wardenEmail: booking.wardenEmail,
-      currentTo: booking.to,
-      status: booking.status
-    });
-
-    // ✅ REFRESH EMAILS FROM DATABASE
-    console.log("🔄 Refreshing emails from database for hostel:", booking.hostel);
-
-    const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
-
-    if (hostelDoc) {
-      console.log("✅ Fetched fresh hostel emails:", {
-        hostel: hostelDoc.name,
-        caretakerEmail: hostelDoc.caretakerEmail,
-        wardenEmail: hostelDoc.wardenEmail
+      return res.status(404).json({ 
+        success: false,
+        message: "Booking not found" 
       });
-
-      booking.caretakerEmail = hostelDoc.caretakerEmail;
-      booking.wardenEmail = hostelDoc.wardenEmail;
-    } else {
-      console.error("❌ Hostel not found in database:", booking.hostel);
     }
 
-    // ---------------- DATE VALIDATION ----------------
-    const currentToDate = new Date(booking.to);
-    const newToDateObj = new Date(newTo);
+    // ✅ Date validation
+    const currentTo = new Date(booking.to);
+    const newToDate = new Date(newTo);
 
-    currentToDate.setHours(0, 0, 0, 0);
-    newToDateObj.setHours(0, 0, 0, 0);
+    currentTo.setHours(0, 0, 0, 0);
+    newToDate.setHours(0, 0, 0, 0);
 
-    if (newToDateObj.getTime() <= currentToDate.getTime()) {
+    if (newToDate <= currentTo) {
       return res.status(400).json({
-        message: "New checkout date must be after current checkout date",
+        success: false,
+        message: "New checkout date must be after current checkout date"
       });
     }
 
-    // ---------------- OVERLAP CHECK ----------------
-    const overlappingBookings = await Booking.find({
-      _id: { $ne: id },
-      hostel: hostel || booking.hostel,
-      roomNo: roomNo || booking.roomNo,
-      status: { $nin: ["cancelled", "checked_out", "no_show"] },
-      from: { $lt: newToDateObj },
-      to: { $gt: currentToDate }
-    });
+    // ✅ Core extension updates (NO payment math here)
+    booking.to = newToDate;
+    booking.extensionDate = newToDate;
+    booking.extendRemarks = remarks || "";
+    booking.extensionPaymentType = extensionPaymentType || "Paid";
+    booking.extensionAmount = Number(extensionAmount) || 0;
+    booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
 
-    if (overlappingBookings.length > 0) {
-      return res.status(409).json({
-        message: "Cannot extend booking. The room is booked for the extended dates."
-      });
+    if (extensionPaymentType === "Paid") {
+      booking.totalAmount += extensionAmount;
     }
 
-    // ---------------- CORE EXTENSION UPDATE ----------------
-    booking.to = newToDateObj;
-    booking.extensionDate = newToDateObj;
-    booking.extendRemarks = remarks || booking.extendRemarks || "";
-
-    // ---------------- EXTENSION ATTACHMENTS ----------------
     if (Array.isArray(extensionAttachments)) {
       booking.extensionAttachments = extensionAttachments;
-      booking.markModified("extensionAttachments");
     }
 
-    // ---------------- EXTENSION PAYMENT (NEW) ----------------
-    if (extensionPaymentType) {
-      booking.extensionPaymentType = extensionPaymentType;
-
-      if (extensionPaymentType === "Paid") {
-        booking.extensionAmount = Number(extensionAmount || 0);
-        booking.totalAmount = (booking.totalAmount || 0) + booking.extensionAmount;
-        booking.balanceAmount =
-          booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0);
-      }
-
-      if (extensionPaymentType === "Free") {
-        booking.extensionAmount = 0;
-        booking.extensionPaymentRemarks = extensionPaymentRemarks || "";
-      }
-
-      if (Array.isArray(extensionPaymentAttachments)) {
-        booking.extensionPaymentAttachments = extensionPaymentAttachments;
-        booking.markModified("extensionPaymentAttachments");
-      }
+    if (Array.isArray(extensionPaymentAttachments)) {
+      booking.extensionPaymentAttachments = extensionPaymentAttachments;
     }
 
-    booking.updatedAt = new Date();
+    // ✅ ONLY update totalAmount (if paid extension)
+    // DO NOT touch: paidAmount, balanceAmount, paymentStatus
+    if (extensionPaymentType === "Paid" && booking.extensionAmount > 0) {
+      booking.totalAmount = (booking.totalAmount || 0) + booking.extensionAmount;
+    }
+
+    // ✅ CRITICAL: Single source of truth
+    // This ONE LINE handles ALL payment status logic:
+    // - Recalculates balanceAmount
+    // - Derives correct paymentStatus
+    // - Ensures "Pay Now" button shows correctly
+    recalculatePaymentStatus(booking);
+
     await booking.save();
 
-    console.log("✅ Booking extension saved successfully", {
+    console.log("✅ Booking extended successfully:", {
       bookingId: booking._id,
-      extensionPaymentType: booking.extensionPaymentType,
-      extensionAmount: booking.extensionAmount
+      oldTo: currentTo,
+      newTo: newToDate,
+      extensionAmount: booking.extensionAmount,
+      totalAmount: booking.totalAmount,
+      paidAmount: booking.paidAmount,
+      balanceAmount: booking.balanceAmount,
+      paymentStatus: booking.paymentStatus
     });
 
-    // ---------------- EMAIL TRIGGER (CRITICAL) ----------------
-    console.log("📨 TRIGGERING EXTENSION EMAILS", {
-      guest: booking.email,
-      caretaker: booking.caretakerEmail,
-      warden: booking.wardenEmail
-    });
-
-    sendBookingEmails(booking, "extended");
-
-    // ---------------- SOCKET EVENT ----------------
+    // ✅ Socket.IO event (if you have real-time updates)
     const io = req.app.get("io");
     if (io) {
       io.to("dashboard-room").emit("booking-extended", {
         bookingId: booking._id,
-        newTo: booking.to,
         timestamp: Date.now()
       });
     }
 
-    return res.json({
+    res.json({
       success: true,
       message: "Booking extended successfully",
       booking
     });
 
   } catch (error) {
-    console.error("❌ EXTENSION ERROR:", error);
-    return res.status(500).json({
-      message: "Server error while extending booking",
+    console.error("❌ Extension error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to extend booking",
       error: error.message
     });
   }
@@ -892,72 +804,6 @@ router.get("/debug/payment-fields/:id", protect, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// ✅ NEW: Mark booking as Department Pay Later (NO payment, just marking)
-router.patch(
-  "/:id/mark-department-pay",
-  protect,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { remarks } = req.body;
-
-      console.log("🏢 Marking booking as Department Pay Later:", id);
-
-      const booking = await Booking.findById(id);
-      if (!booking) {
-        return res.status(404).json({
-          success: false,
-          message: "Booking not found"
-        });
-      }
-
-      // ✅ ONLY mark responsibility - NO payment processing
-      booking.paymentResponsibility = "DEPARTMENT";
-      booking.paymentMode = "DEPARTMENT";
-      
-      // Save remarks if provided
-      if (remarks) {
-        booking.paymentRemarks = remarks;
-      }
-
-      await booking.save();
-
-      console.log("✅ Booking marked as department responsibility:", {
-        bookingId: booking._id,
-        guest: booking.guest,
-        totalAmount: booking.totalAmount,
-        balanceAmount: booking.balanceAmount
-      });
-
-      // ✅ Emit Socket.IO event
-      const io = req.app.get('io');
-      if (io) {
-        io.to('dashboard-room').emit('department-pay-marked', {
-          bookingId: booking._id,
-          guest: booking.guest,
-          hostel: booking.hostel,
-          timestamp: Date.now()
-        });
-        console.log('📡 Emitted department-pay-marked event');
-      }
-
-      res.json({
-        success: true,
-        message: "✅ Marked as Department Pay Later - Guest can checkout",
-        booking
-      });
-
-    } catch (error) {
-      console.error("❌ Mark department pay error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to mark department payment",
-        error: error.message
-      });
-    }
-  }
-);
 
 // ✅ NEW: Mark booking as Department Pay Later (NO payment, just marking)
 router.patch(
