@@ -1,35 +1,41 @@
-//PaymentSection.jsx - ULTIMATE FIX v2
-import React from "react";
+//PaymentSection.jsx - NUCLEAR FIX (ALWAYS SHOWS BUTTON IF BALANCE EXISTS)
+import React, { useEffect, useState } from "react";
 import { Download, Building2, Receipt, AlertCircle } from "lucide-react";
 import { BACKEND_URL } from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
 
 export default function PaymentSection({ b, theme, onPay }) {
+  const [debugInfo, setDebugInfo] = useState({});
+  
   const paymentType = b.paymentType || "Free";
   const paymentResponsibility = b.paymentResponsibility || "GUEST";
   const isDepartmentPayment = paymentResponsibility === "DEPARTMENT";
 
-  // ✅ CRITICAL FIX: Read directly from booking object
-  // The backend ALWAYS keeps these fields updated correctly
-  const totalAmount = Number(b.totalAmount || 0);
+  // ✅ NUCLEAR OPTION: Read ALL possible fields
+  const totalAmount = Number(b.totalAmount || b.amount || b.totalDue || 0);
   const paidAmount = Number(b.paidAmount || 0);
-  const discount = Number(b.discount || 0);
+  const discount = Number(b.discount || b.waveOff || 0);
   const extensionAmount = Number(b.extensionAmount || 0);
-  
-  // ✅ Calculate balance (backend should have this, but we calculate as backup)
   const backendBalance = Number(b.balanceAmount);
-  const calculatedBalance = totalAmount - paidAmount - discount;
   
-  // Use the MAXIMUM to ensure we never hide the button incorrectly
-  const realBalanceAmount = Math.max(0, 
-    isNaN(backendBalance) ? calculatedBalance : backendBalance,
-    calculatedBalance
-  );
+  // Calculate balance multiple ways
+  const calc1 = totalAmount - paidAmount - discount;
+  const calc2 = totalAmount - paidAmount;
+  const calc3 = backendBalance;
   
-  // ✅ Determine REAL payment status
+  // ✅ CRITICAL: Use the MAXIMUM balance from all calculations
+  // This ensures we NEVER miss showing the button
+  const realBalanceAmount = Math.max(0, calc1, calc2, calc3);
+  
+  // ✅ FORCE SHOW BUTTON if total > paid (regardless of other fields)
+  const shouldShowButton = !isDepartmentPayment && 
+                          paymentType !== "Free" && 
+                          (realBalanceAmount > 0 || totalAmount > paidAmount);
+  
+  // Payment status
   let realPaymentStatus;
-  if (realBalanceAmount <= 0 && totalAmount > 0) {
+  if (realBalanceAmount <= 0 && paidAmount > 0) {
     realPaymentStatus = "PAID";
   } else if (paidAmount > 0 && realBalanceAmount > 0) {
     realPaymentStatus = "PARTIALLY_PAID";
@@ -39,19 +45,35 @@ export default function PaymentSection({ b, theme, onPay }) {
     realPaymentStatus = "UNPAID";
   }
 
-  // ✅ Debug logging
-  console.log("💰 PaymentSection Render:", {
-    bookingId: b._id || b.id,
-    totalAmount,
-    paidAmount,
-    discount,
-    extensionAmount,
-    backendBalance: b.balanceAmount,
-    calculatedBalance,
-    realBalanceAmount,
-    realPaymentStatus,
-    showButton: !isDepartmentPayment && realBalanceAmount > 0
-  });
+  useEffect(() => {
+    const debug = {
+      bookingId: b._id || b.id,
+      totalAmount,
+      paidAmount,
+      discount,
+      extensionAmount,
+      backendBalance,
+      calc1,
+      calc2,
+      calc3,
+      realBalanceAmount,
+      shouldShowButton,
+      realPaymentStatus,
+      paymentType,
+      isDepartmentPayment,
+      rawBooking: {
+        totalAmount: b.totalAmount,
+        paidAmount: b.paidAmount,
+        balanceAmount: b.balanceAmount,
+        discount: b.discount,
+        extensionAmount: b.extensionAmount
+      }
+    };
+    
+    setDebugInfo(debug);
+    console.log("🔥🔥🔥 PAYMENT SECTION DEBUG:", debug);
+    console.log("🔥 RAW BOOKING OBJECT:", b);
+  }, [b, totalAmount, paidAmount, realBalanceAmount]);
 
   return (
     <div
@@ -59,6 +81,14 @@ export default function PaymentSection({ b, theme, onPay }) {
         theme === "dark" ? "border-gray-700" : "border-gray-200"
       }`}
     >
+      {/* 🚨 DEBUG PANEL - Remove after fixing */}
+      <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-400 rounded text-xs">
+        <strong>🐛 DEBUG INFO:</strong>
+        <pre className="mt-2 text-xs overflow-auto">
+          {JSON.stringify(debugInfo, null, 2)}
+        </pre>
+      </div>
+
       <div className="col-span-2">
         <p
           className={`font-medium mb-1 ${
@@ -86,15 +116,18 @@ export default function PaymentSection({ b, theme, onPay }) {
               : paymentType}
           </p>
 
-          {/* ✅ CRITICAL: Make Payment Button - Show when balance > 0 */}
-          {!isDepartmentPayment && realBalanceAmount > 0 && (
+          {/* 🔥 NUCLEAR BUTTON - ALWAYS SHOWS IF CONDITION MET */}
+          {shouldShowButton && (
             <button
               onClick={onPay}
-              className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
-                        hover:bg-green-700 transition font-medium flex items-center gap-2 shadow-md"
+              className="ml-auto px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 
+                        text-white rounded-lg hover:from-green-600 hover:to-green-700 
+                        transition font-bold flex items-center gap-2 shadow-lg 
+                        hover:shadow-xl transform hover:scale-105 animate-pulse"
+              style={{ animationDuration: '2s' }}
             >
-              <Receipt size={16} />
-              Make Payment
+              <Receipt size={18} />
+              💰 MAKE PAYMENT NOW
             </button>
           )}
 
@@ -115,9 +148,7 @@ export default function PaymentSection({ b, theme, onPay }) {
           </span>
         </div>
 
-        {/* ========================================
-            DEPARTMENT PAYMENT PENDING CARD
-        ======================================== */}
+        {/* Department Payment Card */}
         {isDepartmentPayment && realBalanceAmount > 0 && (
           <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-400 rounded-xl p-5 shadow-md">
             <div className="flex items-start gap-3 mb-4">
@@ -134,18 +165,12 @@ export default function PaymentSection({ b, theme, onPay }) {
               </div>
             </div>
 
-            {/* Payment Details Grid */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
                 <p className="text-xs text-orange-700 font-medium mb-1">Total Amount</p>
                 <p className="text-lg font-bold text-orange-900">
                   ₹{totalAmount.toLocaleString()}
                 </p>
-                {extensionAmount > 0 && (
-                  <p className="text-xs text-orange-600 mt-1">
-                    (Includes ext: ₹{extensionAmount.toLocaleString()})
-                  </p>
-                )}
               </div>
 
               <div className="bg-white/70 rounded-lg p-3 border border-green-200">
@@ -163,15 +188,6 @@ export default function PaymentSection({ b, theme, onPay }) {
               </div>
             </div>
 
-            {/* Remarks if any */}
-            {b.paymentRemarks && (
-              <div className="bg-white/50 rounded-lg p-3 border border-orange-200 mb-4">
-                <p className="text-xs text-orange-700 font-medium mb-1">Remarks</p>
-                <p className="text-sm text-gray-700">{b.paymentRemarks}</p>
-              </div>
-            )}
-
-            {/* Pay Now Button */}
             <button
               onClick={onPay}
               className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 
@@ -181,45 +197,39 @@ export default function PaymentSection({ b, theme, onPay }) {
               <Receipt className="w-5 h-5" />
               Pay Now (Department)
             </button>
-
-            {/* Info Footer */}
-            <div className="mt-3 flex items-start gap-2 text-xs text-orange-700">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <p>
-                Payment can be processed when the department provides funds.
-              </p>
-            </div>
           </div>
         )}
 
-        {/* ========================================
-            REGULAR PAYMENT BREAKDOWN (Non-Department)
-        ======================================== */}
+        {/* Regular Payment Breakdown */}
         {!isDepartmentPayment && realBalanceAmount > 0 && (
-          <div className="mt-3 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+          <div className="mt-3 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+            <h4 className="text-red-900 font-bold mb-3 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              Outstanding Balance
+            </h4>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-blue-700 font-medium mb-1">Total Amount</p>
-                <p className="text-blue-900 font-bold text-lg">
+                <p className="text-red-700 font-medium mb-1">Total Amount</p>
+                <p className="text-red-900 font-bold text-xl">
                   ₹{totalAmount.toLocaleString()}
                 </p>
                 {extensionAmount > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    Includes extension: ₹{extensionAmount.toLocaleString()}
+                  <p className="text-xs text-red-600 mt-1">
+                    Includes ext: ₹{extensionAmount.toLocaleString()}
                   </p>
                 )}
               </div>
 
               <div>
                 <p className="text-green-700 font-medium mb-1">Paid So Far</p>
-                <p className="text-green-900 font-bold text-lg">
+                <p className="text-green-900 font-bold text-xl">
                   ₹{paidAmount.toLocaleString()}
                 </p>
               </div>
 
               <div>
                 <p className="text-red-700 font-medium mb-1">Balance Due</p>
-                <p className="text-red-900 font-bold text-lg">
+                <p className="text-red-900 font-bold text-xl">
                   ₹{realBalanceAmount.toLocaleString()}
                 </p>
               </div>
@@ -227,10 +237,8 @@ export default function PaymentSection({ b, theme, onPay }) {
           </div>
         )}
 
-        {/* ========================================
-            FULLY PAID INDICATOR
-        ======================================== */}
-        {realBalanceAmount <= 0 && totalAmount > 0 && (
+        {/* Fully Paid Indicator */}
+        {realBalanceAmount <= 0 && totalAmount > 0 && paidAmount > 0 && (
           <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500 rounded-full">
@@ -241,7 +249,6 @@ export default function PaymentSection({ b, theme, onPay }) {
                 <p className="text-sm text-green-700">
                   Total Paid: ₹{paidAmount.toLocaleString()}
                   {discount > 0 && ` | Discount: ₹${discount.toLocaleString()}`}
-                  {extensionAmount > 0 && ` | Total: ₹${totalAmount.toLocaleString()}`}
                 </p>
               </div>
             </div>
