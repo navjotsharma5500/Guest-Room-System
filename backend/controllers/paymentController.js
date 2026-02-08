@@ -19,6 +19,27 @@ const BILLS_DIR = path.join(process.cwd(), "bills");
 if (!fs.existsSync(BILLS_DIR)) {
   fs.mkdirSync(BILLS_DIR, { recursive: true });
 }
+
+// ============================================
+// 🔥 SINGLE SOURCE OF TRUTH – PAYMENT STATUS
+// ============================================
+export const recalculatePaymentStatus = (booking) => {
+  const totalAmount = Number(booking.totalAmount) || 0;
+  const paidAmount = Number(booking.paidAmount) || 0;
+  const discount = Number(booking.discount) || 0;
+
+  booking.balanceAmount = Math.max(0, totalAmount - paidAmount - discount);
+
+  if (booking.balanceAmount <= 0) {
+    booking.paymentStatus = "PAID";
+  } else if (paidAmount > 0) {
+    booking.paymentStatus = "PARTIALLY_PAID";
+  } else {
+    booking.paymentStatus = "UNPAID";
+  }
+
+  return booking;
+};
  
 // ✅ Generate unique bill number (single source of truth)
 export const generateBillNumber = async () => {
