@@ -38,6 +38,9 @@ const BookingSchema = new mongoose.Schema(
     actualCheckInDate: { type: Date },
     actualCheckInTime: { type: String },
 
+    actualCheckoutDate: { type: Date },
+    actualCheckoutTime: { type: String },
+
     // =========================
     // GUEST COUNTS
     // =========================

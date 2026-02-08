@@ -771,13 +771,15 @@ export const checkOutGuest = async (req, res) => {
     booking.status = "checked_out";
     booking.checkedOutAt = actualCheckOutTime ? new Date(actualCheckOutTime) : new Date();
     booking.checkOutComment = checkOutComment || "";
-    
-    // ✅ FIXED: Store actual checkout date and time for early checkouts
+
+    // ✅ FIXED: For manual early checkout, update the planned checkout date
     if (actualCheckoutDate) {
       booking.actualCheckoutDate = actualCheckoutDate;
+      booking.to = new Date(actualCheckoutDate); // ✅ Update planned date for manual checkout
     }
     if (actualCheckoutTime) {
       booking.actualCheckoutTime = actualCheckoutTime;
+      booking.checkOutTime = actualCheckoutTime; // ✅ Update planned time for manual checkout
     }
 
     await booking.save();
@@ -1391,7 +1393,7 @@ export const autoCheckoutOverdueGuests = async () => {
 
     let checkedOutCount = 0;
     let movedToDefaultersCount = 0;
-    const checkedOutBookings = [];
+    const checkedOutBookings = []; // ✅ Array to collect checked-out bookings for socket emission
 
     for (const booking of overdueBookings) {
       // Calculate exact checkout datetime
@@ -1401,26 +1403,29 @@ export const autoCheckoutOverdueGuests = async () => {
 
       // Check if checkout time has passed
       if (checkoutDateTime < now) {
-        // Calculate pending payment
-        const totalAmount = booking.totalAmount || 0;
-        const paidAmount = booking.paidAmount || 0;
-        const discount = booking.discount || booking.waveOff || 0;
-        const balanceAmount = totalAmount - paidAmount - discount;
-        const hasPendingPayment = 
-          booking.paymentType?.toUpperCase() !== "FREE" && 
-          balanceAmount > 0;
-
         // ✅ UPDATE STATUS - Same as manual checkout
         booking.status = "checked_out";
-        booking.reportedStatus = "reported_out";
-        booking.checkedOutAt = now;  // Same as manual checkout
-        
-        // ✅ FIXED: Store actual checkout date and time for auto-checkouts
-        booking.actualCheckoutDate = now.toISOString().split("T")[0];
+        booking.reportedStatus = "reported"; // ✅ FIX: SAME as manual checkout
+        booking.checkedOutAt = now;
+
+        // ✅ Store actual checkout info (DO NOT touch planned dates)
+        booking.actualCheckoutDate = now;
         booking.actualCheckoutTime = now.toTimeString().slice(0, 5);
-        
+
+        // ✅ Calculate payment balance
+        const totalAmount = booking.totalAmount || 0;
+        const paidAmount = booking.paidAmount || 0;
+        const discount = booking.discount || 0;
+        const balanceAmount = totalAmount - paidAmount - discount;
+
+        // ✅ Check if payment is pending (with exemptions for DEPARTMENT and FREE)
+        const hasPendingPayment = 
+          booking.paymentResponsibility !== "DEPARTMENT" &&
+          booking.paymentType?.toUpperCase() !== "FREE" &&
+          balanceAmount > 0;
+
+        // Set checkout comment based on payment status
         if (hasPendingPayment) {
-          // Move to defaulters (status remains "checked_out" with pending balance)
           booking.checkOutComment = `Auto checked-out (Payment Pending: ₹${balanceAmount.toFixed(2)})`;
           movedToDefaultersCount++;
           
@@ -1433,6 +1438,7 @@ export const autoCheckoutOverdueGuests = async () => {
         await booking.save();
         checkedOutCount++;
 
+        // ✅ COLLECT BOOKING DATA FOR SOCKET EMISSION
         checkedOutBookings.push({
           _id: booking._id,
           hostel: booking.hostel,
@@ -1440,18 +1446,6 @@ export const autoCheckoutOverdueGuests = async () => {
           guest: booking.guest,
           paymentResponsibility: booking.paymentResponsibility
         });
-
-        const io = req?.app?.get('io'); // Use global io if req is not available
-        if (global.io) {
-          global.io.to('dashboard-room').emit('guest-checked-out', {
-            bookingId: booking._id,
-            hostel: booking.hostel,
-            roomNo: booking.roomNo,
-            timestamp: Date.now(),
-            source: 'cron-auto-checkout'
-          });
-          console.log('📡 Emitted guest-checked-out event for:', booking._id);
-        }
 
         // ✅ Send notification emails
         try {
@@ -1542,7 +1536,7 @@ export const autoCheckoutOverdueGuests = async () => {
             },
           });
 
-          // Email to warden (always send, with payment status)
+          // Email to warden
           safeSend({
             to: booking.wardenEmail,
             subject: hasPendingPayment 
@@ -1602,7 +1596,7 @@ export const autoCheckoutOverdueGuests = async () => {
       checkedOut: checkedOutCount,
       movedToDefaulters: movedToDefaultersCount,
       fullyPaid: checkedOutCount - movedToDefaultersCount,
-      checkedOutBookings: checkedOutBookings // ✅ ADD THIS LINE
+      checkedOutBookings: checkedOutBookings // ✅ Return for socket emission
     };
 
   } catch (err) {

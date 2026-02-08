@@ -15,9 +15,9 @@ export const setSocketIO = (ioInstance) => {
   hallNamespace = io.of('/hall');
   guestNamespace = io.of('/guest');
   
-  console.log("🔌 Socket.IO instance registered in backend");
-  console.log("🎪 Hall namespace created");
-  console.log("🏨 Guest namespace created");
+  console.log("ðŸ”Œ Socket.IO instance registered in backend");
+  console.log("ðŸŽª Hall namespace created");
+  console.log("ðŸ¨ Guest namespace created");
 };
 
 /**
@@ -25,7 +25,7 @@ export const setSocketIO = (ioInstance) => {
  */
 export const getSocketIO = () => {
   if (!io) {
-    throw new Error('❌ Socket.IO not initialized');
+    throw new Error('âŒ Socket.IO not initialized');
   }
   return io;
 };
@@ -48,16 +48,16 @@ export const emitEvent = (event, payload, room = null) => {
  */
 export const emitHallEvent = (event, data) => {
   if (!hallNamespace) {
-    console.error('❌ Hall namespace not initialized');
+    console.error('âŒ Hall namespace not initialized');
     return;
   }
   
   try {
     hallNamespace.emit(event, data);
     io.emit(event, data); // Also emit to default for admin
-    console.log(`✅ Hall event emitted: ${event}`);
+    console.log(`âœ… Hall event emitted: ${event}`);
   } catch (error) {
-    console.error(`⚠️ Hall event emit failed: ${error.message}`);
+    console.error(`âš ï¸ Hall event emit failed: ${error.message}`);
   }
 };
 
@@ -66,16 +66,16 @@ export const emitHallEvent = (event, data) => {
  */
 export const emitGuestEvent = (event, data) => {
   if (!guestNamespace) {
-    console.error('❌ Guest namespace not initialized');
+    console.error('âŒ Guest namespace not initialized');
     return;
   }
   
   try {
     guestNamespace.emit(event, data);
     io.emit(event, data); // Also emit to default for admin
-    console.log(`✅ Guest event emitted: ${event}`);
+    console.log(`âœ… Guest event emitted: ${event}`);
   } catch (error) {
-    console.error(`⚠️ Guest event emit failed: ${error.message}`);
+    console.error(`âš ï¸ Guest event emit failed: ${error.message}`);
   }
 };
 
@@ -84,7 +84,7 @@ export const emitGuestEvent = (event, data) => {
  */
 export const emitDepartmentPaymentUpdate = (bookingId, data) => {
   if (!io) {
-    console.error('❌ Socket.IO not initialized');
+    console.error('âŒ Socket.IO not initialized');
     return;
   }
   
@@ -94,9 +94,9 @@ export const emitDepartmentPaymentUpdate = (bookingId, data) => {
       ...data,
       timestamp: Date.now()
     });
-    console.log(`✅ Department payment event emitted for: ${bookingId}`);
+    console.log(`âœ… Department payment event emitted for: ${bookingId}`);
   } catch (error) {
-    console.error(`⚠️ Department payment emit failed: ${error.message}`);
+    console.error(`âš ï¸ Department payment emit failed: ${error.message}`);
   }
 };
 
