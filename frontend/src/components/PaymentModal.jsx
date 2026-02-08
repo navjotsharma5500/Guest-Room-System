@@ -82,7 +82,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
     } else {
       // For partial payment, don't auto-set, but ensure it doesn't exceed discounted amount
       if (paidAmount > amountAfterDiscount) {
-        setPaidAmount(0);
+        setPaidAmount(amountAfterDiscount);
       }
     }
   }, [billPaymentType, amountAfterDiscount]);
