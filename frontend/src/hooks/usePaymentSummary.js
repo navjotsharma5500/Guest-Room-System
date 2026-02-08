@@ -4,14 +4,14 @@ import { BACKEND_URL } from '../utils/apiConfig';
 const API = BACKEND_URL;
 
 export const usePaymentSummary = (bookingId) => {
-  const [bills, setBills] = useState([]);
+  const [paymentData, setPaymentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!bookingId) return;
 
-    const fetchBills = async () => {
+    const fetchPaymentData = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
@@ -25,50 +25,69 @@ export const usePaymentSummary = (bookingId) => {
           }
         );
 
-        if (!response.ok) throw new Error('Failed to fetch bills');
+        if (!response.ok) throw new Error('Failed to fetch payment data');
 
         const data = await response.json();
-        setBills(data.bills || []);
+        
+        console.log("💰 Payment History Response:", data);
+        
+        setPaymentData(data);
         setError(null);
       } catch (err) {
-        console.error('❌ Error fetching bills:', err);
+        console.error('❌ Error fetching payment data:', err);
         setError(err.message);
-        setBills([]);
+        setPaymentData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBills();
+    fetchPaymentData();
   }, [bookingId]);
 
-  // ✅ Single source of truth
-  const hasPendingBill = bills.some(
-    (bill) => Number(bill.balanceAfterPayment || 0) > 0
-  );
-
-  const totalPaid = bills.reduce(
+  // ✅ CORRECT CALCULATION - Use booking data as source of truth
+  const booking = paymentData?.booking || {};
+  const bills = paymentData?.bills || [];
+  
+  // Use booking's actual amounts (already calculated by backend)
+  const totalAmount = Number(booking.totalAmount || 0);
+  const paidAmount = Number(booking.paidAmount || 0);
+  const balanceAmount = Number(booking.balanceAmount || 0);
+  const discount = Number(booking.discount || 0);
+  
+  // Calculate from bills only as backup
+  const totalPaidFromBills = bills.reduce(
     (sum, bill) => sum + Number(bill.amountPaid || 0),
     0
   );
-
-  const currentBalance = bills.length > 0
-    ? Number(bills[bills.length - 1].balanceAfterPayment || 0)
-    : 0;
-
-  const totalAmount = bills.reduce(
-    (sum, bill) => sum + Number(bill.totalAmount || 0),
-    0
-  );
+  
+  // Determine if there's pending payment
+  const hasPendingBill = balanceAmount > 0;
+  const isFullyPaid = balanceAmount === 0 && totalAmount > 0;
+  
+  console.log("💳 Payment Summary Calculated:", {
+    bookingId,
+    totalAmount,
+    paidAmount,
+    balanceAmount,
+    discount,
+    totalPaidFromBills,
+    hasPendingBill,
+    isFullyPaid,
+    billCount: bills.length
+  });
 
   return {
     bills,
+    booking,
     loading,
     error,
-    hasPendingBill,
-    totalPaid,
-    currentBalance,
+    // ✅ Return booking's actual values
     totalAmount,
-    isFullyPaid: !hasPendingBill && totalAmount > 0,
+    totalPaid: paidAmount, // Use booking.paidAmount, not sum of bills
+    currentBalance: balanceAmount, // Use booking.balanceAmount
+    discount,
+    hasPendingBill,
+    isFullyPaid,
   };
 };
