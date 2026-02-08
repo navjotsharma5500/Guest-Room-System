@@ -254,8 +254,8 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       console.log("📤 Sending payment data:", {
         bookingId: booking._id,
         paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
+        amountPaid: paidAmount,
         paymentMethod: paymentMode,
-        amountPaid: Number(paidAmount), // ✅ Log the amount being paid
         discountPercent,
         discountAmount,
         isFreeBedding
@@ -273,7 +273,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
           body: JSON.stringify({
             paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
             paymentMethod: paymentMode,
-            amountPaid: Number(paidAmount), // ✅ FIXED: Changed from paidAmount to amountPaid
             transactionId: transactionId || "",
             transactionDate: transactionDate || null,
             paymentRemarks: paymentRemarks,

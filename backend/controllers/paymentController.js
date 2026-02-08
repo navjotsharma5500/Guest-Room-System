@@ -19,57 +19,6 @@ const BILLS_DIR = path.join(process.cwd(), "bills");
 if (!fs.existsSync(BILLS_DIR)) {
   fs.mkdirSync(BILLS_DIR, { recursive: true });
 }
-
-// ============================================
-// 🔥 CRITICAL: UNIFIED PAYMENT STATUS CALCULATOR
-// ============================================
-// ⚠️ THIS IS THE SINGLE SOURCE OF TRUTH FOR PAYMENT STATUS
-// 
-// RULES:
-// 1. Payment status is ALWAYS derived from balanceAmount
-// 2. Never manually set paymentStatus elsewhere
-// 3. Use this function after ANY change to:
-//    - totalAmount (e.g., extensions)
-//    - paidAmount (e.g., payments)
-//    - discount (e.g., waivers)
-//
-// FIXES TWO CRITICAL BUGS:
-// ❌ Bug 1: Double increment of paidAmount causing wrong totals
-// ❌ Bug 2: Extension breaking payment status sync
-//
-// ✅ This ensures:
-// - balanceAmount is always correct
-// - paymentStatus matches the actual balance
-// - No drift between UI and backend state
-// ============================================
-export const recalculatePaymentStatus = (booking) => {
-  // Recalculate balance based on actual values
-  const totalAmount = Number(booking.totalAmount) || 0;
-  const paidAmount = Number(booking.paidAmount) || 0;
-  const discount = Number(booking.discount) || 0;
-  
-  // Single source of truth for balance calculation
-  booking.balanceAmount = Math.max(0, totalAmount - paidAmount - discount);
-  
-  // Set status based on balance (DERIVED, NOT MANUALLY SET)
-  if (booking.balanceAmount <= 0) {
-    booking.paymentStatus = "PAID";
-  } else if (paidAmount > 0) {
-    booking.paymentStatus = "PARTIALLY_PAID";
-  } else {
-    booking.paymentStatus = "UNPAID";
-  }
-  
-  console.log("💰 Payment Status Recalculated:", {
-    totalAmount,
-    paidAmount,
-    discount,
-    balanceAmount: booking.balanceAmount,
-    paymentStatus: booking.paymentStatus
-  });
-  
-  return booking;
-};
  
 // ✅ Generate unique bill number (single source of truth)
 export const generateBillNumber = async () => {
@@ -197,33 +146,36 @@ export const processPayment = async (req, res) => {
     const isFreeBedding = booking.paymentType === "Free";
     
     if (isFreeBedding) {
-      // ... free booking logic (if any) ...
-      // For now, assuming free bookings don't hit this payment endpoint or just return success
+      // ... free booking logic (unchanged) ...
     }
 
     // ✅ FOR PAID BOOKINGS - CORRECT CALCULATION
-    
-    // 1. Update Discount FIRST (Source of Truth)
+    const previousDiscount = Number(booking.discount) || 0;
+    const originalBalance = Number(booking.totalAmount) - Number(booking.paidAmount);
     const discountAmount = Number(discount) || 0;
-    if (discountAmount > 0) {
-      booking.discount = (Number(booking.discount) || 0) + discountAmount;
-    }
+    const currentBalance = originalBalance - previousDiscount - discountAmount;
 
-    // 2. Update Paid Amount
-    booking.paidAmount = (Number(booking.paidAmount) || 0) + Number(amountPaid);
-
-    // 3. Recalculate Status IMMEDIATELY
-    // This ensures booking.balanceAmount is correct before we create the bill
-    recalculatePaymentStatus(booking);
-
-    console.log("💰 Payment Processed:", {
-      total: booking.totalAmount,
-      paid: booking.paidAmount,
-      discount: booking.discount,
-      newBalance: booking.balanceAmount
+    // 🔍 DEBUG LOG
+    console.log("💰 Balance Calculation Debug:", {
+      totalAmount: booking.totalAmount,
+      paidAmount: booking.paidAmount,
+      "booking.discount (raw)": booking.discount,
+      "previousDiscount (converted)": previousDiscount,
+      originalBalance,
+      newDiscount: discountAmount,
+      currentBalance,
+      "Should be": booking.totalAmount - booking.paidAmount - (booking.discount || 0)
     });
 
     // Validation
+    if (originalBalance <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking is already fully paid"
+      });
+    }
+
+    // ✅ SKIP validation for DEPARTMENT_PAY_LATER
     if (amountPaid <= 0) {
       return res.status(400).json({
         success: false,
@@ -231,12 +183,37 @@ export const processPayment = async (req, res) => {
       });
     }
 
+    if (amountPaid > currentBalance) {
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount (₹${amountPaid}) exceeds balance after discount (₹${currentBalance.toFixed(2)})`
+      });
+    }
+
+    // ✅ FIXED: Full payment validation
+    if (paymentType === "FULL" && Math.abs(amountPaid - currentBalance) > 0.01) {
+      return res.status(400).json({
+        success: false,
+        message: `Full payment requires exact balance amount after discount: ₹${currentBalance.toFixed(2)}`  // ✅ Use currentBalance
+      });
+    }
+
+    // ✅ NORMAL PAYMENT PROCESSING (for when department actually pays or regular payments)
+    if (amountPaid > 0) {
+      // Process payment normally
+      booking.paidAmount = (booking.paidAmount || 0) + Number(amountPaid || 0);
+      booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - (booking.discount || 0));
+      
+      if (booking.balanceAmount === 0) {
+        booking.paymentStatus = "PAID";
+      } else if (booking.paidAmount > 0) {
+        booking.paymentStatus = "PARTIALLY_PAID";
+      }
+    }
+
     // CREATE BILL
     const billNumber = await generateBillNumber();
     
-    // We need balanceBeforePayment. Since we already updated booking, we back-calculate it.
-    const balanceBeforePayment = booking.balanceAmount + Number(amountPaid);
-
     const bill = await Bill.create({
       bookingId: booking._id,
       guestName: booking.guest,
@@ -253,8 +230,8 @@ export const processPayment = async (req, res) => {
       transactionId,
       
       // ✅ CRITICAL: Store correct balance
-      balanceBeforePayment: balanceBeforePayment,
-      balanceAfterPayment: booking.balanceAmount,  // ✅ Use derived balance
+      balanceBeforePayment: originalBalance,
+      balanceAfterPayment: currentBalance - amountPaid,  // ✅ Use currentBalance
       
       discountPercent: discountPercent || 0,
       discountAmount: discountAmount,
@@ -306,8 +283,24 @@ export const processPayment = async (req, res) => {
     } catch (pdfErr) {
       console.error("❌ PDF generation/upload failed:", pdfErr);
     }
+
+    // ✅ UPDATE BOOKING - CRITICAL FIX
+    booking.paidAmount += amountPaid;
     
-    // Update payment transaction details
+    // ✅ ACCUMULATE DISCOUNT (add to existing discount)
+    booking.discount = (booking.discount || 0) + discountAmount;
+    
+    // ✅ Calculate new balance
+    booking.balanceAmount = Math.max(0, booking.totalAmount - booking.paidAmount - booking.discount);
+    
+    // Update status
+    if (booking.balanceAmount === 0) {
+      booking.paymentStatus = "PAID";
+    } else if (booking.paidAmount > 0) {
+      booking.paymentStatus = "PARTIALLY_PAID";
+    }
+
+    //Update payment transaction details
     booking.paymentMode = paymentMethod || booking.paymentMode;
     booking.transactionId = transactionId || booking.transactionId;
     booking.transactionDate = transactionDate ? new Date(transactionDate) : booking.transactionDate;
@@ -544,6 +537,16 @@ export const downloadBillPDF = async (req, res) => {
       
       // Option 1: Direct redirect
       return res.redirect(bill.pdfUrl);
+      
+      // Option 2: Fetch and serve (if you want to control headers)
+      /*
+      const pdfResponse = await fetch(bill.pdfUrl);
+      const pdfBuffer = await pdfResponse.buffer();
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${bill.billNumber}.pdf"`);
+      return res.send(pdfBuffer);
+      */
     }
 
     // ✅ Fallback: Check local file system (for old bills)

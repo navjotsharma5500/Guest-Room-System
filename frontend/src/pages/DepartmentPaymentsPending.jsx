@@ -13,55 +13,54 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   const [stats, setStats] = useState({ total: 0, totalAmount: 0 });
   const [paymentModal, setPaymentModal] = useState(null);
 
-  // ✅ ROLE-BASED ACCESS CONTROL
+  // âœ… ROLE-BASED ACCESS CONTROL
   const role = currentUser?.role || currentUser?.user?.role;
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
   const canAccessPage = ['admin', 'manager', 'caretaker', 'warden'].includes(role);
 
-  // Listen for real-time updates (manual checkout + cron auto-checkout)
   useEffect(() => {
-      if (canAccessPage) {
-        fetchPendingPayments();
+    if (canAccessPage) {
+      fetchPendingPayments();
+    }
+  }, [canAccessPage]);
+
+  // ✅ ADD THIS ENTIRE BLOCK HERE:
+  // Listen for real-time checkout events (manual + cron)
+  useEffect(() => {
+    if (!canAccessPage) return;
+
+    const handleGuestCheckedOut = (event) => {
+      const data = event.detail || {};
+      console.log("📡 Guest checked out event received:", data);
+      
+      // Refresh if it's a department payment
+      if (data.paymentResponsibility === "DEPARTMENT" || data.source === 'cron-auto-checkout') {
+        console.log("🔄 Refreshing department payments list...");
+        setTimeout(() => fetchPendingPayments(), 1000); // Small delay to ensure DB is updated
       }
-    }, [canAccessPage]);
+    };
 
-    // ✅ ADD THIS ENTIRE BLOCK HERE:
-    // Listen for real-time checkout events (manual + cron)
-    useEffect(() => {
-      if (!canAccessPage) return;
+    const handleBookingDataUpdated = (event) => {
+      const data = event.detail || {};
+      console.log("📡 Booking data updated event received:", data);
+      
+      // Refresh if it's an auto-checkout event
+      if (data.type === 'cron-auto-checkout') {
+        console.log("🔄 Cron auto-checkout detected - refreshing...");
+        setTimeout(() => fetchPendingPayments(), 1000);
+      }
+    };
 
-      const handleGuestCheckedOut = (event) => {
-        const data = event.detail || {};
-        console.log("📡 Guest checked out event received:", data);
-        
-        // Refresh if it's a department payment
-        if (data.paymentResponsibility === "DEPARTMENT" || data.source === 'cron-auto-checkout') {
-          console.log("🔄 Refreshing department payments list...");
-          setTimeout(() => fetchPendingPayments(), 1000); // Small delay to ensure DB is updated
-        }
-      };
+    // Listen to both events
+    window.addEventListener('guestCheckedOut', handleGuestCheckedOut);
+    window.addEventListener('bookingDataUpdated', handleBookingDataUpdated);
 
-      const handleBookingDataUpdated = (event) => {
-        const data = event.detail || {};
-        console.log("📡 Booking data updated event received:", data);
-        
-        // Refresh if it's an auto-checkout event
-        if (data.type === 'cron-auto-checkout') {
-          console.log("🔄 Cron auto-checkout detected - refreshing...");
-          setTimeout(() => fetchPendingPayments(), 1000);
-        }
-      };
-
-      // Listen to both events
-      window.addEventListener('guestCheckedOut', handleGuestCheckedOut);
-      window.addEventListener('bookingDataUpdated', handleBookingDataUpdated);
-
-      return () => {
-        window.removeEventListener('guestCheckedOut', handleGuestCheckedOut);
-        window.removeEventListener('bookingDataUpdated', handleBookingDataUpdated);
-      };
-    }, [canAccessPage]);
+    return () => {
+      window.removeEventListener('guestCheckedOut', handleGuestCheckedOut);
+      window.removeEventListener('bookingDataUpdated', handleBookingDataUpdated);
+    };
+  }, [canAccessPage]);
 
   const fetchPendingPayments = async () => {
     try {
@@ -71,12 +70,12 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
         withCredentials: true
       });
       
-      // ✅ CLIENT-SIDE FILTERING (backup - backend should already filter)
+      // âœ… CLIENT-SIDE FILTERING (backup - backend should already filter)
       let filteredData = data.data || [];
       
       if (isRestrictedRole && assignedHostel) {
         filteredData = filteredData.filter(booking => booking.hostel === assignedHostel);
-        console.log(`🔒 Filtered to ${assignedHostel}: ${filteredData.length} entries`);
+        console.log(`ðŸ”’ Filtered to ${assignedHostel}: ${filteredData.length} entries`);
       }
       
       setPending(filteredData);
@@ -96,7 +95,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   };
 
   const openPaymentModal = (booking) => {
-    console.log("🔍 Opening payment modal for booking:", {
+    console.log("ðŸ” Opening payment modal for booking:", {
       _id: booking._id,
       totalAmount: booking.totalAmount,
       paidAmount: booking.paidAmount,
@@ -106,7 +105,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
     setPaymentModal(booking);
   };
 
-  // ✅ ACCESS DENIED FOR GUESTS
+  // âœ… ACCESS DENIED FOR GUESTS
   if (!canAccessPage) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
@@ -155,7 +154,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                   <Building2 size={32} />
                   Department Payments Pending
-                  {/* ✅ SHOW HOSTEL FILTER FOR RESTRICTED ROLES */}
+                  {/* âœ… SHOW HOSTEL FILTER FOR RESTRICTED ROLES */}
                   {isRestrictedRole && assignedHostel && (
                     <span className="text-lg font-normal text-blue-100">
                       - {assignedHostel}
@@ -200,7 +199,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Amount Due</p>
                 <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 mt-2">
-                  ₹{stats.totalAmount.toLocaleString()}
+                  â‚¹{stats.totalAmount.toLocaleString()}
                 </p>
               </div>
               <IndianRupee className="w-12 h-12 text-orange-500 dark:text-orange-400" />
@@ -278,7 +277,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                            ₹{booking.balanceAmount.toLocaleString()}
+                            â‚¹{booking.balanceAmount.toLocaleString()}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -293,8 +292,8 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() => {
-                              // ✅ Department has already been marked - now collecting actual payment
-                              console.log("💰 Collecting department payment for:", booking._id);
+                              // âœ… Department has already been marked - now collecting actual payment
+                              console.log("ðŸ’° Collecting department payment for:", booking._id);
                               openPaymentModal(booking);
                             }}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg"
@@ -318,12 +317,12 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
           booking={{
             ...paymentModal,
             _id: paymentModal._id,
-            // ✅ Pass complete payment data
+            // âœ… Pass complete payment data
             totalAmount: paymentModal.totalAmount,
             paidAmount: paymentModal.paidAmount || 0,
             balanceAmount: paymentModal.balanceAmount,
             discount: paymentModal.discount || 0,
-            paymentResponsibility: "DEPARTMENT", // ✅ Mark as department payment
+            paymentResponsibility: "DEPARTMENT", // âœ… Mark as department payment
           }}
           onClose={() => setPaymentModal(null)}
           onSuccess={() => {

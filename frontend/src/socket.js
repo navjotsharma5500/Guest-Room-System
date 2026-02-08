@@ -112,16 +112,17 @@ socket.on("hallBookingExtended", (data) => {
     window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
   } catch (error) {
     console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
-    // Don't crash the app
   }
 });
 
-socket.on("hallBookingExtended", (data) => {
+// ✅ ADD THIS BLOCK:
+// Cron job events
+socket.on("bookingDataUpdated", (data) => {
   try {
-    console.log("🎪 Hall booking Extended:", data);
-    window.dispatchEvent(new CustomEvent("hallBookingExtended", { detail: data }));
+    console.log("🔄 Booking data updated (cron):", data);
+    window.dispatchEvent(new CustomEvent("bookingDataUpdated", { detail: data }));
   } catch (error) {
-    console.error("⚠️ Hall booking event handler failed (isolated):", error.message);
+    console.error("⚠️ Booking data updated event handler failed:", error.message);
   }
 });
 

@@ -8,7 +8,7 @@ const billSchema = new mongoose.Schema(
       required: true
     },
 
-    // 🔒 SNAPSHOT (DO NOT reference Guest)
+    // ðŸ”’ SNAPSHOT (DO NOT reference Guest)
     guestName: String,
     guestEmail: String,
     guestContact: String,

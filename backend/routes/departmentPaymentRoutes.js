@@ -21,22 +21,22 @@ router.get(
         status: "checked_out"
       };
 
-      // ✅ CRITICAL: Role-based filtering
+      // âœ… CRITICAL: Role-based filtering
       // Caretakers and wardens only see their assigned hostel
       if ((userRole === "caretaker" || userRole === "warden") && assignedHostel) {
         query.hostel = assignedHostel;
-        console.log(`🔒 ${userRole} restricted to hostel: ${assignedHostel}`);
+        console.log(`ðŸ”’ ${userRole} restricted to hostel: ${assignedHostel}`);
       }
 
       const pendingPayments = await Booking.find(query)
         .populate("createdBy", "name email")
-        .select('+totalAmount +paidAmount +balanceAmount +discount') // ✅ Ensure all payment fields are returned
+        .select('+totalAmount +paidAmount +balanceAmount +discount') // âœ… Ensure all payment fields are returned
         .sort({ checkedOutAt: -1 })
         .lean();
 
-      // ✅ DEBUG: Log first booking to verify data structure
+      // âœ… DEBUG: Log first booking to verify data structure
       if (pendingPayments.length > 0) {
-        console.log("📋 Sample department payment data:", {
+        console.log("ðŸ“‹ Sample department payment data:", {
           _id: pendingPayments[0]._id,
           guest: pendingPayments[0].guest,
           totalAmount: pendingPayments[0].totalAmount,
@@ -51,7 +51,7 @@ router.get(
         totalAmount: pendingPayments.reduce((sum, b) => sum + (b.balanceAmount || 0), 0)
       };
 
-      console.log(`✅ Returning ${pendingPayments.length} department payments for ${userRole}`);
+      console.log(`âœ… Returning ${pendingPayments.length} department payments for ${userRole}`);
 
       res.json({
         success: true,
@@ -60,7 +60,7 @@ router.get(
         data: pendingPayments
       });
     } catch (error) {
-      console.error("❌ Error fetching department payments:", error);
+      console.error("âŒ Error fetching department payments:", error);
       res.status(500).json({
         success: false,
         message: "Failed to fetch pending department payments",

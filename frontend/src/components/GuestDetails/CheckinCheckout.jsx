@@ -68,7 +68,7 @@ export default function CheckinCheckout({
             </div>
 
             <p className="text-sm text-gray-600 mb-4">
-              Guest: <strong>{booking.guest || "â€”"}</strong><br />
+              Guest: <strong>{booking.guest || "Ã¢â‚¬â€"}</strong><br />
               Room: <strong>{booking.hostel} - {booking.roomNo}</strong>
             </p>
 

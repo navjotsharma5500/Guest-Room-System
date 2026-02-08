@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Info, Save, X, Building2, Receipt } from "lucide-react";
+import { Info, Save, X } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import GuestHistory from "./GuestHistory";
 import ReportedModal from "./ReportedModal";
@@ -45,7 +45,6 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   };
   const { token } = useAuth();
   const [booking, setBooking] = useState(null);
-  const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
   const [loading, setLoading] = useState(false);
   const [fetchAttempts, setFetchAttempts] = useState(0);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -64,6 +63,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [enquiryFiles, setEnquiryFiles] = useState([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
+  const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
 
   // ✅ FIXED: Close Guest Details panel on checkout
   useEffect(() => {
@@ -1215,6 +1215,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           </div>
         </div>
 
+        {/* 4. PAYMENT SECTION */}
         {/* 4. PAYMENT SECTION */}
         <div className={`p-6 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
           <div className="col-span-2">
