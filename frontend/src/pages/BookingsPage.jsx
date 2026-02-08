@@ -66,25 +66,13 @@ export default function BookingsPage({ onBack, theme = "light" }) {
         const token = localStorage.getItem("token");
 
         const response = await axios.get(
-        `${BACKEND_URL}/api/bookings/all`,
+        `${BACKEND_URL}/api/v1/bookings/list`,
         {
             headers: { Authorization: `Bearer ${token}` },
         }
         );
 
-        const hostels = response.data.hostels || [];
-
-        const flatBookings = hostels.flatMap(h =>
-        h.rooms.flatMap(r =>
-            r.bookings.map(b => ({
-            ...b,
-            hostel: h.name,
-            roomNo: r.roomNo,
-            }))
-        )
-        );
-
-        setBookings(flatBookings);
+        setBookings(response.data.bookings || []);
         setError(null);
     } catch (err) {
         console.error("Error fetching bookings:", err);

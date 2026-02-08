@@ -1027,4 +1027,46 @@ router.patch(
   }
 );
 
+// =============================================================
+// GET ALL BOOKINGS (FOR BOOKINGS PAGE ONLY)
+// =============================================================
+router.get("/list", protect, async (req, res) => {
+  try {
+    const userRole = req.user?.role;
+    const assignedHostel = req.user?.assignedHostel || req.user?.hostel;
+
+    let query = {};
+
+    // Caretaker & Warden see only their hostel
+    if (userRole === "caretaker" || userRole === "warden") {
+      if (!assignedHostel) {
+        return res.status(403).json({
+          success: false,
+          message: "No hostel assigned"
+        });
+      }
+      query.hostel = assignedHostel;
+    }
+    // Admin & Manager → see everything
+
+    const bookings = await Booking.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      bookings,
+      count: bookings.length
+    });
+
+  } catch (error) {
+    console.error("❌ Fetch bookings list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings"
+    });
+  }
+});
+
+
 export default router;
