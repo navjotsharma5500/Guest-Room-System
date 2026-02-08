@@ -297,14 +297,7 @@ export const processPayment = async (req, res) => {
     booking.discount = totalNewDiscount;
     booking.balanceAmount = Math.max(0, balanceAfterThisPayment);
     
-    // ✅ UNIVERSAL BALANCE CHECK - Use balanceAmount > 0, not paymentStatus
-    if (booking.balanceAmount === 0) {
-      booking.paymentStatus = "PAID";
-    } else if (booking.paidAmount > 0) {
-      booking.paymentStatus = "PARTIALLY_PAID";
-    } else {
-      booking.paymentStatus = "UNPAID";
-    }
+    recalculatePaymentStatus(booking);
 
     // Update payment transaction details
     booking.paymentMode = paymentMethod || booking.paymentMode;

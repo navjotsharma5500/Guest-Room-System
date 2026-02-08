@@ -272,6 +272,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
           credentials: "include",
           body: JSON.stringify({
             paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
+            amountPaid: paidAmount,
             paymentMethod: paymentMode,
             transactionId: transactionId || "",
             transactionDate: transactionDate || null,
