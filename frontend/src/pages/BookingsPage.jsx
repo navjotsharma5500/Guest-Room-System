@@ -64,7 +64,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${BACKEND_URL}/api/bookings/all`, {
+      const response = await axios.get(`${BACKEND_URL}/api/v1/bookings/all-bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBookings(response.data.bookings || []);

@@ -1608,3 +1608,54 @@ export const autoCheckoutOverdueGuests = async () => {
     };
   }
 };
+// ================================
+// GET ALL BOOKINGS (For Bookings Page)
+// ================================
+export const getAllBookings = async (req, res) => {
+  try {
+    const userRole = req.user?.role;
+    const assignedHostel = req.user?.assignedHostel || req.user?.hostel;
+
+    let query = {};
+
+    // Role-based filtering
+    if (userRole === "caretaker" || userRole === "warden") {
+      if (!assignedHostel) {
+        return res.status(403).json({
+          success: false,
+          message: "No hostel assigned to your account"
+        });
+      }
+      query.hostel = assignedHostel;
+    }
+    // Admin and manager can see all bookings (no filter)
+
+    const bookings = await Booking.find(query)
+      .populate("createdBy", "name email role")
+      .populate("reportedBy", "name email")
+      .populate("feedback")
+      .sort({ createdAt: -1 }) // Most recent first
+      .lean();
+
+    // Calculate virtual fields
+    const bookingsWithVirtuals = bookings.map(booking => ({
+      ...booking,
+      currentBalance: (booking.totalAmount || 0) - (booking.paidAmount || 0),
+      waveOff: booking.discount || 0
+    }));
+
+    res.json({
+      success: true,
+      bookings: bookingsWithVirtuals,
+      count: bookingsWithVirtuals.length
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching all bookings:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings",
+      error: err.message
+    });
+  }
+};
