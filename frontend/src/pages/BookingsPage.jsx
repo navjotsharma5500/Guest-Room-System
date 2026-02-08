@@ -62,20 +62,37 @@ export default function BookingsPage({ onBack, theme = "light" }) {
 
   const fetchBookings = async () => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${BACKEND_URL}/api/v1/bookings/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setBookings(response.data.bookings || []);
-      setError(null);
+        setLoading(true);
+        const token = localStorage.getItem("token");
+
+        const response = await axios.get(
+        `${BACKEND_URL}/api/bookings/all`,
+        {
+            headers: { Authorization: `Bearer ${token}` },
+        }
+        );
+
+        const hostels = response.data.hostels || [];
+
+        const flatBookings = hostels.flatMap(h =>
+        h.rooms.flatMap(r =>
+            r.bookings.map(b => ({
+            ...b,
+            hostel: h.name,
+            roomNo: r.roomNo,
+            }))
+        )
+        );
+
+        setBookings(flatBookings);
+        setError(null);
     } catch (err) {
-      console.error("Error fetching bookings:", err);
-      setError(err.response?.data?.message || "Failed to fetch bookings");
+        console.error("Error fetching bookings:", err);
+        setError(err.response?.data?.message || "Failed to fetch bookings");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
 
   // ✅ FIXED: Filter bookings by specific tab status
   const getFilteredBookingsByStatus = (bookingsArray, tabId) => {

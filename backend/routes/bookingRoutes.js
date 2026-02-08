@@ -28,9 +28,11 @@ import {
   updatePaymentDetails,
   getBookingHistory,
   checkOutGuest,
-  updateBookingDetails
+  updateBookingDetails,
+  getAllBookingsFlat
 } from "../controllers/bookingController.js";
 
+router.get("/list", protect, getAllBookingsFlat);
 router.get("/history", protect, getBookingHistory);
 router.put("/:id/details", protect, updateBookingDetails);
 router.get("/download/csv", protect, downloadBookingsCSV);  
