@@ -1,8 +1,7 @@
 // src/components/Sidebar.jsx
 import React, { useEffect, useRef, useMemo } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Building2, MessageSquare } from "lucide-react"; // ✅ ADD MessageSquare
 import { motion } from "framer-motion";
-import { Building2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
 import Creator from "./Creator";
@@ -190,6 +189,54 @@ export default function Sidebar({
         >
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Defaulters</span>
+        </motion.button>
+
+        {/* ✅ DEFAULTERS BUTTON */}
+        <motion.button
+          onClick={() => {
+            console.log("🔴 Defaulters clicked");
+            setActiveTab("Defaulters");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          }}
+          className="relative group w-full text-left px-3 py-2 rounded-xl
+                    border bg-gradient-to-r from-red-500 to-red-600 text-white
+                    flex items-center gap-3 shadow-lg"
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm font-semibold">Defaulters</span>
+        </motion.button>
+
+        {/* ✅ DEPARTMENT PAYMENTS BUTTON */}
+        <motion.button
+          onClick={() => {
+            console.log("🏢 Department Payments clicked");
+            setActiveTab("DepartmentPayments");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          }}
+          className="relative group w-full text-left px-3 py-2 rounded-xl
+                    border bg-gradient-to-r from-blue-500 to-blue-600 text-white
+                    flex items-center gap-3 shadow-lg"
+        >
+          <Building2 className="w-4 h-4" />
+          <span className="text-sm font-semibold">Dept. Payments</span>
+        </motion.button>
+
+        {/* ✅ FEEDBACK BUTTON */}
+        <motion.button
+          onClick={() => {
+            console.log("💬 Feedback clicked");
+            setActiveTab("Feedback");
+            setActiveHostel(null);
+            setActiveRoomRef(null);
+          }}
+          className="relative group w-full text-left px-3 py-2 rounded-xl
+                    border bg-gradient-to-r from-purple-500 to-purple-600 text-white
+                    flex items-center gap-3 shadow-lg"
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span className="text-sm font-semibold">Feedback</span>
         </motion.button>
         </nav>  
       
