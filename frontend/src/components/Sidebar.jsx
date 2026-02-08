@@ -57,13 +57,27 @@ export default function Sidebar({
 
   // ✅ VISIBLE HOSTELS (Role-based)
   const visibleHostels = useMemo(() => {
+    console.log("🔍 Sidebar - Checking visible hostels:", {
+      role,
+      canSeeAllHostels,
+      canSeeHostels,
+      assignedHostel,
+      availableHostels: Object.keys(hostelData || {})
+    });
+
     if (canSeeAllHostels) {
-      return hostelNames; // Admin + Manager see all
-    } else if (canSeeHostels && assignedHostel && hostelData[assignedHostel]) {
-      return [assignedHostel]; // Caretaker/Warden see assigned only
+      console.log("✅ Admin/Manager - showing all hostels:", hostelNames);
+      return hostelNames; // admin + manager (already sorted by initial)
+    } else if (canSeeHostels && assignedHostel) {
+      // ✅ FIX: Don't check if hostel exists in data - just show it
+      // The data will load, and if hostel doesn't exist, it will show empty
+      console.log("✅ Caretaker/Warden - showing assigned hostel:", assignedHostel);
+      return [assignedHostel];
     }
+    
+    console.warn("❌ No hostels visible - check permissions");
     return [];
-  }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames]);
+  }, [canSeeAllHostels, canSeeHostels, assignedHostel, hostelData, hostelNames, role]);
 
   // Warn if restricted role has no hostel
   if (isRestrictedRole && !assignedHostel) {
