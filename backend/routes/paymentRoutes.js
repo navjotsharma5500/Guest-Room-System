@@ -3,6 +3,7 @@
 
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import Booking from "../models/Booking.js"; // ← ADD THIS
 import {
   processPayment,
   getPaymentHistory,
