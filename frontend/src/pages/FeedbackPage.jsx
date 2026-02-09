@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Star, Search, Calendar, Filter, User, Phone, Mail,
   Building2, MapPin, X, Upload, Trash2, FileText, TrendingUp,
-  Award, AlertCircle
+  Award, AlertCircle, MessageSquare, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_AUTH_ENDPOINT } from '../utils/apiConfig';
@@ -38,7 +38,21 @@ const RATING_CONFIG = {
   5: { label: 'Outstanding', description: 'Clean', color: 'green' }
 };
 
-// Feedback Modal Component
+const GUEST_RATING_CONFIG = {
+  1: { label: 'Poor', emoji: '😞', color: 'red' },
+  2: { label: 'Below Average', emoji: '😕', color: 'orange' },
+  3: { label: 'Average', emoji: '😐', color: 'yellow' },
+  4: { label: 'Good', emoji: '😊', color: 'blue' },
+  5: { label: 'Excellent', emoji: '🤩', color: 'green' }
+};
+
+// Tab configuration
+const TABS = {
+  CARETAKER: 'caretaker',
+  GUEST: 'guest'
+};
+
+// Feedback Modal Component (for Caretaker Feedback)
 function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
   const [rating, setRating] = useState(existingFeedback?.rating || 0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -105,13 +119,13 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto will-change-auto`}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-2xl z-10 flex justify-between items-center">
+          <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl z-10 flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <Star size={24} />
                 Rate Guest Experience
               </h2>
-              <p className="text-purple-100 text-sm mt-1">{guest.guest} - Room {guest.roomNo}</p>
+              <p className="text-red-100 text-sm mt-1">{guest.guest} - Room {guest.roomNo}</p>
             </div>
             <button
               onClick={onClose}
@@ -183,10 +197,10 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add any additional comments about the guest's stay..."
                 rows={4}
-                className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-200 transition ${
+                className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-200 transition ${
                   theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500' 
-                    : 'bg-white border-gray-300 focus:border-purple-500'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-500' 
+                    : 'bg-white border-gray-300 focus:border-red-500'
                 }`}
               />
             </div>
@@ -194,57 +208,57 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
             {/* Attachments */}
             <div>
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
-                Attachments (Optional - Max 5)
+                Attachments (Optional, max 5)
               </label>
               
               {attachments.length < 5 && (
                 <IKUpload
-                  fileName={`feedback_${Date.now()}_${Math.random().toString(36).substring(2)}`}
-                  folder="/feedback-attachments"
-                  useUniqueFileName={true}
-                  isPrivateFile={false}
-                  tags={["feedback", "guest-rating"]}
-                  onUploadStart={() => console.log("Upload started...")}
-                  onError={(err) => {
-                    console.error("Upload error:", err);
-                    alert("Failed to upload file. Please try again.");
-                  }}
-                  onSuccess={(res) => {
-                    console.log("✅ Upload success:", res);
-                    handleFileUpload(res.url);
-                  }}
-                  validateFile={(file) => {
-                    if (attachments.length >= 5) {
-                      alert("Maximum 5 attachments allowed");
-                      return false;
-                    }
-                    if (file.size > 5 * 1024 * 1024) {
-                      alert("File size must be under 5MB");
-                      return false;
-                    }
-                    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
-                    if (!allowedTypes.includes(file.type)) {
-                      alert("Only JPG, PNG, WEBP, or GIF images allowed");
-                      return false;
-                    }
-                    return true;
-                  }}
-                  className="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-purple-500 hover:bg-purple-50 transition cursor-pointer"
+                  fileName="feedback-attachment.jpg"
+                  folder="/feedback"
+                  onSuccess={(res) => handleFileUpload(res.url)}
+                  onError={(err) => alert('Upload failed: ' + err.message)}
+                  className="hidden"
+                  id="feedback-file-upload"
                 />
               )}
+              
+              <label
+                htmlFor="feedback-file-upload"
+                className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition ${
+                  attachments.length >= 5 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : theme === 'dark'
+                    ? 'border-gray-600 hover:border-red-500 hover:bg-gray-700'
+                    : 'border-gray-300 hover:border-red-500 hover:bg-gray-50'
+                }`}
+              >
+                <Upload size={20} className="text-red-500" />
+                <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                  {attachments.length >= 5 ? 'Maximum 5 files reached' : 'Click to upload'}
+                </span>
+              </label>
 
+              {/* Attachment List */}
               {attachments.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mt-3">
+                <div className="mt-3 space-y-2">
                   {attachments.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Attachment ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border-2 border-gray-300"
-                      />
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-2 rounded-lg ${
+                        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+                      }`}
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-red-600 hover:underline truncate flex-1"
+                      >
+                        {url.split('/').pop()}
+                      </a>
                       <button
                         onClick={() => removeAttachment(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        className="text-red-500 hover:text-red-700 ml-2"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -253,497 +267,572 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className={`sticky bottom-0 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-b-2xl border-t flex justify-end gap-3`}>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || rating === 0}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
-            </button>
+            {/* Submit Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className={`flex-1 py-3 rounded-lg font-semibold transition ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 text-white hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || rating === 0}
+                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
+              </button>
+            </div>
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  </IKContext>
+        </motion.div>
+      </AnimatePresence>
+    </IKContext>
   );
 }
 
-// Guest Feedback Card Component
+// Guest Feedback Card Component (for Caretaker feedback tab)
 function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  const getRatingColor = (rating) => {
+    if (!rating) return theme === 'dark' ? 'text-gray-500' : 'text-gray-400';
+    if (rating === 5) return 'text-green-500';
+    if (rating === 4) return 'text-blue-500';
+    if (rating === 3) return 'text-yellow-500';
+    if (rating === 2) return 'text-orange-500';
+    return 'text-red-500';
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md hover:shadow-xl transition p-6 border-l-4 border-purple-500`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        {/* Star Rating Section */}
-        <div className="flex flex-col items-center justify-center min-w-[120px]">
-          {existingFeedback ? (
-            <>
-              <div className="flex gap-1 mb-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={20}
-                    className={star <= existingFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-300 text-gray-300'}
-                  />
-                ))}
-              </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                existingFeedback.rating === 5 ? 'bg-green-100 text-green-800' :
-                existingFeedback.rating === 4 ? 'bg-blue-100 text-blue-800' :
-                existingFeedback.rating === 3 ? 'bg-yellow-100 text-yellow-800' :
-                existingFeedback.rating === 2 ? 'bg-orange-100 text-orange-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {RATING_CONFIG[existingFeedback.rating]?.label}
-              </span>
-            </>
-          ) : (
-            <button
-              onClick={() => onRate(guest)}
-              className="flex flex-col items-center gap-2 px-4 py-3 bg-purple-100 hover:bg-purple-200 rounded-lg transition group"
-            >
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={20}
-                    className="fill-gray-300 text-gray-300 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition"
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-bold text-purple-700">Rate Guest</span>
-            </button>
-          )}
-        </div>
-
-        {/* Guest Details */}
+    <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-5 shadow-md hover:shadow-lg transition-all`}>
+      <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            {guest.profilePicture ? (
-              <img
-                src={guest.profilePicture}
-                alt={guest.guest}
-                className="w-12 h-12 rounded-full border-4 border-purple-100"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <User size={24} className="text-purple-400" />
-              </div>
-            )}
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-12 h-12 rounded-full ${existingFeedback ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'} flex items-center justify-center text-white font-bold text-lg`}>
+              {guest.guest?.charAt(0) || 'G'}
+            </div>
             <div>
-              <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`font-bold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 {guest.guest}
               </h3>
-              <p className="text-sm text-gray-500">{guest.rollno || "—"}</p>
+              <p className="text-sm text-gray-500">Room {guest.roomNo} • {guest.hostel}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Building2 size={16} className="text-purple-500" />
-              <span>{guest.hostel}</span>
+          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+            <div className="flex items-center gap-2 text-gray-500">
+              <Mail size={14} />
+              <span className="truncate">{guest.email}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-red-500" />
-              <span>Room {guest.roomNo}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone size={16} className="text-blue-500" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <Phone size={14} />
               <span>{guest.contact}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Mail size={16} className="text-green-500" />
-              <span className="truncate text-xs">{guest.email}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-orange-500" />
-              <span>{formatDate(guest.checkedOutAt || guest.to)}</span>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Calendar size={14} />
+              <span>Checkout: {new Date(guest.checkedOutAt || guest.to).toLocaleDateString()}</span>
             </div>
           </div>
 
-          {existingFeedback?.remarks && (
-            <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <p className="text-sm italic text-gray-700">"{existingFeedback.remarks}"</p>
-            </div>
-          )}
-
-          {existingFeedback?.attachments?.length > 0 && (
-            <div className="mt-3 flex gap-2 flex-wrap">
-              {existingFeedback.attachments.map((url, idx) => (
-                <a
-                  key={idx}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-16 h-16"
-                >
-                  <img
-                    src={url}
-                    alt={`Attachment ${idx + 1}`}
-                    className="w-full h-full object-cover rounded border-2 border-gray-300 hover:border-purple-500 transition"
-                  />
-                </a>
-              ))}
+          {existingFeedback && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className={getRatingColor(existingFeedback.rating)}
+                      fill={i < existingFeedback.rating ? 'currentColor' : 'none'}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-semibold text-gray-700">
+                  {existingFeedback.ratingLabel}
+                </span>
+              </div>
+              {existingFeedback.remarks && (
+                <p className="text-sm text-gray-600 line-clamp-2">{existingFeedback.remarks}</p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Edit Button for existing feedback */}
-        {existingFeedback && (
-          <button
-            onClick={() => onRate(guest)}
-            className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium"
-          >
-            Edit
-          </button>
+        <button
+          onClick={() => onRate(guest)}
+          className={`ml-4 px-4 py-2 rounded-lg font-semibold transition ${
+            existingFeedback
+              ? theme === 'dark'
+                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+              : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white'
+          }`}
+        >
+          {existingFeedback ? 'Edit' : 'Rate'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Guest Feedback Item Component (for Guest feedback tab)
+function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const config = GUEST_RATING_CONFIG[feedback.rating];
+
+  return (
+    <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-5 shadow-md hover:shadow-lg transition-all`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white font-bold text-lg">
+              {feedback.name?.charAt(0) || 'G'}
+            </div>
+            <div>
+              <h3 className={`font-bold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                {feedback.name}
+              </h3>
+              <p className="text-sm text-gray-500">Hostel {feedback.hostel}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+            <div className="flex items-center gap-2 text-gray-500">
+              <Mail size={14} />
+              <span className="truncate">{feedback.email}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Phone size={14} />
+              <span>{feedback.contact}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Calendar size={14} />
+              <span>Submitted: {new Date(feedback.submittedAt).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                feedback.status === 'reviewed' ? 'bg-green-100 text-green-700' :
+                feedback.status === 'archived' ? 'bg-gray-100 text-gray-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>
+                {feedback.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={16}
+                    style={{ color: i < feedback.rating ? (
+                      feedback.rating === 5 ? '#10b981' :
+                      feedback.rating === 4 ? '#3b82f6' :
+                      feedback.rating === 3 ? '#eab308' :
+                      feedback.rating === 2 ? '#f97316' : '#ef4444'
+                    ) : '#d1d5db' }}
+                    fill={i < feedback.rating ? 'currentColor' : 'none'}
+                  />
+                ))}
+              </div>
+              <span className="text-2xl">{config?.emoji}</span>
+              <span className="text-sm font-semibold text-gray-700">
+                {feedback.ratingLabel}
+              </span>
+            </div>
+
+            {feedback.description && (
+              <div className={`mt-2 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <p className={`text-sm ${showDetails ? '' : 'line-clamp-2'} ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {feedback.description}
+                </p>
+                {feedback.description.length > 100 && (
+                  <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="text-red-600 text-sm font-semibold mt-1 hover:underline"
+                  >
+                    {showDetails ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {onStatusUpdate && (
+          <div className="ml-4 flex flex-col gap-2">
+            <select
+              value={feedback.status}
+              onChange={(e) => onStatusUpdate(feedback._id, e.target.value)}
+              className="px-3 py-2 text-sm rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            >
+              <option value="pending">Pending</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 // Main Feedback Page Component
-export default function FeedbackPage({ onBack, theme = "light" }) {
-  const { currentUser } = useAuth();
-  const role = currentUser?.role || "caretaker";
-  const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
-  const isRestrictedRole = role === 'caretaker' || role === 'warden';
-
+export default function FeedbackPage() {
+  const { user, theme } = useAuth();
+  const [activeTab, setActiveTab] = useState(TABS.CARETAKER);
+  
+  // Caretaker Feedback State
   const [checkedOutGuests, setCheckedOutGuests] = useState([]);
-  const [feedbacks, setFeedbacks] = useState([]);
+  const [caretakerFeedbacks, setCaretakerFeedbacks] = useState([]);
+  
+  // Guest Feedback State
+  const [guestFeedbacks, setGuestFeedbacks] = useState([]);
+  
+  // Common State
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const [selectedGuest, setSelectedGuest] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-
-  // Filters
+  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedHostel, setSelectedHostel] = useState(isRestrictedRole ? userHostel : 'All');
-  const [dateFilter, setDateFilter] = useState('');
+  const [hostelFilter, setHostelFilter] = useState('All');
   const [ratingFilter, setRatingFilter] = useState('All');
-
-  // Pagination
+  const [dateFilter, setDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
-  // Fetch checked-out guests
-  const fetchCheckedOutGuests = useCallback(async () => {
+  // Modal State (for Caretaker feedback)
+  const [showModal, setShowModal] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState(null);
+
+  const hostels = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
+  const isRestrictedRole = user?.role === 'caretaker' || user?.role === 'warden';
+
+  // Fetch Caretaker Feedback Data
+  const fetchCaretakerFeedback = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      const token = localStorage.getItem('token');
 
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const response = await fetch(`${API}/api/bookings/all-for-download`, {
-        method: "GET",
-        credentials: "include",
-        headers,
+      // Fetch checked-out guests
+      const guestsRes = await fetch(`${API}/api/bookings/checked-out`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (!response.ok) throw new Error('Failed to fetch bookings');
-
-      const data = await response.json();
       
-      if (data.success) {
-        const allBookings = [];
-        const now = new Date();
-        
-        Object.values(data.hostels).forEach(hostel => {
-          hostel.rooms.forEach(room => {
-            room.bookings.forEach(booking => {
-              // Only rely on backend status - no frontend date checks
-              if (booking.status === "checked_out") {
-                allBookings.push({
-                  ...booking,
-                  hostel: hostel.name,
-                  roomNo: room.roomNo
-                });
-              }
-            });
-          });
-        });
+      if (!guestsRes.ok) throw new Error('Failed to fetch guests');
+      const guestsData = await guestsRes.json();
+      setCheckedOutGuests(guestsData.bookings || []);
 
-        // Filter by role (caretaker and warden)
-        const filteredBookings = isRestrictedRole
-          ? allBookings.filter(b => b.hostel === userHostel)
-          : allBookings;
+      // Fetch caretaker feedbacks
+      const feedbackRes = await fetch(`${API}/api/feedback`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!feedbackRes.ok) throw new Error('Failed to fetch feedback');
+      const feedbackData = await feedbackRes.json();
+      setCaretakerFeedbacks(feedbackData.feedbacks || []);
 
-        setCheckedOutGuests(filteredBookings);
-        console.log(`✅ Found ${filteredBookings.length} checked-out guests`);
-      }
+      setError('');
     } catch (err) {
-      console.error('❌ Fetch error:', err);
+      console.error('Error fetching caretaker feedback:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [role, userHostel]);
+  }, []);
 
-  // Fetch feedbacks
-  const fetchFeedbacks = useCallback(async () => {
+  // Fetch Guest Feedback Data
+  const fetchGuestFeedback = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      setLoading(true);
+      const token = localStorage.getItem('token');
 
-      const response = await fetch(`${API}/api/feedback?limit=1000`, {
-        method: "GET",
-        credentials: "include",
-        headers,
+      const res = await fetch(`${API}/api/guest-feedback`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (!response.ok) throw new Error('Failed to fetch feedbacks');
-
-      const data = await response.json();
       
-      if (data.success) {
-        setFeedbacks(data.feedbacks || []);
-        console.log(`✅ Found ${data.feedbacks?.length || 0} feedbacks`);
-      }
+      if (!res.ok) throw new Error('Failed to fetch guest feedback');
+      const data = await res.json();
+      setGuestFeedbacks(data.feedbacks || []);
+      setError('');
     } catch (err) {
-      console.error('❌ Fetch feedbacks error:', err);
+      console.error('Error fetching guest feedback:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
+  // Initial Load
   useEffect(() => {
-    fetchCheckedOutGuests();
-    fetchFeedbacks();
-  }, [fetchCheckedOutGuests, fetchFeedbacks]);
+    if (activeTab === TABS.CARETAKER) {
+      fetchCaretakerFeedback();
+    } else {
+      fetchGuestFeedback();
+    }
+  }, [activeTab, fetchCaretakerFeedback, fetchGuestFeedback]);
 
+  // Real-time updates
   useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape' && onBack) {
-        onBack();
+    const handleFeedbackSubmitted = () => {
+      if (activeTab === TABS.CARETAKER) {
+        fetchCaretakerFeedback();
       }
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [onBack]);
 
-  // Get feedback for a booking
-  const getFeedbackForGuest = (guestId) => {
-    return feedbacks.find(f => f.bookingId === guestId);
-  };
+    const handleGuestFeedbackSubmitted = () => {
+      if (activeTab === TABS.GUEST) {
+        fetchGuestFeedback();
+      }
+    };
 
-  // Submit feedback
-  const handleSubmitFeedback = async (feedbackData) => {
+    window.addEventListener('feedback-submitted', handleFeedbackSubmitted);
+    window.addEventListener('guestFeedbackSubmitted', handleGuestFeedbackSubmitted);
+
+    return () => {
+      window.removeEventListener('feedback-submitted', handleFeedbackSubmitted);
+      window.removeEventListener('guestFeedbackSubmitted', handleGuestFeedbackSubmitted);
+    };
+  }, [activeTab, fetchCaretakerFeedback, fetchGuestFeedback]);
+
+  // Handle Caretaker Feedback Submit
+  const handleSubmitCaretakerFeedback = async (feedbackData) => {
     try {
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      };
-
-      const response = await fetch(`${API}/api/feedback`, {
-        method: "POST",
-        credentials: "include",
-        headers,
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify(feedbackData)
       });
 
-      if (!response.ok) throw new Error('Failed to submit feedback');
-
-      const data = await response.json();
+      if (!res.ok) throw new Error('Failed to submit feedback');
       
-      if (data.success) {
-        console.log('✅ Feedback submitted:', data.feedback);
-        await fetchFeedbacks(); // Refresh feedbacks
-        alert(data.message);
-      }
+      await fetchCaretakerFeedback();
+      alert('Feedback submitted successfully!');
     } catch (err) {
-      console.error('❌ Submit error:', err);
+      console.error('Error submitting feedback:', err);
       throw err;
     }
   };
 
-  // Filter guests
-  const filteredGuests = useMemo(() => {
+  // Handle Guest Feedback Status Update
+  const handleGuestFeedbackStatusUpdate = async (feedbackId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/guest-feedback/${feedbackId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!res.ok) throw new Error('Failed to update status');
+      
+      await fetchGuestFeedback();
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
+    }
+  };
+
+  // Get feedback for a specific guest
+  const getFeedbackForGuest = (guestId) => {
+    return caretakerFeedbacks.find(f => f.bookingId === guestId);
+  };
+
+  // Filter Caretaker Guests
+  const filteredCaretakerGuests = useMemo(() => {
     return checkedOutGuests.filter(guest => {
-      // Search filter
-      const matchesSearch = !searchQuery || 
-        guest.guest?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guest.contact?.includes(searchQuery) ||
-        guest.email?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Hostel filter
-      const matchesHostel = selectedHostel === 'All' || guest.hostel === selectedHostel;
-
-      // Date filter
+      const matchesSearch = guest.guest?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          guest.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          guest.contact?.includes(searchQuery);
+      
+      const matchesHostel = hostelFilter === 'All' || guest.hostel === hostelFilter;
+      
+      const feedback = getFeedbackForGuest(guest._id || guest.id);
+      const matchesRating = ratingFilter === 'All' ||
+                           (ratingFilter === 'Unrated' && !feedback) ||
+                           (feedback && feedback.rating === Number(ratingFilter));
+      
       const matchesDate = !dateFilter || 
-        new Date(guest.checkedOutAt || guest.to).toISOString().split('T')[0] === dateFilter;
+                         new Date(guest.checkedOutAt || guest.to).toDateString() === new Date(dateFilter).toDateString();
 
-      // Rating filter
-      let matchesRating = true;
-      if (ratingFilter !== 'All') {
-        const feedback = getFeedbackForGuest(guest._id || guest.id);
-        if (ratingFilter === 'Unrated') {
-          matchesRating = !feedback;
-        } else {
-          matchesRating = feedback?.rating === Number(ratingFilter);
-        }
-      }
-
-      return matchesSearch && matchesHostel && matchesDate && matchesRating;
+      return matchesSearch && matchesHostel && matchesRating && matchesDate;
     });
-  }, [checkedOutGuests, searchQuery, selectedHostel, dateFilter, ratingFilter]);
+  }, [checkedOutGuests, searchQuery, hostelFilter, ratingFilter, dateFilter, caretakerFeedbacks]);
+
+  // Filter Guest Feedbacks
+  const filteredGuestFeedbacks = useMemo(() => {
+    return guestFeedbacks.filter(feedback => {
+      const matchesSearch = feedback.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          feedback.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          feedback.contact?.includes(searchQuery);
+      
+      const matchesHostel = hostelFilter === 'All' || feedback.hostel === hostelFilter;
+      
+      const matchesRating = ratingFilter === 'All' || feedback.rating === Number(ratingFilter);
+      
+      const matchesDate = !dateFilter || 
+                         new Date(feedback.submittedAt).toDateString() === new Date(dateFilter).toDateString();
+
+      return matchesSearch && matchesHostel && matchesRating && matchesDate;
+    });
+  }, [guestFeedbacks, searchQuery, hostelFilter, ratingFilter, dateFilter]);
 
   // Pagination
-  const paginatedGuests = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredGuests.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredGuests, currentPage]);
+  const currentData = activeTab === TABS.CARETAKER ? filteredCaretakerGuests : filteredGuestFeedbacks;
+  const totalPages = Math.ceil(currentData.length / itemsPerPage);
+  const paginatedData = currentData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const totalPages = Math.ceil(filteredGuests.length / itemsPerPage);
-
-  // Reset page on filter change
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedHostel, dateFilter, ratingFilter]);
-
-  // Get unique hostels
-  const hostels = useMemo(() => {
-    if (isRestrictedRole) return [userHostel];
-    const unique = [...new Set(checkedOutGuests.map(g => g.hostel))];
-    return ['All', ...unique];
-  }, [checkedOutGuests, isRestrictedRole, userHostel]);
+  }, [searchQuery, hostelFilter, ratingFilter, dateFilter, activeTab]);
 
   return (
-    <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-purple-50 to-blue-50'} overflow-y-auto`}>
+    <div className={`p-6 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-xl rounded-3xl mx-6 mt-6">
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
-              >
-                <ArrowLeft size={24} />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <Award size={32} />
-                  Guest Feedback & Reviews
-                </h1>
-                <p className="text-purple-100 mt-1">Rate checked-out guests and track performance</p>
-              </div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <MessageSquare className="text-red-600" size={32} />
+            Feedback Management
+          </h1>
+          <p className="text-gray-500 mt-1">Manage caretaker and guest feedback</p>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab(TABS.CARETAKER)}
+          className={`px-6 py-3 font-semibold transition-all relative ${
+            activeTab === TABS.CARETAKER
+              ? 'text-red-600 border-b-2 border-red-600'
+              : theme === 'dark'
+              ? 'text-gray-400 hover:text-gray-200'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Users size={20} />
+            Caretaker Feedback
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab(TABS.GUEST)}
+          className={`px-6 py-3 font-semibold transition-all relative ${
+            activeTab === TABS.GUEST
+              ? 'text-red-600 border-b-2 border-red-600'
+              : theme === 'dark'
+              ? 'text-gray-400 hover:text-gray-200'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <MessageSquare size={20} />
+            Guest Feedback
+          </div>
+        </button>
+      </div>
+
       {/* Filters */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b`}>
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <Search size={16} className="inline mr-1" />
-                Search
-              </label>
-              <input
-                type="text"
-                placeholder="Name, contact, email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border-2 rounded-lg px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300'
-                }`}
-              />
-            </div>
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-6 mb-6`}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <Search size={16} className="inline mr-1" />
+              Search
+            </label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Name, email, or contact..."
+              className={`w-full border-2 rounded-lg px-4 py-2 ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                  : 'bg-white border-gray-300'
+              }`}
+            />
+          </div>
 
-            {/* Hostel Filter */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <Building2 size={16} className="inline mr-1" />
-                Hostel
-              </label>
-              <select
-                value={selectedHostel}
-                onChange={(e) => setSelectedHostel(e.target.value)}
-                disabled={isRestrictedRole}
-                className={`w-full border-2 rounded-lg px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300'
-                } ${isRestrictedRole ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {hostels.map(h => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
-            </div>
+          {/* Hostel Filter */}
+          <div>
+            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <Building2 size={16} className="inline mr-1" />
+              Hostel
+            </label>
+            <select
+              value={hostelFilter}
+              onChange={(e) => setHostelFilter(e.target.value)}
+              disabled={isRestrictedRole}
+              className={`w-full border-2 rounded-lg px-4 py-2 ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300'
+              } ${isRestrictedRole ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {hostels.map(h => (
+                <option key={h} value={h}>{h === 'All' ? 'All Hostels' : `Hostel ${h}`}</option>
+              ))}
+            </select>
+          </div>
 
-            {/* Date Filter */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <Calendar size={16} className="inline mr-1" />
-                Checkout Date
-              </label>
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className={`w-full border-2 rounded-lg px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300'
-                }`}
-              />
-            </div>
+          {/* Date Filter */}
+          <div>
+            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <Calendar size={16} className="inline mr-1" />
+              {activeTab === TABS.CARETAKER ? 'Checkout Date' : 'Submission Date'}
+            </label>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className={`w-full border-2 rounded-lg px-4 py-2 ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300'
+              }`}
+            />
+          </div>
 
-            {/* Rating Filter */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <Filter size={16} className="inline mr-1" />
-                Rating
-              </label>
-              <select
-                value={ratingFilter}
-                onChange={(e) => setRatingFilter(e.target.value)}
-                className={`w-full border-2 rounded-lg px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300'
-                }`}
-              >
-                <option value="All">All Ratings</option>
-                <option value="Unrated">Unrated</option>
-                <option value="5">⭐⭐⭐⭐⭐ Outstanding</option>
-                <option value="4">⭐⭐⭐⭐ Good</option>
-                <option value="3">⭐⭐⭐ Average</option>
-                <option value="2">⭐⭐ Below Average</option>
-                <option value="1">⭐ Poor</option>
-              </select>
-            </div>
+          {/* Rating Filter */}
+          <div>
+            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <Filter size={16} className="inline mr-1" />
+              Rating
+            </label>
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value)}
+              className={`w-full border-2 rounded-lg px-4 py-2 ${
+                theme === 'dark' 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              <option value="All">All Ratings</option>
+              {activeTab === TABS.CARETAKER && <option value="Unrated">Unrated</option>}
+              <option value="5">⭐⭐⭐⭐⭐ {activeTab === TABS.CARETAKER ? 'Outstanding' : 'Excellent'}</option>
+              <option value="4">⭐⭐⭐⭐ Good</option>
+              <option value="3">⭐⭐⭐ Average</option>
+              <option value="2">⭐⭐ Below Average</option>
+              <option value="1">⭐ Poor</option>
+            </select>
           </div>
         </div>
       </div>
@@ -751,88 +840,142 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
       {/* Stats Summary */}
       <div className="px-6 py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-purple-500`}>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-red-500`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Guests</p>
-                <p className="text-2xl font-bold text-purple-600">{filteredGuests.length}</p>
+                <p className="text-sm text-gray-500">Total {activeTab === TABS.CARETAKER ? 'Guests' : 'Feedbacks'}</p>
+                <p className="text-2xl font-bold text-red-600">{currentData.length}</p>
               </div>
-              <User size={32} className="text-purple-400" />
+              {activeTab === TABS.CARETAKER ? <User size={32} className="text-red-400" /> : <MessageSquare size={32} className="text-red-400" />}
             </div>
           </div>
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Rated</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {filteredGuests.filter(g => getFeedbackForGuest(g._id || g.id)).length}
-                </p>
+          
+          {activeTab === TABS.CARETAKER ? (
+            <>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Rated</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {filteredCaretakerGuests.filter(g => getFeedbackForGuest(g._id || g.id)).length}
+                    </p>
+                  </div>
+                  <Star size={32} className="text-green-400" />
+                </div>
               </div>
-              <Star size={32} className="text-green-400" />
-            </div>
-          </div>
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-orange-500`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Unrated</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {filteredGuests.filter(g => !getFeedbackForGuest(g._id || g.id)).length}
-                </p>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-orange-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Unrated</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {filteredCaretakerGuests.filter(g => !getFeedbackForGuest(g._id || g.id)).length}
+                    </p>
+                  </div>
+                  <AlertCircle size={32} className="text-orange-400" />
+                </div>
               </div>
-              <AlertCircle size={32} className="text-orange-400" />
-            </div>
-          </div>
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Avg Rating</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {(() => {
-                    const ratings = filteredGuests
-                      .map(g => getFeedbackForGuest(g._id || g.id)?.rating)
-                      .filter(r => r);
-                    return ratings.length > 0 
-                      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
-                      : '—';
-                  })()}
-                </p>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Avg Rating</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {(() => {
+                        const ratings = filteredCaretakerGuests
+                          .map(g => getFeedbackForGuest(g._id || g.id)?.rating)
+                          .filter(r => r);
+                        return ratings.length > 0 
+                          ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+                          : '—';
+                      })()}
+                    </p>
+                  </div>
+                  <TrendingUp size={32} className="text-blue-400" />
+                </div>
               </div>
-              <TrendingUp size={32} className="text-blue-400" />
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-yellow-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {guestFeedbacks.filter(f => f.status === 'pending').length}
+                    </p>
+                  </div>
+                  <AlertCircle size={32} className="text-yellow-400" />
+                </div>
+              </div>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Reviewed</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {guestFeedbacks.filter(f => f.status === 'reviewed').length}
+                    </p>
+                  </div>
+                  <Star size={32} className="text-green-400" />
+                </div>
+              </div>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Avg Rating</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {guestFeedbacks.length > 0
+                        ? (guestFeedbacks.reduce((sum, f) => sum + f.rating, 0) / guestFeedbacks.length).toFixed(1)
+                        : '—'}
+                    </p>
+                  </div>
+                  <TrendingUp size={32} className="text-blue-400" />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Content */}
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
-            <p className="text-gray-500">Loading guests feedback...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
+            <p className="text-gray-500">Loading {activeTab === TABS.CARETAKER ? 'guests' : 'guest'} feedback...</p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
             <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
             <p className="text-red-600 font-semibold">{error}</p>
           </div>
-        ) : filteredGuests.length === 0 ? (
+        ) : paginatedData.length === 0 ? (
           <div className="text-center py-12">
             <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">No checked-out guests found</p>
+            <p className="text-gray-500">No {activeTab === TABS.CARETAKER ? 'checked-out guests' : 'guest feedback'} found</p>
           </div>
         ) : (
           <>
             <div className="space-y-4">
-              {paginatedGuests.map(guest => (
-                <GuestFeedbackCard
-                  key={guest._id || guest.id}
-                  guest={guest}
-                  onRate={(g) => {
-                    setSelectedGuest(g);
-                    setShowModal(true);
-                  }}
-                  existingFeedback={getFeedbackForGuest(guest._id || guest.id)}
-                  theme={theme}
-                />
-              ))}
+              {activeTab === TABS.CARETAKER ? (
+                paginatedData.map(guest => (
+                  <GuestFeedbackCard
+                    key={guest._id || guest.id}
+                    guest={guest}
+                    onRate={(g) => {
+                      setSelectedGuest(g);
+                      setShowModal(true);
+                    }}
+                    existingFeedback={getFeedbackForGuest(guest._id || guest.id)}
+                    theme={theme}
+                  />
+                ))
+              ) : (
+                paginatedData.map(feedback => (
+                  <GuestFeedbackItem
+                    key={feedback._id}
+                    feedback={feedback}
+                    theme={theme}
+                    onStatusUpdate={user?.role === 'admin' || user?.role === 'manager' ? handleGuestFeedbackStatusUpdate : null}
+                  />
+                ))
+              )}
             </div>
 
             {/* Pagination */}
@@ -841,7 +984,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   Previous
                 </button>
@@ -851,7 +994,7 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   Next
                 </button>
@@ -861,15 +1004,15 @@ export default function FeedbackPage({ onBack, theme = "light" }) {
         )}
       </div>
 
-      {/* Feedback Modal */}
-      {showModal && selectedGuest && (
+      {/* Feedback Modal (for Caretaker feedback) */}
+      {showModal && selectedGuest && activeTab === TABS.CARETAKER && (
         <FeedbackModal
           guest={selectedGuest}
           onClose={() => {
             setShowModal(false);
             setSelectedGuest(null);
           }}
-          onSubmit={handleSubmitFeedback}
+          onSubmit={handleSubmitCaretakerFeedback}
           existingFeedback={getFeedbackForGuest(selectedGuest._id || selectedGuest.id)}
           theme={theme}
         />

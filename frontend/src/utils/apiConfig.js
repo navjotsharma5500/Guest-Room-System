@@ -11,6 +11,27 @@ export const getBackendUrl = () => {
 
 export const BACKEND_URL = getBackendUrl();
 
+// ============================================================================
+// FRONTEND / PUBLIC URL CONFIG (for QR, public pages, emails)
+// ============================================================================
+
+export const getFrontendUrl = () => {
+  if (process.env.REACT_APP_FRONTEND_URL) {
+    return process.env.REACT_APP_FRONTEND_URL;
+  }
+
+  console.warn("⚠️ REACT_APP_FRONTEND_URL not set, using window.location.origin");
+  return window.location.origin;
+};
+
+export const FRONTEND_URL = getFrontendUrl();
+
+// Public guest feedback route
+export const GUEST_FEEDBACK_PATH = "/guest-feedback";
+
+// Full public feedback URL (used for QR codes, emails, etc.)
+export const GUEST_FEEDBACK_URL = `${FRONTEND_URL}${GUEST_FEEDBACK_PATH}`;
+
 // ✅ ImageKit Configuration - ALL from environment variables
 export const IMAGEKIT_PUBLIC_KEY = 
   process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
@@ -35,6 +56,8 @@ export const getApiUrl = getBackendUrl;
 
 // Debug
 console.log("🌐 Backend URL configured as:", BACKEND_URL);
+console.log("🌍 Frontend URL configured as:", FRONTEND_URL);
+console.log("📢 Guest Feedback URL:", GUEST_FEEDBACK_URL);
 
 export default {
   BACKEND_URL,
@@ -42,4 +65,6 @@ export default {
   IMAGEKIT_PUBLIC_KEY,
   IMAGEKIT_URL_ENDPOINT,
   IMAGEKIT_AUTH_ENDPOINT,
+  FRONTEND_URL,
+  GUEST_FEEDBACK_URL,
 };

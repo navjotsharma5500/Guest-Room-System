@@ -28,6 +28,9 @@ import GuestRoomDashboard from "./GuestRoomDashboard";
 import HallBookingDashboard from './HallBookingDashboard';
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import EventCalendarPage from "./pages/EventCalendarPage";
+import PublicGuestFeedback from './pages/PublicGuestFeedback';
+import GuestFeedbackQRCode from './components/GuestFeedbackQRCode';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // ============================================================================
 // STYLES IMPORT
@@ -68,6 +71,7 @@ export default function App() {
   // ROUTER CONFIGURATION
   // ==========================================================================
   return (
+  <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
     <Router>
       <SpeedInsights />
       <Routes>
@@ -154,6 +158,24 @@ export default function App() {
           element={<EventCalendarPage />}
         />
 
+        {/* Guest Feedback Page - PUBLIC ACCESS (NEW) */}
+        <Route
+          path="/guest-feedback"
+          element={<PublicGuestFeedback />}
+        />
+
+        {/* QR Code Generator - ADMIN ONLY (NEW) */}
+        <Route
+          path="/admin/qr-code"
+          element={
+            currentUser && role === "admin" ? (
+              <GuestFeedbackQRCode />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
         {/* ====================================================================
             FALLBACK ROUTE
             ==================================================================== */}
@@ -164,6 +186,7 @@ export default function App() {
 
       </Routes>
     </Router>
+  </GoogleOAuthProvider>
   );
 }
 
