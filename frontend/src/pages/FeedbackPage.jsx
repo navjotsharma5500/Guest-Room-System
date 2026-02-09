@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Star, Search, Calendar, Filter, User, Phone, Mail,
   Building2, MapPin, X, Upload, Trash2, FileText, TrendingUp,
-  Award, AlertCircle, MessageSquare, Users
+  Award, AlertCircle, MessageSquare, Users, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_AUTH_ENDPOINT } from '../utils/apiConfig';
@@ -138,7 +138,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           <div className="p-6 space-y-6">
             {/* Star Rating */}
             <div className="text-center">
-              <p className="text-lg font-semibold mb-4">How would you rate this guest?</p>
+              <p className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>How would you rate this guest?</p>
               <div className="flex justify-center gap-3 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -180,8 +180,8 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                       'bg-red-100 text-red-800'
                     }`}
                   >
-                    <p className="text-xl font-bold">{ratingInfo.label}</p>
-                    <p className="text-sm">{ratingInfo.description}</p>
+                    <span className="text-xl font-bold">{ratingInfo.label}</span>
+                    <span className="text-sm">{ratingInfo.description}</span>
                   </div>
                 )}
               </div>
@@ -189,101 +189,94 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
 
             {/* Remarks */}
             <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
                 Remarks (Optional)
               </label>
               <textarea
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder="Add any additional comments about the guest's stay..."
+                placeholder="Add any specific feedback about the guest's stay..."
                 rows={4}
-                className={`w-full border-2 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-200 transition ${
+                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition ${
                   theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-500' 
-                    : 'bg-white border-gray-300 focus:border-red-500'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
                 }`}
               />
             </div>
 
             {/* Attachments */}
             <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
                 Attachments (Optional, max 5)
               </label>
-              
-              {attachments.length < 5 && (
-                <IKUpload
-                  fileName="feedback-attachment.jpg"
-                  folder="/feedback"
-                  onSuccess={(res) => handleFileUpload(res.url)}
-                  onError={(err) => alert('Upload failed: ' + err.message)}
-                  className="hidden"
-                  id="feedback-file-upload"
-                />
-              )}
-              
-              <label
-                htmlFor="feedback-file-upload"
-                className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition ${
-                  attachments.length >= 5 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : theme === 'dark'
-                    ? 'border-gray-600 hover:border-red-500 hover:bg-gray-700'
-                    : 'border-gray-300 hover:border-red-500 hover:bg-gray-50'
-                }`}
-              >
-                <Upload size={20} className="text-red-500" />
-                <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                  {attachments.length >= 5 ? 'Maximum 5 files reached' : 'Click to upload'}
-                </span>
-              </label>
+              <div className="space-y-3">
+                {attachments.length < 5 && (
+                  <IKUpload
+                    fileName={`feedback-${guest._id || guest.id}-${Date.now()}`}
+                    folder="/feedback-attachments"
+                    onSuccess={(res) => handleFileUpload(res.url)}
+                    onError={(err) => alert('Upload failed: ' + err.message)}
+                    className="hidden"
+                    id="feedback-file-upload"
+                  />
+                )}
+                <label
+                  htmlFor="feedback-file-upload"
+                  className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition ${
+                    attachments.length >= 5 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : theme === 'dark'
+                      ? 'border-gray-600 hover:border-red-500 bg-gray-700'
+                      : 'border-slate-300 hover:border-red-500 bg-white'
+                  }`}
+                >
+                  <Upload size={20} className="text-red-500" />
+                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}>
+                    {attachments.length >= 5 ? 'Maximum attachments reached' : 'Click to upload image'}
+                  </span>
+                </label>
 
-              {/* Attachment List */}
-              {attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {attachments.map((url, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-2 rounded-lg ${
-                        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
-                      }`}
-                    >
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-red-600 hover:underline truncate flex-1"
-                      >
-                        {url.split('/').pop()}
-                      </a>
-                      <button
-                        onClick={() => removeAttachment(index)}
-                        className="text-red-500 hover:text-red-700 ml-2"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {/* Attachment previews */}
+                {attachments.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {attachments.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Attachment ${idx + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => removeAttachment(idx)}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex gap-3">
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
               <button
                 onClick={onClose}
-                className={`flex-1 py-3 rounded-lg font-semibold transition ${
+                disabled={submitting}
+                className={`flex-1 px-6 py-3 border-2 rounded-xl font-semibold transition ${
                   theme === 'dark'
-                    ? 'bg-gray-700 text-white hover:bg-gray-600'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                } disabled:opacity-50`}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || rating === 0}
-                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition guestroom-primary-btn"
               >
                 {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
               </button>
@@ -296,314 +289,342 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
   );
 }
 
-// Guest Feedback Card Component (for Caretaker feedback tab)
+// Guest Feedback Card Component (for Caretaker tab)
 function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
-  const getRatingColor = (rating) => {
-    if (!rating) return theme === 'dark' ? 'text-gray-500' : 'text-gray-400';
-    if (rating === 5) return 'text-green-500';
-    if (rating === 4) return 'text-blue-500';
-    if (rating === 3) return 'text-yellow-500';
-    if (rating === 2) return 'text-orange-500';
-    return 'text-red-500';
-  };
+  const hasFeedback = !!existingFeedback;
 
   return (
-    <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-5 shadow-md hover:shadow-lg transition-all`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-3">
-            <div className={`w-12 h-12 rounded-full ${existingFeedback ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'} flex items-center justify-center text-white font-bold text-lg`}>
-              {guest.guest?.charAt(0) || 'G'}
-            </div>
-            <div>
-              <h3 className={`font-bold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`guestroom-card rounded-2xl shadow-lg border-2 border-red-100 p-6 hover:shadow-xl transition-all ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Guest Info */}
+        <div className="lg:col-span-4 space-y-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
                 {guest.guest}
               </h3>
-              <p className="text-sm text-gray-500">Room {guest.roomNo} • {guest.hostel}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Mail size={14} />
-              <span className="truncate">{guest.email}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <Phone size={14} />
-              <span>{guest.contact}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <Calendar size={14} />
-              <span>Checkout: {new Date(guest.checkedOutAt || guest.to).toLocaleDateString()}</span>
-            </div>
-          </div>
-
-          {existingFeedback && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex">
+              {hasFeedback && (
+                <div className="flex items-center gap-1 mt-2">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
                       size={16}
-                      className={getRatingColor(existingFeedback.rating)}
-                      fill={i < existingFeedback.rating ? 'currentColor' : 'none'}
+                      className={i < existingFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
                     />
                   ))}
+                  <span className={`ml-2 text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                    {existingFeedback.rating}/5
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-gray-700">
-                  {existingFeedback.ratingLabel}
-                </span>
-              </div>
-              {existingFeedback.remarks && (
-                <p className="text-sm text-gray-600 line-clamp-2">{existingFeedback.remarks}</p>
               )}
             </div>
-          )}
-        </div>
-
-        <button
-          onClick={() => onRate(guest)}
-          className={`ml-4 px-4 py-2 rounded-lg font-semibold transition ${
-            existingFeedback
-              ? theme === 'dark'
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-              : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white'
-          }`}
-        >
-          {existingFeedback ? 'Edit' : 'Rate'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Guest Feedback Item Component (for Guest feedback tab)
-function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
-  const [showDetails, setShowDetails] = useState(false);
-  const config = GUEST_RATING_CONFIG[feedback.rating];
-
-  return (
-    <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-5 shadow-md hover:shadow-lg transition-all`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white font-bold text-lg">
-              {feedback.name?.charAt(0) || 'G'}
-            </div>
-            <div>
-              <h3 className={`font-bold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                {feedback.name}
-              </h3>
-              <p className="text-sm text-gray-500">Hostel {feedback.hostel}</p>
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Mail size={14} />
-              <span className="truncate">{feedback.email}</span>
+          <div className="space-y-2 text-sm">
+            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Mail className="w-4 h-4 text-red-500" />
+              <span className="truncate">{guest.email}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <Phone size={14} />
-              <span>{feedback.contact}</span>
+            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Phone className="w-4 h-4 text-red-500" />
+              <span>{guest.contact}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <Calendar size={14} />
-              <span>Submitted: {new Date(feedback.submittedAt).toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                feedback.status === 'reviewed' ? 'bg-green-100 text-green-700' :
-                feedback.status === 'archived' ? 'bg-gray-100 text-gray-700' :
-                'bg-yellow-100 text-yellow-700'
-              }`}>
-                {feedback.status.toUpperCase()}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center gap-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    style={{ color: i < feedback.rating ? (
-                      feedback.rating === 5 ? '#10b981' :
-                      feedback.rating === 4 ? '#3b82f6' :
-                      feedback.rating === 3 ? '#eab308' :
-                      feedback.rating === 2 ? '#f97316' : '#ef4444'
-                    ) : '#d1d5db' }}
-                    fill={i < feedback.rating ? 'currentColor' : 'none'}
-                  />
-                ))}
-              </div>
-              <span className="text-2xl">{config?.emoji}</span>
-              <span className="text-sm font-semibold text-gray-700">
-                {feedback.ratingLabel}
-              </span>
-            </div>
-
-            {feedback.description && (
-              <div className={`mt-2 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <p className={`text-sm ${showDetails ? '' : 'line-clamp-2'} ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {feedback.description}
-                </p>
-                {feedback.description.length > 100 && (
-                  <button
-                    onClick={() => setShowDetails(!showDetails)}
-                    className="text-red-600 text-sm font-semibold mt-1 hover:underline"
-                  >
-                    {showDetails ? 'Show less' : 'Show more'}
-                  </button>
-                )}
+            {guest.rollno && (
+              <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                <User className="w-4 h-4 text-red-500" />
+                <span>Roll: {guest.rollno}</span>
               </div>
             )}
           </div>
         </div>
 
-        {onStatusUpdate && (
-          <div className="ml-4 flex flex-col gap-2">
-            <select
-              value={feedback.status}
-              onChange={(e) => onStatusUpdate(feedback._id, e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-            >
-              <option value="pending">Pending</option>
-              <option value="reviewed">Reviewed</option>
-              <option value="archived">Archived</option>
-            </select>
+        {/* Middle: Booking Details */}
+        <div className="lg:col-span-4 space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-red-500" />
+              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                {guest.hostel}
+              </span>
+              <span className={theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}>• Room {guest.roomNo}</span>
+            </div>
+            <div className={`flex items-center gap-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Calendar className="w-4 h-4 text-red-500" />
+              <span>
+                {new Date(guest.from).toLocaleDateString()} - {new Date(guest.to).toLocaleDateString()}
+              </span>
+            </div>
           </div>
-        )}
+
+          {hasFeedback && existingFeedback.remarks && (
+            <div className={`mt-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-700'}`}>
+                <span className="font-semibold">Remarks:</span> {existingFeedback.remarks}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Action Button */}
+        <div className="lg:col-span-4 flex items-center justify-end">
+          <button
+            onClick={() => onRate(guest)}
+            className={`px-6 py-3 rounded-xl font-semibold transition-all guestroom-primary-btn ${
+              hasFeedback
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800'
+            }`}
+          >
+            {hasFeedback ? '✏️ Edit Rating' : '⭐ Rate Guest'}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Attachments */}
+      {hasFeedback && existingFeedback.attachments?.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+            Attachments ({existingFeedback.attachments.length})
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {existingFeedback.attachments.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`Attachment ${idx + 1}`}
+                className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
+                onClick={() => window.open(url, '_blank')}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// Guest Feedback Item Component (for Guest Feedback tab)
+function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
+  const ratingConfig = GUEST_RATING_CONFIG[feedback.rating] || GUEST_RATING_CONFIG[3];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`guestroom-card rounded-2xl shadow-lg border-2 border-red-100 p-6 hover:shadow-xl transition-all ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Guest Info */}
+        <div className="lg:col-span-4 space-y-3">
+          <div>
+            <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+              {feedback.guest?.guest || 'Unknown Guest'}
+            </h3>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-2xl">{ratingConfig.emoji}</span>
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={16}
+                    className={i < feedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                  />
+                ))}
+              </div>
+              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                {feedback.rating}/5 - {ratingConfig.label}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Building2 className="w-4 h-4 text-red-500" />
+              <span>{feedback.hostel}</span>
+            </div>
+            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Calendar className="w-4 h-4 text-red-500" />
+              <span>{new Date(feedback.submittedAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle: Feedback Content */}
+        <div className="lg:col-span-5 space-y-3">
+          {feedback.comments && (
+            <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
+              <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+                Comments:
+              </p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                {feedback.comments}
+              </p>
+            </div>
+          )}
+
+          {feedback.suggestions && (
+            <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-blue-50'}`}>
+              <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+                Suggestions:
+              </p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                {feedback.suggestions}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Status & Actions */}
+        <div className="lg:col-span-3 flex flex-col items-end justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                feedback.status === 'reviewed'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-yellow-100 text-yellow-700'
+              }`}
+            >
+              {feedback.status === 'reviewed' ? '✓ Reviewed' : '⏳ Pending'}
+            </span>
+          </div>
+
+          {onStatusUpdate && feedback.status === 'pending' && (
+            <button
+              onClick={() => onStatusUpdate(feedback._id, 'reviewed')}
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all guestroom-primary-btn"
+            >
+              Mark as Reviewed
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
 // Main Feedback Page Component
-export default function FeedbackPage() {
-  const { user, theme } = useAuth();
-  const [activeTab, setActiveTab] = useState(TABS.CARETAKER);
-  
-  // Caretaker Feedback State
-  const [checkedOutGuests, setCheckedOutGuests] = useState([]);
-  const [caretakerFeedbacks, setCaretakerFeedbacks] = useState([]);
-  
-  // Guest Feedback State
-  const [guestFeedbacks, setGuestFeedbacks] = useState([]);
-  
-  // Common State
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [hostelFilter, setHostelFilter] = useState('All');
-  const [ratingFilter, setRatingFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+export default function FeedbackPage({ onBack, theme = 'light' }) {
+  const { currentUser } = useAuth();
+  const user = currentUser?.user || currentUser;
 
-  // Modal State (for Caretaker feedback)
+  const [activeTab, setActiveTab] = useState(TABS.CARETAKER);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Caretaker feedback state
+  const [caretakerGuests, setCaretakerGuests] = useState([]);
+  const [caretakerFeedbacks, setCaretakerFeedbacks] = useState([]);
+
+  // Guest feedback state
+  const [guestFeedbacks, setGuestFeedbacks] = useState([]);
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedHostel, setSelectedHostel] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState(null);
 
-  const hostels = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
-  const isRestrictedRole = user?.role === 'caretaker' || user?.role === 'warden';
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Fetch Caretaker Feedback Data
-  const fetchCaretakerFeedback = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
+  // Handle ESC key
+  useEffect(() => {
+    const onEsc = (e) => {
+      if (e.key === "Escape" && onBack) {
+        onBack();
+      }
+    };
 
-      // Fetch checked-out guests
-      const guestsRes = await fetch(`${API}/api/bookings/checked-out`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!guestsRes.ok) throw new Error('Failed to fetch guests');
-      const guestsData = await guestsRes.json();
-      setCheckedOutGuests(guestsData.bookings || []);
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [onBack]);
 
-      // Fetch caretaker feedbacks
-      const feedbackRes = await fetch(`${API}/api/feedback`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!feedbackRes.ok) throw new Error('Failed to fetch feedback');
-      const feedbackData = await feedbackRes.json();
-      setCaretakerFeedbacks(feedbackData.feedbacks || []);
-
-      setError('');
-    } catch (err) {
-      console.error('Error fetching caretaker feedback:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch Guest Feedback Data
-  const fetchGuestFeedback = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-
-      const res = await fetch(`${API}/api/guest-feedback`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!res.ok) throw new Error('Failed to fetch guest feedback');
-      const data = await res.json();
-      setGuestFeedbacks(data.feedbacks || []);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching guest feedback:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Initial Load
+  // Fetch data on mount
   useEffect(() => {
     if (activeTab === TABS.CARETAKER) {
-      fetchCaretakerFeedback();
+      fetchCaretakerData();
     } else {
       fetchGuestFeedback();
     }
-  }, [activeTab, fetchCaretakerFeedback, fetchGuestFeedback]);
+  }, [activeTab]);
 
-  // Real-time updates
+  // Reset pagination when filters change
   useEffect(() => {
-    const handleFeedbackSubmitted = () => {
-      if (activeTab === TABS.CARETAKER) {
-        fetchCaretakerFeedback();
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, selectedHostel, dateFrom, dateTo]);
+
+  const fetchCaretakerData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+
+      const [guestsRes, feedbacksRes] = await Promise.all([
+        fetch(`${API}/api/bookings/checked-out`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API}/api/feedback/caretaker/list`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      if (!guestsRes.ok || !feedbacksRes.ok) {
+        throw new Error('Failed to fetch data');
       }
-    };
 
-    const handleGuestFeedbackSubmitted = () => {
-      if (activeTab === TABS.GUEST) {
-        fetchGuestFeedback();
-      }
-    };
+      const guestsData = await guestsRes.json();
+      const feedbacksData = await feedbacksRes.json();
 
-    window.addEventListener('feedback-submitted', handleFeedbackSubmitted);
-    window.addEventListener('guestFeedbackSubmitted', handleGuestFeedbackSubmitted);
+      setCaretakerGuests(guestsData.bookings || []);
+      setCaretakerFeedbacks(feedbacksData.feedbacks || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching caretaker data:', err);
+      setError('Failed to fetch guest feedback data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => {
-      window.removeEventListener('feedback-submitted', handleFeedbackSubmitted);
-      window.removeEventListener('guestFeedbackSubmitted', handleGuestFeedbackSubmitted);
-    };
-  }, [activeTab, fetchCaretakerFeedback, fetchGuestFeedback]);
+  const fetchGuestFeedback = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
 
-  // Handle Caretaker Feedback Submit
+      const res = await fetch(`${API}/api/feedback/guest/list`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch guest feedback');
+
+      const data = await res.json();
+      setGuestFeedbacks(data.feedbacks || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching guest feedback:', err);
+      setError('Failed to fetch guest feedback');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmitCaretakerFeedback = async (feedbackData) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/feedback`, {
+      const res = await fetch(`${API}/api/feedback/caretaker/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -613,20 +634,18 @@ export default function FeedbackPage() {
       });
 
       if (!res.ok) throw new Error('Failed to submit feedback');
-      
-      await fetchCaretakerFeedback();
-      alert('Feedback submitted successfully!');
+
+      await fetchCaretakerData();
     } catch (err) {
       console.error('Error submitting feedback:', err);
       throw err;
     }
   };
 
-  // Handle Guest Feedback Status Update
   const handleGuestFeedbackStatusUpdate = async (feedbackId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/guest-feedback/${feedbackId}/status`, {
+      const res = await fetch(`${API}/api/feedback/guest/${feedbackId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -636,59 +655,75 @@ export default function FeedbackPage() {
       });
 
       if (!res.ok) throw new Error('Failed to update status');
-      
+
       await fetchGuestFeedback();
     } catch (err) {
-      console.error('Error updating status:', err);
-      alert('Failed to update status');
+      console.error('Error updating feedback status:', err);
+      alert('Failed to update feedback status');
     }
   };
 
-  // Get feedback for a specific guest
-  const getFeedbackForGuest = (guestId) => {
+  const getFeedbackForGuest = useCallback((guestId) => {
     return caretakerFeedbacks.find(f => f.bookingId === guestId);
-  };
+  }, [caretakerFeedbacks]);
 
-  // Filter Caretaker Guests
+  // Filter caretaker guests
   const filteredCaretakerGuests = useMemo(() => {
-    return checkedOutGuests.filter(guest => {
-      const matchesSearch = guest.guest?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          guest.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          guest.contact?.includes(searchQuery);
-      
-      const matchesHostel = hostelFilter === 'All' || guest.hostel === hostelFilter;
-      
-      const feedback = getFeedbackForGuest(guest._id || guest.id);
-      const matchesRating = ratingFilter === 'All' ||
-                           (ratingFilter === 'Unrated' && !feedback) ||
-                           (feedback && feedback.rating === Number(ratingFilter));
-      
-      const matchesDate = !dateFilter || 
-                         new Date(guest.checkedOutAt || guest.to).toDateString() === new Date(dateFilter).toDateString();
+    let filtered = [...caretakerGuests];
 
-      return matchesSearch && matchesHostel && matchesRating && matchesDate;
-    });
-  }, [checkedOutGuests, searchQuery, hostelFilter, ratingFilter, dateFilter, caretakerFeedbacks]);
+    if (selectedHostel) {
+      filtered = filtered.filter(g => g.hostel === selectedHostel);
+    }
 
-  // Filter Guest Feedbacks
+    if (dateFrom) {
+      filtered = filtered.filter(g => new Date(g.from) >= new Date(dateFrom));
+    }
+
+    if (dateTo) {
+      filtered = filtered.filter(g => new Date(g.to) <= new Date(dateTo));
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(g =>
+        g.guest?.toLowerCase().includes(query) ||
+        g.email?.toLowerCase().includes(query) ||
+        g.contact?.toLowerCase().includes(query) ||
+        g.rollno?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [caretakerGuests, selectedHostel, dateFrom, dateTo, searchQuery]);
+
+  // Filter guest feedback
   const filteredGuestFeedbacks = useMemo(() => {
-    return guestFeedbacks.filter(feedback => {
-      const matchesSearch = feedback.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          feedback.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          feedback.contact?.includes(searchQuery);
-      
-      const matchesHostel = hostelFilter === 'All' || feedback.hostel === hostelFilter;
-      
-      const matchesRating = ratingFilter === 'All' || feedback.rating === Number(ratingFilter);
-      
-      const matchesDate = !dateFilter || 
-                         new Date(feedback.submittedAt).toDateString() === new Date(dateFilter).toDateString();
+    let filtered = [...guestFeedbacks];
 
-      return matchesSearch && matchesHostel && matchesRating && matchesDate;
-    });
-  }, [guestFeedbacks, searchQuery, hostelFilter, ratingFilter, dateFilter]);
+    if (selectedHostel) {
+      filtered = filtered.filter(f => f.hostel === selectedHostel);
+    }
 
-  // Pagination
+    if (dateFrom) {
+      filtered = filtered.filter(f => new Date(f.submittedAt) >= new Date(dateFrom));
+    }
+
+    if (dateTo) {
+      filtered = filtered.filter(f => new Date(f.submittedAt) <= new Date(dateTo));
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(f =>
+        f.guest?.guest?.toLowerCase().includes(query) ||
+        f.comments?.toLowerCase().includes(query) ||
+        f.suggestions?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [guestFeedbacks, selectedHostel, dateFrom, dateTo, searchQuery]);
+
   const currentData = activeTab === TABS.CARETAKER ? filteredCaretakerGuests : filteredGuestFeedbacks;
   const totalPages = Math.ceil(currentData.length / itemsPerPage);
   const paginatedData = currentData.slice(
@@ -696,157 +731,216 @@ export default function FeedbackPage() {
     currentPage * itemsPerPage
   );
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, hostelFilter, ratingFilter, dateFilter, activeTab]);
+  // Get unique hostels
+  const uniqueHostels = useMemo(() => {
+    const hostels = activeTab === TABS.CARETAKER
+      ? caretakerGuests.map(g => g.hostel)
+      : guestFeedbacks.map(f => f.hostel);
+    return [...new Set(hostels)].sort();
+  }, [caretakerGuests, guestFeedbacks, activeTab]);
 
   return (
-    <div className={`p-6 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <MessageSquare className="text-red-600" size={32} />
-            Feedback Management
-          </h1>
-          <p className="text-gray-500 mt-1">Manage caretaker and guest feedback</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab(TABS.CARETAKER)}
-          className={`px-6 py-3 font-semibold transition-all relative ${
-            activeTab === TABS.CARETAKER
-              ? 'text-red-600 border-b-2 border-red-600'
-              : theme === 'dark'
-              ? 'text-gray-400 hover:text-gray-200'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-red-50'}`}>
+      {/* ✅ FIXED: Proper spacing to avoid going under sidebar/navbar */}
+      <div className="ml-64 mt-16 p-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
         >
-          <div className="flex items-center gap-2">
-            <Users size={20} />
-            Caretaker Feedback
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab(TABS.GUEST)}
-          className={`px-6 py-3 font-semibold transition-all relative ${
-            activeTab === TABS.GUEST
-              ? 'text-red-600 border-b-2 border-red-600'
-              : theme === 'dark'
-              ? 'text-gray-400 hover:text-gray-200'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <MessageSquare size={20} />
-            Guest Feedback
-          </div>
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-6 mb-6`}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              <Search size={16} className="inline mr-1" />
-              Search
-            </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Name, email, or contact..."
-              className={`w-full border-2 rounded-lg px-4 py-2 ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300'
-              }`}
-            />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className={`p-2 rounded-xl border-2 transition-all ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700 hover:border-red-500'
+                      : 'bg-white border-slate-200 hover:border-red-300'
+                  }`}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+              <div>
+                <h1 className={`text-3xl font-bold gradient-text-red`}>
+                  Guest Feedback Management
+                </h1>
+                <p className={theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}>
+                  Manage caretaker and guest feedback
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Hostel Filter */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              <Building2 size={16} className="inline mr-1" />
-              Hostel
-            </label>
-            <select
-              value={hostelFilter}
-              onChange={(e) => setHostelFilter(e.target.value)}
-              disabled={isRestrictedRole}
-              className={`w-full border-2 rounded-lg px-4 py-2 ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300'
-              } ${isRestrictedRole ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {hostels.map(h => (
-                <option key={h} value={h}>{h === 'All' ? 'All Hostels' : `Hostel ${h}`}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Filter */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              <Calendar size={16} className="inline mr-1" />
-              {activeTab === TABS.CARETAKER ? 'Checkout Date' : 'Submission Date'}
-            </label>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className={`w-full border-2 rounded-lg px-4 py-2 ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300'
-              }`}
-            />
-          </div>
-
-          {/* Rating Filter */}
-          <div>
-            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              <Filter size={16} className="inline mr-1" />
-              Rating
-            </label>
-            <select
-              value={ratingFilter}
-              onChange={(e) => setRatingFilter(e.target.value)}
-              className={`w-full border-2 rounded-lg px-4 py-2 ${
-                theme === 'dark' 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300'
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setActiveTab(TABS.CARETAKER)}
+              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === TABS.CARETAKER
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                  : theme === 'dark'
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-white text-slate-700 hover:bg-red-50 border-2 border-slate-200'
               }`}
             >
-              <option value="All">All Ratings</option>
-              {activeTab === TABS.CARETAKER && <option value="Unrated">Unrated</option>}
-              <option value="5">⭐⭐⭐⭐⭐ {activeTab === TABS.CARETAKER ? 'Outstanding' : 'Excellent'}</option>
-              <option value="4">⭐⭐⭐⭐ Good</option>
-              <option value="3">⭐⭐⭐ Average</option>
-              <option value="2">⭐⭐ Below Average</option>
-              <option value="1">⭐ Poor</option>
-            </select>
+              📝 Caretaker Feedback ({caretakerGuests.length})
+            </button>
+            <button
+              onClick={() => setActiveTab(TABS.GUEST)}
+              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === TABS.GUEST
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                  : theme === 'dark'
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-white text-slate-700 hover:bg-red-50 border-2 border-slate-200'
+              }`}
+            >
+              💬 Guest Feedback ({guestFeedbacks.length})
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Stats Summary */}
-      <div className="px-6 py-6">
+          {/* Search and Filters */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-slate-400'
+              }`} />
+              <input
+                type="text"
+                placeholder="Search by name, email, contact..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                    : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
+                }`}
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-6 py-3 rounded-xl border-2 font-semibold transition-all ${
+                showFilters
+                  ? 'bg-red-600 text-white border-red-600'
+                  : theme === 'dark'
+                  ? 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-500'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-red-300'
+              }`}
+            >
+              <Filter className="w-5 h-5 inline mr-2" />
+              Filters
+            </button>
+          </div>
+
+          {/* Filter Panel */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={`overflow-hidden rounded-2xl border-2 p-6 mb-6 ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-700'
+                    : 'bg-white border-slate-200'
+                }`}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className={`block text-sm font-semibold mb-2 ${
+                      theme === 'dark' ? 'text-white' : 'text-slate-700'
+                    }`}>
+                      Hostel
+                    </label>
+                    <select
+                      value={selectedHostel}
+                      onChange={(e) => setSelectedHostel(e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="">All Hostels</option>
+                      {uniqueHostels.map(hostel => (
+                        <option key={hostel} value={hostel}>{hostel}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold mb-2 ${
+                      theme === 'dark' ? 'text-white' : 'text-slate-700'
+                    }`}>
+                      From Date
+                    </label>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold mb-2 ${
+                      theme === 'dark' ? 'text-white' : 'text-slate-700'
+                    }`}>
+                      To Date
+                    </label>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => {
+                      setSelectedHostel('');
+                      setDateFrom('');
+                      setDateTo('');
+                    }}
+                    className={`px-6 py-2 rounded-xl font-semibold transition ${
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-red-500`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total {activeTab === TABS.CARETAKER ? 'Guests' : 'Feedbacks'}</p>
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Total {activeTab === TABS.CARETAKER ? 'Guests' : 'Feedbacks'}
+                </p>
                 <p className="text-2xl font-bold text-red-600">{currentData.length}</p>
               </div>
-              {activeTab === TABS.CARETAKER ? <User size={32} className="text-red-400" /> : <MessageSquare size={32} className="text-red-400" />}
+              {activeTab === TABS.CARETAKER ? (
+                <User size={32} className="text-red-400" />
+              ) : (
+                <MessageSquare size={32} className="text-red-400" />
+              )}
             </div>
           </div>
           
@@ -855,7 +949,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Rated</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Rated</p>
                     <p className="text-2xl font-bold text-green-600">
                       {filteredCaretakerGuests.filter(g => getFeedbackForGuest(g._id || g.id)).length}
                     </p>
@@ -866,7 +960,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-orange-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Unrated</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Unrated</p>
                     <p className="text-2xl font-bold text-orange-600">
                       {filteredCaretakerGuests.filter(g => !getFeedbackForGuest(g._id || g.id)).length}
                     </p>
@@ -877,7 +971,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Avg Rating</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
                     <p className="text-2xl font-bold text-blue-600">
                       {(() => {
                         const ratings = filteredCaretakerGuests
@@ -898,7 +992,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-yellow-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Pending</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Pending</p>
                     <p className="text-2xl font-bold text-yellow-600">
                       {guestFeedbacks.filter(f => f.status === 'pending').length}
                     </p>
@@ -909,7 +1003,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Reviewed</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Reviewed</p>
                     <p className="text-2xl font-bold text-green-600">
                       {guestFeedbacks.filter(f => f.status === 'reviewed').length}
                     </p>
@@ -920,7 +1014,7 @@ export default function FeedbackPage() {
               <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Avg Rating</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
                     <p className="text-2xl font-bold text-blue-600">
                       {guestFeedbacks.length > 0
                         ? (guestFeedbacks.reduce((sum, f) => sum + f.rating, 0) / guestFeedbacks.length).toFixed(1)
@@ -938,7 +1032,9 @@ export default function FeedbackPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-            <p className="text-gray-500">Loading {activeTab === TABS.CARETAKER ? 'guests' : 'guest'} feedback...</p>
+            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+              Loading {activeTab === TABS.CARETAKER ? 'guests' : 'guest'} feedback...
+            </p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
@@ -947,17 +1043,20 @@ export default function FeedbackPage() {
           </div>
         ) : paginatedData.length === 0 ? (
           <div className="text-center py-12">
-            <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">No {activeTab === TABS.CARETAKER ? 'checked-out guests' : 'guest feedback'} found</p>
+            <FileText size={48} className={`mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+              No {activeTab === TABS.CARETAKER ? 'checked-out guests' : 'guest feedback'} found
+            </p>
           </div>
         ) : (
           <>
             <div className="space-y-4">
               {activeTab === TABS.CARETAKER ? (
-                paginatedData.map(guest => (
+                paginatedData.map((guest, index) => (
                   <GuestFeedbackCard
                     key={guest._id || guest.id}
                     guest={guest}
+                    index={index}
                     onRate={(g) => {
                       setSelectedGuest(g);
                       setShowModal(true);
@@ -967,10 +1066,11 @@ export default function FeedbackPage() {
                   />
                 ))
               ) : (
-                paginatedData.map(feedback => (
+                paginatedData.map((feedback, index) => (
                   <GuestFeedbackItem
                     key={feedback._id}
                     feedback={feedback}
+                    index={index}
                     theme={theme}
                     onStatusUpdate={user?.role === 'admin' || user?.role === 'manager' ? handleGuestFeedbackStatusUpdate : null}
                   />
@@ -978,27 +1078,73 @@ export default function FeedbackPage() {
               )}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination - Matching BookingsPage style */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  Previous
-                </button>
-                <span className={`px-4 py-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  Next
-                </button>
-              </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-8"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={`p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 border-gray-700 hover:border-red-500'
+                        : 'bg-white border-slate-200 hover:border-red-300'
+                    }`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`
+                              px-3 py-1.5 rounded-lg transition-all
+                              ${
+                                currentPage === page
+                                  ? "bg-red-600 text-white"
+                                  : theme === 'dark'
+                                  ? "bg-gray-800 text-gray-300 hover:bg-gray-700 border-2 border-gray-700"
+                                  : "bg-white text-slate-700 hover:bg-red-50 border-2 border-slate-200"
+                              }
+                            `}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <span key={page} className={`px-2 ${theme === 'dark' ? 'text-gray-500' : 'text-slate-400'}`}>
+                            ...
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 border-gray-700 hover:border-red-500'
+                        : 'bg-white border-slate-200 hover:border-red-300'
+                    }`}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
             )}
           </>
         )}
