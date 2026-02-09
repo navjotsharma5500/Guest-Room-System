@@ -13,7 +13,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   const [stats, setStats] = useState({ total: 0, totalAmount: 0 });
   const [paymentModal, setPaymentModal] = useState(null);
 
-  // âœ… ROLE-BASED ACCESS CONTROL
+  // ✅ ROLE-BASED ACCESS CONTROL
   const role = currentUser?.role || currentUser?.user?.role;
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
@@ -70,7 +70,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
         withCredentials: true
       });
       
-      // âœ… CLIENT-SIDE FILTERING (backup - backend should already filter)
+      // ✅ CLIENT-SIDE FILTERING (backup - backend should already filter)
       let filteredData = data.data || [];
       
       if (isRestrictedRole && assignedHostel) {
@@ -105,7 +105,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
     setPaymentModal(booking);
   };
 
-  // âœ… ACCESS DENIED FOR GUESTS
+  // ✅ ACCESS DENIED FOR GUESTS
   if (!canAccessPage) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
@@ -154,7 +154,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                   <Building2 size={32} />
                   Department Payments Pending
-                  {/* âœ… SHOW HOSTEL FILTER FOR RESTRICTED ROLES */}
+                  {/* ✅ SHOW HOSTEL FILTER FOR RESTRICTED ROLES */}
                   {isRestrictedRole && assignedHostel && (
                     <span className="text-lg font-normal text-blue-100">
                       - {assignedHostel}
@@ -292,7 +292,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() => {
-                              // âœ… Department has already been marked - now collecting actual payment
+                              // ✅ Department has already been marked - now collecting actual payment
                               console.log("ðŸ’° Collecting department payment for:", booking._id);
                               openPaymentModal(booking);
                             }}
@@ -317,12 +317,12 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
           booking={{
             ...paymentModal,
             _id: paymentModal._id,
-            // âœ… Pass complete payment data
+            // Pass complete payment data
             totalAmount: paymentModal.totalAmount,
             paidAmount: paymentModal.paidAmount || 0,
             balanceAmount: paymentModal.balanceAmount,
             discount: paymentModal.discount || 0,
-            paymentResponsibility: "DEPARTMENT", // âœ… Mark as department payment
+            paymentResponsibility: "DEPARTMENT", // ✅ Mark as department payment
           }}
           onClose={() => setPaymentModal(null)}
           onSuccess={() => {

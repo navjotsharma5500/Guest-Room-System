@@ -1254,7 +1254,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 );
               })()}
 
-              {/* ✅ NEW: Department Pay Later Button */}
+              {/* ✅ Department Pay Later Button */}
               {(() => {
                 // ✅ Calculate actual balance to determine if department pay button should show
                 const totalAmount = Number(b.totalAmount || b.amount || 0);
@@ -1548,7 +1548,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   </p>
                 </div>
 
-                <label className="block text-sm font-medium mb-2">
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-700"
+                }`}>
                   Remarks <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -1562,6 +1564,12 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   }`}
                   rows={4}
                 />
+                
+                {deptPayRemarks.trim().length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {deptPayRemarks.trim().length} characters
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 p-6 pt-0">
@@ -1584,7 +1592,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
 
                     try {
                       const token = localStorage.getItem("token");
-                      const response = await fetch(`${API}/api/bookings/${booking._id}/mark-department-pay`, {
+                      const response = await fetch(`${API}/api/bookings/${b._id}/mark-department-pay`, {
                         method: "PATCH",
                         headers: {
                           "Content-Type": "application/json",
@@ -1609,7 +1617,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                       const headers = { "Content-Type": "application/json" };
                       if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
                       
-                      const refreshResponse = await fetch(`${API}/api/bookings/${booking._id}`, {
+                      const refreshResponse = await fetch(`${API}/api/bookings/${b._id}`, {
                         method: "GET",
                         credentials: "include",
                         headers
@@ -1625,12 +1633,13 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                     }
                   }}
                   disabled={!deptPayRemarks.trim()}
-                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition ${
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
                     deptPayRemarks.trim()
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
+                  <Building2 size={18} />
                   Confirm & Mark
                 </button>
               </div>
