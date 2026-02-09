@@ -21,6 +21,7 @@ const RoomCard = memo(function RoomCard({
   onSelect,
   onCancel,
   onDirectBooking,
+  onBlockedClick,
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
@@ -214,6 +215,18 @@ const RoomCard = memo(function RoomCard({
   const handleCardClick = () => {
     if (bookingCompleted) return;
 
+    // ✅ BLOCKED ROOM - Show info modal
+    if (room.isBlocked) {
+      if (onBlockedClick) {
+        onBlockedClick(currentHostel, room.roomNo, {
+          blockedTill: room.blockedTill,
+          blockRemarks: room.blockRemarks,
+          blockAttachments: room.blockAttachments
+        });
+      }
+      return;
+    }
+
     // âœ… AllHostelsPortal selection mode
     if (prefillGuest && prefillGuest.from && prefillGuest.to && selectionMode) {
       if (hasConflict && showToast) {
@@ -282,6 +295,13 @@ const RoomCard = memo(function RoomCard({
   ========================== */
 
   const getCardStyle = () => {
+    // ✅ BLOCKED ROOMS - Always grey regardless of view
+    if (room.isBlocked) {
+      return theme === "dark"
+        ? "bg-gray-800 border-gray-600 opacity-60 cursor-not-allowed"
+        : "bg-gray-300 border-gray-400 opacity-60 cursor-not-allowed";
+    }
+
     if (isAllHostelsView) {
       // ✅ ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
