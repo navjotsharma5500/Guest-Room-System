@@ -62,16 +62,17 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     fetchBookings();
   }, []);
 
+  // Handle ESC key
   useEffect(() => {
     const onEsc = (e) => {
-      if (e.key === "Escape") {
-        handleBackClick();
+      if (e.key === "Escape" && onBack) {
+        onBack();
       }
     };
 
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
-  }, []);
+  }, [onBack]);
 
   const fetchBookings = async () => {
     try {
@@ -197,15 +198,6 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     return [...new Set(bookings.map((b) => b.hostel))].sort();
   }, [bookings]);
 
-  // Handle back button click
-  const handleBackClick = () => {
-    if (onBack && typeof onBack === "function") {
-      onBack();
-    } else {
-      navigate(-1); // ✅ correct React Router way
-    }
-  };
-
   // Download CSV
   const handleDownload = () => {
     const headers = [
@@ -278,6 +270,13 @@ export default function BookingsPage({ onBack, theme = "light" }) {
   };
 
   const hasActiveFilters = searchQuery || dateFrom || dateTo || selectedHostel;
+
+  // Handle back button click
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    }
+  };
 
   return (
     <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-red-50 to-blue-50'} overflow-y-auto`}>
