@@ -64,7 +64,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
         if (onBack) {
           onBack();
         } else {
-          navigate('/');
+          navigate('/guest-room');
         }
       }
     };
@@ -283,7 +283,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => onBack ? onBack() : navigate('/')}
+                onClick={() => onBack ? onBack() : navigate('/guest-room')}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
               >
                 <ArrowLeft size={24} />
