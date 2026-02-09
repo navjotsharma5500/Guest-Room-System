@@ -328,18 +328,23 @@ router.get("/checked-out", protect, async (req, res) => {
         });
       }
       filter.hostel = assignedHostel;
+      console.log("🔒 Caretaker/Warden restricted to:", assignedHostel);
     }
+
+    console.log("📋 Fetching checked-out guests with filter:", filter);
 
     const bookings = await Booking.find(filter)
       .sort({ checkedOutAt: -1 })
       .lean();
+
+    console.log(`✅ Found ${bookings.length} checked-out guests`);
 
     res.json({
       success: true,
       bookings
     });
   } catch (err) {
-    console.error("Get checked-out guests error:", err);
+    console.error("❌ Get checked-out guests error:", err);
     res.status(500).json({
       success: false,
       message: "Failed to fetch checked-out guests",

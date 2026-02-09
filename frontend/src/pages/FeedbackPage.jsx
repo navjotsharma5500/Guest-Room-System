@@ -727,9 +727,8 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   }, [caretakerGuests, guestFeedbacks, activeTab]);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-red-50'}`}>
-      {/* ✅ FIXED: Proper spacing to avoid going under sidebar/navbar */}
-      <div className="ml-64 mt-16 p-6">
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-red-50'} pt-16 pl-64`}>
+      <div className="p-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
