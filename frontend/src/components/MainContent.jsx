@@ -792,7 +792,8 @@ export default function MainContent(props) {
                   : "bg-white text-red-700 border-red-300 hover:bg-red-100"
               }`}
             >
-              🏠
+              <span className="hidden sm:inline">Home</span>
+              <span className="sm:hidden">🏠</span>
             </button>
 
             <button
@@ -825,7 +826,11 @@ export default function MainContent(props) {
 
             <button
               onClick={handleDownloadClick}
-              className="flex items-center gap-1 lg:gap-2 bg-red-600 text-white px-3 py-1.5 lg:px-5 lg:py-2 rounded-lg shadow hover:bg-red-700 text-sm lg:text-lg"
+              className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
+                theme === "dark"
+                  ? "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+                  : "bg-white text-red-700 border-red-300 hover:bg-red-100"
+              }`}
             >
               <span className="hidden sm:inline">Download</span>
               <span className="sm:hidden">⬇️</span>

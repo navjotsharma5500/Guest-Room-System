@@ -410,6 +410,7 @@ export default function AllHostelsPortal({
         prefillGuest={prefillGuest}
         onRoomClick={handleRoomCardClick}
         onDirectBooking={handleDirectBookingClick}
+        onBlockedClick={handleBlockedRoomClick}
         showToast={showToast}
       />
 
