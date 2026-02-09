@@ -1253,10 +1253,20 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               })()}
 
               {/* ✅ NEW: Department Pay Later Button */}
-              {!isDepartmentPayment &&
-                b.status !== "checked_out" &&
-                Number(b.totalAmount || b.amount || 0) > 0 &&
-                (b.paymentStatus ?? "UNPAID") !== "PAID" && (
+              {(() => {
+                // ✅ Calculate actual balance to determine if department pay button should show
+                const totalAmount = Number(b.totalAmount || b.amount || 0);
+                const paidAmount = Number(b.paidAmount || 0);
+                const discount = Number(b.discount || b.waveOff || 0);
+                const actualBalance = totalAmount - paidAmount - discount;
+                
+                // Show button if there's a balance AND it's not already department payment AND not checked out AND it's not free
+                const shouldShowDeptPayButton = !isDepartmentPayment && 
+                                               b.status !== "checked_out" &&
+                                               b.paymentType !== "Free" && 
+                                               actualBalance > 0;
+                
+                return shouldShowDeptPayButton && (
                   <button
                     onClick={async () => {
                       if (!window.confirm("Mark this booking as Department Pay Later? Guest can checkout without paying.")) {
@@ -1315,7 +1325,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                     <Building2 size={16} />
                     Department Pay Later
                   </button>
-                )}
+                );
+              })()}
 
               {/* Payment Status Badge */}
               {b.paymentStatus && (
