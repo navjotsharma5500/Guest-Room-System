@@ -57,14 +57,18 @@ export default function BookingsPage({ onBack, theme = "light" }) {
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
-  // Handle ESC key to close
+  // Fetch bookings
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         if (onBack) {
           onBack();
         } else {
-          navigate('/guest-room');
+          navigate('/');
         }
       }
     };
@@ -72,11 +76,6 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onBack, navigate]);
-  
-  // Fetch bookings
-  useEffect(() => {
-    fetchBookings();
-  }, []);
 
   const fetchBookings = async () => {
     try {
@@ -202,6 +201,15 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     return [...new Set(bookings.map((b) => b.hostel))].sort();
   }, [bookings]);
 
+  // Handle back button click
+  const handleBackClick = () => {
+    if (onBack && typeof onBack === 'function') {
+      onBack();
+    } else {
+      window.history.go(-2);
+    }
+  };
+
   // Download CSV
   const handleDownload = () => {
     const headers = [
@@ -283,7 +291,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => onBack ? onBack() : navigate('/guest-room')}
+                onClick={handleBackClick}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
               >
                 <ArrowLeft size={24} />
