@@ -199,7 +199,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Amount Due</p>
                 <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 mt-2">
-                  â‚¹{stats.totalAmount.toLocaleString()}
+                  ₹{stats.totalAmount.toLocaleString()}
                 </p>
               </div>
               <IndianRupee className="w-12 h-12 text-orange-500 dark:text-orange-400" />
@@ -277,7 +277,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                            â‚¹{booking.balanceAmount.toLocaleString()}
+                            ₹{booking.balanceAmount.toLocaleString()}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

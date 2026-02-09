@@ -63,6 +63,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [enquiryFiles, setEnquiryFiles] = useState([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
+  const [showDepartmentPayModal, setShowDepartmentPayModal] = useState(false);
+  const [deptPayRemarks, setDeptPayRemarks] = useState("");
   const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
 
   // ✅ FIXED: Close Guest Details panel on checkout
@@ -1268,57 +1270,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 
                 return shouldShowDeptPayButton && (
                   <button
-                    onClick={async () => {
-                      if (!window.confirm("Mark this booking as Department Pay Later? Guest can checkout without paying.")) {
-                        return;
-                      }
-                      
-                      const remarks = prompt("Enter remarks for department payment:");
-                      if (!remarks) {
-                        alert("Remarks are required");
-                        return;
-                      }
-
-                      try {
-                        const token = localStorage.getItem("token");
-                        const response = await fetch(`${API}/api/bookings/${b._id}/mark-department-pay`, {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                          },
-                          credentials: "include",
-                          body: JSON.stringify({ remarks }),
-                        });
-
-                        const data = await response.json();
-
-                        if (!data.success) {
-                          throw new Error(data.message || "Failed to mark department payment");
-                        }
-
-                        showToast("✅ Marked as Department Pay Later", "success");
-                        
-                        // Refresh booking data
-                        const authToken = token || localStorage.getItem("token");
-                        const headers = { "Content-Type": "application/json" };
-                        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-                        
-                        const refreshResponse = await fetch(`${API}/api/bookings/${b._id}`, {
-                          method: "GET",
-                          credentials: "include",
-                          headers
-                        });
-                        
-                        const refreshData = await refreshResponse.json();
-                        if (refreshData.success && refreshData.booking) {
-                          setBooking(normalizeBooking(refreshData.booking));
-                        }
-                      } catch (error) {
-                        console.error("❌ Error:", error);
-                        showToast(error.message || "Failed to mark department payment", "error");
-                      }
-                    }}
+                    onClick={() => setShowDepartmentPayModal(true)}
                     className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg
                               hover:bg-blue-700 transition font-medium flex items-center gap-2"
                   >
@@ -1551,6 +1503,139 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
             onClose={() => setShowBillHistory(false)}
             theme={theme}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Department Pay Later Modal */}
+      <AnimatePresence>
+        {showDepartmentPayModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowDepartmentPayModal(false);
+              setDeptPayRemarks("");
+            }}
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              className={`${
+                theme === "dark" ? "bg-gray-800" : "bg-white"
+              } rounded-2xl shadow-2xl w-full max-w-md overflow-hidden`}
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+            >
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+                <div className="flex items-center gap-3">
+                  <Building2 className="w-8 h-8" />
+                  <div>
+                    <h3 className="text-xl font-bold">Mark as Department Pay Later</h3>
+                    <p className="text-sm text-blue-100 mt-1">
+                      Guest can checkout without paying
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded">
+                  <p className="text-sm text-amber-800">
+                    <strong>⚠️ Important:</strong> This booking will be moved to the Department Payments Pending list. 
+                    Payment must be collected later from the department.
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium mb-2">
+                  Remarks <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={deptPayRemarks}
+                  onChange={(e) => setDeptPayRemarks(e.target.value)}
+                  placeholder="Enter reason for department payment (e.g., Official visit, Conference attendee, etc.)"
+                  className={`w-full p-3 border rounded-lg resize-none ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  }`}
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex gap-3 p-6 pt-0">
+                <button
+                  onClick={() => {
+                    setShowDepartmentPayModal(false);
+                    setDeptPayRemarks("");
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 
+                            rounded-lg font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!deptPayRemarks.trim()) {
+                      showToast("⚠️ Remarks are required", "warning");
+                      return;
+                    }
+
+                    try {
+                      const token = localStorage.getItem("token");
+                      const response = await fetch(`${API}/api/bookings/${booking._id}/mark-department-pay`, {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        credentials: "include",
+                        body: JSON.stringify({ remarks: deptPayRemarks }),
+                      });
+
+                      const data = await response.json();
+
+                      if (!data.success) {
+                        throw new Error(data.message || "Failed to mark department payment");
+                      }
+
+                      showToast("✅ Marked as Department Pay Later", "success");
+                      setShowDepartmentPayModal(false);
+                      setDeptPayRemarks("");
+                      
+                      // Refresh booking data
+                      const authToken = token || localStorage.getItem("token");
+                      const headers = { "Content-Type": "application/json" };
+                      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+                      
+                      const refreshResponse = await fetch(`${API}/api/bookings/${booking._id}`, {
+                        method: "GET",
+                        credentials: "include",
+                        headers
+                      });
+                      
+                      const refreshData = await refreshResponse.json();
+                      if (refreshData.success && refreshData.booking) {
+                        setBooking(normalizeBooking(refreshData.booking));
+                      }
+                    } catch (error) {
+                      console.error("❌ Error:", error);
+                      showToast(error.message || "Failed to mark department payment", "error");
+                    }
+                  }}
+                  disabled={!deptPayRemarks.trim()}
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition ${
+                    deptPayRemarks.trim()
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  Confirm & Mark
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
