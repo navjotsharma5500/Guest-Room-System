@@ -560,6 +560,18 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      
+      console.log('🔑 Token check:', {
+        hasToken: !!token,
+        tokenLength: token?.length,
+        tokenStart: token?.substring(0, 20)
+      });
+      
+      if (!token) {
+        setError('No authentication token found. Please login again.');
+        setLoading(false);
+        return;
+      }
 
       const [guestsRes, feedbacksRes] = await Promise.all([
         fetch(`${API}/api/bookings/checked-out`, {
@@ -592,6 +604,18 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      
+      console.log('🔑 Token check:', {
+        hasToken: !!token,
+        tokenLength: token?.length,
+        tokenStart: token?.substring(0, 20)
+      });
+      
+      if (!token) {
+        setError('No authentication token found. Please login again.');
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch(`${API}/api/guest-feedback/`, {
         headers: { Authorization: `Bearer ${token}` }
