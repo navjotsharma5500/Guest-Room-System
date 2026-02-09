@@ -1228,18 +1228,29 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               </p>
 
               {/* Make Payment Button - Only for non-department regular payments */}
-              {!isDepartmentPayment &&
-                Number(b.totalAmount || b.amount || 0) > 0 &&
-                (b.paymentStatus ?? "UNPAID") !== "PAID" && (
+              {(() => {
+                // ✅ Calculate actual balance to determine if payment button should show
+                const totalAmount = Number(b.totalAmount || b.amount || 0);
+                const paidAmount = Number(b.paidAmount || 0);
+                const discount = Number(b.discount || b.waveOff || 0);
+                const actualBalance = totalAmount - paidAmount - discount;
+                
+                // Show button if there's a balance AND it's not department payment AND it's not free
+                const shouldShowPaymentButton = !isDepartmentPayment && 
+                                               b.paymentType !== "Free" && 
+                                               actualBalance > 0;
+                
+                return shouldShowPaymentButton && (
                   <button
                     onClick={() => setPaymentModalOpen(true)}
                     className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg
                               hover:bg-green-700 transition font-medium flex items-center gap-2"
                   >
                     <Receipt size={16} />
-                    Make Payment
+                    Make Payment {actualBalance > 0 && `(₹${actualBalance.toLocaleString()})`}
                   </button>
-                )}
+                );
+              })()}
 
               {/* ✅ NEW: Department Pay Later Button */}
               {!isDepartmentPayment &&
