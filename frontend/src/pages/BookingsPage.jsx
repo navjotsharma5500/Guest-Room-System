@@ -63,19 +63,15 @@ export default function BookingsPage({ onBack, theme = "light" }) {
   }, []);
 
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        if (onBack) {
-          onBack();
-        } else {
-          navigate('/');
-        }
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        handleBackClick();
       }
     };
 
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [onBack, navigate]);
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, []);
 
   const fetchBookings = async () => {
     try {
@@ -203,10 +199,10 @@ export default function BookingsPage({ onBack, theme = "light" }) {
 
   // Handle back button click
   const handleBackClick = () => {
-    if (onBack && typeof onBack === 'function') {
+    if (onBack && typeof onBack === "function") {
       onBack();
     } else {
-      window.history.go(-2);
+      navigate(-1); // ✅ correct React Router way
     }
   };
 
