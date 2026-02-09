@@ -31,11 +31,9 @@ import { hasPermission } from "../utils/checkPermission";
 import axios from "axios";
 import { format } from "date-fns";
 import { BACKEND_URL } from "../utils/apiConfig";
-import { useNavigate } from "react-router-dom";
 
 export default function BookingsPage({ onBack, theme = "light" }) {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
