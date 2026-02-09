@@ -302,6 +302,16 @@ export default function AllHostelsPortal({
     }
   }, [selectionMode, prefillGuest, vacancyHandlers, bookingHandlers, openDirectBookingForVacant, showToast]);
 
+  const handleBlockedRoomClick = useCallback((hostelName, roomNo, blockInfo) => {
+    console.log("🔒 Blocked room clicked from RoomCard:", { hostelName, roomNo, blockInfo });
+    setSelectedBlockedRoom({
+      hostelName,
+      roomNo,
+      blockInfo
+    });
+    setShowBlockedRoomModal(true);
+  }, []);
+
   // ✅ NEW: Handler for blocking success
   const handleBlockSuccess = useCallback((result) => {
     console.log("✅ Block success:", result);
@@ -356,18 +366,19 @@ export default function AllHostelsPortal({
     return (
       <AllHostelsLayout theme={theme} onBackHome={handleHomeClick}>
         <HostelGrid
-          hostelData={stableHostelData} 
-          theme={theme}
-          selectedRooms={selectedRooms}
-          toggleRoomSelect={vacancyHandlers.toggleRoomSelect}
-          selectionMode={selectionMode}
-          consolidateModal={consolidateModal}
-          bookingCompleted={bookingCompleted}
-          prefillGuest={prefillGuest}
-          onRoomClick={handleRoomCardClick}
-          onDirectBooking={handleDirectBookingClick}
-          showToast={showToast}
-        />
+        hostelData={stableHostelData}
+        theme={theme}
+        selectedRooms={selectedRooms}
+        toggleRoomSelect={vacancyHandlers.toggleRoomSelect}
+        selectionMode={selectionMode}
+        consolidateModal={consolidateModal}
+        bookingCompleted={bookingCompleted}
+        prefillGuest={prefillGuest}
+        onRoomClick={handleRoomCardClick}
+        onDirectBooking={handleDirectBookingClick}
+        onBlockedClick={handleBlockedRoomClick}
+        showToast={showToast}
+      />
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
           <div className="relative">
             <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>

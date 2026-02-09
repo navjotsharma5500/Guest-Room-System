@@ -15,6 +15,7 @@ export default function HostelGrid({
   prefillGuest,
   onRoomClick,
   onDirectBooking,
+  onBlockedClick,
   showToast,
 }) {
 
@@ -150,6 +151,7 @@ export default function HostelGrid({
                     onToggleSelect={() => toggleRoomSelect(hostelName, room.roomNo)}
                     onClick={(bookedAny) => onRoomClick(hostelName, room, bookedAny)}
                     onDirectBooking={onDirectBooking}
+                    onBlockedClick={onBlockedClick}
                     showToast={showToast}
                   />
                 );
