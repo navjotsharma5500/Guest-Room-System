@@ -132,7 +132,14 @@ export default function HostelGrid({
                 // Create a modified room object with only active bookings
                 const roomWithActiveBookings = {
                   ...room,
-                  bookings: activeBookings
+                  bookings: activeBookings,
+                  // Explicitly preserve blocking properties
+                  isBlocked: room.isBlocked ?? false,
+                  blockedTill: room.blockedTill,
+                  blockRemarks: room.blockRemarks,
+                  blockAttachments: room.blockAttachments,
+                  blockedAt: room.blockedAt,
+                  blockedBy: room.blockedBy
                 };
 
                 return (

@@ -215,16 +215,27 @@ const RoomCard = memo(function RoomCard({
   const handleCardClick = () => {
     if (bookingCompleted) return;
 
-    // ✅ BLOCKED ROOM - Show info modal
+    // ✅ BLOCKED ROOM - Show info modal (PRIORITY CHECK)
     if (room.isBlocked) {
+      console.log("🔒 Blocked room clicked in RoomCard:", { 
+        hostel: currentHostel, 
+        roomNo: room.roomNo,
+        hasOnBlockedClick: !!onBlockedClick,
+        isAllHostelsView 
+      });
+      
       if (onBlockedClick) {
         onBlockedClick(currentHostel, room.roomNo, {
           blockedTill: room.blockedTill,
           blockRemarks: room.blockRemarks,
-          blockAttachments: room.blockAttachments
+          blockAttachments: room.blockAttachments,
+          blockedAt: room.blockedAt,
+          blockedBy: room.blockedBy
         });
+      } else {
+        console.warn("⚠️ onBlockedClick prop not provided for blocked room");
       }
-      return;
+      return; // Always return early for blocked rooms
     }
 
     // âœ… AllHostelsPortal selection mode
