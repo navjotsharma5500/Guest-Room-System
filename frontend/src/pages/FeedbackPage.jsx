@@ -426,7 +426,7 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
         <div className="lg:col-span-4 space-y-3">
           <div>
             <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-              {feedback.guest?.guest || 'Unknown Guest'}
+              {feedback.name || 'Unknown Guest'}
             </h3>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-2xl">{ratingConfig.emoji}</span>
@@ -459,24 +459,13 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
 
         {/* Middle: Feedback Content */}
         <div className="lg:col-span-5 space-y-3">
-          {feedback.comments && (
+          {feedback.description && (
             <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
               <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
-                Comments:
+                Feedback:
               </p>
               <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-                {feedback.comments}
-              </p>
-            </div>
-          )}
-
-          {feedback.suggestions && (
-            <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-blue-50'}`}>
-              <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
-                Suggestions:
-              </p>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-                {feedback.suggestions}
+                {feedback.description}
               </p>
             </div>
           )}
@@ -604,7 +593,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      const res = await fetch(`${API}/api/feedback/guest/list`, {
+      const res = await fetch(`${API}/api/guest-feedback/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -645,7 +634,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   const handleGuestFeedbackStatusUpdate = async (feedbackId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/feedback/guest/${feedbackId}/status`, {
+      const res = await fetch(`${API}/api/guest-feedback/${feedbackId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -685,11 +674,9 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(g =>
-        g.guest?.toLowerCase().includes(query) ||
-        g.email?.toLowerCase().includes(query) ||
-        g.contact?.toLowerCase().includes(query) ||
-        g.rollno?.toLowerCase().includes(query)
+      filtered = filtered.filter(f =>
+        f.name?.toLowerCase().includes(query) ||
+        f.description?.toLowerCase().includes(query)
       );
     }
 

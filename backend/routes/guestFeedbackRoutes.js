@@ -15,6 +15,9 @@ const router = express.Router();
 // Public route - Submit guest feedback (no authentication required)
 router.post("/submit", submitGuestFeedback);
 
+// Added /guest prefix routes to match frontend
+router.get("/guest/list", protect, getAllGuestFeedbacks);
+
 // Protected routes (require authentication)
 router.get("/", protect, getAllGuestFeedbacks);
 router.get("/stats", protect, getGuestFeedbackStats);

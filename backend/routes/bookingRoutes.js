@@ -312,6 +312,43 @@ router.get("/all-for-download", protect, async (req, res) => {
 });
 
 // =============================================================
+// NEW: Get checked-out guests for feedback
+// =============================================================
+router.get("/checked-out", protect, async (req, res) => {
+  try {
+    const filter = { status: "checked_out" };
+
+    // Role-based filtering
+    if (req.user.role === "caretaker" || req.user.role === "warden") {
+      const assignedHostel = req.user.assignedHostel || req.user.hostel;
+      if (!assignedHostel) {
+        return res.status(400).json({
+          success: false,
+          message: "No hostel assigned to caretaker"
+        });
+      }
+      filter.hostel = assignedHostel;
+    }
+
+    const bookings = await Booking.find(filter)
+      .sort({ checkedOutAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      bookings
+    });
+  } catch (err) {
+    console.error("Get checked-out guests error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch checked-out guests",
+      error: err.message
+    });
+  }
+});
+
+// =============================================================
 // GET SINGLE BOOKING BY ID
 // =============================================================
 router.get("/:id", protect, async (req, res) => {
