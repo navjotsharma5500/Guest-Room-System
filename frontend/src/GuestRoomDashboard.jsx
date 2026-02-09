@@ -990,7 +990,10 @@ export default function GuestRoomDashboard() {
             )}
 
             {activeTab === "Bookings" && (
-              <BookingsPage />
+              <BookingsPage 
+                onBack={() => setActiveTab("Home")}
+                theme={theme}
+              />
             )}
           </main>  
         </div>
