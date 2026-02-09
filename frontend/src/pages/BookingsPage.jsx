@@ -31,9 +31,11 @@ import { hasPermission } from "../utils/checkPermission";
 import axios from "axios";
 import { format } from "date-fns";
 import { BACKEND_URL } from "../utils/apiConfig";
+import { useNavigate } from "react-router-dom";
 
 export default function BookingsPage({ onBack, theme = "light" }) {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,22 @@ export default function BookingsPage({ onBack, theme = "light" }) {
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
+  // Handle ESC key to close
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        if (onBack) {
+          onBack();
+        } else {
+          navigate('/');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onBack, navigate]);
+  
   // Fetch bookings
   useEffect(() => {
     fetchBookings();
@@ -265,7 +283,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={onBack}
+                onClick={() => onBack ? onBack() : navigate('/')}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
               >
                 <ArrowLeft size={24} />
