@@ -2,7 +2,6 @@
 import { Server } from 'socket.io';
 
 let io;
-let hallNamespace;
 let guestNamespace;
 
 /**
@@ -10,14 +9,12 @@ let guestNamespace;
  */
 export const setSocketIO = (ioInstance) => {
   io = ioInstance;
-  
-  // Create namespaces AFTER io is set
-  hallNamespace = io.of('/hall');
+
+  // Create only Guest namespace
   guestNamespace = io.of('/guest');
-  
-  console.log("ðŸ”Œ Socket.IO instance registered in backend");
-  console.log("ðŸŽª Hall namespace created");
-  console.log("ðŸ¨ Guest namespace created");
+
+  console.log("🔌 Socket.IO instance registered in backend");
+  console.log("🏨 Guest namespace created");
 };
 
 /**
@@ -25,13 +22,13 @@ export const setSocketIO = (ioInstance) => {
  */
 export const getSocketIO = () => {
   if (!io) {
-    throw new Error('âŒ Socket.IO not initialized');
+    throw new Error('❌ Socket.IO not initialized');
   }
   return io;
 };
 
 /**
- * Safe emit helper - MUST BE EXPORTED
+ * Safe emit helper (global emit)
  */
 export const emitEvent = (event, payload, room = null) => {
   const ioInstance = getSocketIO();
@@ -44,68 +41,49 @@ export const emitEvent = (event, payload, room = null) => {
 };
 
 /**
- * Emit to hall namespace
+ * Emit to guest namespace only
  */
-export const emitHallEvent = (event, data) => {
-  if (!hallNamespace) {
-    console.error('âŒ Hall namespace not initialized');
+export const emitGuestEvent = (event, data) => {
+  if (!guestNamespace) {
+    console.error('❌ Guest namespace not initialized');
     return;
   }
-  
+
   try {
-    hallNamespace.emit(event, data);
-    io.emit(event, data); // Also emit to default for admin
-    console.log(`âœ… Hall event emitted: ${event}`);
+    guestNamespace.emit(event, data);
+    io.emit(event, data); // Also emit to default namespace for admins
+    console.log(`✅ Guest event emitted: ${event}`);
   } catch (error) {
-    console.error(`âš ï¸ Hall event emit failed: ${error.message}`);
+    console.error(`⚠️ Guest event emit failed: ${error.message}`);
   }
 };
 
 /**
- * Emit to guest namespace
- */
-export const emitGuestEvent = (event, data) => {
-  if (!guestNamespace) {
-    console.error('âŒ Guest namespace not initialized');
-    return;
-  }
-  
-  try {
-    guestNamespace.emit(event, data);
-    io.emit(event, data); // Also emit to default for admin
-    console.log(`âœ… Guest event emitted: ${event}`);
-  } catch (error) {
-    console.error(`âš ï¸ Guest event emit failed: ${error.message}`);
-  }
-};
-
- /**
- *Emit department payment update (for cron jobs)
+ * Emit department payment update (for cron jobs / guest room only)
  */
 export const emitDepartmentPaymentUpdate = (bookingId, data) => {
   if (!io) {
-    console.error('âŒ Socket.IO not initialized');
+    console.error('❌ Socket.IO not initialized');
     return;
   }
-  
+
   try {
     io.to('dashboard-room').emit('guest-checked-out', {
       bookingId,
       ...data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    console.log(`âœ… Department payment event emitted for: ${bookingId}`);
+    console.log(`✅ Department payment event emitted for: ${bookingId}`);
   } catch (error) {
-    console.error(`âš ï¸ Department payment emit failed: ${error.message}`);
+    console.error(`⚠️ Department payment emit failed: ${error.message}`);
   }
 };
 
-// Keep default export for backward compatibility
+// Default export
 export default {
   setSocketIO,
   getSocketIO,
   emitEvent,
-  emitHallEvent,
   emitGuestEvent,
   emitDepartmentPaymentUpdate,
 };

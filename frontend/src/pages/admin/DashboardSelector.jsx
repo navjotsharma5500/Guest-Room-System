@@ -33,18 +33,6 @@ const DashboardSelector = () => {
       onClick: () => navigate("/dashboard")
     },
     {
-      id: "hall-booking",
-      title: "Hall Booking Dashboard",
-      description: "Oversee common hall reservations and event scheduling",
-      icon: Calendar,
-      gradient: "from-red-600 via-red-500 to-orange-500",
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
-      available: true,
-      features: ["Hall Reservations", "Event Calendar", "Availability Check"],
-      onClick: () => navigate("/hall/dashboard") 
-    },
-    {
       id: "coming-soon",
       title: "Coming Soon",
       description: "New features and dashboards are on the way",
