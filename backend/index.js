@@ -27,9 +27,6 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import guestFeedbackRoutes from "./routes/guestFeedbackRoutes.js";
-import hallBookingRoutes from './routes/hallBookingRoutes.js';
-import unifiedBookingRoutes from './routes/unifiedBookingRoutes.js';
-import eventCalendarRoutes from './routes/eventCalendarRoutes.js';
 import departmentPaymentRoutes from "./routes/departmentPaymentRoutes.js";
 
 const app = express();
@@ -301,23 +298,18 @@ app.use("/api/users", userRoutes);
 app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiry", enquiryRoutes);
-app.use('/hall-bookings', hallBookingRoutes);
-app.use('/api/hall-bookings', hallBookingRoutes);
 app.use('/api/bookings', bookingRoutes);
-app.use('/api/unified-bookings', unifiedBookingRoutes);
 app.use("/api/token", tokenRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/guest-feedback", guestFeedbackRoutes);
-app.use('/api/event-calendar', eventCalendarRoutes);
 app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
-console.log('✅ Hall booking routes registered at /hall-bookings (isolated)');
 console.log('✅ Guest room routes registered at /api/bookings (isolated)');
 console.log('✅ Unified booking routes registered at /api/unified-bookings (optional)');
 
