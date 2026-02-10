@@ -19,10 +19,6 @@ import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
 import HostelMenuButton from "./HostelMenuButton";
 import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBlockingModals";
-
-import "react-calendar/dist/Calendar.css";
-import "../styles/calendarCustom.css";
-
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import hotelIcon from "../assets/hotelIcon.png";
