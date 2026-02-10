@@ -32,7 +32,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 // ============================================================================
 // STYLES IMPORT
 // ============================================================================
-import './styles/hallBookingGlassmorphism.css';
+import "./styles/uiTheme.css";
 
 // ============================================================================
 // CONTEXT IMPORT

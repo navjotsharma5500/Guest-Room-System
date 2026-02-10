@@ -1,0 +1,121 @@
+/* ============================= */
+/* 🎨 SHARED UI THEME (CALENDAR) */
+/* ============================= */
+
+:root {
+  --ui-primary: #3b82f6;     /* blue */
+  --ui-secondary: #8b5cf6;   /* purple */
+  --ui-accent: #ec4899;
+  --ui-border: #dbeafe;
+}
+
+/* ============================= */
+/* 🧱 CARDS & CONTAINERS         */
+/* ============================= */
+
+.ui-card {
+  background: #ffffff;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.08);
+}
+
+.ui-card:hover {
+  border-color: var(--ui-primary);
+}
+
+/* ============================= */
+/* 🔘 BUTTONS                    */
+/* ============================= */
+
+.ui-btn-primary {
+  background: linear-gradient(135deg, var(--ui-primary), var(--ui-secondary));
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+
+.ui-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ============================= */
+/* 🧭 PAGE HEADERS               */
+/* ============================= */
+
+.ui-header {
+  background: linear-gradient(135deg, var(--ui-primary), var(--ui-secondary));
+  color: white;
+  border-radius: 16px;
+}
+
+/* ============================= */
+/* 🧵 BORDERS                    */
+/* ============================= */
+
+.ui-border {
+  border: 1px solid var(--ui-border);
+}
+
+/* ============================= */
+/* 🌑 DARK MODE                  */
+/* ============================= */
+
+body.dark .ui-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+body.dark .ui-header {
+  background: linear-gradient(135deg, #1e40af, #6366f1);
+}
+
+/* ===================================================== */
+/* 🔁 OVERRIDE GUEST ROOM RED THEME WITH UI THEME        */
+/* (NO JSX CHANGES REQUIRED)                             */
+/* ===================================================== */
+
+/* Override primary guestroom button */
+.guestroom-primary-btn {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: #ffffff !important;
+  border-radius: 10px;
+}
+
+/* Hover state */
+.guestroom-primary-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+}
+
+/* Secondary guestroom buttons */
+.guestroom-btn {
+  border: 1px solid #dbeafe !important;
+}
+
+/* Override Tailwind red backgrounds used in dashboard */
+.bg-red-600 {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+}
+
+.hover\:bg-red-700:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+}
+
+/* Borders */
+.border-red-200,
+.border-red-300 {
+  border-color: #dbeafe !important;
+}
+
+/* Text red → calm blue (headers, labels) */
+.text-red-600,
+.text-red-700 {
+  color: #2563eb !important;
+}
+
+/* Calendar date highlight */
+.bg-red-200 {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
