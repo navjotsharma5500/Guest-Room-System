@@ -30,6 +30,11 @@ import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // ============================================================================
+// STYLES IMPORT
+// ============================================================================
+import './styles/hallBookingGlassmorphism.css';
+
+// ============================================================================
 // CONTEXT IMPORT
 // ============================================================================
 import { useAuth } from "./context/AuthContext";
