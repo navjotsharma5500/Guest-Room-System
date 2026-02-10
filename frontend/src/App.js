@@ -33,6 +33,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 // STYLES IMPORT
 // ============================================================================
 import "./styles/uiTheme.css";
+import "./styles/hallBookingGlassmorphism.css";
 
 // ============================================================================
 // CONTEXT IMPORT

@@ -119,3 +119,106 @@ body.dark .ui-header {
   background: #dbeafe !important;
   color: #1e40af !important;
 }
+
+/* ================================================= */
+/* 🎨 GLOBAL UI COLOR BALANCE (Management Approved) */
+/* ================================================= */
+
+:root {
+  --ui-blue: #3b82f6;
+  --ui-purple: #8b5cf6;
+}
+
+/* 🔘 Buttons that were red → blue–purple */
+.bg-gradient-to-r.from-red-600.to-red-700,
+.bg-gradient-to-r.from-red-700.to-red-800 {
+  background: linear-gradient(
+    135deg,
+    var(--ui-blue),
+    var(--ui-purple)
+  ) !important;
+}
+
+/* 🧱 Borders & dividers */
+.border-red-100,
+.border-red-200,
+.border-red-300,
+.border-red-500 {
+  border-color: var(--ui-purple) !important;
+}
+
+/* Focus & hover rings */
+.focus\:ring-red-500:focus {
+  --tw-ring-color: var(--ui-blue) !important;
+}
+
+.hover\:border-red-500:hover {
+  border-color: var(--ui-blue) !important;
+}
+
+/* 🪟 Glass cards */
+.glassmorphism-card {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+/* Scrollbar – soften red dominance */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--ui-blue),
+    var(--ui-purple)
+  );
+}
+
+/* ================================================= */
+/* 🔴 MAIN DASHBOARD TEXT COLOR FIX (FINAL) */
+/* ================================================= */
+
+/* Section headings */
+h2,
+h3 {
+  color: #dc2626;
+}
+
+/* Specific dashboard titles */
+.select-date-title,
+.upcoming-bookings-title,
+.booking-details-title {
+  color: #dc2626 !important;
+}
+
+/* Top action buttons – text only */
+button {
+  color: #dc2626;
+}
+
+/* Top navigation buttons (outlined) */
+button.border-purple-500,
+button.border-purple-600 {
+  color: #dc2626 !important;
+}
+
+/* Home button – filled red */
+button.bg-purple-600,
+button.bg-purple-500 {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: #ffffff !important;
+}
+
+/* Logout button – filled red */
+button.bg-red-600,
+button.logout-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: #ffffff !important;
+}
+
+/* Labels & small headers */
+.section-title,
+.card-title {
+  color: #dc2626 !important;
+}
+
+/* Icons next to text */
+svg {
+  color: #dc2626;
+}
