@@ -1173,6 +1173,39 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
           theme={theme}
         />
       )}
+
+      {/* SUPPORT BUTTON */}
+      <div className="fixed bottom-4 left-6 z-50">
+        <div className="relative group">
+          <button
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 shadow-lg transition-all duration-300"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+            </svg>
+            Support
+          </button>
+          <div className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 border border-gray-200">
+            <div className="p-4 space-y-3">
+              <div className="border-b pb-3">
+                <p className="text-xs font-semibold text-gray-600 mb-2">General Query</p>
+                <a href="mailto:harpreet.virdi@thapar.edu" className="block text-sm text-blue-600 hover:underline">harpreet.virdi@thapar.edu</a>
+                <a href="mailto:guestroom.hostels@thapar.edu" className="block text-sm text-blue-600 hover:underline mt-1">guestroom.hostels@thapar.edu</a>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-600 mb-2">Tech Related</p>
+                <a href="mailto:itmh@thapar.edu" className="block text-sm text-blue-600 hover:underline">itmh@thapar.edu</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

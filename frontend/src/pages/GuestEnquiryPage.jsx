@@ -1188,7 +1188,7 @@ export default function GuestEnquiryPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-600 mb-2">Technical Support</p>
-                  <a href="mailto:itmg@thapar.edu" className="block text-sm text-blue-600 hover:underline">itmg@thapar.edu</a>
+                  <a href="mailto:itmh@thapar.edu" className="block text-sm text-blue-600 hover:underline">itmh@thapar.edu</a>
                 </div>
               </div>
             </div>
