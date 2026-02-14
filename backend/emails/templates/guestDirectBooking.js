@@ -8,9 +8,9 @@ export default function guestDirectBooking(b) {
       <p>Dear ${b.guest},</p>
 
       <p>
-        This is to confirm that your guest room booking at
-        <strong>Thapar Institute of Engineering and Technology</strong>
-        has been <strong>successfully confirmed</strong>.
+        We are pleased to confirm your guest room booking at
+        <strong>Thapar Institute of Engineering and Technology</strong>.
+        Your accommodation has been successfully arranged.
       </p>
 
       <div class="details-box">
@@ -38,37 +38,39 @@ export default function guestDirectBooking(b) {
           ? `
           <div class="details-box">
             <div class="details-title">Payment Instructions</div>
-            <p>Please complete the payment using the following bank details:</p>
-            <p><strong>Bank Name:</strong> State Bank of India</p>
+            <p>Please complete the payment using the details below:</p>
+            <p><strong>Bank:</strong> State Bank of India</p>
             <p><strong>Account Number:</strong> 65181840370</p>
             <p><strong>IFSC Code:</strong> SBIN0050244</p>
             <p>
               Kindly retain the payment receipt and present it to the hostel
-              caretaker at the time of reporting.
+              caretaker at the time of check-in.
             </p>
           </div>
         `
           : ""
       }
 
-      <p><strong>Important Instructions:</strong></p>
-      <ul>
-        <li>Please report to the hostel at the specified check-in time</li>
-        <li>Carry a valid government-issued photo ID</li>
-        <li>Contact the hostel caretaker upon arrival for room allocation</li>
-        ${
-          b.totalAmount > 0
-            ? `<li>Carry proof of payment for verification</li>`
-            : ""
-        }
-      </ul>
+      <div class="details-box">
+        <div class="details-title">Important Information</div>
+        <ul>
+          <li>Please arrive at the hostel at the scheduled check-in time</li>
+          <li>Carry a valid government-issued photo ID</li>
+          <li>Contact the hostel caretaker upon arrival for assistance</li>
+          ${
+            b.totalAmount > 0
+              ? `<li>Present proof of payment for verification</li>`
+              : ""
+          }
+        </ul>
+      </div>
 
       <p>
-        We look forward to hosting you and wish you a pleasant stay.
+        We look forward to welcoming you and hope you have a comfortable stay.
       </p>
 
       <p>
-        Regards,<br/>
+        Warm regards,<br/>
         <strong>Guest Room Administration</strong><br/>
         Thapar Institute of Engineering and Technology
       </p>

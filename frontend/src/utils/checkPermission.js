@@ -11,7 +11,7 @@ export function hasPermission(user, key) {
   if (role === "admin") return true;
 
   // -------------------------
-  // ASSISTANT – hall bookings only
+  // ASSISTANT – venue bookings only
   // -------------------------
   if (role === "assistant") {
     const perms = {
@@ -19,31 +19,31 @@ export function hasPermission(user, key) {
       "sidebar.allHostels": false,
       "sidebar.hostels": false,
 
-      // Hall Booking Access
-      "hallBookings.view": true,
-      "hallBookings.create": true,
-      "hallBookings.edit": true,
-      "hallBookings.delete": true,
-      "hallBookings.download": true,
+      // Venue Booking Access
+      "venueBookings.view": true,
+      "venueBookings.create": true,
+      "venueBookings.edit": true,
+      "venueBookings.delete": true,
+      "venueBookings.download": true,
 
       // Enquiry - NO access
       "enquiry.view": false,
       "enquiry.download": false,
 
-      // Search - only for hall bookings
+      // Search - only for venue bookings
       "search.view": true,
 
-      // Analytics - only hall analytics
+      // Analytics - only venue analytics
       "analytics.view": true,
 
-      // Export - hall bookings only
+      // Export - venue bookings only
       "download.view": true,
 
-      // Notifications - hall bookings only
+      // Notifications - venue bookings only
       "notifications.enquiry": false,
-      "notifications.hallBookings": true,
+      "notifications.venueBookings": true,
 
-      // Calendar - hall bookings only
+      // Calendar - venue bookings only
       "calendar.view": true,
       "upcoming.view": true,
 
@@ -57,10 +57,66 @@ export function hasPermission(user, key) {
       "settings.clearCache": false,
       "settings.clearLastApproved": false,
 
-      // Dashboard toggle - can only see Hall Dashboard
-      "dashboard.toggleHall": false, // Cannot toggle, locked to Hall
+      // Dashboard toggle - can only see Venue Dashboard
+      "dashboard.toggleHall": false, // Cannot toggle, locked to Venue
       "dashboard.guestRoom": false,  // Cannot access Guest Room Dashboard
-      "dashboard.hallBooking": true, // Can access Hall Booking Dashboard
+      "dashboard.venueBooking": true, // Can access Venue Booking Dashboard
+    };
+
+    return perms[key] === true;
+  }
+
+  // -------------------------
+  // DD_ASSISTANT – venue bookings only (limited to 3 rooms)
+  // -------------------------
+  if (role === "dd_assistant") {
+    const perms = {
+      // Sidebar - NO access to guest room hostels
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+
+      // Venue Booking Access - LIMITED to LT-201, LT-202, TAN Auditorium
+      "venueBookings.view": true,
+      "venueBookings.create": true,
+      "venueBookings.edit": true,
+      "venueBookings.delete": true,
+      "venueBookings.download": true,
+
+      // Enquiry - NO access
+      "enquiry.view": false,
+      "enquiry.download": false,
+
+      // Search - only for venue bookings
+      "search.view": true,
+
+      // Analytics - only venue analytics
+      "analytics.view": true,
+
+      // Export - venue bookings only
+      "download.view": true,
+
+      // Notifications - venue bookings only
+      "notifications.enquiry": false,
+      "notifications.venueBookings": true,
+
+      // Calendar - venue bookings only
+      "calendar.view": true,
+      "upcoming.view": true,
+
+      // Filter modal
+      "filter.view": true,
+
+      // Settings - limited
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+
+      // Dashboard toggle - can only see Venue Dashboard
+      "dashboard.toggleHall": false, // Cannot toggle, locked to Venue
+      "dashboard.guestRoom": false,  // Cannot access Guest Room Dashboard
+      "dashboard.venueBooking": true, // Can access Venue Booking Dashboard
     };
 
     return perms[key] === true;

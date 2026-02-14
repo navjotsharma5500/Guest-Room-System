@@ -2,8 +2,10 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenDirectBookingFree(b) {
+  const remarks = b.freeRemarks || b.remarks || "";
+
   return masterTemplate({
-    title: `Direct Guest Room Booking – ${b.guest}`,
+    title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
       <p>Dear Warden,</p>
 
@@ -29,11 +31,11 @@ export default function wardenDirectBookingFree(b) {
       </div>
 
       ${
-        b.freeRemarks || b.remarks
+        remarks
           ? `
           <div class="details-box">
             <div class="details-title">Special Remarks</div>
-            <p>${b.freeRemarks || b.remarks}</p>
+            <p>${remarks}</p>
           </div>
         `
           : ""

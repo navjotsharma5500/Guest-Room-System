@@ -1,51 +1,58 @@
-// managerBookingExtendedPaid.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function managerBookingExtendedPaid(b) {
   const balance = Number(b.balanceAmount || 0);
+  const extensionAmount = b.extensionAmount || 0;
+  const totalAmount = b.totalAmount || 0;
+  const paidAmount = b.paidAmount || 0;
 
   return masterTemplate({
-    title: "Guest Room Booking Extended (Paid)",
+    title: "Guest Room Booking Extended (Payment Updated)",
     content: `
       <p>Dear Manager,</p>
 
       <p>
         This is to inform you that the guest room booking for
-        <strong>${b.guest}</strong> has been
-        <strong>extended with additional payment</strong>.
+        <strong>${b.guest}</strong> has been <strong>successfully extended</strong>,
+        and the corresponding payment has been recorded.
       </p>
 
       <div class="details-box">
         <div class="details-title">Extension Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
-          <strong>New Check-out:</strong>
+          <strong>Revised Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
       </div>
 
       <div class="details-box">
-        <div class="details-title">Financial Details</div>
-        <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
-        <p><strong>Total Amount:</strong> ₹${b.totalAmount || 0}</p>
-        <p><strong>Amount Paid:</strong> ₹${b.paidAmount || 0}</p>
+        <div class="details-title">Updated Financial Details</div>
+        <p><strong>Extension Charges:</strong> ₹${extensionAmount}</p>
+        <p><strong>Total Booking Amount:</strong> ₹${totalAmount}</p>
+        <p><strong>Amount Received:</strong> ₹${paidAmount}</p>
         ${
           balance > 0
-            ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
-            : `<p><strong>Payment Status:</strong> Fully Paid</p>`
+            ? `<p><strong>Outstanding Balance:</strong> ₹${balance}</p>`
+            : `<p><strong>Payment Status:</strong> Fully Settled</p>`
         }
       </div>
 
       ${
         b.extendRemarks
-          ? `<p><strong>Remarks:</strong> ${b.extendRemarks}</p>`
+          ? `
+          <div class="details-box">
+            <div class="details-title">Remarks</div>
+            <p>${b.extendRemarks}</p>
+          </div>
+        `
           : ""
       }
 
       <p>
-        This email is shared for your information and official records.
+        This update is shared for administrative tracking and official records.
       </p>
 
       <p>

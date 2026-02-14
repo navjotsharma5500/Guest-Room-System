@@ -1,4 +1,4 @@
-// src/pages/admin/DashboardSelector.jsx
+// src/pages/admin/DashboardSelector.jsx - UPDATED WITH VENUE BOOKING
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -33,13 +33,25 @@ const DashboardSelector = () => {
       onClick: () => navigate("/dashboard")
     },
     {
+      id: "venue-booking",
+      title: "Venue Booking Dashboard",
+      description: "Manage institute venues, events, and hall bookings",
+      icon: Calendar,
+      gradient: "from-purple-600 via-purple-500 to-pink-500",
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+      available: true,
+      features: ["Venue Management", "Event Calendar", "Enquiry System"],
+      onClick: () => navigate("/venue-booking")
+    },
+    {
       id: "coming-soon",
       title: "Coming Soon",
       description: "New features and dashboards are on the way",
       icon: Sparkles,
-      gradient: "from-purple-600 via-purple-500 to-pink-500",
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
+      gradient: "from-orange-600 via-orange-500 to-yellow-500",
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
       available: false,
       features: ["Advanced Analytics", "Mobile App", "AI Insights"]
     }
@@ -214,6 +226,14 @@ const DashboardSelector = () => {
                       <div className="bg-slate-200 text-slate-500 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                         <Lock className="w-3 h-3" />
                         Locked
+                      </div>
+                    )}
+
+                    {/* NEW Badge for Venue Booking */}
+                    {dashboard.id === "venue-booking" && (
+                      <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        NEW
                       </div>
                     )}
                   </div>

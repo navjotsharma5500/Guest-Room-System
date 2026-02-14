@@ -8,9 +8,9 @@ export default function guestDirectBookingFree(b) {
       <p>Dear ${b.guest},</p>
 
       <p>
-        This is to confirm that your guest room booking at
+        We are pleased to confirm your guest room booking at
         <strong>Thapar Institute of Engineering and Technology</strong>
-        has been <strong>successfully confirmed</strong> as a complimentary stay.
+        has been successfully arranged as a <strong>complimentary stay</strong>.
       </p>
 
       <div class="details-box">
@@ -38,19 +38,21 @@ export default function guestDirectBookingFree(b) {
           : ""
       }
 
-      <p><strong>Important Instructions:</strong></p>
-      <ul>
-        <li>Please report to the hostel at the specified check-in time</li>
-        <li>Carry a valid government-issued photo ID</li>
-        <li>Contact the hostel caretaker upon arrival for room allocation</li>
-      </ul>
+      <div class="details-box">
+        <div class="details-title">Important Information</div>
+        <ul>
+          <li>Please report to the hostel at the scheduled check-in time</li>
+          <li>Carry a valid government-issued photo ID</li>
+          <li>Contact the hostel caretaker upon arrival for assistance</li>
+        </ul>
+      </div>
 
       <p>
-        We look forward to hosting you and wish you a pleasant stay.
+        We look forward to welcoming you and wish you a comfortable stay.
       </p>
 
       <p>
-        Regards,<br/>
+        Warm regards,<br/>
         <strong>Guest Room Administration</strong><br/>
         Thapar Institute of Engineering and Technology
       </p>

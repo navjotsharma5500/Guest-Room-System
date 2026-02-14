@@ -1,4 +1,3 @@
-// managerDirectBooking.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function managerDirectBooking(b) {
@@ -19,7 +18,7 @@ export default function managerDirectBooking(b) {
         <div class="details-title">Booking Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
@@ -28,17 +27,33 @@ export default function managerDirectBooking(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-
-        ${
-          amount > 0
-            ? `<p><strong>Payment:</strong> Paid</p>
-               <p><strong>Amount:</strong> ₹${amount}</p>`
-            : ""
-        }
       </div>
 
+      ${
+        amount > 0
+          ? `
+          <div class="details-box">
+            <div class="details-title">Payment Information</div>
+            <p><strong>Payment Status:</strong> Received</p>
+            <p><strong>Amount Collected:</strong> ₹${amount}</p>
+          </div>
+        `
+          : `
+          <div class="details-box">
+            <div class="details-title">Payment Information</div>
+            <p><strong>Payment Status:</strong> Complimentary / Not Applicable</p>
+          </div>
+        `
+      }
+
       <p>
-        This notification is shared for your information and official records.
+        This notification is shared for administrative reference and official records.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

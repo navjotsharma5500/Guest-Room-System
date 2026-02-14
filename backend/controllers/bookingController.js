@@ -48,6 +48,7 @@ import wardenBookingExtended from "../emails/templates/wardenBookingExtended.js"
 import wardenBookingExtendedPaid from "../emails/templates/wardenBookingExtendedPaid.js";
 import wardenDirectBooking from "../emails/templates/wardenDirectBooking.js";
 import wardenDirectBookingFree from "../emails/templates/wardenDirectBookingFree.js";
+import guestCheckoutFeedback from "../emails/templates/guestCheckoutFeedback.js"; // ✅ NEW
 
 
 // ======================================================
@@ -793,6 +794,20 @@ export const checkOutGuest = async (req, res) => {
       message: "Guest checked out successfully",
       booking,
     });
+
+    // ✅ SEND FEEDBACK EMAIL TO GUEST (After checkout)
+    if (booking.email) {
+       console.log("📨 Sending checkout feedback email to:", booking.email);
+       safeSend({
+         to: booking.email,
+         subject: "Thank you for staying with us! - Feedback",
+         html: guestCheckoutFeedback(booking),
+         meta: {
+           bookingId: booking._id,
+           type: "guest-checkout-feedback"
+         }
+       });
+    }
 
   } catch (err) {
     console.error("❌ CHECK OUT ERROR:", err);

@@ -3,40 +3,45 @@ import masterTemplate from "./masterTemplate.js";
 
 export default function guestEnquiryReceived(e) {
   return masterTemplate({
-    title: "Enquiry Received — Thapar Guest Room",
+    title: "Guest Room Enquiry Received",
     content: `
       <p>Dear ${e.name},</p>
 
       <p>
-        Thank you for submitting your enquiry to the
+        Thank you for submitting your guest room enquiry to the
         <strong>Thapar Institute Guest Room Management System</strong>.
-        We confirm that your request has been received successfully.
+        We are pleased to confirm that your request has been received successfully.
       </p>
 
-      <p><strong>Enquiry Summary</strong></p>
+      <div class="details-box">
+        <div class="details-title">Enquiry Summary</div>
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(e.from).toDateString()} ${e.checkInTime || ""}
+        </p>
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}
+        </p>
+        <p>
+          <strong>Number of Guests:</strong> ${e.guests || 1}
+        </p>
+      </div>
 
       <p>
-        <strong>Check-in:</strong>
-        ${new Date(e.from).toDateString()} ${e.checkInTime || ""}<br/>
-        <strong>Check-out:</strong>
-        ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}<br/>
-        <strong>Number of Guests:</strong> ${e.guests || 1}
+        Our administration team will review your request and notify you
+        by email once a decision has been made.
       </p>
 
       <p>
-        Your enquiry will be reviewed by the Guest Room Administration.
-        You will be informed by email once a decision has been made.
+        Please note that this is a system-generated acknowledgement.
+        Kindly do not reply to this message.
       </p>
 
       <p>
-        Kindly note that this is an automated acknowledgement.
-        Please do not reply to this email.
-      </p>
-
-      <p>
-        Regards,<br/>
-        <strong>Thapar Institute Guest Room Management</strong><br/>
-        Thapar Institute of Engineering & Technology
+        Warm regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

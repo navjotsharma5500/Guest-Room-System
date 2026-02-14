@@ -4,9 +4,12 @@
 // - Login (/) → Auto-redirects based on user role
 // - Admin → /admin/dashboard-selector
 // - All authenticated users → /dashboard (Guest Room)
+// - VENUE BOOKING DASHBOARD → /venue-booking (Admin & Assistant)
 // - PUBLIC ROUTES:
 //   * /guest-enquiry → Public enquiry form
 //   * /guest-feedback → Public feedback form
+//   * /venue-guest-enquiry → Venue-specific enquiry form
+// - QR CODE GENERATOR → /admin/qr-code (Admin only)
 // ============================================================================
 
 import React from "react";
@@ -24,7 +27,10 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import Login from "./pages/Login";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
+import VenueBookingDashboard from "./VenueBookingDashboard"; // ✅ NEW - Venue Booking
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
+import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
+import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -33,12 +39,13 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 // STYLES IMPORT
 // ============================================================================
 import "./styles/uiTheme.css";
-import "./styles/hallBookingGlassmorphism.css";
+import "./styles/VenueBookingGlassmorphism.css";
 
 // ============================================================================
 // CONTEXT IMPORT
 // ============================================================================
 import { useAuth } from "./context/AuthContext";
+import { isDDAssistantRole } from "./utils/venueAccessPolicy";
 
 // ============================================================================
 // MAIN APP COMPONENT
@@ -64,6 +71,7 @@ export default function App() {
   // ROLE EXTRACTION
   // ========================================================================
   const role = currentUser?.role || currentUser?.user?.role;
+  const isAssistant = role === "assistant" || isDDAssistantRole(role);
 
   // ========================================================================
   // ROUTER CONFIGURATION
@@ -83,6 +91,8 @@ export default function App() {
               currentUser ? (
                 role === "admin" ? (
                   <Navigate to="/admin/dashboard-selector" replace />
+                ) : isAssistant ? (
+                  <Navigate to="/venue-booking" replace />
                 ) : (
                   <Navigate to="/dashboard" replace />
                 )
@@ -121,9 +131,25 @@ export default function App() {
           />
 
           {/* ================================================================
+              VENUE BOOKING DASHBOARD (ADMIN & ASSISTANT ONLY)
+              ================================================================ */}
+          <Route
+            path="/venue-booking"
+            element={
+              currentUser && (role === "admin" || isAssistant) ? (
+                <VenueBookingDashboard />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* ================================================================
               PUBLIC ROUTES (NO AUTH REQUIRED)
               ================================================================ */}
           <Route path="/guest-enquiry" element={<GuestEnquiryPage />} />
+          <Route path="/venue-guest-enquiry" element={<VenueGuestEnquiryPage />} />
+          <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
           <Route path="/guest-feedback" element={<PublicGuestFeedback />} />
 
           {/* ================================================================

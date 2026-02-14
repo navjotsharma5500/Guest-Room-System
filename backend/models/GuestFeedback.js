@@ -1,4 +1,4 @@
-// models/GuestFeedback.js - FIXED FOR THAPAR SYSTEM
+// models/GuestFeedbackUpgraded.js
 import mongoose from "mongoose";
 
 const GuestFeedbackSchema = new mongoose.Schema(
@@ -27,8 +27,13 @@ const GuestFeedbackSchema = new mongoose.Schema(
     hostel: {
       type: String,
       required: true,
-      // ✅ FIXED: Accept full hostel names like "Agira Hall (A)"
-      // Validation happens in controller if needed
+    },
+    
+    // âœ… NEW: Profile Picture URL from ImageKit
+    profilePictureUrl: {
+      type: String,
+      default: "",
+      trim: true,
     },
     
     // Rating (1-5 stars)
@@ -71,6 +76,13 @@ const GuestFeedbackSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // âœ… NEW: Google Auth metadata (optional)
+    googleAuthMetadata: {
+      googleId: String,
+      emailVerified: Boolean,
+      locale: String,
+    },
   },
   { 
     timestamps: true,
@@ -93,6 +105,11 @@ GuestFeedbackSchema.virtual('formattedDate').get(function() {
     month: 'short',
     day: 'numeric'
   });
+});
+
+// Virtual for profile picture availability
+GuestFeedbackSchema.virtual('hasProfilePicture').get(function() {
+  return !!this.profilePictureUrl;
 });
 
 export default mongoose.model("GuestFeedback", GuestFeedbackSchema);

@@ -1,0 +1,177 @@
+// backend/models/VenueBooking.js
+import mongoose from 'mongoose';
+
+const venueBookingSchema = new mongoose.Schema({
+  // Venue & Room Info
+  hall: {
+    type: String,
+    required: true,
+  },
+  roomNo: {
+    type: String,
+    required: true,
+  },
+
+  // Booking Information
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  societyName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  eventName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  department: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  contact: {
+    type: String,
+    required: true,
+    match: /^\d{10}$/,
+  },
+  email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    match: /@thapar\.edu$/,
+  },
+
+  // Date & Time
+  checkInDate: {
+    type: String,
+    required: true,
+  },
+  checkInTime: {
+    type: String,
+    required: true,
+  },
+  checkOutDate: {
+    type: String,
+    required: true,
+  },
+  checkOutTime: {
+    type: String,
+    required: true,
+  },
+
+  // Additional Info
+  purpose: {
+    type: String,
+    default: '',
+  },
+  description: {
+    type: String,
+    default: '',
+  },
+  attachments: [{
+    type: String,
+  }],
+
+  // Status
+  status: {
+    type: String,
+    enum: ['booked', 'checked_in', 'checked_out', 'cancelled', 'no_show', 'completed'],
+    default: 'booked',
+  },
+
+  // Extension Info
+  extensionHistory: [{
+    originalCheckOutDate: String,
+    originalCheckOutTime: String,
+    newCheckOutDate: String,
+    newCheckOutTime: String,
+    remarks: String,
+    extendedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
+
+  // Cancellation Info
+  cancellationRemarks: {
+    type: String,
+    default: '',
+  },
+  cancelledAt: {
+    type: Date,
+  },
+
+  // Creator Info
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+
+  // Link to venue enquiry when booking is created from approved enquiry flow
+  enquiryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'VenueEnquiry',
+    default: null,
+  },
+
+  // 🆕 NEW: Type identifiers
+  bookingType: {
+    type: String,
+    default: 'venue',
+    immutable: true,
+  },
+
+  isVenueBooking: {
+    type: Boolean,
+    default: true,
+    immutable: true,
+  },
+
+  // Deprecated compatibility field (kept to avoid breaking old readers)
+  isHallBooking: {
+    type: Boolean,
+    default: false,
+    immutable: true,
+  },
+
+  // 🆕 NEW: Compatibility fields
+  guest: {
+    type: String,
+    default: function() {
+      return this.name;
+    }
+  },
+
+  // Timestamps
+  }, {
+    timestamps: true,
+    collection: 'venuebookings',
+  });
+
+// Index for faster queries
+venueBookingSchema.index({ hall: 1, roomNo: 1, checkInDate: 1, checkOutDate: 1 });
+venueBookingSchema.index({ status: 1 });
+venueBookingSchema.index({ email: 1 });
+venueBookingSchema.index({ enquiryId: 1 });
+
+// Virtual fields for compatibility
+venueBookingSchema.virtual('from').get(function() {
+  return this.checkInDate;
+});
+
+venueBookingSchema.virtual('to').get(function() {
+  return this.checkOutDate;
+});
+
+// Ensure virtuals are included in JSON
+venueBookingSchema.set('toJSON', { virtuals: true });
+venueBookingSchema.set('toObject', { virtuals: true });
+
+const VenueBooking = mongoose.models.VenueBooking
+  || mongoose.model('VenueBooking', venueBookingSchema);
+
+export default VenueBooking;

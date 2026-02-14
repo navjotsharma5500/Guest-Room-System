@@ -11,7 +11,7 @@ import connectDB from "./config/db.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
-import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob } from "./utils/cronJobs.js";
+import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob, startVenueAutoCompletionCronJob } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
 // Routes
@@ -28,6 +28,12 @@ import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import guestFeedbackRoutes from "./routes/guestFeedbackRoutes.js";
 import departmentPaymentRoutes from "./routes/departmentPaymentRoutes.js";
+import venueBookingRoutes from "./routes/VenueBookingRoutes.js";
+import venueEnquiryRoutes from "./routes/venueEnquiryRoutes.js";
+import eventCalendarRoutes from "./routes/eventCalendarRoutes.js";
+import { seedDefaultSocietySuggestions } from "./models/SocietyNameSuggestion.js";
+import { seedDefaultEventSuggestions } from "./models/EventNameSuggestion.js";
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const app = express();
 
@@ -299,7 +305,12 @@ app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use("/api/venue-bookings", venueBookingRoutes);
+app.use("/api/venue/enquiry", venueEnquiryRoutes);
+app.use("/api/events", eventCalendarRoutes);
+app.use("/api/event-calendar", eventCalendarRoutes);
 app.use("/api/token", tokenRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);
@@ -435,10 +446,16 @@ const startServer = async () => {
     await connectDB();
     console.log("âœ… MongoDB connected");
 
+    await seedDefaultSocietySuggestions();
+    console.log("âœ… Default society suggestions ensured");
+    await seedDefaultEventSuggestions();
+    console.log("âœ… Default event suggestions ensured");
+
     // âœ… FIXED: Pass io instance to cron jobs
     startNoShowCronJob(io);
     startAutoUnblockCronJob(io);
     startAutoCheckoutCronJob(io);
+    startVenueAutoCompletionCronJob(io);
     scheduleCleanupJob();
 
     server.listen(PORT, () => {

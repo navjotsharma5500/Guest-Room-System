@@ -107,6 +107,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   // =======================================================
+  // 🔥 GOOGLE LOGIN
+  // =======================================================
+  const googleLogin = async (token) => {
+    try {
+      const res = await fetch(`${API}/api/auth/google`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentUser(data.user);
+        if (data.token) localStorage.setItem("token", data.token);
+      }
+      return data;
+    } catch (err) {
+      return { success: false, message: "Server error" };
+    }
+  };
+
+  // =======================================================
   // 🔥 LOGOUT
   // =======================================================
   const logout = async () => {
@@ -125,7 +147,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, googleLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

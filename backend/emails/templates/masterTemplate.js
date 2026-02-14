@@ -3,103 +3,142 @@ export default function masterTemplate({ title, content }) {
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+@keyframes fadeIn {
+  from {opacity:0; transform:translateY(20px);}
+  to {opacity:1; transform:translateY(0);}
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(27,116,201,.6);}
+  70% { box-shadow: 0 0 0 14px rgba(27,116,201,0);}
+  100% { box-shadow: 0 0 0 0 rgba(27,116,201,0);}
+}
+</style>
 </head>
 
 <body style="
-  margin:0;
-  padding:0;
-  width:100%;
-  font-family:Arial, Helvetica, sans-serif;
-  color:#1f2937;
-  background:#ffffff;
+margin:0;
+padding:0;
+width:100%;
+font-family:Arial, Helvetica, sans-serif;
+background:#f4f6f9;
+color:#1f2937;
 ">
 
-<!-- FULL WIDTH WRAPPER -->
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
-  <tr>
-    <td style="padding:24px 32px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 12px;">
+<tr>
+<td align="center">
 
-      <!-- HEADER -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td>
-            <img
-              src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png"
-              alt="Thapar Institute of Engineering and Technology"
-              width="120"
-              style="display:block; margin-bottom:12px;"
-            />
+<!-- MAIN CARD -->
+<table width="600" cellpadding="0" cellspacing="0" style="
+max-width:600px;
+background:#ffffff;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+animation:fadeIn 1.3s ease-in-out;
+">
 
-            <div style="font-size:18px; font-weight:700; color:#111827;">
-              Thapar Institute of Engineering and Technology
-            </div>
+<!-- HEADER -->
+<tr>
+<td style="
+background:linear-gradient(135deg,#0f4c81,#1b74c9);
+padding:34px 28px;
+color:#ffffff;
+">
 
-            <div style="font-size:13px; color:#6b7280;">
-              (Deemed to be University)
-            </div>
-          </td>
-        </tr>
-      </table>
+<img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png"
+width="110"
+style="display:block;margin-bottom:14px;" />
 
-      <!-- DIVIDER -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
-        <tr>
-          <td style="border-top:1px solid #e5e7eb;"></td>
-        </tr>
-      </table>
+<div style="font-size:22px;font-weight:700;">
+Thapar Institute of Engineering and Technology
+</div>
 
-      <!-- TITLE -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="
-            font-size:16px;
-            font-weight:600;
-            color:#111827;
-            padding-bottom:8px;
-          ">
-            ${title}
-          </td>
-        </tr>
-      </table>
+<div style="font-size:13px;opacity:.9;">
+Guest Room Management System
+</div>
 
-      <!-- CONTENT -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="
-            font-size:14.5px;
-            line-height:1.7;
-            color:#1f2937;
-          ">
-            ${content}
-          </td>
-        </tr>
-      </table>
+</td>
+</tr>
 
-      <!-- FOOTER -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
-        <tr>
-          <td style="font-size:12.5px; color:#6b7280;">
-            <div style="font-weight:600; color:#111827; margin-bottom:6px;">
-              Thapar Institute Guest Room Management
-            </div>
+<!-- CONTENT AREA -->
+<tr>
+<td style="padding:36px 32px; text-align:center;">
 
-            Thapar Institute of Engineering & Technology<br/>
-            Patiala, Punjab<br/>
-            <a href="https://thapar.edu" style="color:#2563eb; text-decoration:none;">
-              thapar.edu
-            </a>
+<div style="
+font-size:20px;
+font-weight:700;
+color:#0f4c81;
+margin-bottom:14px;
+">
+${title}
+</div>
 
-            <div style="margin-top:12px; font-size:11px; color:#9ca3af;">
-              This is a system-generated email. Please do not reply.
-            </div>
-          </td>
-        </tr>
-      </table>
+<div style="
+font-size:15px;
+line-height:1.7;
+color:#1f2937;
+margin-bottom:26px;
+">
+${content}
+</div>
 
-    </td>
-  </tr>
+<!-- CTA BUTTON -->
+<a href="{{FEEDBACK_LINK}}" style="
+display:inline-block;
+padding:14px 38px;
+background:#1b74c9;
+color:#ffffff;
+text-decoration:none;
+border-radius:40px;
+font-size:15px;
+font-weight:600;
+animation:pulse 2s infinite;
+">
+Share Your Feedback
+</a>
+
+<div style="margin-top:22px;font-size:13px;color:#6b7280;">
+Your experience helps us serve you better.
+</div>
+
+</td>
+</tr>
+
+<!-- FOOTER -->
+<tr>
+<td style="
+background:#f0f3f7;
+padding:22px;
+font-size:12.5px;
+color:#6b7280;
+text-align:center;
+">
+
+<div style="font-weight:600;color:#111827;margin-bottom:6px;">
+Thapar Institute Guest Room Management
+</div>
+
+Patiala, Punjab •  
+<a href="https://thapar.edu" style="color:#2563eb;text-decoration:none;">
+thapar.edu
+</a>
+
+<div style="margin-top:10px;font-size:11px;color:#9ca3af;">
+System generated email – please do not reply
+</div>
+
+</td>
+</tr>
+
+</table>
+</td>
+</tr>
 </table>
 
 </body>

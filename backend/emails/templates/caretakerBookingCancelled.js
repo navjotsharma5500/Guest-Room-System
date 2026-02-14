@@ -5,49 +5,60 @@ export default function caretakerBookingCancelled(b) {
   return masterTemplate({
     title: "Guest Room Booking Cancelled",
     content: `
-      <p>Dear Caretaker,</p>
+      <p style="margin-top:0;">Dear Caretaker,</p>
 
       <p>
-        Please note that the following guest room booking has been
+        Please be informed that the following guest room booking has been 
         <strong>cancelled</strong>.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Booking Details</div>
-        <p><strong>Guest Name:</strong> ${b.guest}</p>
-        <p><strong>Contact Number:</strong> ${b.contact || "—"}</p>
-        <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room Number:</strong> ${b.roomNo}</p>
-        <p>
-          <strong>Check-in:</strong>
-          ${b.from ? new Date(b.from).toDateString() : "—"}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${b.to ? new Date(b.to).toDateString() : "—"}
-        </p>
+      <div style="
+        background:#f8fafc;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        text-align:left;
+        font-size:14.5px;
+      ">
+
+        <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+          Booking Details
+        </div>
+
+        <strong>Guest Name:</strong> ${b.guest}<br/>
+        <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
+        <strong>Hostel:</strong> ${b.hostel}<br/>
+        <strong>Room Number:</strong> ${b.roomNo}<br/>
+        <strong>Check-in:</strong> ${b.from ? new Date(b.from).toDateString() : "—"}<br/>
+        <strong>Check-out:</strong> ${b.to ? new Date(b.to).toDateString() : "—"}
       </div>
 
       ${
         b.cancelRemarks
           ? `
-            <p>
-              <strong>Cancellation Remarks:</strong>
+            <div style="
+              background:#fff4f4;
+              border-radius:12px;
+              padding:16px 18px;
+              margin:16px 0;
+              text-align:left;
+              font-size:14.5px;
+            ">
+              <strong style="color:#b91c1c;">Cancellation Remarks:</strong><br/>
               ${b.cancelRemarks}
-            </p>
+            </div>
           `
           : ""
       }
 
       <p>
-        Please ensure that the room is released and made available
+        Kindly ensure that the room is released in the system and prepared 
         for future bookings.
       </p>
 
-      <p>
+      <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>Guest Room Administration</strong><br/>
-        Thapar Institute of Engineering and Technology
+        <strong>Guest Room Administration</strong>
       </p>
     `,
   });

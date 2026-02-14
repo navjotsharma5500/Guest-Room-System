@@ -1,0 +1,62 @@
+import masterTemplate from "../../../templates/masterTemplate.js";
+
+export default function enquiryReceived(data) {
+  return {
+    subject: "Venue Enquiry Received",
+    html: masterTemplate({
+      title: "Venue Enquiry Received",
+      content: `
+      <p style="margin-top:0;">Dear ${data.name},</p>
+
+      <p>
+        We have received your venue enquiry for <strong>${data.hall} - ${data.roomNo}</strong>. 
+        You will be notified shortly regarding the approval or booking status.
+      </p>
+
+      <!-- ENQUIRY DETAILS -->
+      <div style="
+        background:#f3f4f6;
+        border-left:6px solid #2563eb;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        font-size:14.5px;
+      ">
+        <div style="font-weight:600;margin-bottom:10px;color:#2563eb;">
+          Enquiry Details
+        </div>
+
+        <strong>Event:</strong> ${data.eventName}<br/>
+        <strong>Society:</strong> ${data.societyName}<br/>
+        <strong>Date:</strong> ${data.checkInDate} ${data.checkInTime} - ${data.checkOutDate} ${data.checkOutTime}<br/>
+      </div>
+
+      <!-- OPTIONAL VENUE IMAGE -->
+      ${data.venueImage ? `
+      <div style="text-align:center; margin:20px 0;">
+        <img src="${data.venueImage}" alt="Venue Image" style="width:100%; max-width:600px; border-radius:12px; display:block;">
+      </div>
+      ` : ''}
+
+      <p style="font-weight:600;margin-bottom:6px;">
+        Instructions:
+      </p>
+
+      <ul style="padding-left:18px;margin-top:6px;">
+        <li>Wait for confirmation from the DD Office regarding your enquiry</li>
+        <li>Contact the DD Office for any queries regarding your request</li>
+        <li>Keep this email for your records</li>
+      </ul>
+
+      <p>
+        Thank you for your enquiry.
+      </p>
+
+      <p style="margin-bottom:0;">
+        Regards,<br/>
+        <strong>DD Office</strong>
+      </p>
+    `,
+    }),
+  };
+}

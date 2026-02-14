@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { User, Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { isDDAssistantRole } from "../utils/venueAccessPolicy";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 // Images
 import logo from "../assets/thapar_logo.png";
@@ -12,7 +14,8 @@ import bg3 from "../assets/Login2 (3).png";
 import bg4 from "../assets/Login2 (4).png";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
+  const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   // STATES
   const [email, setEmail] = useState("");
@@ -67,24 +70,73 @@ export default function Login() {
     }
 
     // SUCCESS → redirect
-    window.location.href = "/dashboard";
+    const userRole = res.user?.role || "";
+    if (userRole === "assistant" || isDDAssistantRole(userRole)) {
+      window.location.href = "/venue-booking";
+    } else {
+      window.location.href = "/dashboard";
+    }
+  };
+
+  // =================================================
+  // ðŸŒ GOOGLE LOGIN HANDLER
+  // =================================================
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoadingBtn(true);
+    const res = await googleLogin(credentialResponse.credential);
+    
+    if (!res.success) {
+      setError(res.message || "Google Login Failed");
+      setLoadingBtn(false);
+      return;
+    }
+
+    // SUCCESS â†’ redirect
+    const userRole = res.user?.role || "";
+    if (userRole === "assistant" || isDDAssistantRole(userRole)) {
+      window.location.href = "/venue-booking";
+    } else {
+      window.location.href = "/dashboard";
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google Login Failed");
   };
 
   // =================================================
   // TEMP FORGOT PASSWORD UI (NO BACKEND)
   // =================================================
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!forgotEmail.trim()) {
       setForgotError("Enter your registered email");
       return;
     }
 
-    setForgotSuccess(
-      `A reset link has been sent to your email (${forgotEmail}).`
-    );
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setForgotSuccess(`A reset link has been sent to your email (${forgotEmail}).`);
+        setForgotError("");
+      } else {
+        setForgotError(data.message || "Failed to send reset link.");
+      }
+    } catch (error) {
+      setForgotError("Something went wrong. Please try again.");
+    }
   };
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
 
       {/* BACKGROUND SLIDESHOW */}
@@ -202,7 +254,85 @@ export default function Login() {
           >
             {loadingBtn ? "Logging in..." : "Login"}
           </button>
+
+          {/* DIVIDER */}
+          <div className="flex items-center gap-2">
+            <div className="h-px bg-white/20 flex-1"></div>
+            <span className="text-white/60 text-sm">OR</span>
+            <div className="h-px bg-white/20 flex-1"></div>
+          </div>
+
+          {/* GOOGLE LOGIN */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_blue"
+              shape="pill"
+              text="signin_with"
+              size="large"
+              width="300" 
+            />
+          </div>
+
+          {/* FORGOT PASSWORD / CHANGE PASSWORD */}
+          <div className="text-center mt-2">
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="text-white/70 hover:text-white text-sm underline transition"
+            >
+              Forgot / Change Password?
+            </button>
+          </div>
+
+          {/* QUICK LINKS */}
+          <div className="mt-6 flex flex-col gap-3">
+            <a
+              href="/guest-enquiry"
+              className="
+                w-full py-2.5 rounded-xl
+                text-white font-medium text-sm text-center
+                bg-white/10 hover:bg-white/20
+                border border-white/20 hover:border-white/40
+                transition-all duration-200
+                backdrop-blur-md
+              "
+            >
+              Guest Room Booking
+            </a>
+            <a
+              href="/venue-guest-enquiry"
+              className="
+                w-full py-2.5 rounded-xl
+                text-white font-medium text-sm text-center
+                bg-white/10 hover:bg-white/20
+                border border-white/20 hover:border-white/40
+                transition-all duration-200
+                backdrop-blur-md
+              "
+            >
+              Venue Booking
+            </a>
+          </div>
         </form>
+
+        {/* FOOTER CREDIT */}
+        <div className="mt-8 text-center">
+            <p className="text-white/60 text-xs font-light">
+                Created and Maintained by <span className="font-medium text-white/80">DoSA Office</span>
+            </p>
+            <div className="mt-1">
+                <a 
+                    href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-white/40 text-[10px] hover:text-white/80 transition-colors"
+                >
+                    Developed by Navjot Sharma
+                </a>
+            </div>
+        </div>
       </motion.div>
 
       {/* FORGOT PASSWORD MODAL */}
@@ -266,5 +396,6 @@ export default function Login() {
       </AnimatePresence>
 
     </div>
+    </GoogleOAuthProvider>
   );
 }

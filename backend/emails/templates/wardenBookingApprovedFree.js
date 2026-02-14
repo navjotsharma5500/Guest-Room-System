@@ -1,4 +1,3 @@
-// wardenBookingApprovedFree.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingApprovedFree(b) {
@@ -16,7 +15,7 @@ export default function wardenBookingApprovedFree(b) {
         <div class="details-title">Booking Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
@@ -28,12 +27,18 @@ export default function wardenBookingApprovedFree(b) {
       </div>
 
       <p>
-        The hostel caretaker has been informed to make the necessary
-        arrangements and assist the guest upon arrival.
+        The hostel caretaker has been notified to prepare the room and
+        assist the guest upon arrival.
       </p>
 
       <p>
-        This notification is shared for your information and official record.
+        This notification is issued for administrative reference and official records.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

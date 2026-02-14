@@ -85,6 +85,15 @@ socket.on("enquiry-booked", (data) => {
   window.dispatchEvent(new CustomEvent("enquiryBooked", { detail: data }));
 });
 
+// Venue enquiry events
+socket.on("venue-enquiry-created", (data) => {
+  window.dispatchEvent(new CustomEvent("venueEnquiryCreated", { detail: data }));
+});
+
+socket.on("venue-enquiry-updated", (data) => {
+  window.dispatchEvent(new CustomEvent("venueEnquiryUpdated", { detail: data }));
+});
+
 // ✅ ADD THIS BLOCK:
 // Cron job events
 socket.on("bookingDataUpdated", (data) => {

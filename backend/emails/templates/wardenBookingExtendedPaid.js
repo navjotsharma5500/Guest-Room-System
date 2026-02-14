@@ -2,6 +2,8 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingExtendedPaid(b) {
+  const extensionAmount = Number(b.extensionAmount || 0);
+  const totalAmount = Number(b.totalAmount || 0);
   const balance = Number(b.balanceAmount || 0);
 
   return masterTemplate({
@@ -32,11 +34,11 @@ export default function wardenBookingExtendedPaid(b) {
 
       <div class="details-box">
         <div class="details-title">Payment Information</div>
-        <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
-        <p><strong>Total Amount:</strong> ₹${b.totalAmount || 0}</p>
+        <p><strong>Extension Amount:</strong> ₹${extensionAmount.toFixed(2)}</p>
+        <p><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</p>
         ${
           balance > 0
-            ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
+            ? `<p><strong>Balance Due:</strong> ₹${balance.toFixed(2)}</p>`
             : `<p><strong>Payment Status:</strong> Fully Paid</p>`
         }
       </div>
@@ -48,7 +50,7 @@ export default function wardenBookingExtendedPaid(b) {
       }
 
       <p>
-        Kindly take note of the revised checkout date and payment details.
+        Kindly take note of the revised checkout date and updated billing details.
         The caretaker and management have been informed.
       </p>
 

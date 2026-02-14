@@ -1,5 +1,5 @@
 //GuestProfile.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { UserCircle, Phone, Mail, Camera } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
@@ -10,6 +10,30 @@ import {
 } from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
+
+// ===== ImageKit Guest Profile Resolver =====
+const IMAGEKIT_GUEST_PROFILE_BASE =
+  `${IMAGEKIT_URL_ENDPOINT}/GuestProfile`;
+
+const resolveGuestProfileImage = ({ rollOrEmpId, email }) => {
+  // 1️⃣ Roll No / Emp ID (9–12 digits)
+  if (rollOrEmpId && /^\d{9,12}$/.test(String(rollOrEmpId))) {
+    return `${IMAGEKIT_GUEST_PROFILE_BASE}/${rollOrEmpId}.jpg`;
+  }
+
+  // 2️⃣ Email fallback
+  if (email) {
+    const safeEmail = email
+      .toLowerCase()
+      .replace("@", "_")
+      .replace(/\.jpg$/i, "")
+      .replace(/_google_profile$/i, "");
+
+    return `${IMAGEKIT_GUEST_PROFILE_BASE}/${safeEmail}.jpg`;
+  }
+
+  return null;
+};
 
 export default function GuestProfile({ 
   booking, 
@@ -22,6 +46,29 @@ export default function GuestProfile({
 }) {
   const { showToast } = useToast();
   const b = booking;
+
+  useEffect(() => {
+    // Do nothing if profile picture already exists
+    if (profilePicture) return;
+
+    if (!b) return;
+
+    const cacheKey = `guest_profile_missing_${b.rollNo || b.empId || b.email}`;
+
+    // ✅ If already known missing, do nothing
+    if (localStorage.getItem(cacheKey) === "true") {
+      return;
+    }
+
+    const autoImage = resolveGuestProfileImage({
+      rollOrEmpId: b.rollNo || b.empId || b.rollOrEmpId,
+      email: b.email,
+    });
+
+    if (autoImage) {
+      setUploadedProfileUrl(autoImage);
+    }
+  }, [b, profilePicture, setUploadedProfileUrl]);
 
   // Handle profile picture upload validation
   const handleProfileUpload = (file) => {
@@ -98,6 +145,12 @@ export default function GuestProfile({
               src={profilePicture}
               alt={b.guest || "Guest"}
               className="w-20 h-20 rounded-full object-cover border-4 border-red-300"
+              onError={(e) => {
+                const cacheKey = `guest_profile_missing_${b.rollNo || b.empId || b.email}`;
+                localStorage.setItem(cacheKey, "true");
+                e.target.onerror = null;
+                e.target.src = "";
+              }}
             />
           ) : (
             <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center border-4 border-red-300">

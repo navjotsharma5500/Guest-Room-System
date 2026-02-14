@@ -766,21 +766,34 @@ export default function GuestRoomDashboard() {
             }
           `}</style>
 
-          {/* MOBILE MENU TOGGLE - Only visible on mobile */}
+          {/* MOBILE MENU TOGGLE - SIDE HANDLE (HUMP) */}
           {activeTab !== "AllHostelsPortal" && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`fixed bottom-4 right-4 md:hidden z-30 p-3 rounded-full shadow-lg ${
-                theme === "dark" ? "bg-purple-600 text-white" : "bg-purple-500 text-white"
-              }`}
+              className={`
+                fixed top-24 right-0 md:hidden z-50 
+                py-3 pl-4 pr-2 rounded-l-2xl shadow-xl 
+                transform transition-all duration-300 ease-out
+                active:scale-95 hover:pr-4
+                flex items-center gap-2
+                ${mobileMenuOpen ? "translate-x-full opacity-0" : "translate-x-0 opacity-100"}
+                ${theme === "dark" 
+                  ? "bg-purple-600/90 text-white backdrop-blur-sm border-l border-t border-b border-white/10" 
+                  : "bg-white/90 text-purple-600 backdrop-blur-sm border-l border-t border-b border-purple-100"
+                }
+              `}
+              style={{ 
+                boxShadow: theme === "dark" 
+                  ? "-4px 4px 20px rgba(0,0,0,0.4)" 
+                  : "-4px 4px 20px rgba(126, 34, 206, 0.15)" 
+              }}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              <span className="text-xs font-bold writing-vertical-rl transform rotate-180 opacity-80">MENU</span>
+              <div className={`p-1.5 rounded-full ${theme === "dark" ? "bg-white/10" : "bg-purple-50"}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
             </button>
           )}
 

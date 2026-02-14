@@ -2,6 +2,8 @@
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenDirectBooking(b) {
+  const amount = Number(b.amount || 0);
+
   return masterTemplate({
     title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
@@ -27,8 +29,8 @@ export default function wardenDirectBooking(b) {
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
         ${
-          b.amount && Number(b.amount) > 0
-            ? `<p><strong>Amount Payable:</strong> ₹${b.amount}</p>`
+          amount > 0
+            ? `<p><strong>Amount Payable:</strong> ₹${amount.toFixed(2)}</p>`
             : `<p><strong>Booking Type:</strong> Free</p>`
         }
       </div>

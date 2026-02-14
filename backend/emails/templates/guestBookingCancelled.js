@@ -13,32 +13,41 @@ export default function guestBookingCancelled(b) {
         has been cancelled.
       </p>
 
-      <p>
-        The booking details are provided below for your reference:
-      </p>
+      <div class="details-box">
+        <div class="details-title">Cancelled Booking Details</div>
 
-      <p>
-        <strong>Hostel:</strong> ${b.hostel}<br/>
-        <strong>Room Number:</strong> ${b.roomNo}<br/>
-        <strong>Check-in:</strong>
-        ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
-        <strong>Check-out:</strong>
-        ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
-      </p>
+        <p><strong>Hostel:</strong> ${b.hostel}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
+
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+        </p>
+
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        </p>
+      </div>
 
       ${
         b.cancelRemarks
-          ? `<p><strong>Cancellation Reason:</strong> ${b.cancelRemarks}</p>`
+          ? `
+          <div class="details-box">
+            <div class="details-title">Cancellation Reason</div>
+            <p>${b.cancelRemarks}</p>
+          </div>
+        `
           : ""
       }
 
       <p>
-        If you still require accommodation, you may submit a new enquiry
+        If you still require accommodation, you may submit a new request
         through the Guest Room Management portal with revised dates.
       </p>
 
       <p>
-        We regret any inconvenience this may have caused.
+        We regret any inconvenience caused and appreciate your understanding.
       </p>
 
       <p>

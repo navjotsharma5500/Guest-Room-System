@@ -9,52 +9,71 @@ export default function caretakerBookingApprovedPaid(b) {
   return masterTemplate({
     title: "Guest Room Booking Approved",
     content: `
-      <p>Dear Caretaker,</p>
+      <p style="margin-top:0;">Dear Caretaker,</p>
 
       <p>
-        A guest room booking has been <strong>approved</strong>.
-        Please find the booking and payment details below for verification
-        and further action.
+        A guest room booking has been <strong>approved</strong>. Please review 
+        the booking and payment summary below for verification and necessary action.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Booking Details</div>
-        <p><strong>Guest Name:</strong> ${b.guest}</p>
-        <p><strong>Contact Number:</strong> ${b.contact || "—"}</p>
-        <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room Number:</strong> ${b.roomNo}</p>
-        <p>
-          <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
-        </p>
+      <!-- BOOKING DETAILS -->
+      <div style="
+        background:#f8fafc;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        text-align:left;
+        font-size:14.5px;
+      ">
+
+        <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+          Booking Details
+        </div>
+
+        <strong>Guest Name:</strong> ${b.guest}<br/>
+        <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
+        <strong>Hostel:</strong> ${b.hostel}<br/>
+        <strong>Room Number:</strong> ${b.roomNo}<br/>
+        <strong>Check-in:</strong> ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
+        <strong>Check-out:</strong> ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
       </div>
 
-      <div class="details-box">
-        <div class="details-title">Payment Summary</div>
-        <p><strong>Total Amount:</strong> ₹${total}</p>
-        <p><strong>Amount Paid:</strong> ₹${paid}</p>
-        <p><strong>Balance Amount:</strong> ₹${balance}</p>
+      <!-- PAYMENT SUMMARY -->
+      <div style="
+        background:#eef6ff;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        text-align:left;
+        font-size:14.5px;
+      ">
+
+        <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+          Payment Summary
+        </div>
+
+        <strong>Total Amount:</strong> ₹${total}<br/>
+        <strong>Amount Paid:</strong> ₹${paid}<br/>
+        <strong>Balance Amount:</strong> ₹${balance}
       </div>
 
-      <p><strong>Instructions:</strong></p>
-      <ul>
+      <p style="font-weight:600;margin-bottom:6px;">
+        Instructions:
+      </p>
+
+      <ul style="padding-left:18px;margin-top:6px;">
         <li>Verify the guest’s payment receipt at the time of reporting</li>
-        <li>If any balance amount is pending, guide the guest as per hostel procedure</li>
-        <li>Ensure valid identification before room handover</li>
+        <li>If any balance remains, guide the guest as per hostel procedure</li>
+        <li>Confirm valid identification before room handover</li>
       </ul>
 
       <p>
-        In case of any discrepancy, please coordinate with the hostel Manager.
+        For any discrepancy, kindly coordinate with the Hostel Manager.
       </p>
 
-      <p>
+      <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>Guest Room Administration</strong><br/>
-        Thapar Institute of Engineering and Technology
+        <strong>Guest Room Administration</strong>
       </p>
     `,
   });

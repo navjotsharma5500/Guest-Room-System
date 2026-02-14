@@ -1,9 +1,8 @@
-// managerDirectBookingFree.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function managerDirectBookingFree(b) {
   return masterTemplate({
-    title: `Direct Guest Room Booking – ${b.guest}`,
+    title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
       <p>Dear Manager,</p>
 
@@ -17,7 +16,7 @@ export default function managerDirectBookingFree(b) {
         <div class="details-title">Booking Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
@@ -40,7 +39,7 @@ export default function managerDirectBookingFree(b) {
       }
 
       <p>
-        This notification is shared for your information and official records.
+        This notification is shared for administrative reference and official records.
       </p>
 
       <p>

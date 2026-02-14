@@ -18,8 +18,12 @@ import {
   IMAGEKIT_AUTH_ENDPOINT
 } from "../utils/apiConfig";
 
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
+
 // ==================== CONSTANTS ====================
 const API = BACKEND_URL;
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
 console.log("🔧 Backend API URL:", API);
 
@@ -60,6 +64,7 @@ const IMAGEKIT_CONFIG = {
   URL_ENDPOINT: IMAGEKIT_URL_ENDPOINT,
   AUTH_ENDPOINT: IMAGEKIT_AUTH_ENDPOINT,
   FOLDER: "/guestroom",
+  GUEST_PICTURE_FOLDER: "/GuestPicture", // ✅ Added new folder for profile pics
   MAX_FILES: 5,
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   TAGS: ["guestroom"],
@@ -173,7 +178,7 @@ const submitEnquiry = async (payload) => {
 function GuestForm({
   form, setForm, onSubmit, emailError, setEmailError,
   dateError, setDateError, uploading, setUploading,
-  uploadError, setUploadError, onIKSuccess, onIKError,
+  uploadError, setUploadError, onIKSuccess, onIKError, isAuthenticated,
 }) {
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
@@ -306,11 +311,12 @@ function GuestForm({
               value={form.email}
               onChange={(e) => handleEmailChange(e.target.value)}
               required
+              readOnly={isAuthenticated}
               className={`border-2 p-2 rounded w-full ${
                 form.email
                   ? (form.email.endsWith('@thapar.edu') ? 'border-green-500' : 'border-red-500')
                   : 'border-red-400'
-              }`}
+              } ${isAuthenticated ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
             {emailError && (
               <p className="text-red-600 text-xs mt-1">{emailError}</p>
@@ -634,6 +640,7 @@ function GuestForm({
 export default function GuestEnquiryPage() {
   const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM_STATE);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ Added auth state
   const [submitted, setSubmitted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -797,6 +804,11 @@ export default function GuestEnquiryPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (!isAuthenticated) {
+      showToast("Please authenticate with Google first", "warning");
+      return;
+    }
+
     console.log("🔍 ========== FORM SUBMISSION DEBUG ==========");
     console.log("📋 Form state at submission:", form);
     console.log("ðŸ• Times at submission:", {
@@ -822,6 +834,79 @@ export default function GuestEnquiryPage() {
     setEmailError("");
     setDateError("");
     setUploadError("");
+    setIsAuthenticated(false);
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const decoded = jwtDecode(credentialResponse.credential);
+      console.log("Login Success:", decoded);
+      
+      if (!decoded.email.endsWith("@thapar.edu")) {
+        showToast("Please use a @thapar.edu email address", "error");
+        return;
+      }
+
+      let uploadedPictureUrl = "";
+      if (decoded.picture) {
+        try {
+          console.log("📸 Found Google Picture, attempting upload to ImageKit via URL...");
+          
+          // Use ImageKit Auth endpoint to get signature
+          const authData = await authenticator();
+          
+          // Construct FormData with URL instead of File object
+          const formData = new FormData();
+          formData.append("file", decoded.picture); // ✅ Sending URL directly
+          formData.append("fileName", `${decoded.email}_google_profile.jpg`); // ✅ Full Email
+          formData.append("folder", IMAGEKIT_CONFIG.GUEST_PICTURE_FOLDER); 
+          formData.append("publicKey", IMAGEKIT_CONFIG.PUBLIC_KEY);
+          formData.append("signature", authData.signature);
+          formData.append("expire", authData.expire);
+          formData.append("token", authData.token);
+          formData.append("useUniqueFileName", "false"); 
+          formData.append("tags", `guest_profile,${decoded.email}`); // ✅ Add email as tag for searchability
+
+          // Manually call ImageKit Upload API
+          const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!uploadRes.ok) {
+             const errText = await uploadRes.text();
+             throw new Error(`Upload failed: ${uploadRes.status} ${errText}`);
+          }
+
+          const uploadData = await uploadRes.json();
+          if (uploadData && uploadData.url) {
+             uploadedPictureUrl = uploadData.url;
+             console.log("✅ Profile picture uploaded to ImageKit:", uploadedPictureUrl);
+          }
+        } catch (imgError) {
+          console.error("⚠️ Failed to upload Google picture to ImageKit:", imgError);
+          // Fallback to original Google URL
+          uploadedPictureUrl = decoded.picture;
+        }
+      }
+
+      setForm(prev => ({
+        ...prev,
+        email: decoded.email,
+        name: decoded.name,
+        profilePicture: uploadedPictureUrl || decoded.picture
+      }));
+      setIsAuthenticated(true);
+      showToast("Successfully logged in!", "success");
+    } catch (error) {
+      console.error("Login Error:", error);
+      showToast("Login failed. Please try again.", "error");
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error("Google Login Failed");
+    showToast("Google Login Failed", "error");
   };
 
   // ==================== LANDING PAGE ====================
@@ -973,6 +1058,7 @@ export default function GuestEnquiryPage() {
   );
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <IKContext
       publicKey={IMAGEKIT_CONFIG.PUBLIC_KEY}
       urlEndpoint={IMAGEKIT_CONFIG.URL_ENDPOINT}
@@ -1002,21 +1088,41 @@ export default function GuestEnquiryPage() {
               <h1 className="text-3xl font-bold text-red-700 mb-8 text-center">
                 Guest Room Booking Form
               </h1>
-              <GuestForm
-                form={form}
-                setForm={setForm}
-                onSubmit={handleSubmit}
-                emailError={emailError}
-                setEmailError={setEmailError}
-                dateError={dateError}
-                setDateError={setDateError}
-                uploading={uploading}
-                setUploading={setUploading}
-                uploadError={uploadError}
-                setUploadError={setUploadError}
-                onIKSuccess={handleIKSuccess}
-                onIKError={handleIKError}
-              />
+              
+              {!isAuthenticated ? (
+                <div className="bg-white bg-opacity-90 border-2 border-red-600 rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-6">Authentication Required</h2>
+                  <p className="text-gray-600 mb-8">Please sign in with your Thapar Google account to proceed with the booking.</p>
+                  <div className="flex justify-center">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      useOneTap
+                      theme="filled_blue"
+                      size="large"
+                      text="continue_with"
+                      shape="pill"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <GuestForm
+                  form={form}
+                  setForm={setForm}
+                  onSubmit={handleSubmit}
+                  emailError={emailError}
+                  setEmailError={setEmailError}
+                  dateError={dateError}
+                  setDateError={setDateError}
+                  uploading={uploading}
+                  setUploading={setUploading}
+                  uploadError={uploadError}
+                  setUploadError={setUploadError}
+                  onIKSuccess={handleIKSuccess}
+                  onIKError={handleIKError}
+                  isAuthenticated={isAuthenticated}
+                />
+              )}
             </>
           )}
 
@@ -1202,5 +1308,6 @@ export default function GuestEnquiryPage() {
         </div>
       </div>
     </IKContext>
+    </GoogleOAuthProvider>
   );
 }

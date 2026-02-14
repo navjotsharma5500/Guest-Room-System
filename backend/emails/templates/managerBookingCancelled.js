@@ -1,4 +1,3 @@
-// managerBookingCancelled.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function managerBookingCancelled(b) {
@@ -9,14 +8,14 @@ export default function managerBookingCancelled(b) {
 
       <p>
         This is to inform you that the guest room booking for
-        <strong>${b.guest}</strong> has been <strong>cancelled</strong>.
+        <strong>${b.guest}</strong> has been <strong>successfully cancelled</strong>.
       </p>
 
       <div class="details-box">
         <div class="details-title">Cancellation Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
@@ -29,7 +28,13 @@ export default function managerBookingCancelled(b) {
       </div>
 
       <p>
-        This email is shared for your information and official records.
+        This notification is issued for administrative reference and record-keeping.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

@@ -1,4 +1,3 @@
-// wardenBookingApprovedPaid.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingApprovedPaid(b) {
@@ -18,7 +17,7 @@ export default function wardenBookingApprovedPaid(b) {
         <div class="details-title">Booking Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
           ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
@@ -27,16 +26,22 @@ export default function wardenBookingApprovedPaid(b) {
           <strong>Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
-        <p><strong>Amount:</strong> ₹${amount}</p>
+        <p><strong>Total Amount:</strong> ₹${amount}</p>
       </div>
 
       <p>
-        The hostel caretaker has been instructed to verify the payment
-        details at the time of guest reporting.
+        The hostel caretaker has been directed to verify payment
+        confirmation during guest check-in.
       </p>
 
       <p>
-        This notification is shared for your information and official record.
+        This notification is issued for administrative reference and official records.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

@@ -5,31 +5,37 @@ export default function caretakerDirectBooking(b) {
   return masterTemplate({
     title: `Direct Guest Room Booking — ${b.guest}`,
     content: `
-      <p>Dear Caretaker,</p>
+      <p style="margin-top:0;">Dear Caretaker,</p>
 
       <p>
-        A <strong>direct guest room booking</strong> has been created successfully.
-        Please note the booking details below and make the necessary arrangements.
+        A <strong>direct guest room booking</strong> has been created successfully. 
+        Kindly review the booking details below and make the necessary arrangements.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Booking Details</div>
-        <p><strong>Guest Name:</strong> ${b.guest}</p>
-        <p><strong>Contact Number:</strong> ${b.contact || "—"}</p>
-        <p><strong>Email:</strong> ${b.email || "—"}</p>
-        <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room Number:</strong> ${b.roomNo}</p>
-        <p>
-          <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
-        </p>
+      <!-- BOOKING DETAILS -->
+      <div style="
+        background:#f8fafc;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        text-align:left;
+        font-size:14.5px;
+      ">
+
+        <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+          Booking Details
+        </div>
+
+        <strong>Guest Name:</strong> ${b.guest}<br/>
+        <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
+        <strong>Email:</strong> ${b.email || "—"}<br/>
+        <strong>Hostel:</strong> ${b.hostel}<br/>
+        <strong>Room Number:</strong> ${b.roomNo}<br/>
+        <strong>Check-in:</strong> ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
+        <strong>Check-out:</strong> ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         ${
           b.amountToBePaid > 0
-            ? `<p><strong>Amount Payable:</strong> ₹${b.amountToBePaid}</p>`
+            ? `<br/><strong>Amount Payable:</strong> ₹${b.amountToBePaid}`
             : ""
         }
       </div>
@@ -37,34 +43,44 @@ export default function caretakerDirectBooking(b) {
       ${
         b.amountToBePaid > 0
           ? `
-          <div class="details-box">
-            <div class="details-title">Payment Instructions</div>
-            <p>
-              The guest has been instructed to submit the payment slip at the time
-              of reporting or share it via email, as per procedure.
-            </p>
-            <p><strong>Bank Name:</strong> State Bank of India</p>
-            <p><strong>Account Number:</strong> 65181840370</p>
-            <p><strong>IFSC Code:</strong> SBIN0050244</p>
+          <!-- PAYMENT INSTRUCTIONS -->
+          <div style="
+            background:#eef6ff;
+            border-radius:12px;
+            padding:18px 20px;
+            margin:18px 0;
+            text-align:left;
+            font-size:14.5px;
+          ">
+
+            <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+              Payment Instructions
+            </div>
+
+            The guest has been instructed to submit the payment receipt at the time 
+            of reporting or share it via email as per procedure.<br/><br/>
+
+            <strong>Bank Name:</strong> State Bank of India<br/>
+            <strong>Account Number:</strong> 65181840370<br/>
+            <strong>IFSC Code:</strong> SBIN0050244
           </div>
         `
           : ""
       }
 
       <p>
-        Please ensure the room is prepared before arrival and verify the
+        Please ensure the room is prepared prior to arrival and verify the 
         guest’s identification at check-in.
       </p>
 
       <p>
-        This information has also been shared with the concerned warden
-        and administration.
+        This information has also been shared with the concerned warden and 
+        administration.
       </p>
 
-      <p>
+      <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>Guest Room Administration</strong><br/>
-        Thapar Institute of Engineering and Technology
+        <strong>Guest Room Administration</strong>
       </p>
     `,
   });

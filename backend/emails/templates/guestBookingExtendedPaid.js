@@ -5,22 +5,22 @@ export default function guestBookingExtendedPaid(b) {
   const balance = Number(b.balanceAmount || 0);
 
   return masterTemplate({
-    title: "Guest Room Booking Extended (Paid)",
+    title: "Guest Room Booking Extended",
     content: `
       <p>Dear ${b.guest},</p>
 
       <p>
-        This is to inform you that your guest room booking at
+        We are pleased to inform you that your guest room booking at
         <strong>Thapar Institute of Engineering and Technology</strong>
         has been <strong>successfully extended</strong>.
       </p>
 
       <div class="details-box">
-        <div class="details-title">Updated Booking Details</div>
+        <div class="details-title">Updated Stay Details</div>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
-          <strong>Revised Check-out Date:</strong>
+          <strong>Revised Check-out:</strong>
           ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
         </p>
       </div>
@@ -28,11 +28,12 @@ export default function guestBookingExtendedPaid(b) {
       <div class="details-box">
         <div class="details-title">Payment Summary</div>
         <p><strong>Extension Amount:</strong> ₹${b.extensionAmount || 0}</p>
-        <p><strong>Total Booking Amount (including extension):</strong> ₹${b.totalAmount || 0}</p>
+        <p><strong>Total Booking Amount:</strong> ₹${b.totalAmount || 0}</p>
+        <p><strong>Amount Paid:</strong> ₹${b.paidAmount || 0}</p>
         ${
           balance > 0
             ? `<p><strong>Balance Due:</strong> ₹${balance}</p>`
-            : ""
+            : `<p><strong>Status:</strong> Fully Paid</p>`
         }
       </div>
 
@@ -40,15 +41,14 @@ export default function guestBookingExtendedPaid(b) {
         balance > 0
           ? `
           <div class="details-box">
-            <div class="details-title">Payment Instructions</div>
-            <p>Please complete the payment using the following bank details:</p>
+            <div class="details-title">Action Required</div>
+            <p>
+              Kindly complete the pending payment using the following bank details
+              and share the receipt with the hostel caretaker or via email.
+            </p>
             <p><strong>Bank Name:</strong> State Bank of India</p>
             <p><strong>Account Number:</strong> 65181840370</p>
             <p><strong>IFSC Code:</strong> SBIN0050244</p>
-            <p>
-              Kindly retain the payment receipt and share it with the hostel
-              caretaker or via email.
-            </p>
           </div>
         `
           : ""
@@ -56,17 +56,22 @@ export default function guestBookingExtendedPaid(b) {
 
       ${
         b.extendRemarks
-          ? `<p><strong>Remarks:</strong> ${b.extendRemarks}</p>`
+          ? `
+          <div class="details-box">
+            <div class="details-title">Remarks</div>
+            <p>${b.extendRemarks}</p>
+          </div>
+        `
           : ""
       }
 
       <p>
-        Kindly ensure that the room is vacated on or before the revised
-        check-out time. For any assistance, please contact the hostel caretaker.
+        Please ensure the room is vacated on or before the revised check-out date.
+        For any assistance, feel free to contact the hostel caretaker.
       </p>
 
       <p>
-        We wish you a comfortable and pleasant stay.
+        We appreciate your cooperation and wish you a continued pleasant stay.
       </p>
 
       <p>

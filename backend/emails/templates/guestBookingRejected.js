@@ -3,36 +3,41 @@ import masterTemplate from "./masterTemplate.js";
 
 export default function guestBookingRejected(b) {
   return masterTemplate({
-    title: "Guest Room Booking Request — Not Approved",
+    title: "Guest Room Booking Request Not Approved",
     content: `
       <p>Dear ${b.guest},</p>
 
       <p>
-        Thank you for submitting your guest room booking request to
+        Thank you for your guest room booking request at
         <strong>Thapar Institute of Engineering and Technology</strong>.
       </p>
 
       <p>
-        After careful review, we regret to inform you that the guest room
-        could not be allotted as <strong>all hostels are fully occupied
-        on the requested dates</strong>.
+        After careful consideration, we regret to inform you that your request
+        could not be approved due to <strong>non-availability of rooms</strong>
+        on the selected dates.
+      </p>
+
+      <div class="details-box">
+        <div class="details-title">Requested Stay Details</div>
+        <p>
+          <strong>Check-in:</strong>
+          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+        </p>
+        <p>
+          <strong>Check-out:</strong>
+          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        </p>
+      </div>
+
+      <p>
+        You are welcome to submit a new booking enquiry with alternative dates
+        through the Guest Room Management Portal, subject to availability.
       </p>
 
       <p>
-        <strong>Requested Check-in:</strong>
-        ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
-        <strong>Requested Check-out:</strong>
-        ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
-      </p>
-
-      <p>
-        If you wish to book a guest room again, you may
-        <strong>raise a new enquiry with different dates</strong>
-        through the Guest Room Management portal, subject to availability.
-      </p>
-
-      <p>
-        Thank you for your understanding and cooperation.
+        We sincerely apologize for the inconvenience and appreciate your
+        understanding.
       </p>
 
       <p>

@@ -1,0 +1,18 @@
+export const VENUE_DEPARTMENTS = [
+  "ALUMNI",
+  "BTECH",
+  "BE",
+  "BLAS",
+  "BEMBA",
+  "JEF",
+  "PHD",
+  "PHDP",
+  "ME",
+  "MA",
+  "MCA",
+  "MSc",
+  "MTECH",
+  "MA",
+  "RA",
+  "OTHER",
+];

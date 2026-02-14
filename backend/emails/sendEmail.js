@@ -103,6 +103,106 @@ class EmailRateLimiter {
 const rateLimiter = new EmailRateLimiter();
 
 // ========================================
+// 📧 ENHANCED SEND EMAIL WITH FROM/CC/BCC
+// ========================================
+export async function sendEmailAdvanced({ 
+  from, 
+  to, 
+  cc = [], 
+  bcc = [], 
+  subject, 
+  html, 
+  text, 
+  priority = 'normal',
+  replyTo = null 
+}) {
+  console.log("📧 [sendEmailAdvanced] ENTERED", {
+    from,
+    to,
+    cc,
+    bcc,
+    subject,
+  });
+
+  // Normalize recipients
+  const toList = Array.isArray(to) ? to : [to];
+  const ccList = Array.isArray(cc) ? cc.filter(Boolean) : [];
+  const bccList = Array.isArray(bcc) ? bcc.filter(Boolean) : [];
+
+  // Check rate limits
+  const limitCheck = rateLimiter.canSend();
+  if (!limitCheck.allowed) {
+    const error = new Error(`Email rate limit exceeded: ${limitCheck.reason}`);
+    error.code = 'RATE_LIMIT_EXCEEDED';
+    error.reason = limitCheck.reason;
+    console.error(`❌ [EMAIL] Rate limit exceeded: ${limitCheck.reason}`);
+    throw error;
+  }
+
+  // Enforce delay between emails
+  await rateLimiter.enforceDelay();
+
+  // Retry loop
+  for (let attempt = 1; attempt <= EMAIL_LIMITS.MAX_RETRIES; attempt++) {
+    try {
+      const mailOptions = {
+        from: from || `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
+        to: toList.join(', '),
+        subject,
+        text: text || "Please view this email in an HTML-compatible email client.",
+        html,
+        priority: priority === "high" ? "high" : undefined,
+      };
+
+      if (ccList.length > 0) {
+        mailOptions.cc = ccList.join(', ');
+      }
+
+      if (bccList.length > 0) {
+        mailOptions.bcc = bccList.join(', ');
+      }
+
+      if (replyTo) {
+        mailOptions.replyTo = replyTo;
+      }
+
+      await transporter.sendMail(mailOptions);
+
+      // Record successful send
+      rateLimiter.recordSent();
+      console.log(`✅ [EMAIL] Sent (attempt ${attempt})`, {
+        from: mailOptions.from,
+        to: toList[0],
+        cc: ccList.length,
+        bcc: bccList.length
+      });
+      return true;
+
+    } catch (err) {
+      console.error(`❌ [EMAIL] Failed attempt ${attempt}/${EMAIL_LIMITS.MAX_RETRIES}`, {
+        message: err.message,
+        code: err.code,
+      });
+
+      if (err.message.includes("421") || err.message.includes("Temporary System Problem")) {
+        console.error(`⚠️ [EMAIL] Gmail rate limit detected. Backing off...`);
+        
+        if (attempt < EMAIL_LIMITS.MAX_RETRIES) {
+          const backoffDelay = EMAIL_LIMITS.RETRY_DELAY * Math.pow(2, attempt - 1);
+          console.log(`⏳ [EMAIL] Backing off for ${backoffDelay}ms before retry ${attempt + 1}`);
+          await sleep(backoffDelay);
+        }
+      } else if (attempt < EMAIL_LIMITS.MAX_RETRIES) {
+        await sleep(EMAIL_LIMITS.RETRY_DELAY);
+      }
+    }
+  }
+
+  console.error(`❌ [EMAIL] All retry attempts exhausted`);
+  return false;
+}
+
+// ========================================
 // 📧 SEND EMAIL FUNCTION
 // ========================================
 export async function sendEmail({ to, subject, html, text, priority = 'normal' }) {

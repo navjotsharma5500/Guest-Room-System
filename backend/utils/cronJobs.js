@@ -153,6 +153,64 @@ export const startAutoCheckoutCronJob = (io) => {
 };
 */
 
+import VenueBooking from "../models/VenueBooking.js";
+
+// ✅ NEW: Auto-complete expired venue bookings (runs every 15 mins)
+export const startVenueAutoCompletionCronJob = (io) => {
+  console.log("🟢 Starting venue auto-completion cron job...");
+
+  // Run every 15 minutes
+  cron.schedule("*/15 * * * *", async () => {
+    const now = new Date();
+    console.log(`⏰ [${now.toISOString()}] Running venue auto-completion job...`);
+
+    try {
+      // Find bookings that are 'booked' or 'checked_in'
+      const activeBookings = await VenueBooking.find({
+        status: { $in: ["booked", "checked_in"] },
+      });
+
+      let completedCount = 0;
+      const completedIds = [];
+
+      for (const booking of activeBookings) {
+        // Construct checkout datetime
+        const checkoutDate = booking.checkOutDate; // YYYY-MM-DD
+        const checkoutTime = booking.checkOutTime || "23:59";
+        
+        // Combine date and time
+        const checkoutDateTime = new Date(`${checkoutDate}T${checkoutTime}`);
+
+        // If checkout time has passed, mark as completed
+        if (checkoutDateTime < now) {
+          booking.status = "completed";
+          await booking.save();
+          completedCount++;
+          completedIds.push(booking._id);
+        }
+      }
+
+      if (completedCount > 0) {
+        console.log(`✅ Auto-completed ${completedCount} venue bookings`);
+        
+        if (io) {
+          io.emit("venueBookingCompletedBatch", {
+            type: "cron-auto-complete",
+            count: completedCount,
+            bookingIds: completedIds,
+            timestamp: now.toISOString(),
+          });
+          console.log("📡 Broadcast venue completion to all clients");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Venue auto-completion error:", error);
+    }
+  });
+
+  console.log("✅ Venue auto-completion cron job started - runs every 15 minutes");
+};
+
 // ✅ NEW: Auto-unblock expired room blocks (runs daily at midnight)
 export const startAutoUnblockCronJob = (io) => {
   console.log("🟢 Starting auto-unblock room cron job...");

@@ -5,49 +5,60 @@ export default function caretakerBookingExtended(b) {
   return masterTemplate({
     title: "Guest Room Booking Extended",
     content: `
-      <p>Dear Caretaker,</p>
+      <p style="margin-top:0;">Dear Caretaker,</p>
 
       <p>
-        The stay for the following guest has been
-        <strong>extended</strong>. Please note the updated details below.
+        The stay for the following guest has been <strong>extended</strong>. 
+        Please review the updated booking details below.
       </p>
 
-      <div class="details-box">
-        <div class="details-title">Updated Booking Details</div>
-        <p><strong>Guest Name:</strong> ${b.guest}</p>
-        <p><strong>Contact Number:</strong> ${b.contact || "—"}</p>
-        <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room Number:</strong> ${b.roomNo}</p>
-        <p>
-          <strong>Previous Check-out:</strong>
-          ${b.previousTo ? new Date(b.previousTo).toDateString() : "—"}
-        </p>
-        <p>
-          <strong>New Check-out:</strong>
-          ${b.to ? new Date(b.to).toDateString() : "—"}
-        </p>
+      <div style="
+        background:#f8fafc;
+        border-radius:12px;
+        padding:18px 20px;
+        margin:18px 0;
+        text-align:left;
+        font-size:14.5px;
+      ">
+
+        <div style="font-weight:600;margin-bottom:10px;color:#0f4c81;">
+          Updated Booking Details
+        </div>
+
+        <strong>Guest Name:</strong> ${b.guest}<br/>
+        <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
+        <strong>Hostel:</strong> ${b.hostel}<br/>
+        <strong>Room Number:</strong> ${b.roomNo}<br/>
+        <strong>Previous Check-out:</strong> ${b.previousTo ? new Date(b.previousTo).toDateString() : "—"}<br/>
+        <strong>New Check-out:</strong> ${b.to ? new Date(b.to).toDateString() : "—"}
       </div>
 
       ${
         b.extendRemarks
           ? `
-            <p>
-              <strong>Extension Remarks:</strong>
+            <div style="
+              background:#fefce8;
+              border-radius:12px;
+              padding:16px 18px;
+              margin:16px 0;
+              text-align:left;
+              font-size:14.5px;
+            ">
+              <strong style="color:#92400e;">Extension Remarks:</strong><br/>
               ${b.extendRemarks}
-            </p>
+            </div>
           `
           : ""
       }
 
       <p>
-        Please ensure that accommodation arrangements are continued
-        accordingly and assist the guest if required.
+        Kindly ensure that accommodation arrangements are continued 
+        accordingly and provide assistance to the guest if required.
       </p>
 
-      <p>
+      <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>Guest Room Administration</strong><br/>
-        Thapar Institute of Engineering and Technology
+        <strong>Guest Room Administration</strong>
       </p>
     `,
   });

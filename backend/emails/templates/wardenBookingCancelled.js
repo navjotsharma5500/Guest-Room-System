@@ -1,4 +1,3 @@
-// wardenBookingCancelled.js
 import masterTemplate from "./masterTemplate.js";
 
 export default function wardenBookingCancelled(b) {
@@ -16,17 +15,28 @@ export default function wardenBookingCancelled(b) {
         <div class="details-title">Cancellation Summary</div>
         <p><strong>Guest Name:</strong> ${b.guest}</p>
         <p><strong>Hostel:</strong> ${b.hostel}</p>
-        <p><strong>Room No.:</strong> ${b.roomNo}</p>
+        <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Scheduled Stay:</strong>
           ${new Date(b.from).toDateString()} – ${new Date(b.to).toDateString()}
         </p>
-        <p><strong>Cancellation Remarks:</strong> ${b.cancelRemarks || "Not specified"}</p>
+        ${
+          b.cancelRemarks
+            ? `<p><strong>Cancellation Remarks:</strong> ${b.cancelRemarks}</p>`
+            : ""
+        }
       </div>
 
       <p>
         The hostel caretaker and administration have been notified.
-        This update is shared for your information and official record.
+        This update is shared for administrative reference and
+        official records.
+      </p>
+
+      <p>
+        Regards,<br/>
+        <strong>Guest Room Administration</strong><br/>
+        Thapar Institute of Engineering and Technology
       </p>
     `,
   });

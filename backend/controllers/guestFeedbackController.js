@@ -1,4 +1,4 @@
-// controllers/guestFeedbackController.js
+// controllers/guestFeedbackControllerUpgraded.js
 import GuestFeedback from "../models/GuestFeedback.js";
 
 // Helper: Get rating label from stars
@@ -14,17 +14,29 @@ const getRatingLabel = (stars) => {
 };
 
 // ========================================
-// SUBMIT GUEST FEEDBACK (Public)
+// SUBMIT GUEST FEEDBACK (Public) - UPGRADED
 // ========================================
 export const submitGuestFeedback = async (req, res) => {
   try {
-    const { name, contact, email, hostel, rating, description, submittedAt } = req.body;
+    const { 
+      name, 
+      contact, 
+      email, 
+      hostel, 
+      rating, 
+      description, 
+      profilePictureUrl,
+      googleAuthMetadata,
+      submittedAt 
+    } = req.body;
 
-    console.log("📝 Guest feedback submission:", {
+    console.log("📝 Guest feedback submission (upgraded):", {
       name,
       email,
       hostel,
       rating,
+      hasProfilePicture: !!profilePictureUrl,
+      hasGoogleAuth: !!googleAuthMetadata,
     });
 
     // Validation
@@ -46,6 +58,15 @@ export const submitGuestFeedback = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Email is required",
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid email address is required",
       });
     }
 
@@ -73,6 +94,8 @@ export const submitGuestFeedback = async (req, res) => {
       rating,
       ratingLabel,
       description: description?.trim() || "",
+      profilePictureUrl: profilePictureUrl?.trim() || "",
+      googleAuthMetadata: googleAuthMetadata || {},
       submittedAt: submittedAt || new Date(),
       status: "pending",
     };
@@ -87,6 +110,7 @@ export const submitGuestFeedback = async (req, res) => {
         feedbackId: feedback._id,
         hostel,
         rating,
+        hasProfilePicture: !!profilePictureUrl,
         timestamp: Date.now()
       });
       console.log('📡 Emitted guest-feedback-submitted event');
@@ -384,6 +408,26 @@ export const getGuestFeedbackStats = async (req, res) => {
       },
     ]);
 
+    // âœ… NEW: Profile picture stats
+    const profilePictureStats = await GuestFeedback.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          withPicture: {
+            $sum: {
+              $cond: [{ $ne: ["$profilePictureUrl", ""] }, 1, 0]
+            }
+          },
+          withoutPicture: {
+            $sum: {
+              $cond: [{ $eq: ["$profilePictureUrl", ""] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+
     const total = stats.reduce((sum, s) => sum + s.count, 0);
     const avgRating = stats.reduce((sum, s) => sum + s._id * s.count, 0) / (total || 1);
 
@@ -401,6 +445,10 @@ export const getGuestFeedbackStats = async (req, res) => {
           acc[s._id] = s.count;
           return acc;
         }, {}),
+        profilePictures: profilePictureStats[0] || {
+          withPicture: 0,
+          withoutPicture: 0
+        }
       },
     });
 

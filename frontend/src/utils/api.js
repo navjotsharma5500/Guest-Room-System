@@ -109,7 +109,7 @@ export const apiFetchBookings = async () => {
   }
 };
 
-// âœ… Fetch ALL bookings for download (including cancelled)
+// Fetch ALL bookings for download (including cancelled)
 export const apiFetchAllBookingsForDownload = async () => {
   try {
     console.log(`ðŸš€ Calling ${API}/api/bookings/all-for-download`);
