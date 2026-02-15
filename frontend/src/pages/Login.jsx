@@ -286,35 +286,7 @@ export default function Login() {
             </button>
           </div>
 
-          {/* QUICK LINKS */}
-          <div className="mt-6 flex flex-col gap-3">
-            <a
-              href="/guest-enquiry"
-              className="
-                w-full py-2.5 rounded-xl
-                text-white font-medium text-sm text-center
-                bg-white/10 hover:bg-white/20
-                border border-white/20 hover:border-white/40
-                transition-all duration-200
-                backdrop-blur-md
-              "
-            >
-              Guest Room Booking
-            </a>
-            <a
-              href="/venue-guest-enquiry"
-              className="
-                w-full py-2.5 rounded-xl
-                text-white font-medium text-sm text-center
-                bg-white/10 hover:bg-white/20
-                border border-white/20 hover:border-white/40
-                transition-all duration-200
-                backdrop-blur-md
-              "
-            >
-              Venue Booking
-            </a>
-          </div>
+          {/* QUICK LINKS REMOVED */}
         </form>
 
         {/* FOOTER CREDIT */}

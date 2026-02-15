@@ -66,6 +66,7 @@ export default function MainContent(props) {
     setNotificationsEnabled,
     currentUserData,
     handleCancelModalCancel,
+    isSidebarOpen = true, // ✅ Default to true
   } = props;
 
   const { currentUser, loadingUser } = useAuth();
@@ -716,7 +717,7 @@ export default function MainContent(props) {
   return (
     <main
       className={`flex-1 flex flex-col overflow-y-auto transition-all duration-500 ${
-        activeTab === "Enquiry" ? "p-0 ml-0" : "p-3 sm:p-4 lg:p-6 ml-0 lg:ml-64"
+        activeTab === "Enquiry" ? "p-0 ml-0" : `p-3 sm:p-4 lg:p-6 ml-0 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`
       } ${theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
     >
       {/* ========================================================= */}

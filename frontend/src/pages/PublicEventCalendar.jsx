@@ -782,13 +782,6 @@ export default function PublicEventCalendar() {
                                         <Clock size={16} />
                                         <span>{event.eventTime}</span>
                                     </div>
-                                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
-                                        event.status === 'ongoing' || isEventLive(event, todayStr, currentMinutes)
-                                            ? 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400 animate-pulse' 
-                                            : 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400'
-                                    }`}>
-                                         {event.status === 'ongoing' || isEventLive(event, todayStr, currentMinutes) ? '● LIVE' : event.status}
-                                     </span>
                                 </div>
                             </div>
                         </motion.div>
@@ -942,16 +935,18 @@ export default function PublicEventCalendar() {
 
                   <div className="pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700 space-y-2 sm:space-y-3">
                       <p className="text-xs">Powered by Thapar Institute of Engineering & Technology</p>
-                      <p className="text-xs">Created and Maintained by DoSA Office</p>
-                      
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => setShowCreatorProfile(true)}
-                        className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 transition-colors"
-                      >
-                          <Code size={12} />
-                          <span>Developer</span>
-                      </motion.button>
+                      <div className="flex flex-col items-start gap-1">
+                        <p className="text-xs font-medium">
+                          <a 
+                            href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-400 transition-colors"
+                          >
+                            Created and Maintained by <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>DoSA Office</span>
+                          </a>
+                        </p>
+                      </div>
                   </div>
               </div>
           </div>

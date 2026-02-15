@@ -14,6 +14,7 @@ export default function Sidebar({
   hostelData,
   activeTab,
   setActiveTab,
+  isSidebarOpen = true, // ✅ Default to true if not provided
 }) {
   const { currentUser, loading } = useAuth();
   const [blockRoomModal, setBlockRoomModal] = useState(null);
@@ -314,7 +315,18 @@ export default function Sidebar({
 
       {/* FOOTER */}
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">
-        <Creator variant="sidebar" />
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-[10px] text-slate-500 font-medium">
+            <a 
+              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-700 transition-colors"
+            >
+              Created and Maintained by <span className="text-slate-700">DoSA Office</span>
+            </a>
+          </p>
+        </div>
       </div>
     </>
   );
@@ -335,8 +347,9 @@ export default function Sidebar({
 
       {/* ✅ DESKTOP SIDEBAR */}
       <motion.aside
-        initial={{ x: -250, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
+        initial={{ x: -280, opacity: 0 }}
+        animate={{ x: isSidebarOpen ? 0 : -280, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="
           hidden lg:flex
           fixed top-0 left-0 h-full w-64 flex-col z-20

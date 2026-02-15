@@ -1301,9 +1301,16 @@ export default function GuestEnquiryPage() {
           </div>
         </div>
 
-        <div className="fixed bottom-4 right-6 z-50">
-          <div className="bg-white/90 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg text-sm font-medium">
-            Created & Maintained by DoSA Office
+        <div className="fixed bottom-4 right-6 z-50 flex flex-col items-end gap-1">
+          <div className="bg-white/90 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg text-sm font-medium border border-gray-100 flex flex-col items-center">
+            <a 
+              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-700 transition-colors"
+            >
+              Created and Maintained by <span className="font-semibold text-red-600">DoSA Office</span>
+            </a>
           </div>
         </div>
       </div>

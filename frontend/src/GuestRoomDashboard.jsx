@@ -104,6 +104,19 @@ export default function GuestRoomDashboard() {
 
   // Mobile Menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Desktop Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // ✅ Auto-Hide Sidebar for specific pages
+  useEffect(() => {
+    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics"];
+    if (fullScreenPages.includes(activeTab)) {
+      setIsSidebarOpen(false);
+    } else {
+      setIsSidebarOpen(true);
+    }
+  }, [activeTab]);
 
   // 🎯 Swipe Gesture Detection for Mobile Sidebar
   useSwipeGesture(
@@ -692,12 +705,28 @@ export default function GuestRoomDashboard() {
         >
           {/* TOP HEADER - MOBILE RESPONSIVE */}
           <div
-            className={`fixed left-0 md:left-64 right-0 top-0 h-16 flex items-center justify-between px-3 sm:px-6 shadow-md z-20 ${
+            className={`fixed left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} right-0 top-0 h-16 flex items-center justify-between px-3 sm:px-6 shadow-md z-20 transition-all duration-300 ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
           >
             {/* LEFT SIDE: Real-time Status - Responsive */}
             <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
+              {/* Desktop Sidebar Toggle */}
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="hidden md:flex p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+              >
+                <svg 
+                  className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
               {/* Connection Status Indicator */}
               <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -868,7 +897,6 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
                     setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings"].includes(prev) ? prev : "Home"));
                   }}
@@ -877,6 +905,7 @@ export default function GuestRoomDashboard() {
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   theme={theme}
+                  isSidebarOpen={isSidebarOpen} // ✅ Pass prop
                 />
               </motion.div>
             )}
@@ -921,6 +950,7 @@ export default function GuestRoomDashboard() {
                   setTheme,
                   handleStartDirectBooking,
                   currentUserData,
+                  isSidebarOpen, // ✅ Pass prop
                 }}
               />
             )}

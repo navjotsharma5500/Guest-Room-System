@@ -728,7 +728,18 @@ export default function AnalyticsPage({ setActiveTab }) {
           <p className="text-xs md:text-sm text-gray-500">
             Last updated: {format(new Date(), "PPpp")}
           </p>
-          <Creator variant="default" />
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[10px] text-slate-500 font-medium">
+              <a 
+                href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-blue-700 transition-colors"
+              >
+                Created and Maintained by <span className="text-slate-700">DoSA Office</span>
+              </a>
+            </p>
+          </div>
         </div>
       </>
     )} 
