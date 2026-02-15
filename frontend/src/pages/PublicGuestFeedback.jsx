@@ -56,7 +56,7 @@ function PublicGuestFeedbackFixed() {
       
       // Method 1: Try direct URL upload (ImageKit supports this)
       try {
-        const uploadResponse = await axios.post(`${BACKEND_URL}/upload/imagekit`, {
+        const uploadResponse = await axios.post(`${BACKEND_URL}/api/upload/imagekit`, {
           file: imageUrl, // Send URL directly
           fileName: `guest-profile-${Date.now()}.jpg`,
           folder: '/guest-profiles',
@@ -81,7 +81,7 @@ function PublicGuestFeedbackFixed() {
         
         const base64String = await base64Promise;
         
-        const uploadResponse = await axios.post(`${BACKEND_URL}/upload/imagekit`, {
+        const uploadResponse = await axios.post(`${BACKEND_URL}/api/upload/imagekit`, {
           file: base64String,
           fileName: `guest-profile-${Date.now()}.jpg`,
           folder: '/guest-profiles'
@@ -181,7 +181,7 @@ function PublicGuestFeedbackFixed() {
       setLoading(true);
 
       const response = await axios.post(
-        `${BACKEND_URL}/guest-feedback/submit`,
+        `${BACKEND_URL}/api/guest-feedback/submit`,
         {
           name: formData.name.trim(),
           contact: formData.contact.trim(),
