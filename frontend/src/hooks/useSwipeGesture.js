@@ -1,50 +1,79 @@
-// src/hooks/useSwipeGesture.js
-// Hook to detect swipe gestures on mobile
+import { useEffect, useRef, useState } from 'react';
 
-import { useEffect, useRef } from 'react';
-
-export default function useSwipeGesture(onSwipeRight, onSwipeLeft) {
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+/**
+ * Custom hook to detect swipe gestures
+ * @param {Function} onSwipeLeft - Callback when swiping left
+ * @param {Function} onSwipeRight - Callback when swiping right
+ * @param {Number} threshold - Minimum distance in pixels to trigger swipe (default: 50)
+ * @param {HTMLElement} target - DOM element to attach listeners (default: window)
+ */
+export const useSwipeGesture = (
+  { onSwipeLeft, onSwipeRight },
+  threshold = 50,
+  target = null
+) => {
+  const touchStart = useRef({ x: 0, y: 0 });
+  const touchEnd = useRef({ x: 0, y: 0 });
+  const [isDetecting, setIsDetecting] = useState(true);
 
   useEffect(() => {
+    const element = target || window;
+
     const handleTouchStart = (e) => {
-      touchStartX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
+      touchStart.current = {
+        x: e.changedTouches[0].clientX,
+        y: e.changedTouches[0].clientY,
+      };
     };
 
     const handleTouchEnd = (e) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
+      touchEnd.current = {
+        x: e.changedTouches[0].clientX,
+        y: e.changedTouches[0].clientY,
+      };
+      handleSwipe();
+    };
 
-      const deltaX = touchEndX - touchStartX.current;
-      const deltaY = touchEndY - touchStartY.current;
+    const handleSwipe = () => {
+      const xDiff = touchStart.current.x - touchEnd.current.x;
+      const yDiff = touchStart.current.y - touchEnd.current.y;
 
-      // Only process mostly-horizontal swipes
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        const minSwipeDistance = 50; // Minimum pixels to trigger swipe
+      // Check if vertical movement is minimal (swipe is horizontal)
+      if (Math.abs(yDiff) > Math.abs(xDiff)) {
+        return; // It's more of a vertical gesture, ignore
+      }
 
-        // Prevent accidental opens: only allow open-from-left-edge swipes
-        const leftEdgeThreshold = 60; // px from left edge
-        const startedFromLeftEdge = touchStartX.current <= leftEdgeThreshold;
+      // Swipe left (moved fingers to the left)
+      if (xDiff > threshold && onSwipeLeft && isDetecting) {
+        onSwipeLeft();
+      }
 
-        if (deltaX > minSwipeDistance && onSwipeRight && startedFromLeftEdge) {
-          // Swiped right starting from left edge -> open
-          onSwipeRight();
-        } else if (deltaX < -minSwipeDistance && onSwipeLeft) {
-          // Swiped left anywhere -> close
-          onSwipeLeft();
-        }
+      // Swipe right (moved fingers to the right)
+      if (-xDiff > threshold && onSwipeRight && isDetecting) {
+        onSwipeRight();
       }
     };
 
-    // Add listeners to window to detect swipes anywhere on the page
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    if (element === window) {
+      element.addEventListener('touchstart', handleTouchStart, false);
+      element.addEventListener('touchend', handleTouchEnd, false);
+    } else {
+      element.addEventListener('touchstart', handleTouchStart);
+      element.addEventListener('touchend', handleTouchEnd);
+    }
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchend', handleTouchEnd);
+      if (element === window) {
+        element.removeEventListener('touchstart', handleTouchStart, false);
+        element.removeEventListener('touchend', handleTouchEnd, false);
+      } else {
+        element.removeEventListener('touchstart', handleTouchStart);
+        element.removeEventListener('touchend', handleTouchEnd);
+      }
     };
-  }, [onSwipeRight, onSwipeLeft]);
-}
+  }, [onSwipeLeft, onSwipeRight, threshold, target, isDetecting]);
+
+  return { isDetecting, setIsDetecting };
+};
+
+export default useSwipeGesture;

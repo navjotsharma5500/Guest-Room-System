@@ -29,8 +29,8 @@ import { useHostelDataPolling } from "./hooks/useHostelDataPolling";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 
 import useIdleTimeout from "./hooks/useIdleTimeout";
-import useSwipeGesture from "./hooks/useSwipeGesture";
 import ScreenSaver from "./components/ScreenSaver";
+import { useSwipeGesture } from "./hooks/useSwipeGesture";
 
 import { BACKEND_URL } from "./utils/apiConfig";
 
@@ -105,23 +105,24 @@ export default function GuestRoomDashboard() {
   // Mobile Menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Swipe gesture handler for sidebar
-  const handleSwipeRight = useCallback(() => {
-    // Open sidebar when swiping right
-    if (activeTab !== "AllHostelsPortal" && !mobileMenuOpen) {
-      setMobileMenuOpen(true);
-    }
-  }, [mobileMenuOpen, activeTab]);
-
-  const handleSwipeLeft = useCallback(() => {
-    // Close sidebar when swiping left
-    if (mobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-  }, [mobileMenuOpen]);
-
-  // Use swipe gesture hook
-  useSwipeGesture(handleSwipeRight, handleSwipeLeft);
+  // 🎯 Swipe Gesture Detection for Mobile Sidebar
+  useSwipeGesture(
+    {
+      onSwipeRight: () => {
+        // Swipe right = open sidebar
+        if (!mobileMenuOpen && activeTab !== "AllHostelsPortal") {
+          setMobileMenuOpen(true);
+        }
+      },
+      onSwipeLeft: () => {
+        // Swipe left = close sidebar
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+        }
+      },
+    },
+    50 // threshold in pixels
+  );
 
   // Close mobile menu when activeTab or activeHostel changes
   useEffect(() => {

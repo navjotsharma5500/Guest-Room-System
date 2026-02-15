@@ -558,7 +558,7 @@ Thank you!`;
   };
 
   return (
-    <div className="fixed inset-0 md:ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-gray-900 via-red-900 to-black text-white shadow-2xl rounded-3xl mx-6 mt-6 overflow-hidden border border-red-500/30">
         <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-orange-500/10 backdrop-blur-xl"></div>

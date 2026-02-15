@@ -685,7 +685,7 @@ export default function CalendarGuestsPage({
   };
 
   return (
-    <div className={`min-h-screen md:ml-64 mt-16 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+    <div className={`w-full min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl">
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">

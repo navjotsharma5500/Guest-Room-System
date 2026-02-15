@@ -128,7 +128,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
 
   if (loading) {
     return (
-      <div className={`fixed inset-0 md:ml-64 md:mt-16 flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`w-full min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-b-2 border-blue-600"></div>
           <p className={`text-xs sm:text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Loading department payments...</p>
@@ -138,7 +138,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   }
 
   return (
-    <div className={`fixed inset-0 md:ml-64 md:mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-blue-50 to-purple-50'} overflow-y-auto`}>
+    <div className={`w-full min-h-screen bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-blue-50 to-purple-50'} overflow-y-auto`}>
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl rounded-2xl md:rounded-3xl mx-3 sm:mx-6 mt-4 sm:mt-6">
         <div className="px-3 sm:px-6 py-4 sm:py-6">

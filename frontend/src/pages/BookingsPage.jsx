@@ -277,7 +277,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
   };
 
   return (
-    <div className={`fixed inset-0 md:ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-red-50 to-blue-50'} overflow-y-auto`}>
+    <div className={`w-full min-h-screen bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-red-50 to-blue-50'} overflow-y-auto`}>
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl rounded-2xl md:rounded-3xl mx-3 md:mx-6 mt-4 md:mt-6">
         <div className="px-4 md:px-6 py-4 md:py-6">

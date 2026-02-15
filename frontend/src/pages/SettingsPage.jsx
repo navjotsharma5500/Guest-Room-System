@@ -449,7 +449,7 @@ export default function SettingsPage({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`min-h-screen p-4 sm:p-6 md:p-10 md:ml-64 ${
+      className={`min-h-screen p-4 sm:p-6 md:p-10 ${
         theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-black"
       }`}
     >

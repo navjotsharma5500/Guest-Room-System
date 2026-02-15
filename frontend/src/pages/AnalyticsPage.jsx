@@ -208,7 +208,7 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   if (role === "caretaker" || role === "warden") {
     return (
-      <main className="flex-1 p-8 md:ml-64 text-center text-gray-500">
+      <main className="flex-1 p-8 text-center text-gray-500">
         Redirecting...
       </main>
     );
@@ -415,7 +415,7 @@ export default function AnalyticsPage({ setActiveTab }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="flex-1 min-h-screen md:ml-64 bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8"
+      className="flex-1 min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8"
     >
       <div className="max-w-[1600px] mx-auto">
         {/* Header */}

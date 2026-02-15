@@ -359,7 +359,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
   return (
     <motion.div
-      className="admin-page-container min-h-screen bg-cover bg-center bg-fixed relative p-4 sm:p-6 z-10 md:ml-64 dark:bg-gray-900"
+      className="admin-page-container min-h-screen bg-cover bg-center bg-fixed relative p-4 sm:p-6 z-10 dark:bg-gray-900"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundColor: "rgba(255, 248, 240, 0.92)",

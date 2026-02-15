@@ -35,6 +35,13 @@ function PublicGuestFeedbackFixed() {
     profilePictureUrl: '',
   });
 
+  // Debug URL
+  useEffect(() => {
+    console.log("🔌 PublicGuestFeedback mounted");
+    console.log("🔌 BACKEND_URL:", BACKEND_URL);
+    console.log("🔌 API_URL target:", `${BACKEND_URL}/api/guest-feedback/submit`);
+  }, []);
+
   // UI State
   const [googleUser, setGoogleUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -58,9 +65,8 @@ function PublicGuestFeedbackFixed() {
       try {
         const uploadResponse = await axios.post(`${BACKEND_URL}/api/upload/imagekit`, {
           file: imageUrl, // Send URL directly
-          fileName: `guest-profile-${Date.now()}.jpg`,
-          folder: '/guest-profiles',
-          useUrl: true // Flag to indicate URL upload
+          fileName: `GuestPicture-${Date.now()}.jpg`,
+          folder: '/GuestPicture'
         });
         
         console.log('✅ ImageKit upload successful (URL method):', uploadResponse.data.url);
@@ -83,8 +89,8 @@ function PublicGuestFeedbackFixed() {
         
         const uploadResponse = await axios.post(`${BACKEND_URL}/api/upload/imagekit`, {
           file: base64String,
-          fileName: `guest-profile-${Date.now()}.jpg`,
-          folder: '/guest-profiles'
+          fileName: `GuestPicture-${Date.now()}.jpg`,
+          folder: '/GuestPicture'
         });
 
         console.log('✅ ImageKit upload successful (base64 method):', uploadResponse.data.url);
