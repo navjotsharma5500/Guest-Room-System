@@ -8,57 +8,42 @@ export default function guestCheckoutFeedback(b) {
       <p>Dear ${b.guest || "Guest"},</p>
 
       <p>
-        Thank you for choosing to stay with us at
-        <strong>Thapar Institute of Engineering and Technology</strong>.
-        It was our pleasure to host you.
+        Thank you for staying with us. It was a pleasure hosting you, and we hope you had a comfortable and pleasant experience.
       </p>
-
-      <div class="details-box">
-        <div class="details-title">Your Stay Summary</div>
-        <p><strong>Hostel:</strong> ${b.hostel || "—"}</p>
-        <p><strong>Room Number:</strong> ${b.roomNo || "—"}</p>
-        <p>
-          <strong>Check-in:</strong>
-          ${b.from ? new Date(b.from).toDateString() : "—"}
-        </p>
-        <p>
-          <strong>Check-out:</strong>
-          ${b.to ? new Date(b.to).toDateString() : "—"}
-        </p>
-      </div>
 
       <p>
-        We hope you had a comfortable and pleasant stay.
-        Your feedback is extremely valuable in helping us improve
-        our guest room services.
+        Your feedback means a great deal to us. It helps us understand what we're doing well and where we can improve, so we can continue providing a better experience for every guest.
       </p>
 
-      <div style="text-align:center; margin: 25px 0;">
+      <p>
+        We would truly appreciate it if you could take a minute to share your thoughts with us. Your insights make a real difference.
+      </p>
+
+      <div style="text-align:center; margin: 28px 0;">
         <a 
           href="${b.feedbackLink || "https://www.guestapp.in/guest-feedback"}"
           style="
             display:inline-block;
-            padding:14px 36px;
-            background:#1b74c9;
+            padding:15px 42px;
+            background: linear-gradient(135deg, #1b74c9 0%, #1561a8 100%);
             color:#ffffff;
             text-decoration:none;
             border-radius:40px;
             font-weight:600;
+            font-size: 15px;
+            box-shadow: 0 4px 15px rgba(27, 116, 201, 0.3);
           "
         >
-          Share Your Experience
+          Share Your Feedback
         </a>
       </div>
 
-      <p style="font-size:14px; color:#777; text-align:center;">
-        It only takes a minute and helps us serve you better.
-      </p>
-
-      <p>
+      <p style="margin-top: 28px; line-height: 1.8;">
+        Thank you once again, and we hope to welcome you back soon.<br/><br/>
         Warm regards,<br/>
-        <strong>Guest Room Administration</strong><br/>
-        Thapar Institute of Engineering and Technology
+        <strong>Guest Room Administration</strong>
       </p>
     `,
+    skipDefaultButton: true
   });
 }

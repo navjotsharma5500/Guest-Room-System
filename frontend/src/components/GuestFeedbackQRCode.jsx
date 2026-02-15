@@ -15,18 +15,19 @@ import { GUEST_FEEDBACK_URL } from "../utils/apiConfig";
 // Thapar Institute Hostel List
 const HOSTELS = [
   { code: 'A', name: 'Agira Hall (A)' },
-  { code: 'B', name: 'Budh Hall (B)' },
-  { code: 'C', name: 'Cauvery Hall (C)' },
-  { code: 'D', name: 'Damodar Hall (D)' },
-  { code: 'E', name: 'Eros Hall (E)' },
-  { code: 'F', name: 'Falgu Hall (F)' },
-  { code: 'G', name: 'Gomti Hall (G)' },
-  { code: 'H', name: 'Hooghly Hall (H)' },
-  { code: 'J', name: 'Jhelum Hall (J)' },
-  { code: 'K', name: 'Kosi Hall (K)' },
-  { code: 'L', name: 'Lohit Hall (L)' },
-  { code: 'M', name: 'Mahanadi Hall (M)' },
-  { code: 'N', name: 'Narmada Hall (N)' },
+  { code: 'B', name: 'Amritam Hall (B)' },
+  { code: 'C', name: 'Prithvi Hall (C)' },
+  { code: 'D', name: 'Neeram Hall (D)' },
+  { code: 'H', name: 'Vyan Hall (H)' },
+  { code: 'I', name: 'Ira Hall (I)' },
+  { code: 'J', name: 'Tejas Hall (J)' },
+  { code: 'K', name: 'Ambaram Hall (K)' },
+  { code: 'L', name: 'Viyat Hall (L)' },
+  { code: 'M', name: 'Anantam Hall (M)' },
+  { code: 'N', name: 'Ananta Hall (N)' },
+  { code: 'O', name: 'Vyom Hall (O)' },
+  { code: 'PG', name: 'Dhriti Hall (PG)' },
+  { code: 'Q', name: 'Vahni Hostel (Q)' },
 ];
 
 function HostelQRCard({ hostel, onDownload }) {

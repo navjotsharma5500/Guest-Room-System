@@ -74,12 +74,12 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow"
+    className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow"
   >
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-sm text-gray-600 font-medium mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-gray-900 mb-2">{value}</h3>
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex-1">
+        <p className="text-xs md:text-sm text-gray-600 font-medium mb-1">{title}</p>
+        <h3 className="text-lg md:text-3xl font-bold text-gray-900 mb-2">{value}</h3>
         {subtitle && (
           <p className="text-xs text-gray-500">{subtitle}</p>
         )}
@@ -90,8 +90,8 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
           </div>
         )}
       </div>
-      <div className="p-3 rounded-xl" style={{ backgroundColor: `${COLORS[color]}15` }}>
-        <Icon className="w-6 h-6" style={{ color: COLORS[color] || color }} />
+      <div className="p-2 md:p-3 rounded-lg md:rounded-xl flex-shrink-0" style={{ backgroundColor: `${COLORS[color]}15` }}>
+        <Icon className="w-5 h-5 md:w-6 md:h-6" style={{ color: COLORS[color] || color }} />
       </div>
     </div>
   </motion.div>
@@ -415,26 +415,26 @@ export default function AnalyticsPage({ setActiveTab }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="flex-1 p-8 min-h-screen ml-64 bg-gradient-to-br from-gray-50 to-gray-100"
+      className="flex-1 min-h-screen md:ml-64 bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8"
     >
       <div className="max-w-[1600px] mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">📊 Analytics Dashboard</h1>
-            <p className="text-gray-600">Complete booking and revenue analytics</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
+          <div className="w-full md:w-auto">
+            <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 mb-1 md:mb-2">📊 Analytics</h1>
+            <p className="text-xs md:text-sm text-gray-600">Booking & revenue analytics</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             <button
               onClick={handleDownloadCSV}
-              className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700 flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+              className="px-3 md:px-4 py-2 text-xs md:text-sm rounded-lg md:rounded-xl bg-green-600 text-white hover:bg-green-700 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
             >
-              <DownloadIcon className="w-4 h-4" />
-              Download CSV
+              <DownloadIcon className="w-3 h-3 md:w-4 md:h-4" />
+              CSV
             </button>
             <button
               onClick={() => setActiveTab("Home")}
-              className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg transition-all"
+              className="px-3 md:px-4 py-2 text-xs md:text-sm rounded-lg md:rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg transition-all"
             >
               🏠 Home
             </button>
@@ -442,12 +442,12 @@ export default function AnalyticsPage({ setActiveTab }) {
         </div>
 
         {/* Range Selector */}
-        <div className="flex gap-3 mb-8">
+        <div className="flex flex-wrap gap-2 mb-6 md:mb-8">
           {["Monthly", "Quarterly", "Annual", "Overall"].map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+              className={`px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm rounded-lg md:rounded-xl font-medium transition-all ${
                 range === r
                   ? "bg-red-600 text-white shadow-md"
                   : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
@@ -460,25 +460,25 @@ export default function AnalyticsPage({ setActiveTab }) {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mb-4"></div>
-            <p className="text-gray-600 font-semibold">Loading analytics data...</p>
+          <div className="flex flex-col items-center justify-center py-12 md:py-20">
+            <div className="animate-spin rounded-full h-12 md:h-16 w-12 md:w-16 border-b-4 border-red-600 mb-4"></div>
+            <p className="text-sm md:text-base text-gray-600 font-semibold">Loading analytics data...</p>
           </div>
         )}
 
         {/* No Data State */}
         {!loading && allBookings.length === 0 && (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-200">
+          <div className="bg-white rounded-lg md:rounded-2xl p-6 md:p-12 text-center shadow-lg border border-gray-200">
             <div className="text-gray-400 mb-4">
-              <svg className="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-700 mb-2">No Booking Data Available</h3>
-            <p className="text-gray-500">There are no bookings to display analytics for.</p>
+            <h3 className="text-lg md:text-xl font-bold text-gray-700 mb-2">No Booking Data</h3>
+            <p className="text-sm md:text-base text-gray-500 mb-4">No bookings to display analytics for.</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-6 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+              className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white text-sm md:text-base rounded-lg md:rounded-xl hover:bg-red-700 transition"
             >
               Retry
             </button>
@@ -489,7 +489,7 @@ export default function AnalyticsPage({ setActiveTab }) {
         {!loading && allBookings.length > 0 && (
           <>
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           <StatCard
             title="Total Bookings"
             value={totalBookings}
@@ -521,91 +521,91 @@ export default function AnalyticsPage({ setActiveTab }) {
         </div>
 
         {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Status</h3>
-            <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Booking Status</h3>
+            <div className="space-y-2 md:space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Booked</span>
-                <span className="font-bold text-blue-600">{bookedCount}</span>
+                <span className="text-xs md:text-sm text-gray-600">Booked</span>
+                <span className="text-sm md:font-bold text-blue-600">{bookedCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Checked In</span>
-                <span className="font-bold text-orange-600">{reportedCount}</span>
+                <span className="text-xs md:text-sm text-gray-600">Checked In</span>
+                <span className="text-sm md:font-bold text-orange-600">{reportedCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Checked Out</span>
-                <span className="font-bold text-green-600">{checkedOutCount}</span>
+                <span className="text-xs md:text-sm text-gray-600">Checked Out</span>
+                <span className="text-sm md:font-bold text-green-600">{checkedOutCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Cancelled</span>
-                <span className="font-bold text-red-600">{cancelledCount}</span>
+                <span className="text-xs md:text-sm text-gray-600">Cancelled</span>
+                <span className="text-sm md:font-bold text-red-600">{cancelledCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">No Show</span>
-                <span className="font-bold text-gray-600">{noShowCount}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Fully Paid</span>
-                <span className="font-bold text-green-600">{fullyPaidCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Partially Paid</span>
-                <span className="font-bold text-orange-600">{partiallyPaidCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Unpaid</span>
-                <span className="font-bold text-red-600">{unpaidCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Free Bookings</span>
-                <span className="font-bold text-blue-600">{freeBookings.length}</span>
+                <span className="text-xs md:text-sm text-gray-600">No Show</span>
+                <span className="text-sm md:font-bold text-gray-600">{noShowCount}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
-            <div className="space-y-3">
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Payment Status</h3>
+            <div className="space-y-2 md:space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Billed</span>
-                <span className="font-bold text-gray-900">₹{totalBilled.toLocaleString()}</span>
+                <span className="text-xs md:text-sm text-gray-600">Fully Paid</span>
+                <span className="text-sm md:font-bold text-green-600">{fullyPaidCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Collected</span>
-                <span className="font-bold text-green-600">₹{totalRevenue.toLocaleString()}</span>
+                <span className="text-xs md:text-sm text-gray-600">Partially Paid</span>
+                <span className="text-sm md:font-bold text-orange-600">{partiallyPaidCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Wave Off</span>
-                <span className="font-bold text-orange-600">₹{totalDiscount.toLocaleString()}</span>
+                <span className="text-xs md:text-sm text-gray-600">Unpaid</span>
+                <span className="text-sm md:font-bold text-red-600">{unpaidCount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Pending</span>
-                <span className="font-bold text-red-600">₹{pendingAmount.toLocaleString()}</span>
+                <span className="text-xs md:text-sm text-gray-600">Free Bookings</span>
+                <span className="text-sm md:font-bold text-blue-600">{freeBookings.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Financial Summary</h3>
+            <div className="space-y-2 md:space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs md:text-sm text-gray-600">Total Billed</span>
+                <span className="text-sm md:font-bold text-gray-900">₹{totalBilled.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs md:text-sm text-gray-600">Collected</span>
+                <span className="text-sm md:font-bold text-green-600">₹{totalRevenue.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs md:text-sm text-gray-600">Wave Off</span>
+                <span className="text-sm md:font-bold text-orange-600">₹{totalDiscount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs md:text-sm text-gray-600">Pending</span>
+                <span className="text-sm md:font-bold text-red-600">₹{pendingAmount.toLocaleString()}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6 mb-6 md:mb-8">
           {/* Booking Status Pie */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Status Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Booking Status</h2>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie 
                   data={statusData} 
                   dataKey="value" 
                   cx="50%" 
                   cy="50%" 
-                  outerRadius={100} 
+                  outerRadius={70}
                   label={({ name, value }) => `${name}: ${value}`}
                 >
                   {statusData.map((entry, index) => (
@@ -613,22 +613,22 @@ export default function AnalyticsPage({ setActiveTab }) {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
           {/* Payment Status Pie */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Status Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Payment Status</h2>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie 
                   data={paymentStatusData} 
                   dataKey="value" 
                   cx="50%" 
                   cy="50%" 
-                  outerRadius={100}
+                  outerRadius={70}
                   label={({ name, value }) => `${name}: ${value}`}
                 >
                   {paymentStatusData.map((entry, index) => (
@@ -636,19 +636,19 @@ export default function AnalyticsPage({ setActiveTab }) {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
           {/* Hostel-wise Bookings */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bookings by Hostel</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Bookings by Hostel</h2>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={hostelData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="name" stroke="#6B7280" />
-                <YAxis stroke="#6B7280" />
+                <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
                 <Tooltip />
                 <Bar dataKey="bookings" radius={[8, 8, 0, 0]} fill={COLORS.primary} />
               </BarChart>
@@ -656,13 +656,13 @@ export default function AnalyticsPage({ setActiveTab }) {
           </div>
 
           {/* Revenue by Hostel */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Hostel</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Revenue by Hostel</h2>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="name" stroke="#6B7280" />
-                <YAxis stroke="#6B7280" />
+                <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
                 <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
                 <Bar dataKey="revenue" radius={[8, 8, 0, 0]} fill={COLORS.success} />
               </BarChart>
@@ -671,10 +671,10 @@ export default function AnalyticsPage({ setActiveTab }) {
         </div>
 
         {/* Trend Charts */}
-        <div className="grid grid-cols-1 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Trend ({range})</h2>
-            <ResponsiveContainer width="100%" height={350}>
+        <div className="grid grid-cols-1 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Booking Trend ({range})</h2>
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={trendData}>
                 <defs>
                   <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
@@ -683,8 +683,8 @@ export default function AnalyticsPage({ setActiveTab }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="period" stroke="#6B7280" />
-                <YAxis stroke="#6B7280" />
+                <XAxis dataKey="period" stroke="#6B7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
                 <Tooltip />
                 <Area 
                   type="monotone" 
@@ -697,9 +697,9 @@ export default function AnalyticsPage({ setActiveTab }) {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend ({range})</h2>
-            <ResponsiveContainer width="100%" height={350}>
+          <div className="bg-white rounded-lg md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Revenue Trend ({range})</h2>
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={revenueTrendData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -708,8 +708,8 @@ export default function AnalyticsPage({ setActiveTab }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="period" stroke="#6B7280" />
-                <YAxis stroke="#6B7280" />
+                <XAxis dataKey="period" stroke="#6B7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
                 <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
                 <Area 
                   type="monotone" 
@@ -724,8 +724,8 @@ export default function AnalyticsPage({ setActiveTab }) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
+          <p className="text-xs md:text-sm text-gray-500">
             Last updated: {format(new Date(), "PPpp")}
           </p>
           <Creator variant="default" />

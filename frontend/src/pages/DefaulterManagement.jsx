@@ -558,14 +558,14 @@ Thank you!`;
   };
 
   return (
-    <div className="fixed inset-0 ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
+    <div className="fixed inset-0 md:ml-64 mt-16 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-gray-900 via-red-900 to-black text-white shadow-2xl rounded-3xl mx-6 mt-6 overflow-hidden border border-red-500/30">
         <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-orange-500/10 backdrop-blur-xl"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
         <div className="relative z-10">
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
+        <div className="px-3 sm:px-6 py-3 sm:py-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -587,15 +587,16 @@ Thank you!`;
             
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg"
+              className="flex items-center gap-2 bg-white text-red-600 px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm md:text-base hover:bg-red-50 transition shadow-lg"
             >
-              <Download size={20} />
-              Download Report
+              <Download size={16} className="sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Download Report</span>
+              <span className="sm:hidden">Report</span>
             </button>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mt-4 sm:mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-6">
             <motion.div 
               className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/30 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               whileHover={{ y: -5 }}
@@ -603,11 +604,11 @@ Thank you!`;
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-8 h-8 text-yellow-400" />
-                <div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
+                <div className="min-w-0">
                   <p className="text-xs text-gray-300 truncate">Outstanding</p>
-                  <p className="text-lg sm:text-2xl font-bold text-yellow-400">₹{totalOutstanding.toLocaleString()}</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold text-yellow-400 truncate">₹{totalOutstanding.toLocaleString()}</p>
                 </div>
               </div>
             </motion.div>
@@ -619,11 +620,11 @@ Thank you!`;
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3">
-                <User className="w-8 h-8 text-blue-400" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <User className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
                 <div>
-                  <p className="text-xs text-gray-300">Total Defaulters</p>
-                  <p className="text-2xl font-bold text-blue-400">{defaulters.length}</p>
+                  <p className="text-xs text-gray-300 truncate">Defaulters</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold text-blue-400">{defaulters.length}</p>
                 </div>
               </div>
             </motion.div>
@@ -635,11 +636,11 @@ Thank you!`;
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-orange-400" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400" />
                 <div>
-                  <p className="text-xs text-gray-300">Avg Days Overdue</p>
-                  <p className="text-2xl font-bold text-orange-400">{avgDaysOverdue}</p>
+                  <p className="text-xs text-gray-300 truncate">Avg Days</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold text-orange-400">{avgDaysOverdue}</p>
                 </div>
               </div>
             </motion.div>
@@ -651,11 +652,11 @@ Thank you!`;
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3">
-                <Ban className="w-8 h-8 text-red-400" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Ban className="w-6 h-6 sm:w-8 sm:h-8 text-red-400" />
                 <div>
-                  <p className="text-xs text-gray-300">Critical (30+ days)</p>
-                  <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
+                  <p className="text-xs text-gray-300 truncate">Critical</p>
+                  <p className="text-sm sm:text-lg md:text-2xl font-bold text-red-400">{criticalCount}</p>
                 </div>
               </div>
             </motion.div>
@@ -665,27 +666,27 @@ Thank you!`;
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-6 mt-4">
-        <div className="px-6 py-4">
-          <div className="flex gap-4 items-center flex-wrap">
+      <div className="bg-white shadow-lg border-2 border-gray-200 rounded-2xl mx-3 sm:mx-6 mt-4">
+        <div className="px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex gap-2 sm:gap-4 items-center flex-wrap">
             {/* Date Range Filter */}
-            <div className="flex gap-2 items-center">
-              <div>
+            <div className="flex gap-2 items-center w-full sm:w-auto">
+              <div className="flex-1 sm:flex-none">
                 <label className="text-xs text-gray-600 mb-1 block">From</label>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
-              <div>
+              <div className="flex-1 sm:flex-none">
                 <label className="text-xs text-gray-600 mb-1 block">To</label>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
               {(dateFrom || dateTo) && (
@@ -702,25 +703,25 @@ Thank you!`;
             </div>
 
             {/* Search Bar */}
-            <div className="flex-1 min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="flex-1 min-w-0 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, contact, or roll number..."
-                className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Search name, email..."
+                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-xs sm:text-sm border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
 
             {/* Hostel Filter */}
             {(role === 'admin' || role === 'manager') && (
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <div className="relative w-full sm:w-auto">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 <select
                   value={selectedHostel}
                   onChange={(e) => setSelectedHostel(e.target.value)}
-                  className="pl-10 pr-8 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
+                  className="w-full sm:w-auto pl-9 sm:pl-10 pr-3 sm:pr-8 py-2 sm:py-2.5 text-xs sm:text-sm border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none bg-white"
                 >
                   {hostels.map(h => (
                     <option key={h} value={h}>{h}</option>
@@ -733,20 +734,21 @@ Thank you!`;
       </div>
       
       {/* Tabs Section */}
-      <div className="mx-6 mt-4">
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-2">
-          <div className="flex gap-2">
+      <div className="mx-3 sm:mx-6 mt-4">
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-1 sm:p-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => setActiveTab('pending')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+              className={`flex-1 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                 activeTab === 'pending'
                   ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <div className="flex items-center justify-center gap-2">
-                <AlertCircle size={20} />
-                <span>Pending Payments</span>
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <AlertCircle size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Pending Payments</span>
+                <span className="sm:hidden">Pending</span>
                 <span className={`px-2 py-1 rounded-full text-xs ${
                   activeTab === 'pending' ? 'bg-white/20' : 'bg-red-100 text-red-700'
                 }`}>
@@ -757,14 +759,14 @@ Thank you!`;
 
             <button
               onClick={() => setActiveTab('completed')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+              className={`flex-1 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                 activeTab === 'completed'
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <div className="flex items-center justify-center gap-2">
-                <CheckCircle size={20} />
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <CheckCircle size={16} className="sm:w-5 sm:h-5" />
                 <span>Completed</span>
                 <span className={`px-2 py-1 rounded-full text-xs ${
                   activeTab === 'completed' ? 'bg-white/20' : 'bg-green-100 text-green-700'
@@ -776,14 +778,14 @@ Thank you!`;
 
             <button
               onClick={() => setActiveTab('rollbacks')}
-              className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+              className={`flex-1 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                 activeTab === 'rollbacks'
                   ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <div className="flex items-center justify-center gap-2">
-                <History size={20} />
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <History size={16} className="sm:w-5 sm:h-5" />
                 <span>Rollbacks</span>
                 <span className={`px-2 py-1 rounded-full text-xs ${
                   activeTab === 'rollbacks' ? 'bg-white/20' : 'bg-orange-100 text-orange-700'
@@ -798,16 +800,17 @@ Thank you!`;
 
       {/* ✅ NEW: Bulk Action Buttons (Show only on Pending tab) */}
       {activeTab === 'pending' && pendingDefaulters.length > 0 && (
-        <div className="mx-6 mt-4">
-          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-4">
-            <div className="flex gap-3">
+        <div className="mx-3 sm:mx-6 mt-4">
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={handleBulkEmail}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                <Mail size={20} />
-                <span>Send Bulk Payment Reminders</span>
+                <Mail size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Send Bulk Payment Reminders</span>
+                <span className="sm:hidden">Email</span>
                 <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
                   {pendingDefaulters.length}
                 </span>
@@ -816,10 +819,10 @@ Thank you!`;
               <button
                 onClick={handleBulkWhatsApp}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                <Phone size={20} />
-                <span>Bulk WhatsApp</span>
+                <Phone size={16} className="sm:w-5 sm:h-5" />
+                <span>WhatsApp</span>
                 <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
                   {pendingDefaulters.length}
                 </span>
@@ -830,19 +833,19 @@ Thank you!`;
       )}
 
       {/* Defaulters List */}
-      <div className="mx-6 my-6">
+      <div className="mx-3 sm:mx-6 my-6">
         {loading ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-12 text-center">
             <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-              <p className="text-gray-600">Loading defaulters...</p>
+              <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-b-2 border-red-600 mb-4"></div>
+              <p className="text-xs sm:text-base text-gray-600">Loading defaulters...</p>
             </div>
           </div>
         ) : filteredDefaulters.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-green-700">No Defaulters Found!</h3>
-            <p className="text-sm text-green-600 mt-2">All guests have cleared their payments ✓</p>
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-12 text-center">
+            <CheckCircle className="w-12 sm:w-16 h-12 sm:h-16 text-green-600 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-bold text-green-700">No Defaulters Found!</h3>
+            <p className="text-xs sm:text-sm text-green-600 mt-2">All guests have cleared their payments ✓</p>
           </div>
         ) : (
           <>
@@ -866,11 +869,11 @@ Thank you!`;
                   
                   {/* Content */}
                   <div className="relative z-10 p-6 bg-gradient-to-br from-white/95 via-gray-50/95 to-white/95 backdrop-blur-sm rounded-2xl">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-2">
                         <div className="relative">
-                          <div className="bg-gradient-to-br from-gray-600 to-gray-800 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0 border-2 border-red-500">
+                          <div className="bg-gradient-to-br from-gray-600 to-gray-800 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg shadow-lg flex-shrink-0 border-2 border-red-500">
                             {defaulter.guest.charAt(0)}
                           </div>
                           {/* Payment Status Flag */}
@@ -896,27 +899,27 @@ Thank you!`;
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-xl font-bold text-gray-900 truncate">{defaulter.guest}</h3>
-                          <p className="text-sm text-gray-600 truncate">{defaulter.department} • {defaulter.rollno}</p>
+                          <h3 className="text-base sm:text-xl font-bold text-gray-900 truncate">{defaulter.guest}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">{defaulter.department} {defaulter.rollno && `• ${defaulter.rollno}`}</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3">
-                        <div>
-                          <p className="text-gray-500">Email</p>
-                          <p className="font-semibold text-gray-900 truncate">{defaulter.email}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm mt-3">
+                        <div className="min-w-0">
+                          <p className="text-gray-500 text-xs">Email</p>
+                          <p className="font-semibold text-gray-900 truncate text-xs sm:text-sm">{defaulter.email}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Contact</p>
-                          <p className="font-semibold text-gray-900">{defaulter.contact}</p>
+                          <p className="text-gray-500 text-xs">Contact</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm">{defaulter.contact}</p>
                         </div>
-                        <div>
-                          <p className="text-gray-500">Hostel</p>
-                          <p className="font-semibold text-gray-900 truncate">{defaulter.hostel} - {defaulter.roomNo}</p>
+                        <div className="min-w-0">
+                          <p className="text-gray-500 text-xs">Hostel</p>
+                          <p className="font-semibold text-gray-900 truncate text-xs sm:text-sm">{defaulter.hostel} - {defaulter.roomNo}</p>
                         </div>
-                        <div>
-                          <p className="text-gray-500">Last Booking</p>
-                          <p className="font-semibold text-gray-900">{new Date(defaulter.lastBooking).toLocaleDateString()}</p>
+                        <div className="min-w-0">
+                          <p className="text-gray-500 text-xs">Last Booking</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{new Date(defaulter.lastBooking).toLocaleDateString()}</p>
                         </div>
                       </div>
                     </div>
@@ -958,21 +961,22 @@ Thank you!`;
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between bg-white rounded-xl shadow-md p-4">
-                <div className="text-sm text-gray-600">
-                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length} defaulters
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-white rounded-xl shadow-md p-3 sm:p-4">
+                <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDefaulters.length)} of {filteredDefaulters.length}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition ${
                       currentPage === 1
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : 'bg-red-600 text-white hover:bg-red-700'
                     }`}
                   >
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">←</span>
                   </button>
                   
                   <div className="flex items-center gap-1">
@@ -1012,13 +1016,14 @@ Thank you!`;
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition ${
                       currentPage === totalPages
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : 'bg-red-600 text-white hover:bg-red-700'
                     }`}
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
+                    <span className="sm:hidden">→</span>
                   </button>
                 </div>
               </div>
@@ -1038,15 +1043,15 @@ Thank you!`;
             onClick={() => setShowDetails(false)}
           >
             <motion.div
-              className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-red-500"
+              className="bg-white rounded-3xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl border-4 border-red-500"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4 w-full">
                     <div className="bg-white/20 p-3 rounded-2xl">
                       <User className="w-6 h-6" />
                     </div>
@@ -1064,14 +1069,14 @@ Thank you!`;
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* Guest Details */}
-                <div className="bg-gray-50 rounded-2xl p-5 border-2 border-gray-200">
-                  <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                <div className="bg-gray-50 rounded-2xl p-3 sm:p-5 border-2 border-gray-200">
+                  <h4 className="font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
                     Guest Information
                   </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                     <div>
                       <p className="text-gray-600 mb-1">Email</p>
                       <p className="font-semibold text-gray-900">{selectedDefaulter.email}</p>
@@ -1100,21 +1105,21 @@ Thank you!`;
                 </div>
 
                 {/* Bill Details */}
-                <div className="bg-red-50 rounded-2xl p-5 border-2 border-red-200">
-                  <h4 className="font-bold text-red-800 mb-4 flex items-center gap-2">
-                    <Receipt className="w-5 h-5" />
+                <div className="bg-red-50 rounded-2xl p-3 sm:p-5 border-2 border-red-200">
+                  <h4 className="font-bold text-red-800 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                    <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
                     Unpaid Bills
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {selectedDefaulter.bills.map((bill, index) => (
-                      <div key={index} className="bg-white rounded-xl p-4 border border-red-300 flex justify-between items-center">
+                      <div key={index} className="bg-white rounded-xl p-2 sm:p-4 border border-red-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div>
-                          <p className="font-bold text-gray-900">{bill.billNumber}</p>
+                          <p className="font-bold text-xs sm:text-base text-gray-900">{bill.billNumber}</p>
                           <p className="text-xs text-gray-600">Date: {new Date(bill.date).toLocaleDateString()}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-red-700">₹{bill.amount}</p>
-                          <span className="inline-block px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                        <div className="text-right w-full sm:w-auto">
+                          <p className="text-lg sm:text-2xl font-bold text-red-700">₹{bill.amount}</p>
+                          <span className="inline-block px-2 py-0.5 sm:py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
                             {bill.status.toUpperCase()}
                           </span>
                         </div>
@@ -1122,9 +1127,9 @@ Thank you!`;
                     ))}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t-2 border-red-300 flex justify-between items-center">
-                    <span className="font-bold text-gray-800">Total Outstanding</span>
-                    <span className="text-3xl font-bold text-red-700">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-red-300 flex justify-between items-center">
+                    <span className="font-bold text-gray-800 text-sm sm:text-base">Total Outstanding</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-red-700">
                       ₹{(() => {
                         const totalAmount = selectedDefaulter.totalAmount || 0;
                         const paidAmount = selectedDefaulter.paidAmount || 0;
@@ -1137,17 +1142,17 @@ Thank you!`;
 
                 {/* Rollback History */}
                 {selectedDefaulter.paymentRollbacks && selectedDefaulter.paymentRollbacks.length > 0 && (
-                  <div className="bg-orange-50 rounded-2xl p-5 border-2 border-orange-200">
-                    <h4 className="font-bold text-orange-800 mb-4 flex items-center gap-2">
-                      <History className="w-5 h-5" />
+                  <div className="bg-orange-50 rounded-2xl p-3 sm:p-5 border-2 border-orange-200">
+                    <h4 className="font-bold text-orange-800 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                      <History className="w-4 h-4 sm:w-5 sm:h-5" />
                       Payment Rollback History ({selectedDefaulter.paymentRollbacks.length})
                     </h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {selectedDefaulter.paymentRollbacks.map((rollback, index) => (
-                        <div key={index} className="bg-white rounded-xl p-4 border border-orange-300">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={index} className="bg-white rounded-xl p-2 sm:p-4 border border-orange-300">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2 sm:mb-2">
                             <div>
-                              <p className="font-bold text-gray-900">Rollback #{selectedDefaulter.paymentRollbacks.length - index}</p>
+                              <p className="font-bold text-xs sm:text-base text-gray-900">Rollback #{selectedDefaulter.paymentRollbacks.length - index}</p>
                               <p className="text-xs text-gray-600">
                                 Date: {new Date(rollback.rollbackDate).toLocaleString()}
                               </p>
@@ -1156,7 +1161,7 @@ Thank you!`;
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-orange-700">₹{rollback.amount}</p>
+                              <p className="text-lg sm:text-2xl font-bold text-orange-700">₹{rollback.amount}</p>
                             </div>
                           </div>
                           <div className="mt-2 pt-2 border-t border-orange-200">
@@ -1185,9 +1190,9 @@ Thank you!`;
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t-2 border-orange-300 flex justify-between items-center">
-                      <span className="font-bold text-gray-800">Total Rolled Back</span>
-                      <span className="text-2xl font-bold text-orange-700">
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-orange-300 flex justify-between items-center">
+                      <span className="font-bold text-gray-800 text-sm sm:text-base">Total Rolled Back</span>
+                      <span className="text-xl sm:text-2xl font-bold text-orange-700">
                         ₹{selectedDefaulter.paymentRollbacks.reduce((sum, r) => sum + (r.amount || 0), 0)}
                       </span>
                     </div>
@@ -1295,21 +1300,21 @@ Thank you!`;
             onClick={() => setShowRollbackModal(false)}
           >
             <motion.div
-              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-white rounded-3xl w-full max-w-xs sm:max-w-md shadow-2xl overflow-hidden"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl">
-                      <AlertCircle className="w-8 h-8" />
+              <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                    <div className="bg-white/20 backdrop-blur-sm p-2 sm:p-3 rounded-2xl flex-shrink-0">
+                      <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-bold">Rollback Payment</h3>
-                      <p className="text-white/90 text-sm">{selectedDefaulter.guest}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-2xl font-bold">Rollback</h3>
+                      <p className="text-white/90 text-xs sm:text-sm truncate">{selectedDefaulter.guest}</p>
                     </div>
                   </div>
                   <button
@@ -1321,24 +1326,24 @@ Thank you!`;
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
-                <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-4 sm:p-6 space-y-4">
+                <div className="bg-gray-50 rounded-xl p-3 sm:p-4 border-2 border-gray-200">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div>
-                      <p className="text-gray-600">Total Amount</p>
-                      <p className="font-bold text-gray-900">₹{selectedDefaulter.totalAmount || 0}</p>
+                      <p className="text-gray-600 text-xs">Total</p>
+                      <p className="font-bold text-gray-900 text-sm sm:text-base">₹{selectedDefaulter.totalAmount || 0}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Paid Amount</p>
-                      <p className="font-bold text-green-600">₹{selectedDefaulter.paidAmount || 0}</p>
+                      <p className="text-gray-600 text-xs">Paid</p>
+                      <p className="font-bold text-green-600 text-sm sm:text-base">₹{selectedDefaulter.paidAmount || 0}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Current Balance</p>
-                      <p className="font-bold text-red-600">₹{selectedDefaulter.totalDue}</p>
+                      <p className="text-gray-600 text-xs">Balance</p>
+                      <p className="font-bold text-red-600 text-sm sm:text-base">₹{selectedDefaulter.totalDue}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Max Rollback</p>
-                      <p className="font-bold text-orange-600">₹{selectedDefaulter.totalDue || 0}</p>  // ✅
+                      <p className="text-gray-600 text-xs">Max</p>
+                      <p className="font-bold text-orange-600 text-sm sm:text-base">₹{selectedDefaulter.totalDue || 0}</p>  // ✅
                     </div>
                   </div>
                 </div>
@@ -1398,20 +1403,20 @@ Thank you!`;
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
-                    Remarks <span className="text-red-500">* (Mandatory)</span>
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-gray-700">
+                    Remarks <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={rollbackRemarks}
                     onChange={(e) => setRollbackRemarks(e.target.value)}
-                    placeholder="Enter reason for rollback (mandatory)..."
-                    className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 h-24 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="Enter reason..."
+                    className="w-full border-2 border-gray-300 rounded-xl px-3 sm:px-4 py-2 sm:py-3 h-20 sm:h-24 resize-none text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
-                    Upload Proof <span className="text-red-500">* (Mandatory)</span>
+                  <label className="block text-xs sm:text-sm font-bold mb-2 text-gray-700">
+                    Upload Proof <span className="text-red-500">*</span>
                   </label>
                   
                   <input
@@ -1428,31 +1433,31 @@ Thank you!`;
                   >
                     {uploadingRollback ? (
                       <div className="flex flex-col items-center gap-2">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                        <p className="text-sm text-gray-600">Uploading...</p>
+                        <div className="animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-orange-600"></div>
+                        <p className="text-xs sm:text-sm text-gray-600">Uploading...</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-8 h-8 text-gray-400" />
-                        <p className="text-sm text-gray-600">Click to upload proof</p>
+                        <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
+                        <p className="text-xs sm:text-sm text-gray-600">Click to upload</p>
                       </div>
                     )}
                   </label>
 
                   {rollbackAttachments.length > 0 && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="mt-3 p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-xs font-semibold text-green-700 mb-2">
-                        ✅ Uploaded: {rollbackAttachments.length}
+                        ✅ {rollbackAttachments.length} uploaded
                       </p>
                       <ul className="space-y-1">
                         {rollbackAttachments.map((url, i) => (
-                          <li key={i} className="flex items-center justify-between bg-white p-2 rounded">
+                          <li key={i} className="flex items-center justify-between bg-white p-1 sm:p-2 rounded">
                             <span className="text-xs text-blue-600 truncate flex-1">File {i + 1}</span>
                             <button
                               onClick={() => setRollbackAttachments(prev => prev.filter((_, idx) => idx !== i))}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-500 hover:text-red-700 flex-shrink-0"
                             >
-                              <X size={16} />
+                              <X size={14} className="sm:w-4 sm:h-4" />
                             </button>
                           </li>
                         ))}
@@ -1470,33 +1475,33 @@ Thank you!`;
                       exit={{ opacity: 0 }}
                     >
                       <motion.div
-                        className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+                        className="bg-white rounded-2xl w-full max-w-xs sm:max-w-md p-4 sm:p-6 shadow-2xl"
                         initial={{ scale: 0.9, y: 20 }}
                         animate={{ scale: 1, y: 0 }}
                         exit={{ scale: 0.9, y: 20 }}
                       >
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-2">
                           {confirmAction.title}
                         </h3>
 
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                           {confirmAction.message}
                         </p>
 
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                           <button
                             onClick={() => {
                               confirmAction.onConfirm();
                               setConfirmAction(null);
                             }}
-                            className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition"
+                            className="flex-1 bg-red-600 text-white py-2 sm:py-3 rounded-xl font-bold text-xs sm:text-base hover:bg-red-700 transition"
                           >
                             Yes, Continue
                           </button>
 
                           <button
                             onClick={() => setConfirmAction(null)}
-                            className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition"
+                            className="flex-1 bg-gray-200 text-gray-700 py-2 sm:py-3 rounded-xl font-semibold text-xs sm:text-base hover:bg-gray-300 transition"
                           >
                             Cancel
                           </button>
@@ -1507,8 +1512,8 @@ Thank you!`;
                 </AnimatePresence>
 
                 {rollbackAmount && parseFloat(rollbackAmount) > 0 && (
-                  <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-                    <p className="text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
+                  <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs sm:text-sm font-bold text-orange-800 mb-2">After Waiver:</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <p className="text-gray-600">New Discount/Waiver</p>
@@ -1526,17 +1531,17 @@ Thank you!`;
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
                   <button
                     onClick={handleRollbackPayment}
                     disabled={loading || !rollbackAmount || parseFloat(rollbackAmount) <= 0 || !rollbackRemarks.trim() || rollbackAttachments.length === 0}
-                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
+                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold text-xs sm:text-base disabled:opacity-50 disabled:cursor-not-allowed hover:from-orange-700 hover:to-red-700 transition"
                   >
                     {loading ? "Processing..." : `Waive ₹${rollbackAmount}`}
                   </button>
                   <button
                     onClick={() => setShowRollbackModal(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                    className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold text-xs sm:text-base hover:bg-gray-300 transition"
                   >
                     Cancel
                   </button>

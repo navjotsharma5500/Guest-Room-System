@@ -34,93 +34,93 @@ function GuestDetailsModal({ guest, onClose, theme = "light" }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto`}
+          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg md:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto`}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl z-10">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
+          <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-4 md:p-6 rounded-t-lg md:rounded-t-2xl z-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
                 {guest.profilePicture ? (
                   <img
                     src={guest.profilePicture}
                     alt={guest.guest}
-                    className="w-16 h-16 rounded-full border-4 border-white/30"
+                    className="w-12 md:w-16 h-12 md:h-16 rounded-full border-4 border-white/30"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-                    <User size={32} className="text-white/70" />
+                  <div className="w-12 md:w-16 h-12 md:h-16 rounded-full bg-white/20 flex items-center justify-center">
+                    <User size={24} className="md:w-8 md:h-8 text-white/70" />
                   </div>
                 )}
                 <div>
-                  <h2 className="text-2xl font-bold">{guest.guest}</h2>
-                  <p className="text-red-100 text-sm">{guest.rollno || "—"}</p>
+                  <h2 className="text-lg md:text-2xl font-bold">{guest.guest}</h2>
+                  <p className="text-red-100 text-xs md:text-sm">{guest.rollno || "—"}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                className="text-white hover:bg-white/20 rounded-full p-1 md:p-2 transition ml-auto md:ml-0"
               >
-                <X size={24} />
+                <X size={20} className="md:w-6 md:h-6" />
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-6">
+          <div className="p-4 md:p-6 space-y-4 md:space-y-6">
             {/* Status Badge */}
             {guest.status === "cancelled" && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+              <div className="bg-red-50 border-l-4 border-red-500 p-3 md:p-4 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <XCircle className="text-red-600" size={20} />
-                  <p className="font-semibold text-red-800">Booking Cancelled</p>
+                  <XCircle size={18} className="text-red-600 w-4 h-4 md:w-5 md:h-5" />
+                  <p className="font-semibold text-red-800 text-sm md:text-base">Booking Cancelled</p>
                 </div>
                 {guest.cancelRemarks && (
-                  <p className="text-sm text-red-600 mt-2">{guest.cancelRemarks}</p>
+                  <p className="text-xs md:text-sm text-red-600 mt-2">{guest.cancelRemarks}</p>
                 )}
               </div>
             )}
 
             {/* Guest Information */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-4">
-                <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-                  <User className="text-red-600" size={20} />
+                <h3 className={`text-base md:text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+                  <User size={18} className="text-red-600 w-4 h-4 md:w-5 md:h-5" />
                   Guest Information
                 </h3>
                 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Department</p>
-                    <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Department</p>
+                    <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {guest.department || "—"}
                     </p>
                   </div>
                   
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Contact</p>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Contact</p>
                     <div className="flex items-center gap-2">
-                      <Phone size={16} className="text-gray-400" />
-                      <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                      <Phone size={14} className="md:w-4 md:h-4 text-gray-400" />
+                      <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                         {guest.contact}
                       </p>
                     </div>
                   </div>
                   
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Email</p>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Email</p>
                     <div className="flex items-center gap-2">
-                      <Mail size={16} className="text-gray-400" />
-                      <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm break-all`}>
+                      <Mail size={14} className="md:w-4 md:h-4 text-gray-400" />
+                      <p className={`font-semibold text-xs md:text-sm ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} break-all`}>
                         {guest.email}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Location</p>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Location</p>
                     <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-gray-400" />
-                      <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                      <MapPin size={14} className="md:w-4 md:h-4 text-gray-400" />
+                      <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                         {guest.city || "—"}, {guest.state || "—"}
                       </p>
                     </div>
@@ -129,29 +129,29 @@ function GuestDetailsModal({ guest, onClose, theme = "light" }) {
               </div>
 
               <div className="space-y-4">
-                <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-                  <Building2 className="text-red-600" size={20} />
+                <h3 className={`text-base md:text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+                  <Building2 size={18} className="text-red-600 w-4 h-4 md:w-5 md:h-5" />
                   Accommodation Details
                 </h3>
                 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Hostel</p>
-                    <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Hostel</p>
+                    <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {guest.hostel}
                     </p>
                   </div>
                   
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Room Number</p>
-                    <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Room Number</p>
+                    <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {guest.roomNo}
                     </p>
                   </div>
                   
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Purpose</p>
-                    <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <p className="text-xs md:text-sm text-gray-500 mb-1">Purpose</p>
+                    <p className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                       {guest.purpose || "—"}
                     </p>
                   </div>
@@ -160,48 +160,48 @@ function GuestDetailsModal({ guest, onClose, theme = "light" }) {
             </div>
 
             {/* Stay Duration */}
-            <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-                <Clock className="text-red-600" size={20} />
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-lg md:rounded-xl p-3 md:p-5 border border-red-200">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <Clock size={18} className="text-red-600 w-4 h-4 md:w-5 md:h-5" />
                 Stay Duration
               </h3>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-lg p-4 shadow-sm">
-                  <p className="text-sm text-gray-500 mb-2">Check-in</p>
-                  <p className="font-bold text-gray-900">{formatDate(guest.from)}</p>
-                  <p className="text-sm text-red-600 mt-1">{guest.checkInTime || "00:00"}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
+                  <p className="text-xs md:text-sm text-gray-500 mb-2">Check-in</p>
+                  <p className="font-bold text-sm md:text-base text-gray-900">{formatDate(guest.from)}</p>
+                  <p className="text-xs md:text-sm text-red-600 mt-1">{guest.checkInTime || "00:00"}</p>
                 </div>
                 
-                <div className="bg-white rounded-lg p-4 shadow-sm">
-                  <p className="text-sm text-gray-500 mb-2">Check-out</p>
-                  <p className="font-bold text-gray-900">{formatDate(guest.to)}</p>
-                  <p className="text-sm text-red-600 mt-1">{guest.checkOutTime || "23:59"}</p>
+                <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
+                  <p className="text-xs md:text-sm text-gray-500 mb-2">Check-out</p>
+                  <p className="font-bold text-sm md:text-base text-gray-900">{formatDate(guest.to)}</p>
+                  <p className="text-xs md:text-sm text-red-600 mt-1">{guest.checkOutTime || "23:59"}</p>
                 </div>
               </div>
             </div>
 
             {/* Payment Information */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-                <DollarSign className="text-green-600" size={20} />
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg md:rounded-xl p-3 md:p-5 border border-green-200">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <DollarSign size={18} className="text-green-600 w-4 h-4 md:w-5 md:h-5" />
                 Payment Information
               </h3>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{guest.amount || 0}</p>
+                  <p className="text-xs md:text-sm text-gray-500 mb-1">Amount</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">₹{guest.amount || 0}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Payment Type</p>
-                  <p className="font-semibold text-gray-900">{guest.paymentType || "Free"}</p>
+                  <p className="text-xs md:text-sm text-gray-500 mb-1">Payment Type</p>
+                  <p className="font-semibold text-sm md:text-base text-gray-900">{guest.paymentType || "Free"}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Status</p>
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
+                  <p className="text-xs md:text-sm text-gray-500 mb-1">Status</p>
+                  <span className={`inline-flex items-center gap-1 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold ${
                     guest.paymentStatus === 'Completed' || Number(guest.paidAmount || 0) >= Number(guest.amount || 0)
                       ? 'bg-green-100 text-green-700' 
                       : 'bg-yellow-100 text-yellow-700'
@@ -219,10 +219,10 @@ function GuestDetailsModal({ guest, onClose, theme = "light" }) {
           </div>
 
           {/* Footer */}
-          <div className={`sticky bottom-0 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-b-2xl border-t`}>
+          <div className={`sticky bottom-0 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-3 md:p-4 rounded-b-lg md:rounded-b-2xl border-t`}>
             <button
               onClick={onClose}
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition shadow-lg"
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-2 md:py-3 rounded-lg md:rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition shadow-lg text-sm md:text-base"
             >
               Close
             </button>
@@ -251,88 +251,88 @@ function GuestListItem({ guest, onViewDetails, theme = "light" }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md hover:shadow-xl transition p-6 border-l-4`}
+      className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg md:rounded-xl shadow-md hover:shadow-xl transition p-3 md:p-6 border-l-4`}
       style={{ borderLeftColor: guest.status === 'cancelled' ? '#DC2626' : '#EF4444' }}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4 flex-1">
+      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0">
+        <div className="flex items-center gap-3 md:gap-4 flex-1 w-full">
           {guest.profilePicture ? (
             <img
               src={guest.profilePicture}
               alt={guest.guest}
-              className="w-16 h-16 rounded-full border-4 border-red-100"
+              className="w-12 md:w-16 h-12 md:h-16 rounded-full border-4 border-red-100 flex-shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-              <User size={32} className="text-red-400" />
+            <div className="w-12 md:w-16 h-12 md:h-16 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <User size={24} className="md:w-8 md:h-8 text-red-400" />
             </div>
           )}
           
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className={`text-base md:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} truncate`}>
                 {guest.guest}
               </h3>
               {guest.status === 'cancelled' && (
-                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
                   CANCELLED
                 </span>
               )}
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4 text-xs md:text-sm mb-2">
               <div>
-                <p className="text-gray-500">Department</p>
-                <p className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                <p className="text-gray-500">Dept</p>
+                <p className={`font-semibold truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
                   {guest.department || "—"}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Roll No</p>
-                <p className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                <p className="text-gray-500">Roll</p>
+                <p className={`font-semibold truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
                   {guest.rollno || "—"}
                 </p>
               </div>
               <div>
                 <p className="text-gray-500">Hostel</p>
-                <p className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                <p className={`font-semibold truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
                   {guest.hostel}
                 </p>
               </div>
               <div>
                 <p className="text-gray-500">Room</p>
-                <p className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                <p className={`font-semibold truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
                   {guest.roomNo}
                 </p>
               </div>
             </div>
 
-            <div className={`flex items-center gap-6 mt-3 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              <div className="flex items-center gap-2">
-                <Clock size={16} />
-                <span>{formatDate(guest.from)} - {formatDate(guest.to)}</span>
+            <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-6 mt-2 text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Clock size={14} className="md:w-4 md:h-4 flex-shrink-0" />
+                <span className="truncate">{formatDate(guest.from)} - {formatDate(guest.to)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone size={16} />
+              <div className="flex items-center gap-1 md:gap-2">
+                <Phone size={14} className="md:w-4 md:h-4 flex-shrink-0" />
                 <span>{guest.contact}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3 w-full md:w-auto md:ml-4">
           {/* Payment Status Badge */}
           <button
-            className={`flex flex-col items-center justify-center w-24 h-24 rounded-xl font-bold text-sm transition shadow-md ${
+            className={`flex flex-col items-center justify-center px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm transition shadow-md min-w-fit ${
               isPaid
                 ? 'bg-gradient-to-br from-green-400 to-green-500 text-white hover:from-green-500 hover:to-green-600'
                 : 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-white hover:from-yellow-500 hover:to-yellow-600'
             }`}
             title="Click to view payment details"
           >
-            <DollarSign size={24} className="mb-1" />
-            <span className="text-xs">₹{guest.amount || 0}</span>
-            <span className="text-xs mt-1">
+            <DollarSign size={18} className="md:w-6 md:h-6 mb-0.5" />
+            <span>₹{guest.amount || 0}</span>
+            <span className="text-xs mt-0.5">
               {isPaid ? 'PAID' : 'UNPAID'}
             </span>
           </button>
@@ -340,10 +340,11 @@ function GuestListItem({ guest, onViewDetails, theme = "light" }) {
           {/* See Details Button */}
           <button
             onClick={() => onViewDetails(guest)}
-            className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition shadow-lg flex items-center gap-2"
+            className="bg-gradient-to-r from-red-600 to-red-700 text-white px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition shadow-lg flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
           >
-            <FileText size={18} />
-            See Details
+            <FileText size={16} className="md:w-5 md:h-5" />
+            <span className="hidden sm:inline">See Details</span>
+            <span className="sm:hidden">Details</span>
           </button>
         </div>
       </div>
@@ -684,21 +685,21 @@ export default function CalendarGuestsPage({
   };
 
   return (
-    <div className={`min-h-screen ml-64 mt-16 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+    <div className={`min-h-screen md:ml-64 mt-16 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-4 flex-1">
               <button
                 onClick={handleBack}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
+                className="p-1 md:p-2 hover:bg-white/20 rounded-lg transition"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft size={20} className="md:w-6 md:h-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold">Guest Management</h1>
-                <p className="text-red-100 mt-1">
+                <h1 className="text-lg md:text-3xl font-bold">Guest Management</h1>
+                <p className="text-red-100 mt-1 text-xs md:text-sm">
                   <Calendar size={16} className="inline mr-2" />
                   {formatDate(selectedDate)}
                 </p>
@@ -707,10 +708,11 @@ export default function CalendarGuestsPage({
             
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition shadow-lg"
+              className="flex items-center gap-2 bg-white text-red-600 px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-semibold hover:bg-red-50 transition shadow-lg text-sm md:text-base"
             >
-              <Download size={20} />
-              Download Report
+              <Download size={18} className="md:w-5 md:h-5" />
+              <span className="hidden sm:inline">Download Report</span>
+              <span className="sm:hidden">Download</span>
             </button>
           </div>
         </div>
@@ -718,40 +720,32 @@ export default function CalendarGuestsPage({
 
       {/* Filters Section */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {/* Date Picker */}
             <div>
-              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+              <label className={`block text-xs md:text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
                 Select Date
               </label>
               <input
                 type="date"
                 value={selectedDate.toISOString().split('T')[0]}
                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
-                    : 'bg-white border-gray-300 focus:border-red-500'
-                }`}
+                className={`w-full border-2 rounded-lg px-3 md:px-4 py-2 text-sm focus:ring-2 focus:ring-red-200 transition ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' : 'bg-white border-gray-300 focus:border-red-500'}`}
               />
             </div>
 
             {/* Hostel Filter */}
             <div>
-              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                <Filter size={16} className="inline mr-1" />
+              <label className={`block text-xs md:text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                <Filter size={14} className="md:w-4 md:h-4 inline mr-1" />
                 {role === "caretaker" ? "Your Hostel" : "Filter by Hostel"}
               </label>
               <select
                 value={selectedHostel}
                 onChange={(e) => setSelectedHostel(e.target.value)}
                 disabled={role === "caretaker"} // ✅ Disable for caretakers
-                className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
-                    : 'bg-white border-gray-300 focus:border-red-500'
-                } ${role === "caretaker" ? 'opacity-75 cursor-not-allowed' : ''}`}
+                className={`w-full border-2 rounded-lg px-3 md:px-4 py-2 text-sm focus:ring-2 focus:ring-red-200 transition ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' : 'bg-white border-gray-300 focus:border-red-500'} ${role === "caretaker" ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
                 {hostels.length > 0 ? (
                   hostels.map(hostel => (
@@ -770,8 +764,8 @@ export default function CalendarGuestsPage({
 
             {/* Search */}
             <div>
-              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                <Search size={16} className="inline mr-1" />
+              <label className={`block text-xs md:text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                <Search size={14} className="md:w-4 md:h-4 inline mr-1" />
                 Search Guest
               </label>
               <input
@@ -779,11 +773,7 @@ export default function CalendarGuestsPage({
                 placeholder="Name or Roll No..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border-2 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-200 transition ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-500' 
-                    : 'bg-white border-gray-300 focus:border-red-500'
-                }`}
+                className={`w-full border-2 rounded-lg px-3 md:px-4 py-2 text-sm focus:ring-2 focus:ring-red-200 transition ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-red-500' : 'bg-white border-gray-300 focus:border-red-500'}`}
               />
             </div>
           </div>
@@ -807,7 +797,7 @@ export default function CalendarGuestsPage({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 font-semibold transition border-b-3 ${
+                  className={`flex items-center gap-1 md:gap-2 px-2 sm:px-4 md:px-6 py-3 md:py-4 font-semibold text-xs sm:text-sm md:text-base transition border-b-3 whitespace-nowrap md:whitespace-normal ${
                     activeTab === tab.id
                       ? 'border-red-600 text-red-600 bg-red-50'
                       : theme === 'dark'
@@ -834,14 +824,14 @@ export default function CalendarGuestsPage({
       </div>
 
       {/* Guest List */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
         {filteredGuests.length === 0 ? (
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
-            <Users className={`w-16 h-16 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-300'}`} />
-            <h3 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg md:rounded-2xl shadow-lg p-6 md:p-12 text-center`}>
+            <Users className={`w-12 md:w-16 h-12 md:h-16 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-300'}`} />
+            <h3 className={`text-lg md:text-xl font-bold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
               No Guests Found
             </h3>
-            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-sm md:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               No guests match your filters for {formatDate(selectedDate)}
             </p>
           </div>
@@ -860,15 +850,15 @@ export default function CalendarGuestsPage({
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className={`mt-6 flex items-center justify-between ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4`}>
-                <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              <div className={`mt-4 md:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg md:rounded-xl shadow-md p-3 md:p-4`}>
+                <div className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                   Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredGuests.length)} of {filteredGuests.length} guests
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    className={`px-2 md:px-4 py-1 md:py-2 rounded-lg font-semibold transition text-sm md:text-base ${
                       currentPage === 1
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : theme === 'dark'
@@ -876,10 +866,11 @@ export default function CalendarGuestsPage({
                           : 'bg-red-600 text-white hover:bg-red-700'
                     }`}
                   >
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">←</span>
                   </button>
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 md:gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                       // Show first page, last page, current page, and pages around current
                       if (
@@ -891,7 +882,7 @@ export default function CalendarGuestsPage({
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`w-10 h-10 rounded-lg font-semibold transition ${
+                            className={`w-8 md:w-10 h-8 md:h-10 rounded-lg font-semibold transition text-sm ${
                               currentPage === page
                                 ? theme === 'dark'
                                   ? 'bg-red-600 text-white'
@@ -909,7 +900,7 @@ export default function CalendarGuestsPage({
                         page === currentPage + 2
                       ) {
                         return (
-                          <span key={page} className={`px-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <span key={page} className={`px-1 md:px-2 text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                             ...
                           </span>
                         );
@@ -921,7 +912,7 @@ export default function CalendarGuestsPage({
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    className={`px-2 md:px-4 py-1 md:py-2 rounded-lg font-semibold transition text-sm md:text-base ${
                       currentPage === totalPages
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : theme === 'dark'
@@ -929,7 +920,8 @@ export default function CalendarGuestsPage({
                           : 'bg-red-600 text-white hover:bg-red-700'
                     }`}
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
+                    <span className="sm:hidden">→</span>
                   </button>
                 </div>
               </div>

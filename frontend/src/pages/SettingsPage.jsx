@@ -449,52 +449,52 @@ export default function SettingsPage({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`min-h-screen p-6 md:p-10 ml-64 ${
+      className={`min-h-screen p-4 sm:p-6 md:p-10 md:ml-64 ${
         theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-black"
       }`}
     >
       <div className="max-w-6xl mx-auto">
         {/* HEADER */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className={`text-4xl font-extrabold ${theme === "dark" ? "text-red-400" : "text-red-700"} flex items-center gap-3`}>
-            <Settings className="w-10 h-10" /> Settings
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3 sm:gap-0">
+          <h1 className={`text-2xl sm:text-3xl md:text-4xl font-extrabold ${theme === "dark" ? "text-red-400" : "text-red-700"} flex items-center gap-2 sm:gap-3`}>
+            <Settings className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" /> Settings
           </h1>
 
           <button
             onClick={() => setActiveTab("Home")}
-            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow"
+            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg shadow whitespace-nowrap"
           >
-            <ArrowLeft size={18} /> Back to Home
+            <ArrowLeft size={16} className="sm:w-5 sm:h-5" /> Back to Home
           </button>
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
           {/* ===================== THEME ===================== */}
           <motion.div
             whileHover={{ y: -4 }}
-            className={`p-6 rounded-2xl shadow-md border ${
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
               theme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"
             }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-50 rounded-full">
-                  <Sun className="text-red-600" />
+                <div className="p-2 bg-red-50 rounded-full flex-shrink-0">
+                  <Sun className="text-red-600 w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-red-700">Theme</h2>
-                  <p className="text-sm text-gray-500">Light / Dark</p>
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">Theme</h2>
+                  <p className="text-xs sm:text-sm text-gray-500">Light / Dark</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setTheme("light")}
-                  className={`px-4 py-2 rounded-lg font-medium ${
+                  className={`px-3 sm:px-4 py-2 text-sm rounded-lg font-medium ${
                     theme === "light"
                       ? "bg-red-600 text-white"
                       : "bg-gray-200 hover:bg-gray-300"
@@ -505,7 +505,7 @@ export default function SettingsPage({
 
                 <button
                   onClick={() => setTheme("dark")}
-                  className={`px-4 py-2 rounded-lg font-medium ${
+                  className={`px-3 sm:px-4 py-2 text-sm rounded-lg font-medium ${
                     theme === "dark"
                       ? "bg-red-600 text-white"
                       : "bg-gray-200 hover:bg-gray-300"
@@ -520,23 +520,23 @@ export default function SettingsPage({
           {/* ===================== NOTIFICATIONS ===================== */}
           <motion.div
             whileHover={{ y: -4 }}
-            className={`p-6 rounded-2xl shadow-md border ${
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
               theme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"
             }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-50 rounded-full">
-                  <Bell className="text-red-600" />
+                <div className="p-2 bg-red-50 rounded-full flex-shrink-0">
+                  <Bell className="text-red-600 w-5 h-5" />
                 </div>
 
                 <div>
-                  <h2 className="text-lg font-semibold text-red-700">
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
                     Notifications
                   </h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     Enable alerts for bookings & cancellations.
                   </p>
                 </div>
@@ -576,27 +576,27 @@ export default function SettingsPage({
           {canManageRoles && (
             <motion.div
               whileHover={{ y: -4 }}
-              className={`p-6 rounded-2xl shadow-md border ${
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
                 theme === "dark"
                   ? "bg-gray-800 border-gray-700"
                   : "bg-white border-gray-200"
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-red-50 rounded-full mt-1">
-                  <Users className="text-red-600" />
+                <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                  <Users className="text-red-600 w-5 h-5" />
                 </div>
 
-                <div>
-                  <h2 className="text-lg font-semibold text-red-700">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
                     Role Management (Coming Soon)
                   </h2>
-                  <p className="text-sm text-gray-500 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-500 mb-3">
                     Configure Admin, Manager & Caretaker permissions.
                   </p>
 
                   <button
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg cursor-not-allowed"
+                    className="bg-gray-300 text-gray-700 px-3 sm:px-4 py-2 text-sm rounded-lg cursor-not-allowed"
                     onClick={() =>
                       showToast(
                         "Role management will be available after backend integration.",
@@ -615,29 +615,29 @@ export default function SettingsPage({
           {canClearCache && (
             <motion.div
               whileHover={{ y: -4 }}
-              className={`p-6 rounded-2xl shadow-md border ${
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
                 theme === "dark"
                   ? "bg-gray-800 border-gray-700"
                   : "bg-white border-gray-200"
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-red-50 rounded-full mt-1">
-                  <Database className="text-red-600" />
+                <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                  <Database className="text-red-600 w-5 h-5" />
                 </div>
 
-                <div>
-                  <h2 className="text-lg font-semibold text-red-700">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
                     Cache & Data
                   </h2>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-500 mb-4">
                     Clear local cached data & auto-fill records.
                   </p>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                       onClick={handleClearStorage}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                      className="px-3 sm:px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 whitespace-nowrap"
                     >
                       Clear Cache
                     </button>
@@ -645,7 +645,7 @@ export default function SettingsPage({
                     {canClearLastApproved && (
                       <button
                         onClick={handleClearLastApproved}
-                        className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                        className="px-3 sm:px-4 py-2 text-sm bg-gray-200 rounded-lg hover:bg-gray-300 whitespace-nowrap"
                       >
                         Clear Last Approved
                       </button>
@@ -660,36 +660,36 @@ export default function SettingsPage({
           {canManageHostels && (
             <motion.div
               whileHover={{ y: -4 }}
-              className={`p-6 rounded-2xl shadow-md border ${
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
                 theme === "dark"
                   ? "bg-gray-800 border-gray-700"
                   : "bg-white border-gray-200"
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-red-50 rounded-full mt-1">
-                  <PlusCircle className="text-red-600" />
+                <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                  <PlusCircle className="text-red-600 w-5 h-5" />
                 </div>
 
-                <div>
-                  <h2 className="text-lg font-semibold text-red-700">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
                     Manage Hostels
                   </h2>
-                  <p className="text-sm text-gray-500 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-500 mb-3">
                     Add, edit, delete hostels and rooms.
                   </p>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                       onClick={openAddHostelModal}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 inline-flex gap-2 items-center"
+                      className="bg-red-600 text-white px-3 sm:px-4 py-2 text-sm rounded-lg hover:bg-red-700 inline-flex gap-2 items-center justify-center sm:justify-start whitespace-nowrap"
                     >
                       <PlusCircle size={16} /> Add Hostel
                     </button>
 
                     <button
                       onClick={() => setManageHostelsModal(true)}
-                      className="bg-white border border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 inline-flex gap-2 items-center"
+                      className="bg-white border border-red-300 text-red-700 px-3 sm:px-4 py-2 text-sm rounded-lg hover:bg-red-50 inline-flex gap-2 items-center justify-center sm:justify-start whitespace-nowrap"
                     >
                       <Edit3 size={16} /> Manage Hostels
                     </button>
@@ -701,7 +701,7 @@ export default function SettingsPage({
         </div>
 
         {/* FOOTER */}
-        <p className="mt-10 text-center text-gray-500 text-sm">
+        <p className="mt-8 sm:mt-10 text-center text-gray-500 text-xs sm:text-sm">
           © {new Date().getFullYear()} Thapar Guest Room Portal
         </p>
       </div>
@@ -719,50 +719,50 @@ export default function SettingsPage({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-2xl p-6 w-[520px] shadow-xl"
+              className="bg-white rounded-2xl p-4 sm:p-6 w-[95%] max-w-[520px] shadow-xl"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-red-700">
+                <h3 className="text-lg sm:text-xl font-semibold text-red-700">
                   {editingKey ? "Edit Hostel" : "Add Hostel"}
                 </h3>
                 <button
                   onClick={() => setAddHostelModal(false)}
-                  className="text-gray-500 hover:text-red-700"
+                  className="text-gray-500 hover:text-red-700 flex-shrink-0"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* FORM */}
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-xs sm:text-sm font-medium mb-1">
                 Hostel Name
               </label>
               <input
                 type="text"
                 value={hostelName}
                 onChange={(e) => setHostelName(e.target.value)}
-                className="border rounded p-2 w-full mb-3"
+                className="border rounded p-2 text-sm w-full mb-3"
                 placeholder="e.g. Agira Hall (A)"
               />
 
               {/* ADD THIS NEW FIELD */}
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-xs sm:text-sm font-medium mb-1">
                 Hostel Code
               </label>
               <input
                 type="text"
                 value={hostelCode}
                 onChange={(e) => setHostelCode(e.target.value)}
-                className="border rounded p-2 w-full mb-3"
+                className="border rounded p-2 text-sm w-full mb-3"
                 placeholder="e.g. AGI (auto-generated if empty)"
               />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
                     Number of Rooms
                   </label>
                   <input
@@ -771,18 +771,18 @@ export default function SettingsPage({
                     min="1"
                     max="50"
                     onChange={(e) => setNumRooms(Number(e.target.value))}
-                    className="border rounded p-2 w-full"
+                    className="border rounded p-2 text-sm w-full"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
                     Room Type
                   </label>
                   <select
                     value={roomType}
                     onChange={(e) => setRoomType(e.target.value)}
-                    className="border rounded p-2 w-full"
+                    className="border rounded p-2 text-sm w-full"
                   >
                     {roomTypeOptions.map((opt) => (
                       <option key={opt}>{opt}</option>
@@ -792,28 +792,28 @@ export default function SettingsPage({
               </div>
 
               {/* EMAIL FIELDS */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3 sm:mt-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
                     Caretaker Email
                   </label>
                   <input
                     type="email"
                     value={caretakerEmail}
                     onChange={(e) => setCaretakerEmail(e.target.value)}
-                    className="border rounded p-2 w-full"
+                    className="border rounded p-2 text-sm w-full"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
                     Warden Email
                   </label>
                   <input
                     type="email"
                     value={wardenEmail}
                     onChange={(e) => setWardenEmail(e.target.value)}
-                    className="border rounded p-2 w-full"
+                    className="border rounded p-2 text-sm w-full"
                   />
                 </div>
               </div>
@@ -845,17 +845,17 @@ export default function SettingsPage({
                 </span>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-5 sm:mt-6">
                 <button
                   onClick={() => setAddHostelModal(false)}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
                 >
                   Cancel
                 </button>
 
                 <button
                   onClick={handleAddOrEditHostel}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                 >
                   {editingKey ? "Save Changes" : "Create Hostel"}
                 </button>
@@ -878,32 +878,32 @@ export default function SettingsPage({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-2xl p-6 w-[750px] shadow-xl"
+              className="bg-white rounded-2xl p-4 sm:p-6 w-[95%] max-w-[750px] shadow-xl"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-red-700">
+                <h3 className="text-lg sm:text-xl font-semibold text-red-700 truncate">
                   Manage Hostels
                 </h3>
                 <button
                   onClick={() => setManageHostelsModal(false)}
-                  className="text-gray-500 hover:text-red-700"
+                  className="text-gray-500 hover:text-red-700 flex-shrink-0"
                 >
                   <X />
                 </button>
               </div>
 
-              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-2 sm:space-y-3 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
                 {loading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-500">Loading hostels...</p>
+                    <p className="mt-4 text-sm text-gray-500">Loading hostels...</p>
                   </div>
                 ) : backendHostels.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No hostels found</p>
+                    <p className="text-sm text-gray-500">No hostels found</p>
                   </div>
                 ) : (
                   backendHostels
@@ -911,51 +911,51 @@ export default function SettingsPage({
                     .map((h) => (
                       <div
                         key={h._id}
-                        className="p-4 border rounded-lg flex justify-between items-center"
+                        className="p-3 sm:p-4 border rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4"
                       >
-                        <div>
-                          <h4 className="font-semibold">{h.name}</h4>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-sm sm:text-base truncate">{h.name}</h4>
                           <div className="text-xs text-gray-500">
                             {h.rooms?.length} rooms •{" "}
                             {h.active ? "Active" : "Inactive"}
                           </div>
                           {h.caretakerEmail && (
-                            <p className="text-xs">Caretaker: {h.caretakerEmail}</p>
+                            <p className="text-xs truncate">Caretaker: {h.caretakerEmail}</p>
                           )}
                           {h.wardenEmail && (
-                            <p className="text-xs">Warden: {h.wardenEmail}</p>
+                            <p className="text-xs truncate">Warden: {h.wardenEmail}</p>
                           )}
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
                           <button
-                            className="px-3 py-1 bg-blue-50 border rounded hover:bg-blue-100 text-blue-700"
+                            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-50 border rounded hover:bg-blue-100 text-blue-700 whitespace-nowrap"
                             onClick={() => {
                               openRoomManagementModal(h);
                               setManageHostelsModal(false);
                             }}
                           >
-                            <Users size={16} /> Rooms
+                            <Users size={14} className="sm:w-4 sm:h-4" /> Rooms
                           </button>
 
                           <button
-                            className="px-3 py-1 bg-white border rounded hover:bg-red-50 text-red-700"
+                            className="px-2 sm:px-3 py-1 bg-white border rounded hover:bg-red-50 text-red-700"
                             onClick={() => {
                               openEditHostelModal(h._id);
                               setManageHostelsModal(false);
                             }}
                           >
-                            <Edit3 size={16} />
+                            <Edit3 size={14} />
                           </button>
 
                           <button
-                            className="px-3 py-1 bg-white border rounded hover:bg-red-50 text-red-700"
+                            className="px-2 sm:px-3 py-1 bg-white border rounded hover:bg-red-50 text-red-700"
                             onClick={() => handleDeleteHostel(h._id, h.name)}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
 
-                          <label className="flex items-center cursor-pointer">
+                          <label className="flex items-center cursor-pointer flex-shrink-0">
                             <input
                               type="checkbox"
                               checked={h.active}
@@ -963,13 +963,13 @@ export default function SettingsPage({
                               className="hidden"
                             />
                             <span
-                              className={`w-12 h-7 flex items-center rounded-full p-1 transition ${
+                              className={`w-10 sm:w-12 h-6 sm:h-7 flex items-center rounded-full p-1 transition ${
                                 h.active ? "bg-green-500" : "bg-gray-400"
                               }`}
                             >
                               <span
-                                className={`bg-white w-5 h-5 rounded-full shadow transform transition ${
-                                  h.active ? "translate-x-5" : ""
+                                className={`bg-white w-4 sm:w-5 h-4 sm:h-5 rounded-full shadow transform transition ${
+                                  h.active ? "translate-x-4 sm:translate-x-5" : ""
                                 }`}
                               />
                             </span>
@@ -980,9 +980,9 @@ export default function SettingsPage({
                 )}
               </div>
 
-              <div className="flex justify-end mt-5">
+              <div className="flex justify-end mt-4 sm:mt-5">
                 <button
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
                   onClick={() => setManageHostelsModal(false)}
                 >
                   Close
@@ -1006,22 +1006,22 @@ export default function SettingsPage({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-2xl p-6 w-[800px] shadow-xl"
+              className="bg-white rounded-2xl p-4 sm:p-6 w-[95%] max-w-[800px] shadow-xl"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-red-700">
+              <div className="flex justify-between items-start gap-2 mb-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-red-700 flex-1 truncate">
                   {editingRoomIndex !== null ? "Edit Room" : "Manage Rooms"} –{" "}
-                  {selectedHostelForRooms}
+                  <span className="truncate">{selectedHostelForRooms?.name || selectedHostelForRooms}</span>
                 </h3>
                 <button
                   onClick={() => {
                     setRoomManagementModal(false);
                     setEditingRoomIndex(null);
                   }}
-                  className="text-gray-500 hover:text-red-700"
+                  className="text-gray-500 hover:text-red-700 flex-shrink-0"
                 >
                   <X />
                 </button>
@@ -1031,34 +1031,34 @@ export default function SettingsPage({
               {editingRoomIndex === null ? (
                 <>
                   <div className="space-y-2 max-h-[50vh] overflow-y-auto mb-4">
-                    {hostelData[selectedHostelForRooms].rooms.map(
+                    {selectedHostelForRooms?.rooms?.map(
                       (room, idx) => (
                         <div
                           key={idx}
-                          className="p-4 border rounded-lg bg-gray-50"
+                          className="p-3 sm:p-4 border rounded-lg bg-gray-50"
                         >
-                          <div className="flex justify-between">
-                            <div>
-                              <h4 className="font-semibold">{room.roomNo}</h4>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
+                            <div className="min-w-0">
+                              <h4 className="font-semibold text-sm sm:text-base">{room.roomNo}</h4>
                               <p className="text-xs text-gray-500">
                                 Type: {room.roomType}
                               </p>
                               {room.caretakerEmail && (
-                                <p className="text-xs">
+                                <p className="text-xs truncate">
                                   Caretaker: {room.caretakerEmail}
                                 </p>
                               )}
                               {room.wardenEmail && (
-                                <p className="text-xs">
+                                <p className="text-xs truncate">
                                   Warden: {room.wardenEmail}
                                 </p>
                               )}
                               <p className="text-xs">
-                                {room.bookings?.length} booking(s)
+                                {room.bookings?.length || 0} booking(s)
                               </p>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                               <button
                                 onClick={() =>
                                   openEditRoomModal(
@@ -1066,7 +1066,7 @@ export default function SettingsPage({
                                     idx
                                   )
                                 }
-                                className="px-3 py-1 border bg-blue-50 hover:bg-blue-100 rounded text-blue-700"
+                                className="px-2 sm:px-3 py-1 border bg-blue-50 hover:bg-blue-100 rounded text-blue-700"
                               >
                                 <Edit3 size={14} />
                               </button>
@@ -1078,7 +1078,7 @@ export default function SettingsPage({
                                     idx
                                   )
                                 }
-                                className="px-3 py-1 border bg-red-50 hover:bg-red-100 rounded text-red-700"
+                                className="px-2 sm:px-3 py-1 border bg-red-50 hover:bg-red-100 rounded text-red-700"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1089,7 +1089,17 @@ export default function SettingsPage({
                     )}
                   </div>
 
-                  <div className="flex justify-between">
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 sm:gap-3">
+                    <button
+                      className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                      onClick={() => {
+                        setRoomManagementModal(false);
+                        setSelectedHostelForRooms(null);
+                      }}
+                    >
+                      Close
+                    </button>
+
                     <button
                       onClick={() => {
                         setEditingRoomIndex("new");
@@ -1100,28 +1110,18 @@ export default function SettingsPage({
                           wardenEmail: "",
                         });
                       }}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 inline-flex items-center gap-2"
+                      className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 inline-flex items-center justify-center sm:justify-start gap-2"
                     >
                       <PlusCircle size={16} /> Add Room
-                    </button>
-
-                    <button
-                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                      onClick={() => {
-                        setRoomManagementModal(false);
-                        setSelectedHostelForRooms(null);
-                      }}
-                    >
-                      Close
                     </button>
                   </div>
                 </>
               ) : (
                 <>
                   {/* EDIT ROOM FORM */}
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-3 sm:space-y-4 mb-5 sm:mb-6">
                     <div>
-                      <label className="text-sm font-medium block mb-1">
+                      <label className="text-xs sm:text-sm font-medium block mb-1">
                         Room Number *
                       </label>
                       <input
@@ -1133,12 +1133,12 @@ export default function SettingsPage({
                             roomNo: e.target.value,
                           })
                         }
-                        className="border rounded p-2 w-full"
+                        className="border rounded p-2 text-sm w-full"
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium block mb-1">
+                      <label className="text-xs sm:text-sm font-medium block mb-1">
                         Room Type *
                       </label>
                       <select
@@ -1149,7 +1149,7 @@ export default function SettingsPage({
                             roomType: e.target.value,
                           })
                         }
-                        className="border rounded p-2 w-full"
+                        className="border rounded p-2 text-sm w-full"
                       >
                         <option value="">Select room type</option>
                         {roomTypeOptions.map((opt) => (
@@ -1158,12 +1158,12 @@ export default function SettingsPage({
                       </select>
                     </div>
 
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold mb-2">
+                    <div className="border-t pt-3 sm:pt-4">
+                      <h4 className="font-semibold text-sm mb-2">
                         Contact Information (Optional)
                       </h4>
 
-                      <label className="text-sm block mb-1">
+                      <label className="text-xs sm:text-sm block mb-1">
                         Caretaker Email
                       </label>
                       <input
@@ -1175,10 +1175,10 @@ export default function SettingsPage({
                             caretakerEmail: e.target.value,
                           })
                         }
-                        className="border rounded p-2 w-full"
+                        className="border rounded p-2 text-sm w-full"
                       />
 
-                      <label className="text-sm block mt-3 mb-1">
+                      <label className="text-xs sm:text-sm block mt-2 sm:mt-3 mb-1">
                         Warden Email
                       </label>
                       <input
@@ -1190,14 +1190,14 @@ export default function SettingsPage({
                             wardenEmail: e.target.value,
                           })
                         }
-                        className="border rounded p-2 w-full"
+                        className="border rounded p-2 text-sm w-full"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3">
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <button
-                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                      className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
                       onClick={() => setEditingRoomIndex(null)}
                     >
                       Cancel
@@ -1205,7 +1205,7 @@ export default function SettingsPage({
 
                     <button
                       onClick={handleSaveRoom}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                      className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                     >
                       {editingRoomIndex === "new"
                         ? "Add Room"
@@ -1229,7 +1229,7 @@ export default function SettingsPage({
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className={`fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-white flex gap-2 items-center ${
+            className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 px-4 sm:px-5 py-2 sm:py-3 rounded-lg shadow-lg text-white flex gap-2 items-center text-sm ${
               toast.type === "success"
                 ? "bg-green-600"
                 : toast.type === "info"
@@ -1238,7 +1238,7 @@ export default function SettingsPage({
             }`}
           >
             {toast.message}
-            <button onClick={() => setToast(null)}>
+            <button onClick={() => setToast(null)} className="flex-shrink-0">
               <X size={16} />
             </button>
           </motion.div>

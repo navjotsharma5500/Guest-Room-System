@@ -359,7 +359,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
   return (
     <motion.div
-      className="admin-page-container min-h-screen bg-cover bg-center bg-fixed relative p-6 z-10 ml-64 dark:bg-gray-900"
+      className="admin-page-container min-h-screen bg-cover bg-center bg-fixed relative p-4 sm:p-6 z-10 md:ml-64 dark:bg-gray-900"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundColor: "rgba(255, 248, 240, 0.92)",
@@ -371,18 +371,18 @@ export default function AdminEnquiryPage({ setActiveTab }) {
       transition={{ duration: 0.6, type: "spring" }}
     >
       {/* ===== Header Section ===== */}
-      <motion.div className="flex flex-col items-center gap-4 mb-8 px-8 py-6 rounded-2xl shadow-lg bg-gradient-to-r from-red-700 via-red-600 to-red-700 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 backdrop-blur-md">
+      <motion.div className="flex flex-col items-center gap-4 mb-8 px-4 sm:px-6 md:px-8 py-4 sm:py-6 rounded-2xl shadow-lg bg-gradient-to-r from-red-700 via-red-600 to-red-700 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 backdrop-blur-md">
         <motion.div
-          className="px-8 py-3 bg-white/90 dark:bg-gray-800/90 border-2 border-red-700 dark:border-gray-600 rounded-full shadow-lg text-center"
+          className="px-6 sm:px-8 py-2 sm:py-3 bg-white/90 dark:bg-gray-800/90 border-2 border-red-700 dark:border-gray-600 rounded-full shadow-lg text-center"
           whileHover={{ scale: 1.03 }}
         >
-          <h1 className="text-2xl font-extrabold text-red-700 dark:text-gray-200 tracking-wide drop-shadow-sm">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-red-700 dark:text-gray-200 tracking-wide drop-shadow-sm">
             Guest Enquiry Management
           </h1>
         </motion.div>
 
         {/* ===== Filter + Buttons ===== */}
-        <div className="flex flex-wrap justify-center gap-3 mt-3">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-3 w-full px-2">
           {[
             {
               label: "Approved",
@@ -410,7 +410,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setFilter(btn.filterType)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl shadow-md border-2 font-medium transition-all duration-300 ${
+              className={`flex items-center gap-2 px-3 sm:px-5 py-2 rounded-xl shadow-md border-2 font-medium transition-all duration-300 text-xs sm:text-sm ${
                 filter === btn.filterType
                   ? "bg-red-600 text-white border-red-700 dark:bg-gray-700 dark:border-gray-600"
                   : "bg-white text-red-700 border-red-300 hover:bg-red-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
@@ -424,7 +424,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleDownloadCSV}
-            className="flex items-center gap-2 bg-red-600 dark:bg-gray-700 text-white px-5 py-2 rounded-xl shadow-md border border-red-700 dark:border-gray-600 hover:bg-red-700 dark:hover:bg-gray-600 transition-all duration-300"
+            className="flex items-center gap-2 bg-red-600 dark:bg-gray-700 text-white px-3 sm:px-5 py-2 rounded-xl shadow-md border border-red-700 dark:border-gray-600 hover:bg-red-700 dark:hover:bg-gray-600 transition-all duration-300 font-medium text-xs sm:text-sm"
           >
             <Download size={18} /> Download
           </motion.button>
@@ -433,7 +433,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setActiveTab("Home")}
-            className="flex items-center gap-2 bg-white dark:bg-gray-700 text-red-700 dark:text-gray-200 px-5 py-2 rounded-xl shadow-md hover:bg-red-50 dark:hover:bg-gray-600 transition-all duration-300 font-medium border border-red-300 dark:border-gray-600"
+            className="flex items-center gap-2 bg-white dark:bg-gray-700 text-red-700 dark:text-gray-200 px-3 sm:px-5 py-2 rounded-xl shadow-md hover:bg-red-50 dark:hover:bg-gray-600 transition-all duration-300 font-medium border border-red-300 dark:border-gray-600 text-xs sm:text-sm"
           >
             <Home size={18} /> Home
           </motion.button>
@@ -442,7 +442,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
       {/* ===== Enquiry List or Details ===== */}
       <motion.div
-        className="bg-white dark:bg-gray-800 bg-opacity-95 dark:bg-opacity-100 border border-red-300 dark:border-gray-700 rounded-3xl shadow-2xl p-8 max-w-5xl mx-auto"
+        className="bg-white dark:bg-gray-800 bg-opacity-95 dark:bg-opacity-100 border border-red-300 dark:border-gray-700 rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-5xl mx-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", duration: 0.6 }}
@@ -450,7 +450,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         <AnimatePresence>
           {!selected ? (
             filteredEnquiries.length === 0 ? (
-              <p className="text-center text-gray-600 italic">
+              <p className="text-center text-gray-600 dark:text-gray-400 italic text-sm sm:text-base">
                 {filter === "approved"
                   ? "No approved guests yet."
                   : filter === "booked"
@@ -460,19 +460,19 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                   : "No guest enquiries yet."}
               </p>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-3 sm:gap-4">
                 {paginatedEnquiries.map((e, i) => (
                   <motion.div
                     key={i}
-                    className="flex justify-between items-center bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-xl px-6 py-4 shadow-sm hover:shadow-md hover:bg-red-100 dark:hover:bg-gray-600 cursor-pointer transition-all"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-sm hover:shadow-md hover:bg-red-100 dark:hover:bg-gray-600 cursor-pointer transition-all gap-3 sm:gap-4"
                     whileHover={{ scale: 1.02 }}
                     onClick={() => setSelected(e)}
                   >
-                    <div>
-                      <h3 className="text-lg font-semibold text-red-700 dark:text-gray-200">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-semibold text-red-700 dark:text-gray-200 truncate">
                         {e.name}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                         {new Date(e.createdAt).toLocaleString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -482,54 +482,53 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                           hour12: true
                         }).replace(",", "").replace(" ", "-")}
                       </p>    
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 italic">
+                      <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-1 italic truncate">
                         {e.purpose || "No purpose provided"}
                       </p>
 
                       {/* ✅ Show check-in/check-out dates and times */}
                       {(e.from || e.to) && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex flex-wrap gap-2">
                           {e.from && (
                             <>
-                              Check-in: <strong>{formatTimeWithAMPM(e.checkInTime)}</strong> on{" "}
-                              <strong>{formatShortDate(e.from)}</strong>
+                              <span>Check-in: <strong>{formatTimeWithAMPM(e.checkInTime)}</strong> on{" "}
+                              <strong>{formatShortDate(e.from)}</strong></span>
                             </>
                           )}
                           {e.to && (
                             <>
-                              {e.from && " | "}
-                              Check-out: <strong>{formatTimeWithAMPM(e.checkOutTime)}</strong> on{" "}
-                              <strong>{formatShortDate(e.to)}</strong>
+                              {e.from && <span>|</span>}
+                              <span>Check-out: <strong>{formatTimeWithAMPM(e.checkOutTime)}</strong> on{" "}
+                              <strong>{formatShortDate(e.to)}</strong></span>
                             </>
                           )}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                       {e.files?.length > 0 && (
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <FileText size={18} />
-                          <span className="text-sm">
-                            {e.files.length} file
-                            {e.files.length > 1 ? "s" : ""}
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                          <FileText size={16} className="sm:w-5 sm:h-5" />
+                          <span className="text-xs sm:text-sm">
+                            {e.files.length}
                           </span>
                         </div>
                       )}
                       {(!e.status || e.status === "pending") ? (
-                        <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
-                          New Enquiry
+                        <span className="text-xs sm:text-sm font-semibold text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
+                          New
                         </span>
                       ) : e.status === "pending-approval" ? (
-                        <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
-                          Pending Approval
+                        <span className="text-xs sm:text-sm font-semibold text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
+                          Pending
                         </span>
                       ) : e.status === "pending-room-selection" ? (
-                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          Awaiting Room Assignment
+                        <span className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                          Awaiting Room
                         </span>
                       ) : (
                         <span
-                          className={`text-sm font-semibold capitalize ${
+                          className={`text-xs sm:text-sm font-semibold capitalize whitespace-nowrap ${
                             e.status === "approved" || e.status === "booked"
                               ? "text-green-600 dark:text-green-400"
                               : "text-red-600 dark:text-red-400"
@@ -547,16 +546,16 @@ export default function AdminEnquiryPage({ setActiveTab }) {
             // ===== Selected Enquiry Details =====
             <motion.div
               key="details"
-              className="p-6 bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-2xl shadow-inner"
+              className="p-4 sm:p-6 bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-2xl shadow-inner"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ type: "spring", duration: 0.6 }}
             >
-              <h2 className="text-2xl font-bold text-red-700 dark:text-gray-200 mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-red-700 dark:text-gray-200 mb-4">
                 {selected.name}
               </h2>
-              <div className="space-y-2 text-gray-700 dark:text-gray-300">
+              <div className="space-y-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
                 
                 {/* ✅ Unified detail list for Guest Enquiry */}
                 {[
@@ -591,11 +590,11 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
               {/* ✅ Data Verification Section */}
               {selected && (
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-gray-600 rounded-lg border border-blue-200 dark:border-gray-500">
-                  <h3 className="font-semibold text-blue-700 dark:text-blue-300 mb-3">
+                <div className="mt-4 p-3 sm:p-4 bg-blue-50 dark:bg-gray-600 rounded-lg border border-blue-200 dark:border-gray-500">
+                  <h3 className="font-semibold text-sm sm:text-base text-blue-700 dark:text-blue-300 mb-3">
                     ✅ Enquiry Details Verification
                   </h3>  
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                     <div>
                       <p className="font-medium text-gray-600 dark:text-gray-400">Roll No:</p>
                       <p className="font-semibold">{selected.rollno || "—"}</p>
@@ -647,10 +646,10 @@ export default function AdminEnquiryPage({ setActiveTab }) {
               {/* ===== Attachments ===== */}
               {selected.files && selected.files.length > 0 && (
                 <div className="mt-5">
-                  <p className="font-semibold text-red-700 dark:text-red-300 mb-3">
+                  <p className="font-semibold text-sm sm:text-base text-red-700 dark:text-red-300 mb-3">
                     Attachments: ({selected.files.length})
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {selected.files.map((fileUrl, index) => {
                       const normalizedUrl = normalizeImageKitUrl(fileUrl);
 
@@ -664,7 +663,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                         <motion.div
                           key={index}
                           whileHover={{ scale: 1.03 }}
-                          className="flex flex-col items-center bg-white rounded-lg shadow-md p-3 cursor-pointer hover:shadow-lg transition"
+                          className="flex flex-col items-center bg-white rounded-lg shadow-md p-2 sm:p-3 cursor-pointer hover:shadow-lg transition"
                           onClick={() => {
                             if (!normalizedUrl) return;
                             const newTab = window.open();
@@ -685,7 +684,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                             <img
                               src={normalizedUrl}
                               alt={`Attachment ${index + 1}`}
-                              className="w-full h-32 object-contain bg-white rounded-md mb-2 transition-transform duration-300 hover:scale-105"
+                              className="w-full h-24 sm:h-32 object-contain bg-white rounded-md mb-2 transition-transform duration-300 hover:scale-105"
                               onError={(e) => {
                                 console.error("❌ Image failed to load");
                                 e.target.src =
@@ -696,8 +695,8 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                               }}
                             />
                           ) : (
-                            <div className="flex items-center justify-center w-full h-32 bg-gray-100 text-gray-600 rounded-md mb-2">
-                              <FileText size={24} />
+                            <div className="flex items-center justify-center w-full h-24 sm:h-32 bg-gray-100 text-gray-600 rounded-md mb-2">
+                              <FileText size={20} className="sm:w-6 sm:h-6" />
                             </div>
                           )}        
                           <p className="text-xs text-gray-600 text-center truncate w-full" title={normalizedUrl}>
@@ -720,12 +719,12 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                     "pending-approval",
                     "pending-room-selection",
                   ].includes(selected.status) && (
-                    <div className="flex justify-end gap-4 mt-8">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4 mt-6 sm:mt-8">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDecision("approved")}
-                        className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-green-700 transition-all font-semibold"
+                        className="flex items-center justify-center sm:justify-start gap-2 bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-green-700 transition-all font-semibold text-sm sm:text-base"
                       >
                         <CheckCircle2 size={20} /> Approve
                       </motion.button>
@@ -734,7 +733,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDecision("rejected")}
-                        className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-red-700 transition-all font-semibold"
+                        className="flex items-center justify-center sm:justify-start gap-2 bg-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-red-700 transition-all font-semibold text-sm sm:text-base"
                       >
                         <XCircle size={20} /> Reject
                       </motion.button>
@@ -743,7 +742,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelected(null)}
-                        className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold"
+                        className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold text-sm sm:text-base"
                       >
                         Back
                       </motion.button>
@@ -752,9 +751,9 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
                   {/* Show status badge ONLY if booked or rejected (final states) */}
                   {["booked", "rejected"].includes(selected.status) && (
-                    <div className="flex justify-end gap-4 mt-8">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4 mt-6 sm:mt-8">
                       <div
-                        className={`px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center gap-2 ${
+                        className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold shadow-lg flex items-center gap-2 text-sm sm:text-base ${
                           selected.status === "booked" || selected.status === "approved"
                             ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                             : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
@@ -774,7 +773,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelected(null)}
-                        className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold"
+                        className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold text-sm sm:text-base"
                       >
                         Back
                       </motion.button>
@@ -788,11 +787,11 @@ export default function AdminEnquiryPage({ setActiveTab }) {
 
         {/* ===== Pagination Controls ===== */}
         {filteredEnquiries.length > 0 && totalPages > 1 && !selected && (
-          <div className="flex justify-center items-center gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-2 sm:gap-3 mt-6 px-3 sm:px-0">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                 currentPage === 1
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-red-600 text-white hover:bg-red-700"
@@ -801,14 +800,14 @@ export default function AdminEnquiryPage({ setActiveTab }) {
               Previous
             </button>
             
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-xs sm:text-sm font-medium text-gray-700 text-center">
               Page {currentPage} of {totalPages} ({filteredEnquiries.length} total)
             </span>
             
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                 currentPage === totalPages
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-red-600 text-white hover:bg-red-700"
@@ -828,16 +827,16 @@ export default function AdminEnquiryPage({ setActiveTab }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.4 }}
-            className={`fixed bottom-6 right-6 bg-white border-l-8 ${
+            className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white border-l-8 ${
               toast.color === "green" ? "border-green-500" : "border-red-500"
-            } shadow-xl px-6 py-4 rounded-xl text-gray-800 font-medium flex items-center gap-3`}
+            } shadow-xl px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-gray-800 font-medium flex items-center gap-3 text-sm sm:text-base`}
           >
             {toast.color === "green" ? (
-              <CheckCircle2 className="text-green-500" size={24} />
+              <CheckCircle2 className="text-green-500 flex-shrink-0" size={24} />
             ) : (
-              <XCircle className="text-red-500" size={24} />
+              <XCircle className="text-red-500 flex-shrink-0" size={24} />
             )}
-            {toast.message}
+            <span className="flex-1">{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>

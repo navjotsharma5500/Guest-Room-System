@@ -108,16 +108,16 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   // ✅ ACCESS DENIED FOR GUESTS
   if (!canAccessPage) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
-        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md">
-          <ShieldAlert className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+      <div className={`min-h-screen flex items-center justify-center p-4 md:ml-64 md:mt-16 ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+        <div className="text-center p-4 sm:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-xs sm:max-w-md">
+          <ShieldAlert className="w-12 h-12 sm:w-16 sm:h-16 text-red-600 mx-auto mb-4" />
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
             You don't have permission to view department payments.
           </p>
           <button
             onClick={onBack}
-            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition"
+            className="bg-red-600 text-white px-4 sm:px-6 py-2 text-sm sm:text-base rounded-lg hover:bg-red-700 transition"
           >
             Go Back
           </button>
@@ -128,64 +128,62 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
 
   if (loading) {
     return (
-      <div className={`fixed inset-0 ml-64 mt-16 flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`fixed inset-0 md:ml-64 md:mt-16 flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className={`text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Loading department payments...</p>
+          <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-b-2 border-blue-600"></div>
+          <p className={`text-xs sm:text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Loading department payments...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`fixed inset-0 ml-64 mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-blue-50 to-purple-50'} overflow-y-auto`}>
+    <div className={`fixed inset-0 md:ml-64 md:mt-16 bg-gradient-to-br ${theme === 'dark' ? 'bg-gray-900' : 'from-blue-50 to-purple-50'} overflow-y-auto`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl rounded-3xl mx-6 mt-6">
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
-              >
-                <ArrowLeft size={24} />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <Building2 size={32} />
-                  Department Payments Pending
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl rounded-2xl md:rounded-3xl mx-3 sm:mx-6 mt-4 sm:mt-6">
+        <div className="px-3 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-start gap-2 sm:gap-4 flex-col sm:flex-row">
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-white/20 rounded-lg transition flex-shrink-0"
+            >
+              <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1 sm:gap-2 flex-wrap">
+                <Building2 size={20} className="sm:w-8 sm:h-8" />
+                <span>Dept Payments</span>
                   {/* ✅ SHOW HOSTEL FILTER FOR RESTRICTED ROLES */}
                   {isRestrictedRole && assignedHostel && (
-                    <span className="text-lg font-normal text-blue-100">
+                    <span className="text-xs sm:text-base md:text-lg font-normal text-blue-100 ml-1">
                       - {assignedHostel}
                     </span>
                   )}
-                </h1>
-                <p className="text-blue-100 mt-1">
-                  {isRestrictedRole 
-                    ? `Showing ${assignedHostel} department payments only`
-                    : "These payments are awaiting department clearance - NOT defaulters"}
-                </p>
-              </div>
+              </h1>
+              <p className="text-blue-100 mt-1 text-xs sm:text-sm">
+                {isRestrictedRole 
+                  ? `Showing ${assignedHostel} payments only`
+                  : "Awaiting department clearance - NOT defaulters"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="px-3 sm:px-6 py-4 sm:py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-6 border-l-4 border-blue-500`}
+            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-blue-500`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Pending</p>
-                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mt-2">{stats.total}</p>
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Total Pending</p>
+                <p className="text-2xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mt-1 sm:mt-2">{stats.total}</p>
               </div>
-              <Clock className="w-12 h-12 text-blue-500 dark:text-blue-400" />
+              <Clock className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500 dark:text-blue-400 flex-shrink-0" />
             </div>
           </motion.div>
 
@@ -193,42 +191,43 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-6 border-l-4 border-orange-500`}
+            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg sm:rounded-xl shadow-md p-3 sm:p-6 border-l-4 border-orange-500`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Amount Due</p>
-                <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 mt-2">
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Amount Due</p>
+                <p className="text-2xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400 mt-1 sm:mt-2 truncate">
                   ₹{stats.totalAmount.toLocaleString()}
                 </p>
               </div>
-              <IndianRupee className="w-12 h-12 text-orange-500 dark:text-orange-400" />
+              <IndianRupee className="w-8 h-8 sm:w-12 sm:h-12 text-orange-500 dark:text-orange-400 flex-shrink-0" />
             </div>
           </motion.div>
         </div>
 
-        {/* Table */}
-        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg overflow-hidden`}>
+        {/* Desktop Table View - Hidden on Mobile */}
+        <div className="hidden sm:block">
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg sm:rounded-xl shadow-lg overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Guest Details
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Location
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Checkout Date
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Days Pending
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Action
                   </th>
                 </tr>
@@ -236,11 +235,11 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
               <tbody className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} divide-y divide-gray-200 dark:divide-gray-700`}>
                 {pending.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-3 sm:px-6 py-8 sm:py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <Building2 className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-                        <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No pending department payments</p>
-                        <p className="text-gray-400 dark:text-gray-500 text-sm">All payments have been cleared</p>
+                        <Building2 className="w-10 h-10 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-lg font-medium">No pending payments</p>
+                        <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">All payments cleared</p>
                       </div>
                     </td>
                   </tr>
@@ -257,31 +256,31 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                         animate={{ opacity: 1 }}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                             {booking.guest}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{booking.email}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{booking.email}</div>
                           <div className="text-xs text-gray-400 dark:text-gray-500">{booking.contact}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">{booking.hostel}</div>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 font-medium">{booking.hostel}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">Room {booking.roomNo}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           {new Date(booking.checkedOutAt).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric'
                           })}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className="text-base sm:text-lg font-bold text-orange-600 dark:text-orange-400">
                             ₹{booking.balanceAmount.toLocaleString()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className={`px-2 sm:px-3 py-1 text-xs font-medium rounded-full ${
                             daysPending > 7 
                               ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" 
                               : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
@@ -289,16 +288,15 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
                             {daysPending} days
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                           <button
                             onClick={() => {
-                              // ✅ Department has already been marked - now collecting actual payment
-                              console.log("ðŸ’° Collecting department payment for:", booking._id);
+                              console.log("Collecting payment for:", booking._id);
                               openPaymentModal(booking);
                             }}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg"
+                            className="bg-blue-600 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg whitespace-nowrap"
                           >
-                            Collect Payment
+                            Pay
                           </button>
                         </td>
                       </motion.tr>
@@ -308,6 +306,87 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
               </tbody>
             </table>
           </div>
+        </div>
+        </div>
+
+        {/* Mobile Card View - Hidden on Desktop */}
+        <div className="sm:hidden">
+          {pending.length === 0 ? (
+            <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg p-6 text-center`}>
+              <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-1">No pending payments</p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs">All payments cleared</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pending.map((booking) => {
+                const daysPending = Math.floor(
+                  (Date.now() - new Date(booking.checkedOutAt)) / (1000 * 60 * 60 * 24)
+                );
+                
+                return (
+                  <motion.div
+                    key={booking._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-4 border-l-4 border-blue-500`}
+                  >
+                    <div className="mb-3">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">{booking.guest}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{booking.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{booking.contact}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{booking.hostel}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Room {booking.roomNo}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 mb-1">Checkout</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {new Date(booking.checkedOutAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-3 pb-3 border-t border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-1">Amount Due</p>
+                        <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                          ₹{booking.balanceAmount.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-1">Pending</p>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full inline-block ${
+                          daysPending > 7 
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" 
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        }`}>
+                          {daysPending} days
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        console.log("Collecting payment for:", booking._id);
+                        openPaymentModal(booking);
+                      }}
+                      className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                    >
+                      Collect Payment
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

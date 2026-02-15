@@ -1,4 +1,4 @@
-export default function masterTemplate({ title, content }) {
+export default function masterTemplate({ title, content, skipDefaultButton = false }) {
   return `
 <!DOCTYPE html>
 <html>
@@ -88,7 +88,8 @@ margin-bottom:26px;
 ${content}
 </div>
 
-<!-- CTA BUTTON -->
+<!-- CTA BUTTON (Only shown if skipDefaultButton is not true) -->
+${skipDefaultButton ? '' : `
 <a href="{{FEEDBACK_LINK}}" style="
 display:inline-block;
 padding:14px 38px;
@@ -106,6 +107,7 @@ Share Your Feedback
 <div style="margin-top:22px;font-size:13px;color:#6b7280;">
 Your experience helps us serve you better.
 </div>
+`}
 
 </td>
 </tr>

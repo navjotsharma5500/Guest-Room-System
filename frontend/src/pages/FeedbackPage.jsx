@@ -111,35 +111,35 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
           onClick={onClose}
         >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          onClick={(e) => e.stopPropagation()}
-          className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto will-change-auto`}
-        >
-          {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl z-10 flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Star size={24} />
-                Rate Guest Experience
-              </h2>
-              <p className="text-red-100 text-sm mt-1">{guest.guest} - Room {guest.roomNo}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
-            >
-              <X size={24} />
-            </button>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto will-change-auto`}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-4 md:p-6 rounded-t-lg md:rounded-t-2xl z-10 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <Star size={20} className="md:w-6 md:h-6" />
+              Rate Guest Experience
+            </h2>
+            <p className="text-red-100 text-xs md:text-sm mt-1">{guest.guest} - Room {guest.roomNo}</p>
           </div>
+          <button
+            onClick={onClose}
+            className="ml-auto md:ml-0 text-white hover:bg-white/20 rounded-full p-2 transition"
+          >
+            <X size={20} className="md:w-6 md:h-6" />
+          </button>
+        </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 md:p-6 space-y-4 md:space-y-6">
             {/* Star Rating */}
             <div className="text-center">
-              <p className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>How would you rate this guest?</p>
-              <div className="flex justify-center gap-3 mb-4">
+              <p className={`text-base md:text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>How would you rate this guest?</p>
+              <div className="flex justify-center gap-2 md:gap-3 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -149,8 +149,8 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                     className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
                   >
                     <Star
-                      size={48}
-                      className="transition-colors duration-150"
+                      size={40}
+                      className="md:w-12 md:h-12 transition-colors duration-150"
                       style={{
                         fill: star <= currentRating ? 
                           (currentRating === 5 ? '#10b981' :
@@ -189,7 +189,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
 
             {/* Remarks */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+              <label className={`block text-xs md:text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
                 Remarks (Optional)
               </label>
               <textarea
@@ -197,7 +197,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add any specific feedback about the guest's stay..."
                 rows={4}
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition ${
+                className={`w-full px-3 md:px-4 py-2 md:py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none transition text-sm md:text-base ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
@@ -207,7 +207,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
 
             {/* Attachments */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+              <label className={`block text-xs md:text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
                 Attachments (Optional, max 5)
               </label>
               <div className="space-y-3">
@@ -223,7 +223,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
                 )}
                 <label
                   htmlFor="feedback-file-upload"
-                  className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition ${
+                  className={`flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-3 border-2 border-dashed rounded-xl cursor-pointer transition text-sm md:text-base ${
                     attachments.length >= 5 
                       ? 'opacity-50 cursor-not-allowed' 
                       : theme === 'dark'
@@ -239,19 +239,19 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
 
                 {/* Attachment previews */}
                 {attachments.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 md:gap-3">
                     {attachments.map((url, idx) => (
                       <div key={idx} className="relative group">
                         <img
                           src={url}
                           alt={`Attachment ${idx + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          className="w-full h-20 md:h-24 object-cover rounded-lg"
                         />
                         <button
                           onClick={() => removeAttachment(idx)}
-                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-0.5 md:top-1 right-0.5 md:right-1 bg-red-600 text-white p-0.5 md:p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <X size={16} />
+                          <X size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     ))}
@@ -261,11 +261,11 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-4">
               <button
                 onClick={onClose}
                 disabled={submitting}
-                className={`flex-1 px-6 py-3 border-2 rounded-xl font-semibold transition ${
+                className={`flex-1 px-4 md:px-6 py-2 md:py-3 border-2 rounded-xl font-semibold text-sm md:text-base transition ${
                   theme === 'dark'
                     ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -276,7 +276,7 @@ function FeedbackModal({ guest, onClose, onSubmit, existingFeedback, theme }) {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || rating === 0}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition guestroom-primary-btn"
+                className="flex-1 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold text-sm md:text-base hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition guestroom-primary-btn"
               >
                 {submitting ? 'Submitting...' : existingFeedback ? 'Update Feedback' : 'Submit Feedback'}
               </button>
@@ -301,24 +301,24 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
         theme === 'dark' ? 'bg-gray-800' : 'bg-white'
       }`}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6`}>
         {/* Left: Guest Info */}
         <div className="lg:col-span-4 space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-base md:text-lg font-bold mb-1 truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
                 {guest.guest}
               </h3>
               {hasFeedback && (
-                <div className="flex items-center gap-1 mt-2">
+                <div className="flex items-center gap-1 mt-2 flex-wrap">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      size={16}
+                      size={14}
                       className={i < existingFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
                     />
                   ))}
-                  <span className={`ml-2 text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                  <span className={`ml-1 text-xs md:text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
                     {existingFeedback.rating}/5
                   </span>
                 </div>
@@ -326,18 +326,18 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
             </div>
           </div>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-xs md:text-sm">
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-              <Mail className="w-4 h-4 text-red-500" />
+              <Mail className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
               <span className="truncate">{guest.email}</span>
             </div>
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-              <Phone className="w-4 h-4 text-red-500" />
+              <Phone className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
               <span>{guest.contact}</span>
             </div>
             {guest.rollno && (
               <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-                <User className="w-4 h-4 text-red-500" />
+                <User className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
                 <span>Roll: {guest.rollno}</span>
               </div>
             )}
@@ -346,25 +346,25 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
 
         {/* Middle: Booking Details */}
         <div className="lg:col-span-4 space-y-3">
-          <div className="space-y-2">
+          <div className="space-y-2 text-xs md:text-sm">
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-red-500" />
-              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+              <Building2 className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
+              <span className={`font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
                 {guest.hostel}
               </span>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}>• Room {guest.roomNo}</span>
+              <span className={`truncate ${theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}`}>• Room {guest.roomNo}</span>
             </div>
-            <div className={`flex items-center gap-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-              <Calendar className="w-4 h-4 text-red-500" />
-              <span>
+            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <Calendar className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
+              <span className="truncate">
                 {new Date(guest.from).toLocaleDateString()} - {new Date(guest.to).toLocaleDateString()}
               </span>
             </div>
           </div>
 
           {hasFeedback && existingFeedback.remarks && (
-            <div className={`mt-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-700'}`}>
+            <div className={`mt-3 p-3 md:p-4 rounded-lg text-xs md:text-sm ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
+              <p className={theme === 'dark' ? 'text-gray-300' : 'text-slate-700'}>
                 <span className="font-semibold">Remarks:</span> {existingFeedback.remarks}
               </p>
             </div>
@@ -372,10 +372,10 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
         </div>
 
         {/* Right: Action Button */}
-        <div className="lg:col-span-4 flex items-center justify-end">
+        <div className="lg:col-span-4 flex flex-col items-start lg:items-center lg:justify-end gap-3">
           <button
             onClick={() => onRate(guest)}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all guestroom-primary-btn ${
+            className={`w-full lg:w-auto px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all guestroom-primary-btn ${
               hasFeedback
                 ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
                 : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800'
@@ -388,17 +388,17 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
 
       {/* Attachments */}
       {hasFeedback && existingFeedback.attachments?.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
+          <p className={`text-xs md:text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
             Attachments ({existingFeedback.attachments.length})
           </p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
             {existingFeedback.attachments.map((url, idx) => (
               <img
                 key={idx}
                 src={url}
                 alt={`Attachment ${idx + 1}`}
-                className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
+                className="w-full h-16 md:h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
                 onClick={() => window.open(url, '_blank')}
               />
             ))}
@@ -421,38 +421,40 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
         theme === 'dark' ? 'bg-gray-800' : 'bg-white'
       }`}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6`}>
         {/* Left: Guest Info */}
         <div className="lg:col-span-4 space-y-3">
-          <div>
-            <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-              {feedback.name || 'Unknown Guest'}
-            </h3>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-2xl">{ratingConfig.emoji}</span>
-              <div className="flex items-center gap-1">
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-base md:text-lg font-bold mb-1 truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                {feedback.name || 'Unknown Guest'}
+              </h3>
+            </div>
+            <div className="flex items-center gap-1 md:gap-2 mt-2 flex-wrap">
+              <span className="text-lg md:text-2xl">{ratingConfig.emoji}</span>
+              <div className="flex items-center gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    size={16}
+                    size={14}
                     className={i < feedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
                   />
                 ))}
               </div>
-              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <span className={`text-xs md:text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
                 {feedback.rating}/5 - {ratingConfig.label}
               </span>
             </div>
           </div>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-1 md:space-y-2 text-xs md:text-sm">
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-              <Building2 className="w-4 h-4 text-red-500" />
-              <span>{feedback.hostel}</span>
+              <Building2 className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
+              <span className="truncate">{feedback.hostel}</span>
             </div>
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-              <Calendar className="w-4 h-4 text-red-500" />
-              <span>{new Date(feedback.submittedAt).toLocaleDateString()}</span>
+              <Calendar className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
+              <span className="truncate">{new Date(feedback.submittedAt).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
@@ -460,11 +462,11 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
         {/* Middle: Feedback Content */}
         <div className="lg:col-span-5 space-y-3">
           {feedback.description && (
-            <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
-              <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
+            <div className={`p-3 md:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-red-50'}`}>
+              <p className={`text-xs md:text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
                 Feedback:
               </p>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+              <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
                 {feedback.description}
               </p>
             </div>
@@ -472,10 +474,10 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
         </div>
 
         {/* Right: Status & Actions */}
-        <div className="lg:col-span-3 flex flex-col items-end justify-between">
+        <div className="lg:col-span-3 flex flex-col items-start lg:items-end justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-semibold ${
                 feedback.status === 'reviewed'
                   ? 'bg-green-100 text-green-700'
                   : 'bg-yellow-100 text-yellow-700'
@@ -488,7 +490,7 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
           {onStatusUpdate && feedback.status === 'pending' && (
             <button
               onClick={() => onStatusUpdate(feedback._id, 'reviewed')}
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all guestroom-primary-btn"
+              className="mt-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold text-sm md:text-base hover:from-green-700 hover:to-green-800 transition-all guestroom-primary-btn"
             >
               Mark as Reviewed
             </button>
@@ -751,16 +753,16 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   }, [caretakerGuests, guestFeedbacks, activeTab]);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-red-50'} pt-16 pl-64`}>
-      <div className="p-6">
+    <div className={`min-h-screen md:pl-64 pt-16 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-red-50'}`}>
+      <div className="p-3 md:p-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2 md:gap-4">
               {onBack && (
                 <button
                   onClick={onBack}
@@ -774,10 +776,10 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                 </button>
               )}
               <div>
-                <h1 className={`text-3xl font-bold gradient-text-red`}>
+                <h1 className={`text-2xl md:text-3xl font-bold gradient-text-red`}>
                   Guest Feedback Management
                 </h1>
-                <p className={theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}>
+                <p className={`text-sm md:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-slate-600'}`}>
                   Manage caretaker and guest feedback
                 </p>
               </div>
@@ -785,10 +787,10 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex flex-col sm:flex-row gap-2 mb-6">
             <button
               onClick={() => setActiveTab(TABS.CARETAKER)}
-              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+              className={`flex-1 px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all ${
                 activeTab === TABS.CARETAKER
                   ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
                   : theme === 'dark'
@@ -800,7 +802,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
             </button>
             <button
               onClick={() => setActiveTab(TABS.GUEST)}
-              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+              className={`flex-1 px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all ${
                 activeTab === TABS.GUEST
                   ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
                   : theme === 'dark'
@@ -813,9 +815,9 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="flex-1 relative">
-              <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+              <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-slate-400'
               }`} />
               <input
@@ -823,7 +825,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                 placeholder="Search by name, email, contact..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                className={`w-full pl-10 md:pl-12 pr-4 py-2 md:py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition text-sm md:text-base ${
                   theme === 'dark'
                     ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
                     : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
@@ -832,7 +834,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-6 py-3 rounded-xl border-2 font-semibold transition-all ${
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-xl border-2 font-semibold text-sm md:text-base transition-all whitespace-nowrap ${
                 showFilters
                   ? 'bg-red-600 text-white border-red-600'
                   : theme === 'dark'
@@ -840,8 +842,9 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                   : 'bg-white border-slate-200 text-slate-700 hover:border-red-300'
               }`}
             >
-              <Filter className="w-5 h-5 inline mr-2" />
-              Filters
+              <Filter className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Filters</span>
+              <span className="sm:hidden">Filter</span>
             </button>
           </div>
 
@@ -852,15 +855,15 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`overflow-hidden rounded-2xl border-2 p-6 mb-6 ${
+                className={`overflow-hidden rounded-2xl border-2 p-4 md:p-6 mb-6 ${
                   theme === 'dark'
                     ? 'bg-gray-800 border-gray-700'
                     : 'bg-white border-slate-200'
                 }`}
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   <div>
-                    <label className={`block text-sm font-semibold mb-2 ${
+                    <label className={`block text-xs md:text-sm font-semibold mb-2 ${
                       theme === 'dark' ? 'text-white' : 'text-slate-700'
                     }`}>
                       Hostel
@@ -868,7 +871,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                     <select
                       value={selectedHostel}
                       onChange={(e) => setSelectedHostel(e.target.value)}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                      className={`w-full px-3 md:px-4 py-2 md:py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition text-sm md:text-base ${
                         theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-white'
                           : 'bg-white border-slate-200 text-slate-800'
@@ -890,7 +893,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                      className={`w-full px-3 md:px-4 py-2 md:py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition text-sm md:text-base ${
                         theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-white'
                           : 'bg-white border-slate-200 text-slate-800'
@@ -907,7 +910,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition ${
+                      className={`w-full px-3 md:px-4 py-2 md:py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition text-sm md:text-base ${
                         theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-white'
                           : 'bg-white border-slate-200 text-slate-800'
@@ -915,14 +918,14 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 mt-4">
                   <button
                     onClick={() => {
                       setSelectedHostel('');
                       setDateFrom('');
                       setDateTo('');
                     }}
-                    className={`px-6 py-2 rounded-xl font-semibold transition ${
+                    className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition ${
                       theme === 'dark'
                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -937,124 +940,124 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-red-500`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-red-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   Total {activeTab === TABS.CARETAKER ? 'Guests' : 'Feedbacks'}
                 </p>
-                <p className="text-2xl font-bold text-red-600">{currentData.length}</p>
+                <p className="text-xl md:text-2xl font-bold text-red-600">{currentData.length}</p>
               </div>
               {activeTab === TABS.CARETAKER ? (
-                <User size={32} className="text-red-400" />
+                <User size={24} className="md:w-8 md:h-8 text-red-400" />
               ) : (
-                <MessageSquare size={32} className="text-red-400" />
+                <MessageSquare size={24} className="md:w-8 md:h-8 text-red-400" />
               )}
             </div>
           </div>
           
           {activeTab === TABS.CARETAKER ? (
             <>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Rated</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {filteredCaretakerGuests.filter(g => getFeedbackForGuest(g._id || g.id)).length}
-                    </p>
-                  </div>
-                  <Star size={32} className="text-green-400" />
-                </div>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-green-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Rated</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">
+                  {filteredCaretakerGuests.filter(g => getFeedbackForGuest(g._id || g.id)).length}
+                </p>
               </div>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-orange-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Unrated</p>
-                    <p className="text-2xl font-bold text-orange-600">
-                      {filteredCaretakerGuests.filter(g => !getFeedbackForGuest(g._id || g.id)).length}
-                    </p>
-                  </div>
-                  <AlertCircle size={32} className="text-orange-400" />
-                </div>
+              <Star size={24} className="md:w-8 md:h-8 text-green-400" />
+            </div>
+          </div>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-orange-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Unrated</p>
+                <p className="text-xl md:text-2xl font-bold text-orange-600">
+                  {filteredCaretakerGuests.filter(g => !getFeedbackForGuest(g._id || g.id)).length}
+                </p>
               </div>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {(() => {
-                        const ratings = filteredCaretakerGuests
-                          .map(g => getFeedbackForGuest(g._id || g.id)?.rating)
-                          .filter(r => r);
-                        return ratings.length > 0 
-                          ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
-                          : '—';
-                      })()}
-                    </p>
-                  </div>
-                  <TrendingUp size={32} className="text-blue-400" />
-                </div>
+              <AlertCircle size={24} className="md:w-8 md:h-8 text-orange-400" />
+            </div>
+          </div>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-blue-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-600">
+                  {(() => {
+                    const ratings = filteredCaretakerGuests
+                      .map(g => getFeedbackForGuest(g._id || g.id)?.rating)
+                      .filter(r => r);
+                    return ratings.length > 0 
+                      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+                      : '—';
+                  })()}
+                </p>
               </div>
+              <TrendingUp size={24} className="md:w-8 md:h-8 text-blue-400" />
+            </div>
+          </div>
             </>
           ) : (
             <>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-yellow-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {guestFeedbacks.filter(f => f.status === 'pending').length}
-                    </p>
-                  </div>
-                  <AlertCircle size={32} className="text-yellow-400" />
-                </div>
+              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-yellow-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Pending</p>
+                <p className="text-xl md:text-2xl font-bold text-yellow-600">
+                  {guestFeedbacks.filter(f => f.status === 'pending').length}
+                </p>
               </div>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-green-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Reviewed</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {guestFeedbacks.filter(f => f.status === 'reviewed').length}
-                    </p>
-                  </div>
-                  <Star size={32} className="text-green-400" />
-                </div>
+              <AlertCircle size={24} className="md:w-8 md:h-8 text-yellow-400" />
+            </div>
+          </div>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-green-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Reviewed</p>
+                <p className="text-xl md:text-2xl font-bold text-green-600">
+                  {guestFeedbacks.filter(f => f.status === 'reviewed').length}
+                </p>
               </div>
-              <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-4 border-l-4 border-blue-500`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {guestFeedbacks.length > 0
-                        ? (guestFeedbacks.reduce((sum, f) => sum + f.rating, 0) / guestFeedbacks.length).toFixed(1)
-                        : '—'}
-                    </p>
-                  </div>
-                  <TrendingUp size={32} className="text-blue-400" />
-                </div>
+              <Star size={24} className="md:w-8 md:h-8 text-green-400" />
+            </div>
+          </div>
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-blue-500`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <p className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Avg Rating</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-600">
+                  {guestFeedbacks.length > 0
+                    ? (guestFeedbacks.reduce((sum, f) => sum + f.rating, 0) / guestFeedbacks.length).toFixed(1)
+                    : '—'}
+                </p>
               </div>
+              <TrendingUp size={24} className="md:w-8 md:h-8 text-blue-400" />
+            </div>
+          </div>
             </>
           )}
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+          <div className="flex flex-col items-center justify-center h-48 md:h-64">
+            <div className="animate-spin rounded-full h-10 md:h-12 w-10 md:w-12 border-b-2 border-red-600 mb-4"></div>
+            <p className={`text-sm md:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               Loading {activeTab === TABS.CARETAKER ? 'guests' : 'guest'} feedback...
             </p>
           </div>
         ) : error ? (
-          <div className="text-center py-12">
-            <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-            <p className="text-red-600 font-semibold">{error}</p>
+          <div className="text-center py-8 md:py-12">
+            <AlertCircle size={32} className="md:w-12 md:h-12 mx-auto text-red-500 mb-4" />
+            <p className="text-sm md:text-base text-red-600 font-semibold">{error}</p>
           </div>
         ) : paginatedData.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText size={48} className={`mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
-            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+          <div className="text-center py-8 md:py-12">
+            <FileText size={32} className={`md:w-12 md:h-12 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+            <p className={`text-sm md:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               No {activeTab === TABS.CARETAKER ? 'checked-out guests' : 'guest feedback'} found
             </p>
           </div>
@@ -1093,19 +1096,19 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-8"
+                className="mt-6 md:mt-8"
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-1 md:gap-2">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className={`p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`p-1.5 md:p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                       theme === 'dark'
                         ? 'bg-gray-800 border-gray-700 hover:border-red-500'
                         : 'bg-white border-slate-200 hover:border-red-300'
                     }`}
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
@@ -1119,7 +1122,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                             key={page}
                             onClick={() => setCurrentPage(page)}
                             className={`
-                              px-3 py-1.5 rounded-lg transition-all
+                              px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm transition-all
                               ${
                                 currentPage === page
                                   ? "bg-red-600 text-white"
@@ -1134,7 +1137,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                         );
                       } else if (page === currentPage - 2 || page === currentPage + 2) {
                         return (
-                          <span key={page} className={`px-2 ${theme === 'dark' ? 'text-gray-500' : 'text-slate-400'}`}>
+                          <span key={page} className={`px-0.5 md:px-2 text-xs md:text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-slate-400'}`}>
                             ...
                           </span>
                         );
@@ -1145,13 +1148,13 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className={`p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`p-1.5 md:p-2 rounded-xl border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                       theme === 'dark'
                         ? 'bg-gray-800 border-gray-700 hover:border-red-500'
                         : 'bg-white border-slate-200 hover:border-red-300'
                     }`}
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
                 </div>
               </motion.div>
