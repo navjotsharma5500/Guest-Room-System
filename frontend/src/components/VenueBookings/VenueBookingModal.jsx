@@ -207,14 +207,11 @@ export default function VenueBookingModal({
     // Step 1 validations
     if (step >= 1) {
       if (!formData.name.trim()) newErrors.name = "Name is required";
-      if (!formData.societyName.trim()) newErrors.societyName = "Society name is required";
       if (!formData.eventName.trim()) newErrors.eventName = "Event name is required";
       if (!formData.department) newErrors.department = "Department is required";
       
-      // Contact validation (10 digits only)
-      if (!formData.contact.trim()) {
-        newErrors.contact = "Contact is required";
-      } else if (!/^\d{10}$/.test(formData.contact)) {
+      // Contact validation (optional, but if provided must be 10 digits)
+      if (formData.contact.trim() && !/^\d{10}$/.test(formData.contact)) {
         newErrors.contact = "Contact must be exactly 10 digits";
       }
       
@@ -265,10 +262,9 @@ export default function VenueBookingModal({
     if (step === 1) {
       return (
         formData.name.trim() &&
-        formData.societyName.trim() &&
         formData.eventName.trim() &&
         formData.department &&
-        /^\d{10}$/.test(formData.contact) &&
+        (!formData.contact.trim() || /^\d{10}$/.test(formData.contact)) &&
         formData.email.endsWith("@thapar.edu")
       );
     }
@@ -464,7 +460,7 @@ export default function VenueBookingModal({
                         theme === "dark" ? "text-gray-300" : "text-gray-700"
                       }`}>
                         <Building className="w-4 h-4 text-red-600" />
-                        Society Name <span className="text-red-500">*</span>
+                        Society Name
                       </label>
                       <input
                         type="text"
@@ -615,7 +611,7 @@ export default function VenueBookingModal({
                         theme === "dark" ? "text-gray-300" : "text-gray-700"
                       }`}>
                         <Phone className="w-4 h-4 text-red-600" />
-                        Contact <span className="text-red-500">*</span>
+                        Contact
                       </label>
                       <input
                         type="tel"
@@ -633,7 +629,7 @@ export default function VenueBookingModal({
                             : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
                           }
                         `}
-                        placeholder="10 digit number"
+                        placeholder="10 digit number (optional)"
                       />
                       {errors.contact && (
                         <motion.p

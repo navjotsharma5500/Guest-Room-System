@@ -344,7 +344,7 @@ export default function VenueBookingDashboard() {
                   alt="Thapar Logo" 
                   className="h-8 w-auto object-contain"
                 />
-                <span className="hidden sm:inline">Institute Venue Booking Dashboard</span>
+                <span className="hidden sm:inline">Thapar Institute of Engineering & Technology</span>
                 <span className="sm:hidden">Venue Dashboard</span>
               </h1>
             </div>

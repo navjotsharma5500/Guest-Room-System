@@ -182,12 +182,18 @@ function PublicGuestFeedback() {
       try {
         console.log('🌐 Attempting URL upload to:', `${BACKEND_URL}/api/upload/imagekit`);
         
-        const uploadResponse = await axios.post(
+          // ✅ FIXED: Clean contact number for filename (remove non-digits)
+          const cleanContact = formData.contact ? formData.contact.replace(/\D/g, "") : "";
+          const filename = cleanContact && cleanContact.length >= 10 
+            ? `${cleanContact.slice(-10)}_google_profile.jpg` // Use last 10 digits
+            : `guest-${Date.now()}.jpg`; // Fallback to timestamp
+
+          const uploadResponse = await axios.post(
           `${BACKEND_URL}/api/upload/imagekit`,  // ✅ FIXED: Added /api/ prefix
           {
             file: imageUrl,
-            fileName: `guest-${Date.now()}.jpg`,
-            folder: '/guest-profiles',
+            fileName: filename,
+            folder: '/GuestPicture', // ✅ FIXED: Same folder as GuestEnquiry
             useUrl: true
           },
           {
@@ -221,12 +227,18 @@ function PublicGuestFeedback() {
         
         console.log('🔄 Converting to base64, uploading...');
         
+        // ✅ FIXED: Clean contact number for filename (remove non-digits)
+        const cleanContact = formData.contact ? formData.contact.replace(/\D/g, "") : "";
+        const filename = cleanContact && cleanContact.length >= 10 
+          ? `${cleanContact.slice(-10)}_google_profile.jpg` // Use last 10 digits
+          : `guest-${Date.now()}.jpg`; // Fallback to timestamp
+
         const uploadResponse = await axios.post(
           `${BACKEND_URL}/api/upload/imagekit`,  // ✅ FIXED: Added /api/ prefix
           {
             file: base64String,
-            fileName: `guest-${Date.now()}.jpg`,
-            folder: '/guest-profiles'
+            fileName: filename,
+            folder: '/GuestPicture' // ✅ FIXED: Same folder as GuestEnquiry
           },
           {
             headers: {
@@ -508,11 +520,12 @@ function PublicGuestFeedback() {
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
-                useOneTap
                 theme="filled_blue"
                 size="large"
                 text="continue_with"
                 shape="rectangular"
+                auto_select={false}
+                useOneTap={false}
               />
             </div>
 

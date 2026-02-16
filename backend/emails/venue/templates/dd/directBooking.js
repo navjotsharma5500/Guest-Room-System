@@ -5,11 +5,12 @@ export default function directBooking(data) {
     subject: "Venue Booking Confirmed",
     html: masterTemplate({
       title: "Venue Booking Confirmed",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
       <p>
-        Your venue has been <strong>booked</strong> by the DD Office. 
+        Your venue has been <strong>booked</strong> by the ProVC Office. 
         Please find the booking details below for your reference.
       </p>
 
@@ -47,7 +48,7 @@ export default function directBooking(data) {
 
       <ul style="padding-left:18px;margin-top:6px;">
         <li>Ensure your arrangements are ready for the scheduled booking</li>
-        <li>Contact the DD Office for any queries regarding your booking</li>
+        <li>Contact the ProVC Office for any queries regarding your booking</li>
         <li>Keep this email for your records</li>
       </ul>
 
@@ -57,7 +58,7 @@ export default function directBooking(data) {
 
       <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>DD Office</strong>
+        <strong>ProVC Office</strong>
       </p>
     `,
     }),

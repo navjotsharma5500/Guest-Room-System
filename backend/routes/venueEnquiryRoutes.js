@@ -22,8 +22,6 @@ const adminAssistantOnly = (req, res, next) => {
 
 // Public submit endpoint
 router.post("/create", createVenueEnquiry);
-// Backward/alternate submit endpoint
-router.post("/", createVenueEnquiry);
 // Public society suggestions for venue forms
 router.get("/society-suggestions", getVenueSocietySuggestions);
 // Public event suggestions for venue forms

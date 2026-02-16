@@ -44,8 +44,11 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
           if (data.success) {
             setBills(data.bills || []);
             
-            // Calculate total paid
-            const total = (data.bills || []).reduce((sum, bill) => sum + (bill.amountPaid || 0), 0);
+            // Calculate total paid (ONLY FOR CURRENT BOOKING)
+            const currentBookingId = booking._id || booking.id;
+            const total = (data.bills || [])
+              .filter(bill => String(bill.bookingId) === String(currentBookingId))
+              .reduce((sum, bill) => sum + (bill.amountPaid || 0), 0);
             setTotalPaid(total);
           } else {
             throw new Error(data.message || "Failed to fetch bill history");
@@ -213,6 +216,10 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
                   amountPaid: bill.amountPaid
                 });
 
+                // ✅ Check if bill belongs to current booking
+                const currentBookingId = booking._id || booking.id;
+                const isCurrentBooking = String(bill.bookingId) === String(currentBookingId);
+
                 return (
                   <motion.div
                     key={bill._id || index}
@@ -222,17 +229,26 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
                     className={`p-5 rounded-xl border transition hover:shadow-lg ${
                       theme === "dark"
                         ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
-                        : "bg-white border-gray-200 hover:border-green-300 hover:shadow-green-100"
+                        : isCurrentBooking 
+                          ? "bg-white border-gray-200 hover:border-green-300 hover:shadow-green-100"
+                          : "bg-amber-50 border-amber-200 hover:border-amber-300 hover:shadow-amber-100"
                     }`}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="bg-green-100 p-2 rounded-lg">
-                            <Receipt size={20} className="text-green-600" />
+                          <div className={`p-2 rounded-lg ${isCurrentBooking ? 'bg-green-100' : 'bg-amber-100'}`}>
+                            <Receipt size={20} className={isCurrentBooking ? 'text-green-600' : 'text-amber-600'} />
                           </div>
                           <div>
-                            <h4 className="font-bold text-lg">Bill #{bill.billNumber}</h4>
+                            <h4 className="font-bold text-lg flex items-center gap-2">
+                              Bill #{bill.billNumber}
+                              {!isCurrentBooking && (
+                                <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded font-medium">
+                                  {bill.roomNo ? `Room ${bill.roomNo}` : 'Other Booking'}
+                                </span>
+                              )}
+                            </h4>
                             <p className="text-xs text-gray-500">
                               Transaction ID: {bill.transactionId || "N/A"}
                             </p>

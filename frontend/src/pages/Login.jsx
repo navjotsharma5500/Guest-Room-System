@@ -175,7 +175,7 @@ export default function Login() {
             <img src={logo} alt="Thapar Logo" className="w-40" />
           </div>
           <h1 className="text-3xl font-extrabold text-white mt-2 drop-shadow-lg tracking-wide">
-            Hostel Guest Room App
+            TIET Apps Dashboard
           </h1>
         </div>
 

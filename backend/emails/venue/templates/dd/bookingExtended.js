@@ -7,11 +7,12 @@ export default function bookingExtended(data) {
     subject: "Venue Booking Extended",
     html: masterTemplate({
       title: "Venue Booking Extended",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
       <p>
-        Your venue booking has been <strong>extended</strong> by the DD Office. 
+        Your venue booking has been <strong>extended</strong> by the ProVC Office. 
         Please find the updated details below.
       </p>
 
@@ -48,7 +49,7 @@ export default function bookingExtended(data) {
 
       <ul style="padding-left:18px;margin-top:6px;">
         <li>If you have any scheduled arrangements, please update them according to the new check-out time</li>
-        <li>Contact the DD Office for any queries regarding your booking extension</li>
+        <li>Contact the ProVC Office for any queries regarding your booking extension</li>
         <li>Keep this email for your records</li>
       </ul>
 
@@ -58,7 +59,7 @@ export default function bookingExtended(data) {
 
       <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>DD Office</strong>
+        <strong>ProVC Office</strong>
       </p>
     `,
     }),

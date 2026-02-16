@@ -15,21 +15,16 @@ const API = BACKEND_URL;
 const IMAGEKIT_GUEST_PROFILE_BASE =
   `${IMAGEKIT_URL_ENDPOINT}/GuestProfile`;
 
-const resolveGuestProfileImage = ({ rollOrEmpId, email }) => {
-  // 1️⃣ Roll No / Emp ID (9–12 digits)
-  if (rollOrEmpId && /^\d{9,12}$/.test(String(rollOrEmpId))) {
-    return `${IMAGEKIT_GUEST_PROFILE_BASE}/${rollOrEmpId}.jpg`;
-  }
-
-  // 2️⃣ Email fallback
-  if (email) {
-    const safeEmail = email
-      .toLowerCase()
-      .replace("@", "_")
-      .replace(/\.jpg$/i, "")
-      .replace(/_google_profile$/i, "");
-
-    return `${IMAGEKIT_GUEST_PROFILE_BASE}/${safeEmail}.jpg`;
+const resolveGuestProfileImage = ({ rollOrEmpId, email, contact }) => {
+  // 1️⃣ Contact Match (Primary) - Matches 10 digits
+  if (contact) {
+    // Extract last 10 digits to handle country codes
+    const cleanContact = contact.replace(/\D/g, "");
+    const last10Digits = cleanContact.slice(-10); 
+    
+    if (last10Digits.length === 10) {
+      return { type: 'contact', value: last10Digits };
+    }
   }
 
   return null;
@@ -53,21 +48,60 @@ export default function GuestProfile({
 
     if (!b) return;
 
-    const cacheKey = `guest_profile_missing_${b.rollNo || b.empId || b.email}`;
+    const cacheKey = `guest_profile_missing_${b.rollNo || b.empId || b.email || b.contact}`;
 
     // ✅ If already known missing, do nothing
     if (localStorage.getItem(cacheKey) === "true") {
       return;
     }
 
-    const autoImage = resolveGuestProfileImage({
-      rollOrEmpId: b.rollNo || b.empId || b.rollOrEmpId,
-      email: b.email,
-    });
+    const fetchImage = async () => {
+      // ✅ Step 1: Check LocalStorage cache first
+      const cacheKey = `guest_profile_missing_${b.rollNo || b.empId || b.email || b.contact}`;
+      if (localStorage.getItem(cacheKey) === "true") return;
 
-    if (autoImage) {
-      setUploadedProfileUrl(autoImage);
-    }
+      const result = resolveGuestProfileImage({
+        rollOrEmpId: b.rollNo || b.empId || b.rollOrEmpId,
+        email: b.email,
+        contact: b.contact
+      });
+
+      if (!result) return;
+
+      // ✅ Step 2: Handle Contact Search (Async)
+      if (result.type === 'contact') {
+        try {
+          const contact = result.value;
+          console.log("🔍 Searching ImageKit for Contact:", contact);
+          
+          const token = localStorage.getItem("token");
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          // 🔥 Call Backend to Search ImageKit by Prefix (Contact)
+          const response = await fetch(`${API}/api/imagekit/search?fileName=${contact}`, {
+            headers,
+            credentials: "include"
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success && data.url) {
+              console.log("✅ Found ImageKit profile by Contact:", data.url);
+              setUploadedProfileUrl(data.url);
+              return; // Success! Stop here.
+            }
+          }
+        } catch (err) {
+          console.error("❌ Error searching ImageKit:", err);
+        }
+        
+        console.log("⚠️ Contact search failed.");
+      }
+    };
+
+    fetchImage();
   }, [b, profilePicture, setUploadedProfileUrl]);
 
   // Handle profile picture upload validation

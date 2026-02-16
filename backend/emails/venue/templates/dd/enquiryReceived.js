@@ -5,6 +5,7 @@ export default function enquiryReceived(data) {
     subject: "Venue Enquiry Received",
     html: masterTemplate({
       title: "Venue Enquiry Received",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
@@ -43,8 +44,8 @@ export default function enquiryReceived(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
-        <li>Wait for confirmation from the DD Office regarding your enquiry</li>
-        <li>Contact the DD Office for any queries regarding your request</li>
+        <li>Wait for confirmation from the ProVC Office regarding your enquiry</li>
+        <li>Contact the ProVC Office for any queries regarding your request</li>
         <li>Keep this email for your records</li>
       </ul>
 
@@ -54,7 +55,7 @@ export default function enquiryReceived(data) {
 
       <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>DD Office</strong>
+        <strong>ProVC Office</strong>
       </p>
     `,
     }),

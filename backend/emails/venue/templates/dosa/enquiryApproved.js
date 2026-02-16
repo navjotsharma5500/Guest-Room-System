@@ -5,6 +5,7 @@ export default function enquiryApproved(data) {
     subject: "Venue Booking Confirmed",
     html: masterTemplate({
       title: "Venue Booking Confirmed",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 

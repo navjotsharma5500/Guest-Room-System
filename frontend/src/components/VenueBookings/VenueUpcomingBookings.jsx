@@ -85,23 +85,23 @@ export default function VenueUpcomingBookings({ hallData, venueData, theme, onRe
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className={`
-          rounded-lg p-8 text-center transition-all duration-200
+          rounded-2xl p-8 text-center transition-all duration-200 h-full flex flex-col items-center justify-center
           ${theme === "dark"
-            ? "bg-[#292a2d]"
-            : "bg-white border border-[#dadce0]"
+            ? "bg-gray-800/60 border border-gray-700"
+            : "bg-white/60 border border-gray-200 shadow-xl"
           }
         `}
       >
-        <Calendar className={`w-16 h-16 mx-auto mb-4 ${
-          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-        }`} />
-        <h3 className={`text-xl font-normal mb-2 ${
-          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+        <div className={`p-4 rounded-full mb-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}>
+            <Calendar className={`w-8 h-8 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+        </div>
+        <h3 className={`text-lg font-bold mb-2 ${
+          theme === "dark" ? "text-white" : "text-gray-900"
         }`}>
           No Upcoming Bookings
         </h3>
         <p className={`text-sm ${
-          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+          theme === "dark" ? "text-gray-400" : "text-gray-500"
         }`}>
           There are no bookings scheduled for the next 7 days
         </p>
@@ -115,123 +115,88 @@ export default function VenueUpcomingBookings({ hallData, venueData, theme, onRe
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className={`
-          rounded-lg p-6 transition-all duration-200
+          rounded-2xl p-6 transition-all duration-200 h-full flex flex-col shadow-xl
           ${theme === "dark"
-            ? "bg-[#292a2d]"
-            : "bg-white border border-[#dadce0]"
+            ? "bg-gray-800/60 border border-gray-700"
+            : "bg-white/60 border border-gray-200"
           }
         `}
       >
-        <h3 className={`text-lg font-normal mb-4 ${
-          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
-        }`}>
-          Upcoming Bookings
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+             <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Upcoming Bookings
+            </h3>
+            {upcomingBookings.length > 5 && (
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className={`text-sm font-medium flex items-center gap-1 ${
+                    theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
+                }`}
+              >
+                {showAll ? "Show Less" : "View All"}
+                <ChevronRight className={`w-4 h-4 transition-transform ${showAll ? "rotate-90" : ""}`} />
+              </button>
+            )}
+        </div>
         
-        {/* Bookings list with Google styling */}
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-grow max-h-[500px]">
           {displayedBookings.map((booking, index) => (
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               key={booking._id || index}
               className={`
-                p-4 rounded-lg transition-all cursor-pointer
+                p-4 rounded-xl transition-all cursor-pointer border relative overflow-hidden group
                 ${theme === "dark"
-                  ? "bg-[#3c4043] hover:bg-[#4a4d50]"
-                  : "bg-[#f8f9fa] hover:bg-[#f1f3f4]"
+                  ? "bg-gray-700/40 border-gray-600 hover:border-blue-500/50 hover:bg-gray-700/70"
+                  : "bg-white border-gray-100 hover:border-blue-200 hover:shadow-md"
                 }
               `}
               onClick={() => setSelectedBooking(booking)}
             >
-              {/* Booking details */}
-              <div className="flex items-start justify-between gap-4">
+              {/* Status Indicator Stripe */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                  booking.isLive ? "bg-green-500" : "bg-blue-500"
+              }`} />
+
+              <div className="flex items-start justify-between gap-3 pl-2">
                 <div className="flex-1 min-w-0">
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium
-                      ${theme === "dark" 
-                        ? "bg-[#8ab4f8] text-[#202124]" 
-                        : "bg-[#1a73e8] text-white"
-                      }
-                    `}>
-                      {booking.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`font-medium text-sm truncate ${
-                        theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
-                      }`}>
-                        {booking.name}
-                      </h4>
-                      <p className={`text-xs truncate ${
-                        theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-                      }`}>
-                        {booking.societyName || "BTECH"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className={`w-4 h-4 ${
-                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-                    }`} />
-                    <span className={`text-sm ${
-                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-                    }`}>
-                      {booking.hall} - Room {booking.roomNo}
-                    </span>
-                  </div>
-
-                  {/* Date & Time */}
-                  <div className="flex items-center gap-2">
-                    <Calendar className={`w-4 h-4 ${
-                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-                    }`} />
-                    <span className={`text-sm ${
-                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-                    }`}>
-                      {format(parseISO(booking.checkInDate), "dd MMM yyyy")} • {booking.checkInTime}
-                    </span>
+                  <h4 className={`font-bold text-sm truncate mb-1 ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {booking.name}
+                  </h4>
+                  <p className={`text-xs font-medium truncate mb-2 ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`}>
+                    {booking.societyName || "Private Event"}
+                  </p>
+                  
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {booking.checkInTime}
+                      </span>
+                       <span className="flex items-center gap-1">
+                          <MapPin size={12} />
+                          {booking.hall}
+                      </span>
                   </div>
                 </div>
 
-                {/* Status Badge */}
                 <div className={`
-                  px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap
+                  px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap
                   ${booking.isLive
-                    ? "bg-green-100 text-green-700 border border-green-200 animate-pulse"
-                    : booking.status === "checked_in"
-                    ? theme === "dark"
-                      ? "bg-[#1e4620] text-[#81c995]"
-                      : "bg-[#e6f4ea] text-[#137333]"
-                    : theme === "dark"
-                    ? "bg-[#8ab4f8]/20 text-[#8ab4f8]"
-                    : "bg-[#d3e3fd] text-[#1967d2]"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                   }
                 `}>
-                  {booking.isLive ? "Live Now" : booking.status === "checked_in" ? "Checked In" : "Upcoming"}
+                  {booking.isLive ? "Live" : "Upcoming"}
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-
-        {upcomingBookings.length > 5 && (
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className={`
-              w-full mt-4 py-2 rounded-lg text-sm font-medium transition-colors
-              flex items-center justify-center gap-2
-              ${theme === "dark"
-                ? "text-[#8ab4f8] hover:bg-[#3c4043]"
-                : "text-[#1a73e8] hover:bg-[#f1f3f4]"
-              }
-            `}
-          >
-            {showAll ? "Show Less" : `Show All (${upcomingBookings.length})`}
-            <ChevronRight className={`w-4 h-4 transition-transform ${showAll ? "rotate-90" : ""}`} />
-          </button>
-        )}
       </motion.div>
 
       {/* Booking Details Modal */}

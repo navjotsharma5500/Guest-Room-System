@@ -7,6 +7,7 @@ export default function bookingExtended(data) {
     subject: "Venue Booking Extended",
     html: masterTemplate({
       title: "Venue Booking Extended",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 

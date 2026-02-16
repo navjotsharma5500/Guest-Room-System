@@ -10,13 +10,131 @@ import {
   Sparkles,
   Lock,
   Mail,
-  HelpCircle
+  HelpCircle,
+  Globe,
+  MessageSquare,
+  CalendarDays,
+  FileText,
+  X
 } from "lucide-react";
 import CreatorProfile from "../../components/CreatorProfile";
+
+const PublicFormsModal = ({ open, onClose }) => {
+  if (!open) return null;
+
+  const forms = [
+    {
+      title: "Guest Room Booking Form",
+      description: "Book guest rooms for visitors",
+      url: "http://localhost:3000/guest-enquiry",
+      icon: Building2,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      hover: "hover:border-blue-400"
+    },
+    {
+      title: "Guest Room Feedback Form",
+      description: "Submit feedback for your stay",
+      url: "http://localhost:3000/guest-feedback",
+      icon: MessageSquare,
+      color: "text-green-600",
+      bg: "bg-green-50",
+      border: "border-green-200",
+      hover: "hover:border-green-400"
+    },
+    {
+      title: "Venue Booking Form",
+      description: "Book venues for events",
+      url: "http://localhost:3000/venue-guest-enquiry",
+      icon: Calendar,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      border: "border-purple-200",
+      hover: "hover:border-purple-400"
+    },
+    {
+      title: "Event Calendar Page",
+      description: "View upcoming events",
+      url: "http://localhost:3000/venue-event-calendar",
+      icon: CalendarDays,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      border: "border-orange-200",
+      hover: "hover:border-orange-400"
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-teal-100 rounded-lg">
+              <Globe className="w-6 h-6 text-teal-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Public Forms
+              </h2>
+              <p className="text-sm text-slate-500">Access public booking portals and calendars</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50">
+          {forms.map((form, index) => (
+            <motion.a
+              key={index}
+              href={form.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all duration-300 group bg-white ${form.border} ${form.hover} hover:shadow-lg cursor-pointer`}
+            >
+              <div className={`p-3 rounded-lg ${form.bg} ${form.color} group-hover:scale-110 transition-transform duration-300`}>
+                <form.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
+                  {form.title}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {form.description}
+                </p>
+              </div>
+            </motion.a>
+          ))}
+        </div>
+        
+        <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+          <p className="text-xs text-slate-400">
+            These links open in a new tab
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const DashboardSelector = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showCreatorProfile, setShowCreatorProfile] = useState(false);
+  const [showPublicForms, setShowPublicForms] = useState(false);
   const navigate = useNavigate();
 
   const dashboards = [
@@ -43,6 +161,18 @@ const DashboardSelector = () => {
       available: true,
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
       onClick: () => navigate("/venue-booking")
+    },
+    {
+      id: "public-forms",
+      title: "Public Forms",
+      description: "Access public booking forms and calendars",
+      icon: Globe,
+      gradient: "from-teal-600 via-teal-500 to-emerald-500",
+      iconBg: "bg-teal-100",
+      iconColor: "text-teal-600",
+      available: true,
+      features: ["Guest Enquiry", "Feedback Form", "Venue Enquiry", "Event Calendar"],
+      onClick: () => setShowPublicForms(true)
     },
     {
       id: "coming-soon",
@@ -358,6 +488,12 @@ const DashboardSelector = () => {
       <CreatorProfile 
         open={showCreatorProfile} 
         onClose={() => setShowCreatorProfile(false)} 
+      />
+      
+      {/* Public Forms Modal */}
+      <PublicFormsModal
+        open={showPublicForms}
+        onClose={() => setShowPublicForms(false)}
       />
 
       {/* Font Import */}

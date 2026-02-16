@@ -855,17 +855,23 @@ export default function GuestEnquiryPage() {
           // Use ImageKit Auth endpoint to get signature
           const authData = await authenticator();
           
+          // ✅ Clean contact number for filename (remove non-digits)
+          const cleanContact = form.contact ? form.contact.replace(/\D/g, "") : "";
+          const filename = cleanContact && cleanContact.length >= 10 
+            ? `${cleanContact.slice(-10)}_google_profile.jpg` // Use last 10 digits
+            : `${decoded.email}_google_profile.jpg`; // Fallback to email
+
           // Construct FormData with URL instead of File object
           const formData = new FormData();
           formData.append("file", decoded.picture); // ✅ Sending URL directly
-          formData.append("fileName", `${decoded.email}_google_profile.jpg`); // ✅ Full Email
+          formData.append("fileName", filename); // ✅ Use Contact Number if available
           formData.append("folder", IMAGEKIT_CONFIG.GUEST_PICTURE_FOLDER); 
           formData.append("publicKey", IMAGEKIT_CONFIG.PUBLIC_KEY);
           formData.append("signature", authData.signature);
           formData.append("expire", authData.expire);
           formData.append("token", authData.token);
           formData.append("useUniqueFileName", "false"); 
-          formData.append("tags", `guest_profile,${decoded.email}`); // ✅ Add email as tag for searchability
+          formData.append("tags", `guest_profile,${decoded.email},${cleanContact}`); // ✅ Add contact tag
 
           // Manually call ImageKit Upload API
           const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
@@ -1097,11 +1103,12 @@ export default function GuestEnquiryPage() {
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
-                      useOneTap
                       theme="filled_blue"
                       size="large"
                       text="continue_with"
                       shape="pill"
+                      auto_select={false}
+                      useOneTap={false}
                     />
                   </div>
                 </div>

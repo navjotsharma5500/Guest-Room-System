@@ -357,11 +357,12 @@ export default function VenueGuestEnquiryPage() {
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
-                        useOneTap
                         theme="filled_blue"
                         size="large"
                         text="continue_with"
                         shape="pill"
+                        auto_select={false} // Disable auto-select to prevent FedCM conflicts
+                        useOneTap={false}   // Disable One Tap to prevent AbortError and COOP issues
                       />
                     </div>
                   </div>

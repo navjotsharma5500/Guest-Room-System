@@ -5,11 +5,12 @@ export default function enquiryRejected(data) {
     subject: "Venue Enquiry Rejected",
     html: masterTemplate({
       title: "Venue Enquiry Rejected",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
       <p>
-        We regret to inform you that your venue enquiry has been <strong>rejected</strong> by the DD Office. 
+        We regret to inform you that your venue enquiry has been <strong>rejected</strong> by the ProVC Office. 
         Please find the details below for your reference.
       </p>
 
@@ -43,7 +44,7 @@ export default function enquiryRejected(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
-        <li>You may contact the DD Office for further clarification or alternate bookings</li>
+        <li>You may contact the ProVC Office for further clarification or alternate bookings</li>
         <li>Keep this email for your records</li>
       </ul>
 
@@ -53,7 +54,7 @@ export default function enquiryRejected(data) {
 
       <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>DD Office</strong>
+        <strong>ProVC Office</strong>
       </p>
     `,
     }),

@@ -155,13 +155,13 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
         />
       </div>
 
-      {/* Calendar Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Mini Calendar - âœ… Now clickable to navigate to calendar page */}
+      {/* Calendar & Upcoming Bookings Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Left Side: Calendar (Clickable) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl cursor-pointer hover:shadow-2xl transition ${
+          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl cursor-pointer hover:shadow-2xl transition h-full flex flex-col ${
             theme === "dark"
               ? "bg-gray-800/60 border-gray-700 hover:border-blue-500"
               : "bg-white/60 border-gray-200 hover:border-blue-500"
@@ -172,19 +172,17 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
             <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
               Booking Calendar
             </h3>
-            <button
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               View Full
             </button>
           </div>
           
-          <div className="hall-calendar-mini pointer-events-none">
+          <div className="hall-calendar-mini pointer-events-none flex-grow">
             <Calendar
               value={selectedDate}
               onChange={setSelectedDate}
               tileClassName={tileClassName}
-              className={theme === "dark" ? "dark-calendar" : ""}
+              className={`${theme === "dark" ? "dark-calendar" : ""} w-full h-full`}
             />
           </div>
 
@@ -197,22 +195,23 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
             </div>
           )}
           
-          {/* âœ… Click hint */}
           <p className={`text-xs text-center mt-3 ${
             theme === "dark" ? "text-gray-400" : "text-gray-500"
           }`}>
-            Click to view detailed calendar â†’
+            Click to view detailed calendar →
           </p>
         </motion.div>
-      </div>
 
-      {/* Upcoming Bookings */}
-      <VenueUpcomingBookings
-        venueData={venueData}
-        theme={theme}
-        onRefresh={onRefresh}
-        setExtensionModal={setExtensionModal}
-      />
+        {/* Right Side: Upcoming Bookings List */}
+        <div className="h-full">
+            <VenueUpcomingBookings
+                venueData={venueData}
+                theme={theme}
+                onRefresh={onRefresh}
+                setExtensionModal={setExtensionModal}
+            />
+        </div>
+      </div>
 
       {/* Venue Grid intentionally removed on dashboard */}
     </div>

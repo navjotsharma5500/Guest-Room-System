@@ -5,11 +5,12 @@ export default function bookingCancelled(data) {
     subject: "Venue Booking Cancelled",
     html: masterTemplate({
       title: "Venue Booking Cancelled",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
       <p>
-        Your venue booking has been <strong>cancelled</strong> by the DD Office. 
+        Your venue booking has been <strong>cancelled</strong> by the ProVC Office. 
         Please find the details below for your reference.
       </p>
 
@@ -45,7 +46,7 @@ export default function bookingCancelled(data) {
 
       <ul style="padding-left:18px;margin-top:6px;">
         <li>If you had any scheduled arrangements, please cancel or reschedule as needed</li>
-        <li>Contact the DD Office for any queries regarding your booking</li>
+        <li>Contact the ProVC Office for any queries regarding your booking</li>
         <li>Keep this email for your records</li>
       </ul>
 
@@ -55,7 +56,7 @@ export default function bookingCancelled(data) {
 
       <p style="margin-bottom:0;">
         Regards,<br/>
-        <strong>DD Office</strong>
+        <strong>ProVC Office</strong>
       </p>
     `,
     }),

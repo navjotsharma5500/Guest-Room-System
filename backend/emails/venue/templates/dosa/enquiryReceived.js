@@ -5,6 +5,7 @@ export default function enquiryReceived(data) {
     subject: "Venue Enquiry Received",
     html: masterTemplate({
       title: "Venue Enquiry Received",
+      skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 

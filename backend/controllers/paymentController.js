@@ -399,38 +399,9 @@ export const getPaymentHistory = async (req, res) => {
       });
     }
 
-    // Check if Bill model is available
-    console.log("📋 Step 2: Checking Bill model...");
-    console.log("📋 Step 2: Bill model exists:", typeof Bill !== 'undefined');
-    
-    if (typeof Bill === 'undefined') {
-      console.log("❌ CRITICAL: Bill model is not imported!");
-      return res.status(500).json({
-        success: false,
-        message: "Server configuration error: Bill model not found",
-        error: "Bill model is not imported"
-      });
-    }
-
-    // Fetch bills
-    console.log("📋 Step 3: Fetching bills from database...");
-    const bills = await Bill.find({ bookingId: id })
-      .sort({ createdAt: -1 })
-      .populate('createdBy', 'name email')
-      .lean();
-
-    console.log("✅ Step 3 complete: Found", bills.length, "bills");
-    if (bills.length > 0) {
-      console.log("📄 First bill preview:", {
-        billNumber: bills[0].billNumber,
-        amountPaid: bills[0].amountPaid,
-        paymentType: bills[0].paymentType
-      });
-    }
-
     // Check if Booking model is available
-    console.log("📋 Step 4: Checking Booking model...");
-    console.log("📋 Step 4: Booking model exists:", typeof Booking !== 'undefined');
+    console.log("📋 Step 2: Checking Booking model...");
+    console.log("📋 Step 2: Booking model exists:", typeof Booking !== 'undefined');
     
     if (typeof Booking === 'undefined') {
       console.log("❌ CRITICAL: Booking model is not imported!");
@@ -442,24 +413,65 @@ export const getPaymentHistory = async (req, res) => {
     }
 
     // Fetch booking
-    console.log("📋 Step 5: Fetching booking from database...");
+    console.log("📋 Step 3: Fetching booking from database...");
     const booking = await Booking.findById(id).lean();
 
     if (!booking) {
-      console.log("❌ Step 5: Booking not found with ID:", id);
+      console.log("❌ Step 3: Booking not found with ID:", id);
       return res.status(404).json({
         success: false,
         message: "Booking not found"
       });
     }
 
-    console.log("✅ Step 5 complete: Booking found");
+    console.log("✅ Step 3 complete: Booking found");
     console.log("📄 Booking preview:", {
       guest: booking.guest,
+      email: booking.email,
+      contact: booking.contact,
       totalAmount: booking.totalAmount,
       paidAmount: booking.paidAmount,
       discount: booking.discount
     });
+
+    // Check if Bill model is available
+    console.log("📋 Step 4: Checking Bill model...");
+    console.log("📋 Step 4: Bill model exists:", typeof Bill !== 'undefined');
+    
+    if (typeof Bill === 'undefined') {
+      console.log("❌ CRITICAL: Bill model is not imported!");
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error: Bill model not found",
+        error: "Bill model is not imported"
+      });
+    }
+
+    // Fetch bills (Linked by Booking ID OR Email OR Contact)
+    console.log("📋 Step 5: Fetching bills from database...");
+    
+    const billQuery = {
+      $or: [
+        { bookingId: id }
+      ]
+    };
+
+    if (booking.email) {
+      billQuery.$or.push({ guestEmail: booking.email });
+    }
+    
+    if (booking.contact) {
+      billQuery.$or.push({ guestContact: booking.contact });
+    }
+
+    console.log("🔍 Bill Query:", JSON.stringify(billQuery, null, 2));
+
+    const bills = await Bill.find(billQuery)
+      .sort({ createdAt: -1 })
+      .populate('createdBy', 'name email')
+      .lean();
+
+    console.log("✅ Step 5 complete: Found", bills.length, "bills");
 
     // Calculate totals
     console.log("📋 Step 6: Calculating payment totals...");
