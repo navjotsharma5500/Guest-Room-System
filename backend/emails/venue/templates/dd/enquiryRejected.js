@@ -1,9 +1,9 @@
-import masterTemplate from "../../../templates/masterTemplate.js";
+import venueMasterTemplate from "../../../templates/venueMasterTemplate.js";
 
 export default function enquiryRejected(data) {
   return {
     subject: "Venue Enquiry Rejected",
-    html: masterTemplate({
+    html: venueMasterTemplate({
       title: "Venue Enquiry Rejected",
       skipDefaultButton: true,
       content: `
@@ -27,7 +27,7 @@ export default function enquiryRejected(data) {
           Enquiry Details
         </div>
 
-        <strong>Venue:</strong> ${data.hall} - ${data.roomNo}<br/>
+        <strong>Venue:</strong> ${data.roomNo}<br/>
         <strong>Event:</strong> ${data.eventName}<br/>
         <strong>Reason:</strong> ${data.rejectionReason || 'Not specified'}<br/>
       </div>
@@ -44,6 +44,7 @@ export default function enquiryRejected(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
         <li>You may contact the ProVC Office for further clarification or alternate bookings</li>
         <li>Keep this email for your records</li>
       </ul>

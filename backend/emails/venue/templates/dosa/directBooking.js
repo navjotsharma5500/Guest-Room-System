@@ -1,9 +1,9 @@
-import masterTemplate from "../../../templates/masterTemplate.js";
+import venueMasterTemplate from "../../../templates/venueMasterTemplate.js";
 
 export default function directBooking(data) {
   return {
     subject: "Venue Booking Confirmed",
-    html: masterTemplate({
+    html: venueMasterTemplate({
       title: "Venue Booking Confirmed",
       skipDefaultButton: true,
       content: `
@@ -28,11 +28,11 @@ export default function directBooking(data) {
         </div>
 
         <strong>Booking ID:</strong> ${data._id}<br/>
-        <strong>Venue:</strong> ${data.hall} - ${data.roomNo}<br/>
+        <strong>Venue:</strong> ${data.roomNo}<br/>
         <strong>Event:</strong> ${data.eventName}<br/>
         <strong>Society:</strong> ${data.societyName}<br/>
-        <strong>Check-in:</strong> ${data.checkInDate} ${data.checkInTime}<br/>
-        <strong>Check-out:</strong> ${data.checkOutDate} ${data.checkOutTime}<br/>
+        <strong>Booked From:</strong> ${data.checkInDate} ${data.checkInTime}<br/>
+        <strong>Booked Till:</strong> ${data.checkOutDate} ${data.checkOutTime}<br/>
       </div>
 
       <!-- OPTIONAL VENUE IMAGE -->
@@ -47,6 +47,7 @@ export default function directBooking(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
         <li>Ensure your arrangements are ready for the scheduled booking</li>
         <li>Contact the DoSA Office for any queries regarding your booking</li>
         <li>Keep this email for your records</li>

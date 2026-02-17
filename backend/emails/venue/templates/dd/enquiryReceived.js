@@ -1,16 +1,16 @@
-import masterTemplate from "../../../templates/masterTemplate.js";
+import venueMasterTemplate from "../../../templates/venueMasterTemplate.js";
 
 export default function enquiryReceived(data) {
   return {
     subject: "Venue Enquiry Received",
-    html: masterTemplate({
+    html: venueMasterTemplate({
       title: "Venue Enquiry Received",
       skipDefaultButton: true,
       content: `
       <p style="margin-top:0;">Dear ${data.name},</p>
 
       <p>
-        We have received your venue enquiry for <strong>${data.hall} - ${data.roomNo}</strong>. 
+        We have received your venue enquiry for <strong>${data.roomNo}</strong>. 
         You will be notified shortly regarding the approval or booking status.
       </p>
 
@@ -29,7 +29,7 @@ export default function enquiryReceived(data) {
 
         <strong>Event:</strong> ${data.eventName}<br/>
         <strong>Society:</strong> ${data.societyName}<br/>
-        <strong>Date:</strong> ${data.checkInDate} ${data.checkInTime} - ${data.checkOutDate} ${data.checkOutTime}<br/>
+        <strong>Booked From:</strong> ${data.checkInDate} ${data.checkInTime} - ${data.checkOutDate} ${data.checkOutTime} <strong>(Booked Till)</strong><br/>
       </div>
 
       <!-- OPTIONAL VENUE IMAGE -->
@@ -44,6 +44,7 @@ export default function enquiryReceived(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
         <li>Wait for confirmation from the ProVC Office regarding your enquiry</li>
         <li>Contact the ProVC Office for any queries regarding your request</li>
         <li>Keep this email for your records</li>

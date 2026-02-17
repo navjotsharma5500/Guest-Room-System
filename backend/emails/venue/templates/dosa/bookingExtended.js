@@ -1,11 +1,11 @@
-import masterTemplate from "../../../templates/masterTemplate.js";
+import venueMasterTemplate from "../../../templates/venueMasterTemplate.js";
 
 export default function bookingExtended(data) {
   const extension = data.extensionHistory[data.extensionHistory.length - 1];
 
   return {
     subject: "Venue Booking Extended",
-    html: masterTemplate({
+    html: venueMasterTemplate({
       title: "Venue Booking Extended",
       skipDefaultButton: true,
       content: `
@@ -30,9 +30,9 @@ export default function bookingExtended(data) {
         </div>
 
         <strong>Booking ID:</strong> ${data._id}<br/>
-        <strong>Venue:</strong> ${data.hall} - ${data.roomNo}<br/>
-        <strong>Original Check-out:</strong> ${extension.originalCheckOutDate} ${extension.originalCheckOutTime}<br/>
-        <strong>New Check-out:</strong> ${extension.newCheckOutDate} ${extension.newCheckOutTime}<br/>
+        <strong>Venue:</strong> ${data.roomNo}<br/>
+        <strong>Original Booked Till:</strong> ${extension.originalCheckOutDate} ${extension.originalCheckOutTime}<br/>
+        <strong>New Booked Till:</strong> ${extension.newCheckOutDate} ${extension.newCheckOutTime}<br/>
         ${extension.remarks ? `<strong>Remarks:</strong> ${extension.remarks}<br/>` : ''}
       </div>
 
@@ -48,7 +48,8 @@ export default function bookingExtended(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
-        <li>Update any scheduled arrangements according to the new check-out time</li>
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
+        <li>Update any scheduled arrangements according to the new booking time</li>
         <li>Contact the DoSA Office for any queries regarding your booking extension</li>
         <li>Keep this email for your records</li>
       </ul>

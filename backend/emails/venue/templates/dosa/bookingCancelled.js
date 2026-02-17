@@ -1,9 +1,9 @@
-import masterTemplate from "../../../templates/masterTemplate.js";
+import venueMasterTemplate from "../../../templates/venueMasterTemplate.js";
 
 export default function bookingCancelled(data) {
   return {
     subject: "Venue Booking Cancelled",
-    html: masterTemplate({
+    html: venueMasterTemplate({
       title: "Venue Booking Cancelled",
       skipDefaultButton: true,
       content: `
@@ -28,7 +28,7 @@ export default function bookingCancelled(data) {
         </div>
 
         <strong>Booking ID:</strong> ${data._id}<br/>
-        <strong>Venue:</strong> ${data.hall} - ${data.roomNo}<br/>
+        <strong>Venue:</strong> ${data.roomNo}<br/>
         <strong>Event:</strong> ${data.eventName}<br/>
         ${data.cancellationRemarks ? `<strong>Reason:</strong> ${data.cancellationRemarks}<br/>` : ''}
       </div>
@@ -45,6 +45,7 @@ export default function bookingCancelled(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
         <li>If you had any scheduled arrangements, please cancel or reschedule as needed</li>
         <li>Contact the DoSA Office for any queries regarding your booking</li>
         <li>Keep this email for your records</li>
