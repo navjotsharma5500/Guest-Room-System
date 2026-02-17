@@ -738,7 +738,7 @@ export default function MainContent(props) {
               setRightPanelToRoom(null, null);
               setActiveRoomRef(null);
             }}
-            className="flex items-center gap-2 lg:gap-3 cursor-pointer select-none"
+            className="flex items-center gap-2 lg:gap-3 cursor-pointer select-none hover:opacity-80 transition-opacity"
           >
             <img
               src={hotelIcon}

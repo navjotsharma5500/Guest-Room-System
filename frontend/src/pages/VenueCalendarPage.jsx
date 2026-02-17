@@ -540,6 +540,24 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
     setSelectedBooking(booking);
   }, []);
 
+  // Auto-switch to 'past' tab if any booking has expired
+  React.useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check if there are any bookings with checkOutDate in the past
+    const hasExpiredBookings = allBookings.some(booking => {
+      const checkOut = new Date(booking.checkOutDate);
+      checkOut.setHours(0, 0, 0, 0);
+      return checkOut < today;
+    });
+    
+    // If there are expired bookings and we're not already on 'past' tab, switch to it
+    if (hasExpiredBookings && activeTab !== 'past' && activeTab !== 'cancelled') {
+      setActiveTab('past');
+    }
+  }, [allBookings]);
+
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       theme === 'dark' ? 'bg-[#202124]' : 'bg-[#f8f9fa]'
@@ -677,16 +695,16 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
         transition-colors duration-200
         ${theme === 'dark' ? 'bg-[#292a2d]' : 'bg-white'}
       `}>
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6">
           <div className={`
-            flex border-b
+            flex flex-wrap gap-1 sm:gap-2 md:gap-3 pb-0 border-b
             ${theme === 'dark' ? 'border-[#3c4043]' : 'border-[#dadce0]'}
           `}>
             {[
-              { id: 'active', label: 'Active Bookings', icon: Users },
-              { id: 'upcoming', label: 'Upcoming Bookings', icon: Clock },
-              { id: 'past', label: 'Past Bookings', icon: FileText },
-              { id: 'cancelled', label: 'Cancelled Bookings', icon: XCircle }
+              { id: 'active', label: 'Active Bookings', short: 'Active', icon: Users },
+              { id: 'upcoming', label: 'Upcoming Bookings', short: 'Upcoming', icon: Clock },
+              { id: 'past', label: 'Past Bookings', short: 'Past', icon: FileText },
+              { id: 'cancelled', label: 'Cancelled Bookings', short: 'Cancelled', icon: XCircle }
             ].map(tab => {
               const Icon = tab.icon;
               const count = getTabCount(tab.id);
@@ -696,8 +714,8 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    flex items-center gap-2 px-6 py-4 text-sm font-medium
-                    transition-all duration-200 border-b-2
+                    flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm md:text-base font-medium
+                    transition-all duration-200 border-b-2 flex-shrink-0
                     ${activeTab === tab.id
                       ? theme === 'dark'
                         ? 'border-[#8ab4f8] text-[#8ab4f8] bg-[#8ab4f8]/5'
@@ -708,10 +726,11 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
                     }
                   `}
                 >
-                  <Icon size={18} />
-                  {tab.label}
+                  <Icon size={18} className="flex-shrink-0" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.short}</span>
                   <span className={`
-                    ml-2 px-2 py-0.5 rounded-full text-xs font-medium
+                    ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium
                     ${activeTab === tab.id
                       ? theme === 'dark'
                         ? 'bg-[#8ab4f8] text-[#202124]'

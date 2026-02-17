@@ -27,7 +27,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Guest Room Booking Form",
       description: "Book guest rooms for visitors",
-      url: "http://localhost:3000/guest-enquiry",
+      url: "http://guestapp.in/guest-enquiry",
       icon: Building2,
       color: "text-blue-600",
       bg: "bg-blue-50",
@@ -37,7 +37,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Guest Room Feedback Form",
       description: "Submit feedback for your stay",
-      url: "http://localhost:3000/guest-feedback",
+      url: "http://guestapp.in/guest-feedback",
       icon: MessageSquare,
       color: "text-green-600",
       bg: "bg-green-50",
@@ -47,7 +47,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Venue Booking Form",
       description: "Book venues for events",
-      url: "http://localhost:3000/venue-guest-enquiry",
+      url: "http://guestapp.in/venue-guest-enquiry",
       icon: Calendar,
       color: "text-purple-600",
       bg: "bg-purple-50",
@@ -57,7 +57,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Event Calendar Page",
       description: "View upcoming events",
-      url: "http://localhost:3000/venue-event-calendar",
+      url: "http://guestapp.in/venue-event-calendar",
       icon: CalendarDays,
       color: "text-orange-600",
       bg: "bg-orange-50",

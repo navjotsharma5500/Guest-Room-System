@@ -201,20 +201,20 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   return (
     <div 
       className={`
-        min-h-screen p-6
+        min-h-screen p-2 sm:p-4 md:p-6
         ${theme === "dark" ? "bg-[#202124]" : "bg-[#f8f9fa]"}
       `}
     >
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className={`text-2xl font-normal ${
+      <div className="max-w-7xl mx-auto mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className={`text-xl sm:text-2xl md:text-3xl font-normal ${
               theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
             }`}>
               Venue Enquiry Management
             </h1>
-            <p className={`text-sm mt-1 ${
+            <p className={`text-xs sm:text-sm mt-1 ${
               theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
             }`}>
               Review and approve venue booking requests
@@ -222,7 +222,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
           </div>
 
           {/* Filter Buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1 sm:gap-2 md:gap-3">
             {["all", "pending", "approved", "rejected"].map(f => (
               <button
                 key={f}
@@ -231,7 +231,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                   setCurrentPage(1);
                 }}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize
+                  px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2 rounded-lg text-xs sm:text-sm md:text-base font-medium transition-colors capitalize
                   ${filter === f
                     ? theme === "dark"
                       ? "bg-[#8ab4f8] text-[#202124]"
@@ -250,7 +250,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         {/* Enquiry List - Now takes 2 out of 5 columns */}
         <div className="lg:col-span-2">
           <div className={`
@@ -258,10 +258,10 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
             ${theme === "dark" ? "bg-[#292a2d]" : "bg-white border border-[#dadce0]"}
           `}>
             <div className={`
-              px-4 py-3 border-b
+              px-3 sm:px-4 py-2 sm:py-3 border-b
               ${theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"}
             `}>
-              <p className={`text-sm font-medium ${
+              <p className={`text-xs sm:text-sm font-medium ${
                 theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
               }`}>
                 {filteredEnquiries.length} Enquiries
@@ -275,7 +275,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                   onClick={() => setSelected(e)}
                   whileHover={{ x: 4 }}
                   className={`
-                    p-4 border-b cursor-pointer transition-all
+                    p-3 sm:p-4 border-b cursor-pointer transition-all overflow-hidden
                     ${selected?._id === e._id
                       ? theme === "dark"
                         ? "bg-[#8ab4f8]/10 border-[#8ab4f8]"
@@ -286,14 +286,14 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                     }
                   `}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <p className={`font-medium text-sm ${
+                  <div className="flex items-start justify-between mb-2 gap-2 overflow-hidden">
+                    <p className={`font-medium text-xs sm:text-sm truncate ${
                       theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                     }`}>
                       {e.name}
                     </p>
                     <span className={`
-                      text-xs px-2 py-0.5 rounded-full
+                      text-xs px-2 py-0.5 rounded-full flex-shrink-0
                       ${e.status === "pending"
                         ? "bg-yellow-500/20 text-yellow-600"
                         : e.status === "approved" || e.status === "booked"
@@ -304,17 +304,17 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                       {e.status}
                     </span>
                   </div>
-                  <p className={`text-xs mb-1 ${
+                  <p className={`text-xs mb-1 truncate ${
                     theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
                   }`}>
                     {e.department}
                   </p>
-                  <p className={`text-xs mb-1 ${
+                  <p className={`text-xs mb-1 truncate ${
                     theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
                   }`}>
                     {e.hall} - {e.roomNo}
                   </p>
-                  <p className={`text-xs ${
+                  <p className={`text-xs truncate ${
                     theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
                   }`}>
                     {formatShortDate(e.checkInDate || e.startDate)} • {formatTimeWithAMPM(e.checkInTime || e.startTime)}
@@ -361,18 +361,18 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         <div className="lg:col-span-3">
           {selected ? (
             <div className={`
-              rounded-lg p-6
+              rounded-lg p-3 sm:p-4 md:p-6 overflow-hidden
               ${theme === "dark" ? "bg-[#292a2d]" : "bg-white border border-[#dadce0]"}
             `}>
               {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className={`text-xl font-normal mb-1 ${
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-hidden">
+                <div className="min-w-0 overflow-hidden">
+                  <h2 className={`text-lg sm:text-xl font-normal mb-1 truncate ${
                     theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                   }`}>
                     {selected.name}
                   </h2>
-                  <p className={`text-sm ${
+                  <p className={`text-xs sm:text-sm truncate ${
                     theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
                   }`}>
                     {selected.department}
@@ -380,7 +380,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                 </div>
 
                 <span className={`
-                  px-3 py-1 rounded-full text-sm font-medium
+                  px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0
                   ${selected.status === "pending"
                     ? "bg-yellow-500/20 text-yellow-600"
                     : selected.status === "approved" || selected.status === "booked"
@@ -393,23 +393,23 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
               </div>
 
               {/* Contact Info */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-blue-500" />
-                  <span className={`text-sm ${
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                  <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span className={`text-xs sm:text-sm truncate ${
                     theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                   }`}>
                     {selected.email}
                   </span>
                 </div>
-                <div className={`text-sm mb-6 ${
+                <div className={`text-xs sm:text-sm overflow-hidden ${
                   theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                 }`}>
-                  <strong>Venue:</strong> {selected.hall} - {selected.roomNo}
+                  <strong>Venue:</strong> <span className="truncate">{selected.hall} - {selected.roomNo}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-blue-500" />
-                  <span className={`text-sm ${
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                  <Phone className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span className={`text-xs sm:text-sm truncate ${
                     theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                   }`}>
                     {selected.contact}
@@ -419,49 +419,49 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
 
               {/* Event Details */}
               <div className={`
-                p-4 rounded-lg mb-6
+                p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 overflow-hidden
                 ${theme === "dark" ? "bg-[#3c4043]" : "bg-[#f8f9fa] border border-[#dadce0]"}
               `}>
-                <h3 className={`text-sm font-medium mb-3 ${
+                <h3 className={`text-xs sm:text-sm font-medium mb-2 sm:mb-3 ${
                   theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                 }`}>
                   Event Information
                 </h3>
 
                 {(selected.societyName || selected.societyClubName) && (
-                  <p className={`text-sm mb-2 ${
+                  <p className={`text-xs sm:text-sm mb-2 truncate ${
                     theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
                   }`}>
                     <strong>Society/Club:</strong> {selected.societyName || selected.societyClubName}
                   </p>
                 )}
 
-                <p className={`text-sm mb-3 ${
+                <p className={`text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-3 ${
                   theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                 }`}>
                   {selected.description || selected.eventDescription}
                 </p>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-green-500" />
-                    <div>
-                      <p className={theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <div className="flex items-start gap-2 min-w-0 overflow-hidden">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 overflow-hidden">
+                      <p className={`truncate ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
                         Start
                       </p>
-                      <p className={theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}>
+                      <p className={`text-xs sm:text-sm truncate ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>
                         {formatShortDate(selected.checkInDate || selected.startDate)} • {formatTimeWithAMPM(selected.checkInTime || selected.startTime)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-red-500" />
-                    <div>
-                      <p className={theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}>
+                  <div className="flex items-start gap-2 min-w-0 overflow-hidden">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 overflow-hidden">
+                      <p className={`truncate ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
                         End
                       </p>
-                      <p className={theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}>
+                      <p className={`text-xs sm:text-sm truncate ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>
                         {formatShortDate(selected.checkOutDate || selected.endDate)} • {formatTimeWithAMPM(selected.checkOutTime || selected.endTime)}
                       </p>
                     </div>
@@ -471,13 +471,13 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
 
               {/* Attachments */}
               {selected.files && selected.files.length > 0 && (
-                <div className="mb-6">
-                  <h3 className={`text-sm font-medium mb-3 ${
+                <div className="mb-4 sm:mb-6">
+                  <h3 className={`text-xs sm:text-sm font-medium mb-2 sm:mb-3 ${
                     theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
                   }`}>
                     Attachments ({selected.files.length})
                   </h3>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
                     {selected.files.map((file, idx) => {
                       const fileUrl = normalizeImageKitUrl(file);
                       const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileUrl);
@@ -550,47 +550,49 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
 
               {/* Action Buttons */}
               {selected.status === "pending" && (
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     onClick={handleReject}
                     className={`
-                      flex-1 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2
+                      flex-1 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2
                       ${theme === "dark"
                         ? "bg-[#f28b82]/20 text-[#f28b82] hover:bg-[#f28b82]/30"
                         : "bg-[#fce8e6] text-[#d93025] hover:bg-[#fad2cf] border border-[#f28b82]"
                       }
                     `}
                   >
-                    <XCircle className="w-5 h-5" />
-                    Reject
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden sm:inline">Reject</span>
+                    <span className="sm:hidden">Reject</span>
                   </button>
 
                   <button
                     onClick={handleApprove}
                     className={`
-                      flex-1 py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2
+                      flex-1 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2
                       ${theme === "dark"
                         ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
                         : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
                       }
                     `}
                   >
-                    <CheckCircle2 className="w-5 h-5" />
-                    Approve & Book Venue
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden sm:inline">Approve & Book Venue</span>
+                    <span className="sm:hidden">Approve</span>
                   </button>
                 </div>
               )}
 
               {selected.status !== "pending" && (
                 <div className={`
-                  p-4 rounded-lg flex items-center gap-3
+                  p-3 sm:p-4 rounded-lg flex items-center gap-2 sm:gap-3
                   ${selected.status === "rejected"
                     ? "bg-red-500/10 text-red-600"
                     : "bg-green-500/10 text-green-600"
                   }
                 `}>
-                  <AlertCircle className="w-5 h-5" />
-                  <p className="text-sm font-medium">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm font-medium">
                     This enquiry has been {selected.status}
                   </p>
                 </div>
@@ -598,13 +600,13 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
             </div>
           ) : (
             <div className={`
-              rounded-lg p-12 text-center
+              rounded-lg p-6 sm:p-12 text-center
               ${theme === "dark" ? "bg-[#292a2d]" : "bg-white border border-[#dadce0]"}
             `}>
-              <FileText className={`w-16 h-16 mx-auto mb-4 ${
+              <FileText className={`w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 ${
                 theme === "dark" ? "text-[#5f6368]" : "text-[#dadce0]"
               }`} />
-              <p className={`text-sm ${
+              <p className={`text-xs sm:text-sm ${
                 theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
               }`}>
                 Select an enquiry to view details

@@ -464,15 +464,15 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                 {paginatedEnquiries.map((e, i) => (
                   <motion.div
                     key={i}
-                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-sm hover:shadow-md hover:bg-red-100 dark:hover:bg-gray-600 cursor-pointer transition-all gap-3 sm:gap-4"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-red-50 dark:bg-gray-700 border border-red-200 dark:border-gray-600 rounded-xl px-4 sm:px-6 py-3 sm:py-4 shadow-sm hover:shadow-md hover:bg-red-100 dark:hover:bg-gray-600 cursor-pointer transition-all gap-3 sm:gap-4 overflow-hidden"
                     whileHover={{ scale: 1.02 }}
                     onClick={() => setSelected(e)}
                   >
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 overflow-hidden">
                       <h3 className="text-base sm:text-lg font-semibold text-red-700 dark:text-gray-200 truncate">
                         {e.name}
                       </h3>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                         {new Date(e.createdAt).toLocaleString("en-GB", {
                           day: "2-digit",
                           month: "short",

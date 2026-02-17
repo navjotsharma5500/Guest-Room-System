@@ -111,6 +111,45 @@ const isEventLive = (event, todayStr, currentMinutes) => {
     return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
 };
 
+// Helper to determine event status based on dates and current time
+const getEventStatus = (event, todayStr, currentMinutes) => {
+    const eventEndDate = event.eventEndDate || event.eventDate;
+    
+    // Completed: if event's end date is before today
+    if (eventEndDate < todayStr) {
+        return 'completed';
+    }
+    
+    // Ongoing: if today's date is between start and end dates AND time is within range
+    if (event.eventDate <= todayStr && todayStr <= eventEndDate) {
+        // Check if current time is within the event time range
+        const startMinutes = parseTime(event.eventTime);
+        let endMinutes;
+        
+        if (event.checkOutTime) {
+            endMinutes = parseTime(event.checkOutTime);
+            // Handle overnight events
+            if (endMinutes < startMinutes) {
+                endMinutes += 24 * 60;
+            }
+        } else {
+            endMinutes = startMinutes + 120;
+        }
+        
+        // Only show as ongoing if we're within the time range
+        if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
+            return 'ongoing';
+        }
+    }
+    
+    // Upcoming: if event date is after today
+    if (event.eventDate > todayStr) {
+        return 'upcoming';
+    }
+    
+    return 'upcoming';
+};
+
 export default function PublicEventCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
@@ -589,12 +628,31 @@ export default function PublicEventCalendar() {
                                                     {event.societyName}
                                                 </p>
                                             </div>
-                                            <div className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${
-                                                event.status === 'ongoing' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                            }`}>
-                                                {event.status}
-                                            </div>
+                                            {(() => {
+                                                const eventStatus = getEventStatus(event, todayStr, currentMinutes);
+                                                const statusConfig = {
+                                                    completed: {
+                                                        label: 'Completed',
+                                                        classes: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                    },
+                                                    ongoing: {
+                                                        label: '🟢 Live',
+                                                        classes: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                    },
+                                                    upcoming: {
+                                                        label: 'Upcoming',
+                                                        classes: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                    }
+                                                };
+                                                
+                                                const config = statusConfig[eventStatus] || statusConfig.upcoming;
+                                                
+                                                return (
+                                                    <div className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${config.classes}`}>
+                                                        {config.label}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
                                             <span className={`flex items-center gap-1.5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>

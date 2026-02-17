@@ -711,6 +711,28 @@ export default function GuestRoomDashboard() {
           >
             {/* LEFT SIDE: Real-time Status - Responsive */}
             <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
+              {/* Mobile Hamburger Button - Shows hamburger or X based on state */}
+              {activeTab !== "AllHostelsPortal" && (
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title={mobileMenuOpen ? "Close Sidebar" : "Open Sidebar"}
+                >
+                  <svg 
+                    className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    {mobileMenuOpen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    )}
+                  </svg>
+                </button>
+              )}
+
               {/* Desktop Sidebar Toggle */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -815,52 +837,23 @@ export default function GuestRoomDashboard() {
             }
           `}</style>
 
-          {/* MOBILE MENU TOGGLE - SIDE HANDLE (HUMP) */}
-          {activeTab !== "AllHostelsPortal" && (
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`
-                fixed top-24 right-0 md:hidden z-50 
-                py-3 pl-4 pr-2 rounded-l-2xl shadow-xl 
-                transform transition-all duration-300 ease-out
-                active:scale-95 hover:pr-4
-                flex items-center gap-2
-                ${mobileMenuOpen ? "translate-x-full opacity-0" : "translate-x-0 opacity-100"}
-                ${theme === "dark" 
-                  ? "bg-purple-600/90 text-white backdrop-blur-sm border-l border-t border-b border-white/10" 
-                  : "bg-white/90 text-purple-600 backdrop-blur-sm border-l border-t border-b border-purple-100"
-                }
-              `}
-              style={{ 
-                boxShadow: theme === "dark" 
-                  ? "-4px 4px 20px rgba(0,0,0,0.4)" 
-                  : "-4px 4px 20px rgba(126, 34, 206, 0.15)" 
-              }}
-            >
-              <span className="text-xs font-bold writing-vertical-rl transform rotate-180 opacity-80">MENU</span>
-              <div className={`p-1.5 rounded-full ${theme === "dark" ? "bg-white/10" : "bg-purple-50"}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </div>
-            </button>
-          )}
+
 
           {/* MOBILE SIDEBAR OVERLAY */}
           {activeTab !== "AllHostelsPortal" && mobileMenuOpen && (
             <>
-              {/* Backdrop */}
+              {/* Backdrop - Click to close sidebar */}
               <div
                 className="fixed inset-0 bg-black/50 z-40 md:hidden"
                 onClick={() => setMobileMenuOpen(false)}
               />
               
-              {/* Mobile Sidebar */}
+              {/* Mobile Sidebar - No close button */}
               <motion.div
                 initial={{ x: -280 }}
                 animate={{ x: 0 }}
                 exit={{ x: -280 }}
-                className="fixed left-0 top-16 bottom-0 w-64 z-50 md:hidden"
+                className="fixed left-0 top-0 bottom-0 w-64 z-50 md:hidden overflow-y-auto"
               >
                 <Sidebar
                   activeHostel={activeHostel}

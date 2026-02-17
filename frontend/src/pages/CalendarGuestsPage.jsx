@@ -782,13 +782,13 @@ export default function CalendarGuestsPage({
 
       {/* Tabs */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className={`flex border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6">
+          <div className={`flex flex-wrap gap-1 sm:gap-2 md:gap-3 border-b ${theme === 'dark' ? 'border-gray-700' : ''}`}>
             {[
-              { id: 'active', label: 'Active Guests', icon: Users },
-              { id: 'upcoming', label: 'Upcoming Guests', icon: Clock },
-              { id: 'past', label: 'Past Guests', icon: FileText },
-              { id: 'cancelled', label: 'Cancelled Bookings', icon: XCircle }
+              { id: 'active', label: 'Active Guests', short: 'Active', icon: Users },
+              { id: 'upcoming', label: 'Upcoming Guests', short: 'Upcoming', icon: Clock },
+              { id: 'past', label: 'Past Guests', short: 'Past', icon: FileText },
+              { id: 'cancelled', label: 'Cancelled Bookings', short: 'Cancelled', icon: XCircle }
             ].map(tab => {
               const Icon = tab.icon;
               const count = getTabCount(tab.id);
@@ -797,7 +797,7 @@ export default function CalendarGuestsPage({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 md:gap-2 px-2 sm:px-4 md:px-6 py-3 md:py-4 font-semibold text-xs sm:text-sm md:text-base transition border-b-3 whitespace-nowrap md:whitespace-normal ${
+                  className={`flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4 font-semibold text-xs sm:text-sm md:text-base transition border-b-3 flex-shrink-0 ${
                     activeTab === tab.id
                       ? 'border-red-600 text-red-600 bg-red-50'
                       : theme === 'dark'
@@ -805,9 +805,10 @@ export default function CalendarGuestsPage({
                         : 'border-transparent text-gray-600 hover:text-red-600 hover:bg-red-50'
                   }`}
                 >
-                  <Icon size={20} />
-                  {tab.label}
-                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  <Icon size={18} className="flex-shrink-0" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.short}</span>
+                  <span className={`ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-bold ${
                     activeTab === tab.id
                       ? 'bg-red-600 text-white'
                       : theme === 'dark'
