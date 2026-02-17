@@ -44,6 +44,7 @@ export const protect = async (req, res, next) => {
         res.clearCookie("token", {
           httpOnly: true,
           sameSite: "none",
+          domain: ".guestapp.in",
           secure: true,
           path: "/",
         });
@@ -71,6 +72,7 @@ export const protect = async (req, res, next) => {
       res.clearCookie("token", {
         httpOnly: true,
         sameSite: "none",
+        domain: ".guestapp.in",
         secure: true,
         path: "/",
       });

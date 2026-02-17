@@ -639,6 +639,12 @@ export default function PublicEventCalendar() {
                                       <p className={`text-lg mt-1 font-medium ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
                                         {selectedEvent.societyName}
                                       </p>
+                                      {/* Department */}
+                                      {selectedEvent.department && (
+                                        <p className={`text-sm mt-1 font-medium ${theme === "dark" ? "text-blue-300" : "text-blue-500"}`}>
+                                          {selectedEvent.department}
+                                        </p>
+                                      )}
                                     </div>
 
                                     <div className={`p-4 rounded-xl ${theme === "dark" ? "bg-gray-700/30" : "bg-gray-50"}`}>
@@ -674,7 +680,7 @@ export default function PublicEventCalendar() {
                                                 <div>
                                                     <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Venue</p>
                                                     <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-                                                        {selectedEvent.eventHall?.hall} - {selectedEvent.eventHall?.roomNo}
+                                                        {selectedEvent.eventHall?.roomNo}
                                                     </p>
                                                 </div>
                                             </div>
@@ -816,20 +822,14 @@ export default function PublicEventCalendar() {
           theme === "dark" ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-gray-200 text-gray-600"
       }`}>
           <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-              {/* Block 1: Support & Admin Oversight */}
+              {/* Block 1: General Query */}
               <div className="space-y-4">
                   <h3 className={`font-bold text-base sm:text-lg ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                      Administrative Oversight
+                      Any General Query
                   </h3>
-                  <p className="text-xs sm:text-sm leading-relaxed">
-                      All societies, clubs, and chapters at Thapar Institute are coordinated under the guidance of the Office of Student Affairs.
-                  </p>
-                  <div className="pt-2 text-xs sm:text-sm space-y-1">
-                      <p className="font-semibold text-blue-500">Dr. Sumit Chandok</p>
-                      <p>Associate Dean of Student Affairs – 3</p>
-                      <p>Associate Professor, DOM</p>
-                      <p>Coordinator – Student Societies, Clubs & Chapters</p>
-                      <a href="mailto:adosa3@thapar.edu" className="block mt-1 text-blue-500 hover:underline">adosa3@thapar.edu</a>
+                  <div className="text-xs sm:text-sm space-y-2">
+                      <p className="font-semibold">Contact us for any assistance:</p>
+                      <a href="mailto:shabnam.rani@thapar.edu" className="block text-blue-500 hover:underline break-all">shabnam.rani@thapar.edu</a>
                   </div>
                   <div className="pt-2">
                        <p className="text-xs font-semibold uppercase text-gray-500 mb-1">Technical Support</p>
@@ -891,43 +891,15 @@ export default function PublicEventCalendar() {
                   </div>
               </div>
 
-              {/* Block 3: Society List */}
-              <div className="space-y-4">
-                   <h3 className={`font-bold text-base sm:text-lg ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                      Societies & Clubs
-                  </h3>
-                  <div className={`max-h-48 sm:h-64 overflow-y-auto pr-2 rounded-xl p-2 ${
-                      theme === "dark" ? "bg-gray-700/30" : "bg-gray-50"
-                  }`}>
-                      {societies.length > 0 ? (
-                          <div className="space-y-1.5">
-                              {societies.map((society, idx) => (
-                                  <div key={idx} className="p-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                      <p className={`font-medium text-xs sm:text-sm ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-                                          {society.name || society}
-                                      </p>
-                                      {society.email && (
-                                          <p className="text-xs text-blue-500">{society.email}</p>
-                                      )}
-                                  </div>
-                              ))}
-                          </div>
-                      ) : (
-                          <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                              Loading societies...
-                          </div>
-                      )}
-                  </div>
-              </div>
 
-              {/* Block 4: Contact & Footer Info */}
+
+              {/* Block 3: Contact & Footer Info */}
               <div className="space-y-4 sm:space-y-6">
                   <div>
                     <h3 className={`font-bold text-base sm:text-lg mb-3 sm:mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                         Contact Us
                     </h3>
                     <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm leading-relaxed">
-                        <p>P.O. Box 32, Bhadson Road, Patiala, Punjab, Pin -147004, India</p>
                         <p>Timings: 9 AM to 5:30 PM, Monday to Friday</p>
                         <p>E-mail : <a href="mailto:dosa.office@thapar.edu" className="text-blue-500 hover:underline break-all">dosa.office@thapar.edu</a></p>
                     </div>

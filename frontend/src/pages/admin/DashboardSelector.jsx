@@ -15,7 +15,8 @@ import {
   MessageSquare,
   CalendarDays,
   FileText,
-  X
+  X,
+  Search
 } from "lucide-react";
 import CreatorProfile from "../../components/CreatorProfile";
 
@@ -173,6 +174,18 @@ const DashboardSelector = () => {
       available: true,
       features: ["Guest Enquiry", "Feedback Form", "Venue Enquiry", "Event Calendar"],
       onClick: () => setShowPublicForms(true)
+    },
+    {
+      id: "lost-and-found",
+      title: "Lost and Found",
+      description: "Search and report lost or found items",
+      icon: Search,
+      gradient: "from-indigo-600 via-indigo-500 to-blue-500",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
+      available: true,
+      features: ["Report Missing Items", "Browse Found Items", "Track Status"],
+      onClick: () => window.open("https://lost-and-found-portal-six.vercel.app/", "_blank")
     },
     {
       id: "coming-soon",

@@ -94,6 +94,8 @@ export default function VenueGuestEnquiryPage() {
   const [showSocietySuggestions, setShowSocietySuggestions] = useState(false);
   const [eventSuggestions, setEventSuggestions] = useState([]);
   const [showEventSuggestions, setShowEventSuggestions] = useState(false);
+  const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
+  const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
   
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
@@ -149,6 +151,19 @@ export default function VenueGuestEnquiryPage() {
 
     return () => clearTimeout(timer);
   }, [form.eventName]);
+
+  useEffect(() => {
+    const query = form.department.trim().toLowerCase();
+    if (!query) {
+      setDepartmentSuggestions(VENUE_DEPARTMENTS);
+      return;
+    }
+
+    const filtered = VENUE_DEPARTMENTS.filter(dept =>
+      dept.toLowerCase().includes(query)
+    );
+    setDepartmentSuggestions(filtered);
+  }, [form.department]);
 
   const handleIKSuccess = (res) => {
     const fileUrl = res?.url || res?.filePath;
@@ -427,17 +442,37 @@ export default function VenueGuestEnquiryPage() {
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Department *
                         </label>
-                        <select
-                          value={form.department}
-                          onChange={(e) => setForm({ ...form, department: e.target.value })}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 outline-none transition"
-                          required
-                        >
-                          <option value="">Select Department</option>
-                          {VENUE_DEPARTMENTS.map((dept, idx) => (
-                            <option key={`${dept}-${idx}`} value={dept}>{dept}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={form.department}
+                            onChange={(e) => {
+                              setForm({ ...form, department: e.target.value });
+                              setShowDepartmentSuggestions(true);
+                            }}
+                            onFocus={() => setShowDepartmentSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowDepartmentSuggestions(false), 200)}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 outline-none transition"
+                            placeholder="Type or select department..."
+                            required
+                          />
+                          {showDepartmentSuggestions && departmentSuggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                              {departmentSuggestions.map((dept, idx) => (
+                                <div
+                                  key={`${dept}-${idx}`}
+                                  onClick={() => {
+                                    setForm({ ...form, department: dept });
+                                    setShowDepartmentSuggestions(false);
+                                  }}
+                                  className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                                >
+                                  {dept}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
   

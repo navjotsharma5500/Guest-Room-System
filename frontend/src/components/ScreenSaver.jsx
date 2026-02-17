@@ -121,7 +121,7 @@ export default function ScreenSaver({ isActive, onDismiss }) {
           className="absolute bottom-20 left-0 right-0 text-center z-10"
         >
           <h1 className="text-white text-4xl font-bold mb-4 drop-shadow-2xl">
-            Thapar Guest Room Portal
+            TIET Apps Dashboard
           </h1>
           <p className="text-gray-300 text-xl drop-shadow-lg">
             Click anywhere or move your mouse to continue

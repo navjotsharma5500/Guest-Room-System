@@ -78,6 +78,8 @@ export default function VenueBookingModal({
   const [showSocietySuggestions, setShowSocietySuggestions] = useState(false);
   const [eventSuggestions, setEventSuggestions] = useState([]);
   const [showEventSuggestions, setShowEventSuggestions] = useState(false);
+  const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
+  const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
 
   useEffect(() => {
     if (!prefill) return;
@@ -148,6 +150,19 @@ export default function VenueBookingModal({
 
     return () => clearTimeout(timer);
   }, [formData.eventName]);
+
+  useEffect(() => {
+    const query = formData.department.trim().toLowerCase();
+    if (!query) {
+      setDepartmentSuggestions(VENUE_DEPARTMENTS);
+      return;
+    }
+
+    const filtered = VENUE_DEPARTMENTS.filter(dept =>
+      dept.toLowerCase().includes(query)
+    );
+    setDepartmentSuggestions(filtered);
+  }, [formData.department]);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -688,28 +703,58 @@ export default function VenueBookingModal({
                         <Building className="w-4 h-4 text-red-600" />
                         Department <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        name="department"
-                        value={formData.department}
-                        onChange={handleChange}
-                        className={`
-                          w-full px-4 py-3 rounded border text-sm
-                          transition-all duration-200 outline-none
-                          ${errors.department
-                            ? "border-red-500 focus:border-red-500"
-                            : theme === "dark"
-                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
-                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
-                          }
-                        `}
-                      >
-                        <option value="">Select Department</option>
-                        {VENUE_DEPARTMENTS.map((dept, idx) => (
-                          <option key={`${dept}-${idx}`} value={dept}>
-                            {dept}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="department"
+                          value={formData.department}
+                          onChange={(e) => {
+                            handleChange(e);
+                            setShowDepartmentSuggestions(true);
+                          }}
+                          onFocus={() => setShowDepartmentSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowDepartmentSuggestions(false), 200)}
+                          placeholder="Type or select department..."
+                          className={`
+                            w-full px-4 py-3 rounded border text-sm
+                            transition-all duration-200 outline-none
+                            ${errors.department
+                              ? "border-red-500 focus:border-red-500"
+                              : theme === "dark"
+                              ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                              : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                            }
+                          `}
+                        />
+                        {showDepartmentSuggestions && departmentSuggestions.length > 0 && (
+                          <div className={`
+                            absolute top-full left-0 right-0 mt-1 rounded shadow-lg z-10 max-h-48 overflow-y-auto
+                            ${theme === "dark"
+                              ? "bg-[#3c4043] border border-[#5f6368]"
+                              : "bg-white border border-[#dadce0]"
+                            }
+                          `}>
+                            {departmentSuggestions.map((dept, idx) => (
+                              <div
+                                key={`${dept}-${idx}`}
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, department: dept }));
+                                  setShowDepartmentSuggestions(false);
+                                }}
+                                className={`
+                                  px-4 py-2 cursor-pointer text-sm
+                                  ${theme === "dark"
+                                    ? "hover:bg-blue-900 text-[#e8eaed]"
+                                    : "hover:bg-blue-50 text-[#202124]"
+                                  }
+                                `}
+                              >
+                                {dept}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       {errors.department && (
                         <motion.p
                           initial={{ opacity: 0, y: -10 }}
