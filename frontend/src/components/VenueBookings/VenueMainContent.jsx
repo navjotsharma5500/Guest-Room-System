@@ -123,8 +123,8 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
 
   return (
     <div className="p-6 space-y-6">
-      {/* âœ… Stats Cards - Made smaller and more compact */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* âœ… Stats Cards - Hidden on mobile, visible on md+ screens */}
+      <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Venues"
           value={stats.totalHalls}

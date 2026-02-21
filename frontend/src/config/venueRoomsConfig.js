@@ -64,12 +64,55 @@ export const venueRoomsConfig = [
           { id: "lp-110", name: "LP-110", enabled: true },
         ],
       },
-      { id: "tan-rooms", label: "TAN Rooms", enabled: true, rooms: [] },
-      { id: "e-block", label: "E-Block", enabled: true, rooms: [] },
-      { id: "f-block", label: "F-Block", enabled: true, rooms: [] },
-      { id: "g-block", label: "G-Block", enabled: true, rooms: [] },
-      { id: "activity-rooms", label: "Activity Rooms", enabled: true, rooms: [] },
-      { id: "activity-space", label: "Activity Space", enabled: true, rooms: [] },
+      {
+        id: "tan-rooms",
+        label: "TAN Rooms",
+        enabled: true,
+        rooms: [
+          { id: "t-105", name: "T-105", enabled: true },
+          { id: "t-106", name: "T-106", enabled: true },
+        ],
+      },
+      {
+        id: "e-block",
+        label: "E-Block",
+        enabled: true,
+        rooms: [
+          { id: "e-block", name: "E-Block", enabled: true },
+        ],
+      },
+      {
+        id: "f-block",
+        label: "F-Block",
+        enabled: true,
+        rooms: [
+          { id: "f-block", name: "F-Block", enabled: true },
+        ],
+      },
+      {
+        id: "g-block",
+        label: "G-Block",
+        enabled: true,
+        rooms: [
+          { id: "g-block", name: "G-Block", enabled: true },
+        ],
+      },
+      {
+        id: "activity-rooms",
+        label: "Activity Rooms",
+        enabled: true,
+        rooms: [
+          { id: "activity-room", name: "Activity Room", enabled: true },
+        ],
+      },
+      {
+        id: "activity-space",
+        label: "Activity Space",
+        enabled: true,
+        rooms: [
+          { id: "activity-space", name: "Activity Space", enabled: true },
+        ],
+      },
     ],
   },
 
@@ -115,6 +158,12 @@ export const venueRoomsConfig = [
         label: "Open Spaces",
         enabled: true,
         rooms: [
+          { id: "k-lawn-street-cafe", name: "K-Lawn (Street Cafe)", enabled: true },
+          { id: "deans-lawn", name: "Dean's Lawn", enabled: true },
+          { id: "fete-area", name: "Fete Area", description: "(Near COS Gate Entry)", enabled: true },
+          { id: "h-chowk", name: "H-Chowk", description: "(Near Central Park)", enabled: true },
+          { id: "lp-lawns", name: "LP Lawns", enabled: true },
+          { id: "csed", name: "CSED", description: "(hackathon Space)", enabled: true },
           { id: "sbi-lawn", name: "SBI Lawn", enabled: true },
           { id: "fete-area", name: "FETE Area", enabled: true },
           { id: "oat", name: "OAT (Open Air Theatre)", enabled: true },

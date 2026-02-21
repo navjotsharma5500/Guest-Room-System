@@ -310,7 +310,7 @@ app.use("/api/venue/enquiry", venueEnquiryRoutes);
 app.use("/api/events", eventCalendarRoutes);
 app.use("/api/event-calendar", eventCalendarRoutes);
 app.use("/api/token", tokenRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use("/api/upload", uploadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/defaulters", defaulterRoutes);

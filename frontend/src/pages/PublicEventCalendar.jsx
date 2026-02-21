@@ -275,9 +275,7 @@ export default function PublicEventCalendar() {
   const eventsForDate = useCallback(
     (dateKey) =>
       events.filter((event) => {
-        const unwantedStatuses = ['completed', 'cancelled', 'rejected', 'no_show', 'checked_out'];
-        if (unwantedStatuses.includes(event.status)) return false;
-
+        // Show all events including past ones - removed status filtering
         const start = event.eventDate;
         const end = event.eventEndDate || event.eventDate;
         return dateKey >= start && dateKey <= end;
@@ -345,8 +343,8 @@ export default function PublicEventCalendar() {
   const allEventsPool = useMemo(() => uniqueEvents([...events, ...upcomingEvents]), [events, upcomingEvents]);
 
   const filterTabEvents = (list) => {
-    const unwantedStatuses = ['completed', 'cancelled', 'rejected', 'no_show', 'checked_out'];
-    return list.filter(e => !unwantedStatuses.includes(e.status));
+    // Allow all events including completed ones - removed status filtering to show history
+    return list;
   };
 
   const todayEvents = useMemo(() => {
@@ -835,6 +833,11 @@ export default function PublicEventCalendar() {
                                      <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                                          {event.societyName}
                                      </p>
+                                     {event.department && (
+                                       <p className={`text-xs sm:text-sm font-medium ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
+                                           {event.department}
+                                       </p>
+                                     )}
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 text-xs sm:text-sm shrink-0">

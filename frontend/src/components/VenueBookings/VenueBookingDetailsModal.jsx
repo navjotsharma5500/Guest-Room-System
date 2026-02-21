@@ -219,6 +219,15 @@ export default function VenueBookingDetailsModal({
                     </p>
                   </div>
 
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Department</p>
+                    <p className={`font-semibold ${
+                      theme === "dark" ? "text-gray-100" : "text-gray-800"
+                    }`}>
+                      {booking.department || "—"}
+                    </p>
+                  </div>
+
                   <div className="md:col-span-2">
                     <p className="text-xs text-gray-500 mb-1">Event Name</p>
                     <p className={`font-semibold text-lg ${

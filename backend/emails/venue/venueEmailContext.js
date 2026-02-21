@@ -22,7 +22,7 @@ export const buildEmailContext = ({
   
   // If we are sending to the internal office (e.g. enquiry_received),
   // we don't want to BCC them again if they are already in TO/CC.
-  const bcc = ENABLE_AUDIT_BCC ? ["dosa@thapar.edu", "itmh@thapar.edu"] : [];
+  const bcc = ENABLE_AUDIT_BCC ? ["dosa@thapar.edu", "itmh@thapar.edu", "adosa3@thapar.edu"] : [];
 
   return {
     from: authority.from,

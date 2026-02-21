@@ -172,6 +172,14 @@ export default function VenueUpcomingBookings({ hallData, venueData, theme, onRe
                     {booking.societyName || "Private Event"}
                   </p>
                   
+                  {booking.department && (
+                    <p className={`text-xs font-medium truncate mb-2 ${
+                      theme === "dark" ? "text-purple-400" : "text-purple-600"
+                    }`}>
+                      📊 {booking.department}
+                    </p>
+                  )}
+                  
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                           <Clock size={12} />
@@ -298,6 +306,14 @@ function BookingDetailsModal({ booking, theme, onClose, onExtend }) {
                 value={booking.societyName}
                 theme={theme}
               />
+              {booking.department && (
+                <InfoItem
+                  icon={<Building2 className="w-4 h-4" />}
+                  label="Department"
+                  value={booking.department}
+                  theme={theme}
+                />
+              )}
               <InfoItem
                 icon={<Mail className="w-4 h-4" />}
                 label="Email"

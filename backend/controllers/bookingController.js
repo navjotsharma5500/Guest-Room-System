@@ -1368,7 +1368,19 @@ export const autoCancelNoShows = async () => {
             });
           }
 
+          // ✅ SEND FEEDBACK EMAIL TO GUEST (After no-show cancellation)
+          safeSend({
+            to: booking.email,
+            subject: "Thank you for staying with us! - Feedback",
+            html: guestCheckoutFeedback(booking),
+            meta: {
+              bookingId: booking._id,
+              type: "guest-no-show-feedback"
+            }
+          });
+
           console.log(`📧 Cancellation emails sent for booking ${booking._id}`);
+          console.log(`📧 Feedback email sent for guest: ${booking.guest}`);
         } catch (emailErr) {
           console.error(`❌ Email error for booking ${booking._id}:`, emailErr);
         }
