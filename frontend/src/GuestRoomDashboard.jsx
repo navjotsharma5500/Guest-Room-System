@@ -110,7 +110,7 @@ export default function GuestRoomDashboard() {
 
   // ✅ Auto-Hide Sidebar for specific pages
   useEffect(() => {
-    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics"];
+    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry"];
     if (fullScreenPages.includes(activeTab)) {
       setIsSidebarOpen(false);
     } else {

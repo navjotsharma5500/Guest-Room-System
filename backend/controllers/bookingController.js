@@ -1521,6 +1521,19 @@ export const autoCheckoutOverdueGuests = async () => {
             },
           });
 
+          // ✅ Send feedback request only when no balance is pending
+          if (!hasPendingPayment && booking.email) {
+            safeSend({
+              to: booking.email,
+              subject: "Thank you for staying with us! - Feedback",
+              html: guestCheckoutFeedback(booking),
+              meta: {
+                bookingId: booking._id,
+                type: "guest-auto-checkout-feedback",
+              },
+            });
+          }
+
           // Email to caretaker
           safeSend({
             to: booking.caretakerEmail,
