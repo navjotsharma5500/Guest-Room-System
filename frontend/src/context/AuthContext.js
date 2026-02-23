@@ -10,7 +10,6 @@ export const useAuth = () => useContext(AuthContext);
 // AXIOS GLOBAL SETTINGS
 // =============================
 axios.defaults.withCredentials = true;
-// ✅ Use BACKEND_URL (matches your Vercel variable)
 axios.defaults.baseURL = BACKEND_URL;
 
 if (!axios.defaults.baseURL) {
@@ -23,14 +22,14 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Use BACKEND_URL
   const API = BACKEND_URL;
-  
+
   if (!API) {
     console.error("❌ CRITICAL: BACKEND_URL not set!");
   }
-  
+
   console.log("🔧 Auth API URL:", API);
+
   // =======================================================
   // 🔥 LOAD LOGGED-IN USER FROM BACKEND (/me)
   // =======================================================
@@ -41,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
         const res = await fetch(`${API}/api/auth/me`, {
           method: "GET",
-          credentials: "include", // include cookies
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -68,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // =======================================================
-  // 🔥 LOGIN (Sets HttpOnly cookie + stores token in localStorage)
+  // 🔥 LOGIN
   // =======================================================
   const login = async (email, password) => {
     try {
@@ -89,7 +88,6 @@ export const AuthProvider = ({ children }) => {
 
       if (res.ok) {
         setCurrentUser(data.user);
-        // 🔥 Store token in localStorage for API calls
         if (data.token) {
           localStorage.setItem("token", data.token);
           console.log("✅ Token stored in localStorage (length:", data.token.length, ")");
@@ -142,12 +140,40 @@ export const AuthProvider = ({ children }) => {
     }
 
     setCurrentUser(null);
-    // 🔥 Clear token from localStorage
     localStorage.removeItem("token");
   };
 
+  // =======================================================
+  // 🌙 NIGHT PERMISSIONS — Role Helper Functions
+  // Used by night permissions pages via useAuth()
+  // =======================================================
+  const getRole = () => (currentUser?.role || "").toLowerCase();
+
+  const isAdosa     = () => ["adosa", "admin"].includes(getRole());
+  const isPresident = () => ["president", "adosa", "admin"].includes(getRole());
+  const isGenSec    = () => ["gen_sec", "president", "adosa", "admin"].includes(getRole());
+  const canScan     = () => ["caretaker", "guard", "adosa", "admin"].includes(getRole());
+
+  // `user` alias — night perms pages destructure `user`, not `currentUser`
+  const user = currentUser;
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, googleLogin, logout }}>
+    <AuthContext.Provider
+      value={{
+        // ── Core auth ──────────────────────────────────────
+        currentUser,
+        user,
+        loading,
+        login,
+        googleLogin,
+        logout,
+        // ── 🌙 Night permissions role helpers ──────────────
+        isAdosa,
+        isPresident,
+        isGenSec,
+        canScan,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

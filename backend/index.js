@@ -34,6 +34,8 @@ import eventCalendarRoutes from "./routes/eventCalendarRoutes.js";
 import { seedDefaultSocietySuggestions } from "./models/SocietyNameSuggestion.js";
 import { seedDefaultEventSuggestions } from "./models/EventNameSuggestion.js";
 import uploadRoutes from './routes/uploadRoutes.js';
+import nightPermissionRoutes from './routes/nightPermissionRoutes.js';
+import { startNightPermissionTimeoutCron } from './utils/nightPermissionCron.js';
 
 const app = express();
 
@@ -318,6 +320,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/guest-feedback", guestFeedbackRoutes);
 app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use('/api/night', nightPermissionRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
@@ -338,6 +341,12 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on('join-night-permissions', () => {
+    socket.join('night-permissions');
+    socket.emit('night-permissions-connected', { socketId: socket.id });
+    console.log(`🌙 Socket ${socket.id} joined night-permissions room`);
+  });
+
   socket.on("disconnect", (reason) => {
     console.log("âŒ Socket disconnected:", socket.id, reason);
   });
@@ -346,6 +355,8 @@ io.on("connection", (socket) => {
     console.log("ðŸ“¡ Socket event:", event, args);
   });
 });
+
+startNightPermissionTimeoutCron(io);
 
 /* =========================================================
    ADMIN CLEANUP ENDPOINT

@@ -36,6 +36,19 @@ import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // ============================================================================
+// Night Pass IMPORTS
+// ============================================================================
+import NightLayout from './nightPermissions/components/NightLayout';
+import NightDashboard from './nightPermissions/pages/NightDashboard';
+import NightLists from './nightPermissions/pages/NightLists';
+import NightReview from './nightPermissions/pages/NightReview';
+import NightScan from './nightPermissions/pages/NightScan';
+import NightStudents from './nightPermissions/pages/NightStudents';
+import NightDefaulters from './nightPermissions/pages/NightDefaulters';
+import NightCalendar from './nightPermissions/pages/NightCalendar';
+import NightSettings from './nightPermissions/pages/NightSettings';
+
+// ============================================================================
 // STYLES IMPORT
 // ============================================================================
 import "./styles/uiTheme.css";
@@ -71,7 +84,7 @@ export default function App() {
   // ROLE EXTRACTION
   // ========================================================================
   const role = currentUser?.role || currentUser?.user?.role;
-  const isAssistant = role === "assistant" || isDDAssistantRole(role);
+  const isAssistant = role === 'assistant' || role === 'adosa' || isDDAssistantRole(role);
 
   // ========================================================================
   // ROUTER CONFIGURATION
@@ -170,6 +183,24 @@ export default function App() {
               FALLBACK
               ================================================================ */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
+          <Route
+            path="/night"
+            element={
+              currentUser && ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard'].includes(role)
+                ? <NightLayout />
+                : <Navigate to="/" replace />
+            }
+          >
+            <Route index element={<NightDashboard />} />
+            <Route path="lists"      element={<NightLists />} />
+            <Route path="review"     element={<NightReview />} />
+            <Route path="scan"       element={<NightScan />} />
+            <Route path="students"   element={<NightStudents />} />
+            <Route path="defaulters" element={<NightDefaulters />} />
+            <Route path="calendar"   element={<NightCalendar />} />
+            <Route path="settings"   element={<NightSettings />} />
+          </Route>
 
         </Routes>
       </Router>

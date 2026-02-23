@@ -16,9 +16,11 @@ import {
   CalendarDays,
   FileText,
   X,
-  Search
+  Search,
+  Moon
 } from "lucide-react";
 import CreatorProfile from "../../components/CreatorProfile";
+import { useAuth } from "../../context/AuthContext";
 
 const PublicFormsModal = ({ open, onClose }) => {
   if (!open) return null;
@@ -137,8 +139,13 @@ const DashboardSelector = () => {
   const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const [showPublicForms, setShowPublicForms] = useState(false);
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const role = (currentUser?.role || "").toLowerCase();
 
-  const dashboards = [
+  // Night Permissions: visible to these roles
+  const NIGHT_PERM_ROLES = ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard'];
+
+  const allDashboards = [
     {
       id: "guest-room",
       title: "Guest Room Dashboard",
@@ -149,7 +156,8 @@ const DashboardSelector = () => {
       iconColor: "text-blue-600",
       available: true,
       features: ["Room Management", "Guest Tracking", "Booking System"],
-      onClick: () => navigate("/dashboard")
+      onClick: () => navigate("/dashboard"),
+      roles: ['admin', 'assistant', 'caretaker', 'warden', 'manager']
     },
     {
       id: "venue-booking",
@@ -161,7 +169,22 @@ const DashboardSelector = () => {
       iconColor: "text-purple-600",
       available: true,
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
-      onClick: () => navigate("/venue-booking")
+      onClick: () => navigate("/venue-booking"),
+      roles: ['admin', 'adosa', 'assistant', 'dd_assistant', 'dd assistant']
+    },
+    {
+      id: "night-permissions",
+      title: "Night Permissions",
+      description: "Manage student night-out requests, approvals, and QR scanning",
+      icon: Moon,
+      gradient: "from-amber-600 via-amber-500 to-yellow-400",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+      available: true,
+      badge: { label: "NEW", bg: "bg-amber-100", text: "text-amber-700" },
+      features: ["Permission Lists", "QR Scan Entry/Exit", "Defaulter Tracking"],
+      onClick: () => navigate("/night"),
+      roles: NIGHT_PERM_ROLES
     },
     {
       id: "public-forms",
@@ -173,7 +196,8 @@ const DashboardSelector = () => {
       iconColor: "text-teal-600",
       available: true,
       features: ["Guest Enquiry", "Feedback Form", "Venue Enquiry", "Event Calendar"],
-      onClick: () => setShowPublicForms(true)
+      onClick: () => setShowPublicForms(true),
+      roles: null // always visible
     },
     {
       id: "lost-and-found",
@@ -185,7 +209,8 @@ const DashboardSelector = () => {
       iconColor: "text-indigo-600",
       available: true,
       features: ["Report Missing Items", "Browse Found Items", "Track Status"],
-      onClick: () => window.open("https://lost-and-found-portal-six.vercel.app/", "_blank")
+      onClick: () => window.open("https://lost-and-found-portal-six.vercel.app/", "_blank"),
+      roles: null // always visible
     },
     {
       id: "coming-soon",
@@ -196,9 +221,16 @@ const DashboardSelector = () => {
       iconBg: "bg-orange-100",
       iconColor: "text-orange-600",
       available: false,
-      features: ["Advanced Analytics", "Mobile App", "AI Insights"]
+      features: ["Advanced Analytics", "Mobile App", "AI Insights"],
+      roles: null // always visible
     }
   ];
+
+  // Filter dashboards by role
+  const dashboards = allDashboards.filter(d => {
+    if (!d.roles) return true; // no restriction
+    return d.roles.includes(role);
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -377,6 +409,14 @@ const DashboardSelector = () => {
                       <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         NEW
+                      </div>
+                    )}
+
+                    {/* Generic badge support (e.g. Night Permissions) */}
+                    {dashboard.badge && dashboard.id !== "venue-booking" && (
+                      <div className={`${dashboard.badge.bg} ${dashboard.badge.text} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
+                        <Sparkles className="w-3 h-3" />
+                        {dashboard.badge.label}
                       </div>
                     )}
                   </div>
