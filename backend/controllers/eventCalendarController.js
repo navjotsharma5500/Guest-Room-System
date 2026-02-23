@@ -376,32 +376,10 @@ export const getEventsByMonth = async (req, res) => {
     const endDate = `${year}-${month.padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     const today = todayDateString();
 
-    // Only fetch events from today onwards if the requested month is current or future
-    // However, the calendar view might need to show the whole month structure.
-    // The user requirement says: "it fetched the booking of the current date and the upcoming date but don't show the history of the bookings"
-    // "like if there are many booking on 13 feb but when the date passed then it show nothing on that date."
+    // User requirement update: Show past bookings in the event calendar.
+    // We query from the start of the month to show full history.
     
-    // So if the requested month is in the past (e.g. Jan 2025 and today is Feb 2025), we should probably return empty or just let the date filter handle it.
-    // But within the current month, we should filter out days before today.
-    
-    // Let's refine the query date range.
-    // If startDate < today, we should use today as the effective start date for fetching.
-    
-    let queryStartDate = startDate;
-    if (queryStartDate < today) {
-        queryStartDate = today;
-    }
-    
-    // If the entire month is in the past (endDate < today), we return empty?
-    // User said "don't show the history".
-    
-    if (endDate < today) {
-         return res.status(200).json({
-          success: true,
-          count: 0,
-          events: [],
-        });
-    }
+    const queryStartDate = startDate;
 
     let eventDocs = await EventCalendar.find({
       eventDate: {
@@ -418,11 +396,6 @@ export const getEventsByMonth = async (req, res) => {
       checkOutDate: { $gte: queryStartDate },
     }).populate('createdBy', 'name email');
 
-    // Filter out past bookings if queryStartDate > startDate (meaning we are in current month and filtering history)
-    if (queryStartDate > startDate) {
-         bookingDocs = bookingDocs.filter(b => b.checkOutDate >= queryStartDate);
-    }
-    
     // Check for access control if needed (though public calendar usually shows all approved)
     // eventDocs = await filterRecordsByVenueRole(req, eventDocs);
     // bookingDocs = await filterRecordsByVenueRole(req, bookingDocs);
