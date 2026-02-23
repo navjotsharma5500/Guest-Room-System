@@ -8,7 +8,7 @@ export const DD_ASSISTANT_ALLOWED_ROOMS = [
 
 export const DD_OFFICE_EMAIL = "Queries_studentaffairs@thapar.edu";
 export const DOSA_OFFICE_EMAIL = "shabnam.rani@thapar.edu";
-export const VENUE_MANDATORY_BCC = ["dosa@thapar.edu", "itmh@thapar.edu"];
+export const VENUE_MANDATORY_BCC = ["dosa@thapar.edu", "itmh@thapar.edu", "adosa3@thapar.edu"];
 
 const normalizeRoomToken = (value = "") =>
   String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
