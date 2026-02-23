@@ -42,8 +42,9 @@ const isolatedHandler = (handler) => async (req, res) => {
   } catch (error) {
     console.error('🔴 Venue Booking Error (ISOLATED):', error);
     res.status(500).json({ 
-      message: 'Venue booking system error',
-      isolated: true
+      message: `Venue booking system error: ${error.message}`,
+      isolated: true,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -128,10 +129,14 @@ const createVenueBookingCore = async (req, res) => {
     return res.status(400).json({ message: 'Email must be @thapar.edu' });
   }
 
-  await Promise.all([
-    touchSocietySuggestion(societyName),
-    touchEventSuggestion(eventName),
-  ]);
+  try {
+    await Promise.all([
+      touchSocietySuggestion(societyName),
+      touchEventSuggestion(eventName),
+    ]);
+  } catch (suggestionError) {
+    console.error('⚠️ Suggestion update failed (non-critical):', suggestionError.message);
+  }
 
   for (const room of rooms) {
     if (!canAccessVenueRoom(req.user?.role, room.hall, room.roomNo)) {
