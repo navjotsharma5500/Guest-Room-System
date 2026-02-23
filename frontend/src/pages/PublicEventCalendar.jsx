@@ -518,6 +518,7 @@ export default function PublicEventCalendar() {
                     const hasEvents = dayEvents.length > 0;
                     const isSelected = selectedDateKey === dateKey;
                     const isToday = dateKey === toDateKey(new Date());
+                    const isPast = dateKey < toDateKey(new Date());
 
                     return (
                       <button
@@ -525,10 +526,10 @@ export default function PublicEventCalendar() {
                         onClick={() => setSelectedDateKey(dateKey)}
                         className={`
                           rounded-xl p-1 sm:p-2 text-center transition relative flex flex-col items-center justify-center
-                          ${hasEvents ? "calendar-day-has-events cursor-pointer" : "cursor-pointer"}
+                          ${hasEvents && !isPast ? "calendar-day-has-events cursor-pointer" : "cursor-pointer"}
                           ${isToday ? "calendar-day-today" : ""}
                           ${isSelected ? "ring-2 ring-blue-500" : ""}
-                          ${!isToday && !hasEvents && (theme === "dark" ? "text-gray-400" : "text-gray-700")}
+                          ${!isToday && (!hasEvents || isPast) && (theme === "dark" ? "text-gray-400" : "text-gray-700")}
                         `}
                       >
                         <span className="text-sm font-semibold">{day}</span>
