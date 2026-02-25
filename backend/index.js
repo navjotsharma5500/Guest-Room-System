@@ -36,6 +36,7 @@ import { seedDefaultEventSuggestions } from "./models/EventNameSuggestion.js";
 import uploadRoutes from './routes/uploadRoutes.js';
 import nightPermissionRoutes from './routes/nightPermissionRoutes.js';
 import { startNightPermissionTimeoutCron } from './utils/nightPermissionCron.js';
+import societyBudgetRoutes from './routes/societyBudgetRoutes.js';
 
 const app = express();
 
@@ -321,6 +322,7 @@ app.use("/api/guest-feedback", guestFeedbackRoutes);
 app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/night', nightPermissionRoutes);
+app.use('/api/societies', societyBudgetRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");

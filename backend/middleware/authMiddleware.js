@@ -53,15 +53,7 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
-    req.user = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      assignedHostel: user.assignedHostel || user.hostel || null,
-      isActive: user.isActive,
-    };
-
+    req.user = user; // ✅ Attach full original user object from DB
     console.log("✅ Auth success:", req.user.email);
     next();
 

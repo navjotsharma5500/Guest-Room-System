@@ -1,15 +1,16 @@
 // src/App.js
 // ============================================================================
 // ROUTING STRUCTURE:
-// - Login (/) → Auto-redirects based on user role
-// - Admin → /admin/dashboard-selector
-// - All authenticated users → /dashboard (Guest Room)
-// - VENUE BOOKING DASHBOARD → /venue-booking (Admin & Assistant)
-// - PUBLIC ROUTES:
-//   * /guest-enquiry → Public enquiry form
-//   * /guest-feedback → Public feedback form
-//   * /venue-guest-enquiry → Venue-specific enquiry form
-// - QR CODE GENERATOR → /admin/qr-code (Admin only)
+// - Login (/) → Auto-redirects based on user role:
+//     admin, adosa, assistant → /admin/dashboard-selector
+//     guard, gen_sec, president, student → /night  (Night Permissions directly)
+//     manager, caretaker, warden → /dashboard (Guest Room)
+//     dd_assistant → /venue-booking
+// - /admin/dashboard-selector → DashboardSelector (admin, adosa, assistant)
+// - /dashboard → Guest Room (admin, manager, caretaker, warden only)
+// - /venue-booking → Venue Booking (admin, adosa, assistant, dd_assistant)
+// - /night/* → Night Permissions (all night-perm roles)
+// - /access-required → Shown when login OK but user not in system data
 // ============================================================================
 
 import React from "react";
@@ -25,9 +26,10 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 // PAGE IMPORTS
 // ============================================================================
 import Login from "./pages/Login";
+import AccessRequired from "./nightPermissions/pages/AccessRequired";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
-import VenueBookingDashboard from "./VenueBookingDashboard"; // ✅ NEW - Venue Booking
+import VenueBookingDashboard from "./VenueBookingDashboard";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
@@ -35,40 +37,64 @@ import PublicGuestFeedback from "./pages/PublicGuestFeedback";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-// ============================================================================
-// Night Pass IMPORTS
-// ============================================================================
-import NightLayout from './nightPermissions/components/NightLayout';
-import NightDashboard from './nightPermissions/pages/NightDashboard';
-import NightLists from './nightPermissions/pages/NightLists';
-import NightReview from './nightPermissions/pages/NightReview';
-import NightScan from './nightPermissions/pages/NightScan';
-import NightStudents from './nightPermissions/pages/NightStudents';
-import NightDefaulters from './nightPermissions/pages/NightDefaulters';
-import NightCalendar from './nightPermissions/pages/NightCalendar';
-import NightSettings from './nightPermissions/pages/NightSettings';
+// Night Permissions pages
+import NightLayout from "./nightPermissions/components/NightLayout";
+import NightDashboard from "./nightPermissions/pages/NightDashboard";
+import NightLists from "./nightPermissions/pages/NightLists";
+import NightReview from "./nightPermissions/pages/NightReview";
+import NightScan from "./nightPermissions/pages/NightScan";
+import NightStudents from "./nightPermissions/pages/NightStudents";
+import NightDefaulters from "./nightPermissions/pages/NightDefaulters";
+import NightCalendar from "./nightPermissions/pages/NightCalendar";
+import NightSettings from "./nightPermissions/pages/NightSettings";
+import NightRoleManagement from "./nightPermissions/pages/NightRoleManagement";
+import NightReports from "./nightPermissions/pages/NightReports";
+import NightBudgets from "./nightPermissions/pages/NightBudgets";  // ✅ NEW
+import NightMessenger from "./nightPermissions/pages/NightMessenger"; // ✅ NEW
 
 // ============================================================================
-// STYLES IMPORT
+// STYLES
 // ============================================================================
 import "./styles/uiTheme.css";
+import "./styles/nightPassTheme.css";
 import "./styles/VenueBookingGlassmorphism.css";
 
 // ============================================================================
-// CONTEXT IMPORT
+// CONTEXT
 // ============================================================================
 import { useAuth } from "./context/AuthContext";
 import { isDDAssistantRole } from "./utils/venueAccessPolicy";
+import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
 
 // ============================================================================
-// MAIN APP COMPONENT
+// ROLE SETS
+// ============================================================================
+
+// Roles that land on Dashboard Selector after login
+const DASHBOARD_SELECTOR_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "selector"));
+
+// Roles that land directly on Night Permissions after login
+const NIGHT_DIRECT_ROLES = ["gen_sec", "president", "student"];
+
+// Roles allowed to access Guest Room dashboard
+const GUEST_ROOM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "guestroom"));
+
+// Roles allowed to access Venue Booking dashboard
+const VENUE_BOOKING_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "venue") || hasAccess(r, "venue_limited"));
+
+// Roles allowed to access Night Permissions routes
+const NIGHT_PERM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "night") || hasAccess(r, "night_scan") || hasAccess(r, "night_scan_only") || hasAccess(r, "night_student"));
+
+// Roles allowed to access Dashboard Selector page
+const canSeeSelector = (role, isDDAssistant) =>
+  hasAccess(role, "selector") || isDDAssistant;
+
+// ============================================================================
+// MAIN APP
 // ============================================================================
 export default function App() {
   const { currentUser, loading } = useAuth();
 
-  // ========================================================================
-  // LOADING STATE
-  // ========================================================================
   if (loading) {
     return (
       <main className="flex items-center justify-center h-screen text-gray-500">
@@ -80,15 +106,33 @@ export default function App() {
     );
   }
 
-  // ========================================================================
-  // ROLE EXTRACTION
-  // ========================================================================
-  const role = currentUser?.role || currentUser?.user?.role;
-  const isAssistant = role === 'assistant' || role === 'adosa' || isDDAssistantRole(role);
+  const rawRole = currentUser?.role || currentUser?.user?.role;
+  const role = rawRole ? rawRole.toLowerCase() : null;
+  const isDDAssistant = isDDAssistantRole(role);
 
-  // ========================================================================
-  // ROUTER CONFIGURATION
-  // ========================================================================
+  // Determine where to send user after login
+  const getLoginRedirect = () => {
+    if (!role) return "/";
+    
+    // GUARD → Scan-only page
+    if (role === "guard") return "/night/scan";
+
+    if (canSeeSelector(role, isDDAssistant)) return "/admin/dashboard-selector";
+    
+    // NIGHT roles that bypass selector
+    if (NIGHT_DIRECT_ROLES.includes(role)) return "/night";
+    
+    if (GUEST_ROOM_ROLES.includes(role)) return "/dashboard";
+    
+    // Safety check for other permissions
+    if (NIGHT_PERM_ROLES.includes(role)) return "/night";
+    if (VENUE_BOOKING_ROLES.includes(role)) return "/venue-booking";
+    
+    return "/"; // Stay on login if no access
+  };
+
+  const redirectPath = currentUser ? getLoginRedirect() : null;
+
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Router>
@@ -96,86 +140,107 @@ export default function App() {
         <Routes>
 
           {/* ================================================================
-              LOGIN ROUTE WITH AUTO-REDIRECT
+              LOGIN WITH AUTO-REDIRECT
               ================================================================ */}
           <Route
             path="/"
             element={
-              currentUser ? (
-                role === "admin" ? (
-                  <Navigate to="/admin/dashboard-selector" replace />
-                ) : isAssistant ? (
-                  <Navigate to="/venue-booking" replace />
-                ) : (
-                  <Navigate to="/dashboard" replace />
-                )
-              ) : (
-                <Login />
-              )
+              currentUser && redirectPath && redirectPath !== "/"
+                ? <Navigate to={redirectPath} replace />
+                : <Login />
             }
           />
 
           {/* ================================================================
-              ADMIN DASHBOARD SELECTOR
+              ACCESS REQUIRED — shown when login OK but user not in system data
+              No auth guard: user must be able to reach this even after failed
+              system-access check
+              ================================================================ */}
+          <Route path="/access-required" element={<AccessRequired />} />  {/* ✅ NEW */}
+
+          {/* ================================================================
+              DASHBOARD SELECTOR
+              admin, adosa, assistant, dd_assistant only
               ================================================================ */}
           <Route
             path="/admin/dashboard-selector"
             element={
-              currentUser && role === "admin" ? (
-                <DashboardSelectorGlass />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              currentUser && canSeeSelector(role, isDDAssistant)
+                ? <DashboardSelectorGlass />
+                : <Navigate to="/" replace />
             }
           />
 
           {/* ================================================================
               GUEST ROOM DASHBOARD
+              admin, manager, caretaker, warden ONLY
+              adosa / guard / gen_sec / president CANNOT access
               ================================================================ */}
           <Route
             path="/dashboard"
             element={
-              currentUser ? (
-                <GuestRoomDashboard />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              currentUser && GUEST_ROOM_ROLES.includes(role)
+                ? <GuestRoomDashboard />
+                : <Navigate to="/" replace />
             }
           />
 
           {/* ================================================================
-              VENUE BOOKING DASHBOARD (ADMIN & ASSISTANT ONLY)
+              VENUE BOOKING DASHBOARD
+              admin, adosa, assistant, dd_assistant
               ================================================================ */}
           <Route
             path="/venue-booking"
             element={
-              currentUser && (role === "admin" || isAssistant) ? (
-                <VenueBookingDashboard />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              currentUser && (VENUE_BOOKING_ROLES.includes(role) || isDDAssistant)
+                ? <VenueBookingDashboard />
+                : <Navigate to="/" replace />
             }
           />
 
           {/* ================================================================
-              PUBLIC ROUTES (NO AUTH REQUIRED)
+              NIGHT PERMISSIONS
+              admin, adosa, assistant, guard, gen_sec, president, caretaker
               ================================================================ */}
-          <Route path="/guest-enquiry" element={<GuestEnquiryPage />} />
-          <Route path="/venue-guest-enquiry" element={<VenueGuestEnquiryPage />} />
-          <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
-          <Route path="/guest-feedback" element={<PublicGuestFeedback />} />
+          <Route
+            path="/night"
+            element={
+              currentUser && NIGHT_PERM_ROLES.includes(role)
+                ? <NightLayout />
+                : <Navigate to="/" replace />
+            }
+          >
+            <Route index              element={<NightDashboard />} />
+            <Route path="lists"       element={<NightLists />} />
+            <Route path="review"      element={<NightReview />} />
+            <Route path="scan"        element={<NightScan />} />
+            <Route path="students"    element={<NightStudents />} />
+            <Route path="defaulters"  element={<NightDefaulters />} />
+            <Route path="budgets"     element={<NightBudgets />} />   {/* ✅ NEW */}
+            <Route path="messenger"   element={<NightMessenger />} /> {/* ✅ NEW */}
+            <Route path="calendar"    element={<NightCalendar />} />
+            <Route path="roles"       element={<NightRoleManagement />} />
+            <Route path="reports"     element={<NightReports />} />
+            <Route path="settings"    element={<NightSettings />} />
+          </Route>
 
           {/* ================================================================
-              QR CODE GENERATOR (ADMIN ONLY)
+              PUBLIC ROUTES (no auth required)
+              ================================================================ */}
+          <Route path="/guest-enquiry"        element={<GuestEnquiryPage />} />
+          <Route path="/venue-guest-enquiry"  element={<VenueGuestEnquiryPage />} />
+          <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
+          <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+
+          {/* ================================================================
+              QR CODE GENERATOR (admin only)
               ================================================================ */}
           <Route
             path="/admin/qr-code"
             element={
-              currentUser && role === "admin" ? (
-                <GuestFeedbackQRCode />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              currentUser && role === "admin"
+                ? <GuestFeedbackQRCode />
+                : <Navigate to="/" replace />
             }
           />
 
@@ -183,24 +248,6 @@ export default function App() {
               FALLBACK
               ================================================================ */}
           <Route path="*" element={<Navigate to="/" replace />} />
-
-          <Route
-            path="/night"
-            element={
-              currentUser && ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard'].includes(role)
-                ? <NightLayout />
-                : <Navigate to="/" replace />
-            }
-          >
-            <Route index element={<NightDashboard />} />
-            <Route path="lists"      element={<NightLists />} />
-            <Route path="review"     element={<NightReview />} />
-            <Route path="scan"       element={<NightScan />} />
-            <Route path="students"   element={<NightStudents />} />
-            <Route path="defaulters" element={<NightDefaulters />} />
-            <Route path="calendar"   element={<NightCalendar />} />
-            <Route path="settings"   element={<NightSettings />} />
-          </Route>
 
         </Routes>
       </Router>

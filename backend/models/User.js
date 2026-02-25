@@ -10,12 +10,14 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ["admin", "manager", "Warden", "caretaker", "assistant", "dd_assistant"],
+    enum: ["admin", "adosa", "manager", "Warden", "caretaker", "assistant", "dd_assistant", "guard", "gen_sec", "president", "student"],
     default: "caretaker",
   },
 
   assignedHostel: { type: String, default: null }, // caretaker only
   hostel: { type: String, default: null },
+  rollNo: { type: String, default: null, uppercase: true, trim: true }, // for students/society heads
+  societies: [{ type: String }], // for president/gen_sec roles
   profilePicture: { type: String, default: null },
 });
 

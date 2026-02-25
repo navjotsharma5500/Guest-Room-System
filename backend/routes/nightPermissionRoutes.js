@@ -6,6 +6,7 @@ import multer from 'multer';
 import * as studentCtrl from '../controllers/nightStudentController.js';
 import * as listCtrl    from '../controllers/permissionListController.js';
 import * as scanCtrl    from '../controllers/scanController.js';
+import * as roleCtrl    from '../controllers/roleManagementController.js';
 import NightStudent      from '../models/NightStudent.js';
 import NightPermissionList from '../models/NightPermissionList.js';
 import { getSettings }   from '../models/NightSystemSettings.js';
@@ -20,6 +21,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 // ── Role helpers (matching venueAccessPolicy pattern) ─────────────────────────
 
 const isAdosaOrAdmin = (role) => ['adosa', 'admin'].includes((role || '').toLowerCase());
+const isCSVAccessRole = (role) => ['adosa', 'admin', 'assistant'].includes((role || '').toLowerCase());
 const isPresidentOrAbove = (role) => ['president', 'adosa', 'admin'].includes((role || '').toLowerCase());
 const isGenSecOrAbove = (role) => ['gen_sec', 'president', 'adosa', 'admin'].includes((role || '').toLowerCase());
 const canScan = (role) => ['caretaker', 'guard', 'adosa', 'admin'].includes((role || '').toLowerCase());
@@ -27,6 +29,13 @@ const canScan = (role) => ['caretaker', 'guard', 'adosa', 'admin'].includes((rol
 const requireAdosa = (req, res, next) => {
   if (!isAdosaOrAdmin(req.user?.role)) {
     return res.status(403).json({ message: 'ADOSA or Admin access required' });
+  }
+  next();
+};
+
+const requireCSVAccess = (req, res, next) => {
+  if (!isCSVAccessRole(req.user?.role)) {
+    return res.status(403).json({ message: 'Download access restricted to ADMIN, ADOSA, and ASSISTANT' });
   }
   next();
 };
@@ -53,9 +62,15 @@ router.get('/health', (req, res) => {
 // ── STUDENTS ──────────────────────────────────────────────────────────────────
 
 router.get('/students', protect, studentCtrl.getAllStudents);
+router.get('/students/search', protect, studentCtrl.searchStudents);
 router.get('/students/:rollNo', protect, studentCtrl.getStudentByRollNo);
 router.post('/students', protect, requireAdosa, studentCtrl.upsertStudent);
+router.delete('/students/:studentId', protect, requireAdosa, studentCtrl.deleteStudent);
 router.post('/students/upload-excel', protect, requireAdosa, upload.single('file'), studentCtrl.uploadStudentsExcel);
+
+// ── REQUESTS (Student Initiated) ──────────────────────────────────────────────
+
+router.post('/requests', protect, listCtrl.createStudentRequest);
 
 // ── PERMISSION LISTS ──────────────────────────────────────────────────────────
 
@@ -71,7 +86,15 @@ router.patch('/lists/:listId/cancel', protect, requireAdosa, listCtrl.cancelList
 // ── SCAN ──────────────────────────────────────────────────────────────────────
 
 router.post('/scan', protect, requireScanRole, scanCtrl.processScan);
-router.get('/scan/logs', protect, scanCtrl.getScanLogs);
+router.get('/scan/logs', protect, requireScanRole, scanCtrl.getScanLogs);
+
+// ── ROLES ─────────────────────────────────────────────────────────────────────
+
+router.get('/roles', protect, requireAdosa, roleCtrl.getRoles);
+router.post('/roles', protect, requireAdosa, roleCtrl.addRole);
+router.delete('/roles/:userId', protect, requireAdosa, roleCtrl.deleteRole);
+router.get('/societies', protect, roleCtrl.getSocieties);
+router.get('/events', protect, roleCtrl.getEvents);
 
 // ── DEFAULTERS ────────────────────────────────────────────────────────────────
 
@@ -137,38 +160,47 @@ router.put('/settings', protect, requireAdosa, async (req, res) => {
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
 
-router.get('/calendar', protect, async (req, res) => {
-  try {
-    const { from, to } = req.query;
-    const query = { status: { $in: ['APPROVED', 'PENDING_ADOSA', 'PENDING_PRESIDENT', 'DRAFT'] } };
-    if (from) query.startDateTime = { $gte: new Date(from) };
-    if (to)   query.endDateTime   = { ...(query.endDateTime || {}), $lte: new Date(to) };
-    const lists = await NightPermissionList.find(query).sort({ startDateTime: 1 });
-    res.status(200).json(lists);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/calendar', protect, listCtrl.getCalendarEvents);
 
 // ── REPORTS CSV ───────────────────────────────────────────────────────────────
 
-router.get('/reports/download', protect, requireAdosa, async (req, res) => {
+router.get('/reports/download', protect, requireCSVAccess, async (req, res) => {
   try {
-    const { fromDate, toDate } = req.query;
+    const { fromDate, toDate, society, status } = req.query;
+    const role = (req.user?.role || '').toLowerCase();
+    const societies = req.user?.societies || [];
+
     const query = {};
+
     if (fromDate) query.startDateTime = { $gte: new Date(fromDate) };
     if (toDate)   query.endDateTime   = { ...(query.endDateTime || {}), $lte: new Date(toDate) };
+    if (status)   query.status        = status;
 
-    const lists = await NightPermissionList.find(query);
-    const rows  = [['Roll No', 'Name', 'Society', 'Venue', 'Start', 'End', 'Student Status', 'Defaulter']];
+    // Apply society filter based on role
+    if (role === 'gen_sec' || role === 'president') {
+      if (society) {
+        if (!societies.includes(society)) {
+          return res.status(403).json({ message: 'Not authorized for this society' });
+        }
+        query.societyName = society;
+      } else {
+        query.societyName = { $in: societies };
+      }
+    } else if (society) {
+      query.societyName = society;
+    }
+
+    const lists = await NightPermissionList.find(query).sort({ startDateTime: 1 });
+    const rows  = [['Roll No', 'Name', 'Society', 'Venue', 'Hall', 'Start', 'End', 'Overall Status', 'Student Status', 'Defaulter']];
 
     for (const list of lists) {
       for (const s of list.students) {
         const studentDoc = await NightStudent.findOne({ rollNo: s.rollNo });
         rows.push([
-          s.rollNo, s.name, list.societyName, list.venueName,
-          list.startDateTime?.toISOString() ?? '',
-          list.endDateTime?.toISOString()   ?? '',
+          s.rollNo, s.name, list.societyName, list.venueName, list.venueHall || '',
+          list.startDateTime?.toLocaleString('en-IN') ?? '',
+          list.endDateTime?.toLocaleString('en-IN')   ?? '',
+          list.status,
           s.status,
           studentDoc?.isDefaulter ? 'YES' : 'NO',
         ]);

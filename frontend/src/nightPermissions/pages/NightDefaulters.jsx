@@ -41,99 +41,90 @@ export default function Defaulters() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="night-pass-container" style={{ padding: 24 }}>
       <Toast toasts={toasts} removeToast={removeToast} />
 
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#f1f5f9' }}>🚫 Defaulters</h1>
-        <p style={{ margin: '4px 0 0', color: '#475569', fontSize: 13 }}>
-          Students with missed scan deadlines · {defaulters.length} total
-        </p>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#202124' }}>🚫 Defaulters</h1>
+          <p style={{ margin: '4px 0 0', color: '#5f6368', fontSize: 14 }}>
+            Students with missed scan deadlines · {defaulters.length} total records
+          </p>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 100, color: '#5f6368' }}>Loading defaulters...</div>
+        ) : defaulters.length === 0 ? (
+          <div className="night-card" style={{ textAlign: 'center', padding: 80 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#202124' }}>No defaulters</div>
+            <p style={{ margin: '8px 0 0', color: '#5f6368' }}>The system is clear</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {defaulters.map(s => (
+              <div key={s._id} className="night-card" style={{
+                borderLeft: `4px solid ${s.defaulterBlocked ? '#ef4444' : '#f59e0b'}`,
+                padding: 20,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
+              }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 12, background: '#f1f3f4',
+                    overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1px solid #dadce0'
+                  }}>
+                    {s.profileImageUrl ? (
+                      <img src={s.profileImageUrl} alt={s.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span style="font-size:24px">👤</span>'; }}
+                      />
+                    ) : <span style={{ fontSize: 24 }}>👤</span>}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#202124', fontSize: 17 }}>{s.name}</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#1a73e8', fontWeight: 700 }}>{s.rollNo}</div>
+                    <div style={{ fontSize: 13, color: '#5f6368', marginTop: 4 }}>{s.hostel} · {s.roomNo}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'center', padding: '0 16px', borderRight: '1px solid #dadce0' }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: s.defaulterCount >= 3 ? '#ef4444' : '#f59e0b', lineHeight: 1 }}>
+                      {s.defaulterCount}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#5f6368', textTransform: 'uppercase', fontWeight: 700, marginTop: 4 }}>Strikes</div>
+                  </div>
+
+                  {s.defaulterBlocked && (
+                    <span className="night-badge" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2' }}>
+                      BLOCKED
+                    </span>
+                  )}
+
+                  {rollbackId === s._id ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        autoFocus
+                        value={reason} onChange={e => setReason(e.target.value)}
+                        placeholder="Reason for rollback..."
+                        className="night-input"
+                        style={{ width: 220, padding: '8px 12px' }}
+                      />
+                      <button onClick={handleRollback} disabled={submitting} className="night-btn-pill" style={{ background: '#10b981', padding: '8px 16px' }}>Confirm</button>
+                      <button onClick={() => { setRollbackId(null); setReason(''); }} style={{ background: 'none', border: 'none', color: '#5f6368', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setRollbackId(s._id)} className="night-btn-pill" style={{ background: '#e8f0fe', color: '#1a73e8' }}>
+                      Rollback Status
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#475569' }}>Loading...</div>
-      ) : defaulters.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#4ade80', background: '#0f1117', borderRadius: 12, border: '1px solid #1e2532' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>No defaulters</div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {defaulters.map(s => (
-            <div key={s._id} style={{
-              background: '#0f1117', border: '1px solid #1e2532',
-              borderLeft: `3px solid ${s.defaulterBlocked ? '#f87171' : '#fb923c'}`,
-              borderRadius: 12, padding: 16,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
-            }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                {/* Profile image from ImageKit */}
-                <div style={{
-                  width: 44, height: 44, borderRadius: 8, background: '#1e2532',
-                  overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {s.profileImageUrl ? (
-                    <img src={s.profileImageUrl} alt={s.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  ) : <span style={{ fontSize: 20 }}>👤</span>}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#e2e8f0', fontSize: 15 }}>{s.name}</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#64748b' }}>{s.rollNo}</div>
-                  <div style={{ fontSize: 12, color: '#475569' }}>{s.hostel} · {s.roomNo}</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: s.defaulterCount >= 3 ? '#f87171' : '#fb923c' }}>
-                    {s.defaulterCount}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase' }}>Strikes</div>
-                </div>
-
-                {s.defaulterBlocked && (
-                  <span style={{ padding: '4px 10px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 6, fontSize: 11, color: '#f87171', fontFamily: 'monospace' }}>
-                    BLOCKED
-                  </span>
-                )}
-
-                {rollbackId === s._id ? (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input
-                      autoFocus
-                      value={reason} onChange={e => setReason(e.target.value)}
-                      placeholder="Reason for rollback..."
-                      style={{
-                        background: '#0a0d14', border: '1px solid #1e2532', borderRadius: 6,
-                        color: '#e2e8f0', padding: '8px 12px', fontSize: 12, outline: 'none',
-                        width: 200,
-                      }}
-                    />
-                    <button onClick={handleRollback} disabled={submitting} style={{
-                      padding: '8px 14px', background: '#4ade80', border: 'none', borderRadius: 6,
-                      color: '#0a0d14', fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                    }}>Confirm</button>
-                    <button onClick={() => { setRollbackId(null); setReason(''); }} style={{
-                      padding: '8px 12px', background: 'none', border: '1px solid #1e2532', borderRadius: 6,
-                      color: '#64748b', fontSize: 12, cursor: 'pointer',
-                    }}>Cancel</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setRollbackId(s._id)} style={{
-                    padding: '8px 16px', background: 'rgba(74,222,128,0.1)',
-                    border: '1px solid rgba(74,222,128,0.3)', borderRadius: 6,
-                    color: '#4ade80', fontSize: 12, cursor: 'pointer',
-                  }}>Rollback</button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

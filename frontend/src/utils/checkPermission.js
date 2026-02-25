@@ -290,5 +290,176 @@ export function hasPermission(user, key) {
     return perms[key] === true;
   }
 
+  // -------------------------
+  // ADOSA – venue bookings + night permissions (NO guest room)
+  // -------------------------
+  if (role === "adosa") {
+    const perms = {
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+      "venueBookings.view": true,
+      "venueBookings.create": true,
+      "venueBookings.edit": true,
+      "venueBookings.delete": true,
+      "venueBookings.download": true,
+      "enquiry.view": false,
+      "enquiry.download": false,
+      "search.view": true,
+      "analytics.view": true,
+      "download.view": true,
+      "notifications.enquiry": false,
+      "notifications.venueBookings": true,
+      "calendar.view": true,
+      "upcoming.view": true,
+      "filter.view": true,
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+      "dashboard.toggleHall": false,
+      "dashboard.guestRoom": false,
+      "dashboard.venueBooking": true,
+      "dashboard.nightPermissions": true,
+    };
+    return perms[key] === true;
+  }
+
+  // -------------------------
+  // GUARD – night permissions scan only
+  // -------------------------
+  if (role === "guard") {
+    const perms = {
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+      "venueBookings.view": false,
+      "venueBookings.create": false,
+      "venueBookings.edit": false,
+      "venueBookings.delete": false,
+      "venueBookings.download": false,
+      "enquiry.view": false,
+      "enquiry.download": false,
+      "search.view": false,
+      "analytics.view": false,
+      "download.view": false,
+      "notifications.enquiry": false,
+      "notifications.venueBookings": false,
+      "calendar.view": false,
+      "upcoming.view": false,
+      "filter.view": false,
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+      "dashboard.guestRoom": false,
+      "dashboard.venueBooking": false,
+      "dashboard.nightPermissions": true,
+    };
+    return perms[key] === true;
+  }
+
+  // -------------------------
+  // GEN_SEC – night permissions (create & submit lists)
+  // -------------------------
+  if (role === "gen_sec") {
+    const perms = {
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+      "venueBookings.view": false,
+      "venueBookings.create": false,
+      "venueBookings.edit": false,
+      "venueBookings.delete": false,
+      "venueBookings.download": false,
+      "enquiry.view": false,
+      "enquiry.download": false,
+      "search.view": false,
+      "analytics.view": false,
+      "download.view": false,
+      "notifications.enquiry": false,
+      "notifications.venueBookings": false,
+      "calendar.view": false,
+      "upcoming.view": false,
+      "filter.view": false,
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+      "dashboard.guestRoom": false,
+      "dashboard.venueBooking": false,
+      "dashboard.nightPermissions": true,
+    };
+    return perms[key] === true;
+  }
+
+  // -------------------------
+  // PRESIDENT – night permissions (review & approve lists)
+  // -------------------------
+  if (role === "president") {
+    const perms = {
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+      "venueBookings.view": false,
+      "venueBookings.create": false,
+      "venueBookings.edit": false,
+      "venueBookings.delete": false,
+      "venueBookings.download": false,
+      "enquiry.view": false,
+      "enquiry.download": false,
+      "search.view": false,
+      "analytics.view": false,
+      "download.view": false,
+      "notifications.enquiry": false,
+      "notifications.venueBookings": false,
+      "calendar.view": false,
+      "upcoming.view": false,
+      "filter.view": false,
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+      "dashboard.guestRoom": false,
+      "dashboard.venueBooking": false,
+      "dashboard.nightPermissions": true,
+    };
+    return perms[key] === true;
+  }
+
+  // -------------------------
+  // STUDENT – night permissions only (view own status, calendar)
+  // -------------------------
+  if (role === "student") {
+    const perms = {
+      "sidebar.allHostels": false,
+      "sidebar.hostels": false,
+      "venueBookings.view": false,
+      "venueBookings.create": false,
+      "venueBookings.edit": false,
+      "venueBookings.delete": false,
+      "venueBookings.download": false,
+      "enquiry.view": false,
+      "enquiry.download": false,
+      "search.view": false,
+      "analytics.view": false,
+      "download.view": false,
+      "notifications.enquiry": false,
+      "notifications.venueBookings": false,
+      "calendar.view": true,
+      "upcoming.view": true,
+      "filter.view": false,
+      "settings.open": false,
+      "settings.manageHostels": false,
+      "settings.roleManagement": false,
+      "settings.clearCache": false,
+      "settings.clearLastApproved": false,
+      "dashboard.guestRoom": false,
+      "dashboard.venueBooking": false,
+      "dashboard.nightPermissions": true,
+    };
+    return perms[key] === true;
+  }
+
   return false;
 }

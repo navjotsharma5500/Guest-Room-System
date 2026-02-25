@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { isDDAssistantRole, isDDOfficeRoom } from '../../utils/venueAccessPolicy';
 import {
   Home,
@@ -10,12 +11,20 @@ import {
   ChevronDown,
   ChevronRight,
   BarChart3,
+  LayoutDashboard,
 } from "lucide-react";
 import Creator from "../Creator";
 import { getEnabledVenueRoomsConfig } from "../../config/venueRoomsConfig";
 
 export default function VenueSidebar({ theme, onNavigate, activeSection = "home", currentUser }) {
-  const primaryMenuItems = [
+  const navigate = useNavigate();
+  const currentUserRole = currentUser?.role || '';
+
+  // Roles that see "Switch Dashboard" button
+  const SWITCH_DASHBOARD_ROLES = ['admin', 'adosa', 'assistant'];
+  const canSwitchDashboard = SWITCH_DASHBOARD_ROLES.includes(currentUserRole.toLowerCase());
+
+  const NAV_ITEMS = [ 
     { id: "home", label: "Dashboard", icon: Home },
     { id: "manage-bookings", label: "Common Bookings", icon: Grid },
     { id: "enquiries", label: "Enquiries", icon: FileText },
@@ -24,7 +33,6 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
   ];
 
   const venueTree = useMemo(() => getEnabledVenueRoomsConfig(), []);
-  const currentUserRole = currentUser?.role || '';
 
   // Filter venue tree based on user role
   const filteredVenueTree = useMemo(() => {
@@ -80,7 +88,7 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-2">
-        {primaryMenuItems.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           return (
@@ -148,6 +156,19 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
       </nav>
 
       <div className={`px-4 py-3 border-t ${theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"}`}>
+        {canSwitchDashboard && (
+          <button
+            onClick={() => navigate('/admin/dashboard-selector')}
+            className={`w-full text-left px-3 py-2 rounded-lg mb-2 flex items-center gap-2 text-sm transition-all duration-200 ${
+              theme === "dark"
+                ? "text-[#9aa0a6] hover:bg-[#3c4043] hover:text-[#e8eaed]"
+                : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#202124]"
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Switch Dashboard</span>
+          </button>
+        )}
         <Creator variant="sidebar" />
       </div>
     </div>

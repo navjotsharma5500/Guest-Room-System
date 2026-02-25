@@ -157,6 +157,7 @@ const DashboardSelector = () => {
       available: true,
       features: ["Room Management", "Guest Tracking", "Booking System"],
       onClick: () => navigate("/dashboard"),
+      // ✅ ADOSA removed from Guest Room
       roles: ['admin', 'assistant', 'caretaker', 'warden', 'manager']
     },
     {
@@ -170,6 +171,7 @@ const DashboardSelector = () => {
       available: true,
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
       onClick: () => navigate("/venue-booking"),
+      // ✅ ADOSA added to Venue Booking
       roles: ['admin', 'adosa', 'assistant', 'dd_assistant', 'dd assistant']
     },
     {
@@ -184,7 +186,8 @@ const DashboardSelector = () => {
       badge: { label: "NEW", bg: "bg-amber-100", text: "text-amber-700" },
       features: ["Permission Lists", "QR Scan Entry/Exit", "Defaulter Tracking"],
       onClick: () => navigate("/night"),
-      roles: NIGHT_PERM_ROLES
+      // ✅ ADOSA added to Night Permissions
+      roles: ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard']
     },
     {
       id: "public-forms",

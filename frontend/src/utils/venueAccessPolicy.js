@@ -32,7 +32,7 @@ export const isDDAssistantRole = (role = "") =>
   DD_ASSISTANT_ROLE_ALIASES.has(normalizeToken(role));
 
 export const isVenueFullAccessRole = (role = "") =>
-  ["admin", "assistant"].includes(normalizeToken(role));
+  ["admin", "assistant", "adosa"].includes(normalizeToken(role));
 
 export const hasVenueDashboardAccess = (role = "") =>
   isVenueFullAccessRole(role) || isDDAssistantRole(role);

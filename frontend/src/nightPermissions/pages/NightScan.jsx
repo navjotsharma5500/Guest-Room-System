@@ -28,94 +28,142 @@ const PHASES = {
 };
 
 // ── Result display card ──────────────────────────────────────────────────────
-const ResultCard = ({ result }) => {
+const ResultModal = ({ result, onClose }) => {
   if (!result) return null;
   const isValid     = result.result === 'VALID';
   const isDefaulter = result.result === 'DEFAULTER';
-  const color = isValid ? '#4ade80' : isDefaulter ? '#f87171' : '#f59e0b';
+  const color = isValid ? '#10b981' : isDefaulter ? '#ef4444' : '#f59e0b';
   const phase = result.session?.currentPhase;
 
   return (
     <div style={{
-      background: '#0f1117',
-      border: `1px solid ${color}55`,
-      borderLeft: `4px solid ${color}`,
-      borderRadius: 12, padding: 20,
-      animation: isDefaulter ? 'shake 0.4s ease' : 'slideIn 0.2s ease',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 36 }}>
-          {isValid ? '✅' : isDefaulter ? '🚫' : '⚠️'}
-        </span>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color, letterSpacing: '-0.01em' }}>
-            {result.result}
-          </div>
-          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>
-            {result.reason || result.message}
-          </div>
-        </div>
-      </div>
-
-      {result.student && (
+      position: 'fixed', inset: 0, zIndex: 999,
+      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+    }} onClick={onClose}>
+      <div style={{
+        background: '#ffffff', width: '100%', maxWidth: 440,
+        borderRadius: 20, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+        animation: isDefaulter ? 'shake 0.4s ease' : 'slideUp 0.3s ease-out',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        
+        {/* Header Status Bar */}
         <div style={{
-          marginTop: 16, padding: 14, background: '#0a0d14', borderRadius: 8,
-          display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
+          background: color, padding: '16px 20px', color: '#ffffff',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
-          {/* ImageKit profile photo */}
-          <div style={{
-            width: 60, height: 60, borderRadius: 8, background: '#1e2532',
-            overflow: 'hidden', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `2px solid ${color}44`,
-          }}>
-            {result.student.profileImageUrl ? (
-              <img
-                src={result.student.profileImageUrl}
-                alt={result.student.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={e => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span style="font-size:28px">👤</span>'; }}
-              />
-            ) : <span style={{ fontSize: 28 }}>👤</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 24 }}>{isValid ? '✅' : isDefaulter ? '🚫' : '⚠️'}</span>
+            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '0.05em' }}>{result.result}</span>
           </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.2)', border: 'none', color: '#ffffff',
+            width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
+            fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>×</button>
+        </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 17, color: '#e2e8f0' }}>
-              {result.student.name}
+        <div style={{ padding: 24 }}>
+          {/* Student Identity Card Section */}
+          <div style={{ display: 'flex', gap: 20, marginBottom: 24 }}>
+            {/* Student Photo */}
+            <div style={{
+              width: 120, height: 140, borderRadius: 12, background: '#f1f5f9',
+              overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {result.student?.profileImageUrl ? (
+                <img
+                  src={result.student.profileImageUrl}
+                  alt={result.student.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { 
+                    e.target.style.display = 'none'; 
+                    e.target.parentNode.innerHTML = '<div style="font-size:48px">👤</div>'; 
+                  }}
+                />
+              ) : <div style={{ fontSize: 48 }}>👤</div>}
             </div>
-            <div style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace', marginTop: 2 }}>
-              {result.student.rollNo}
-            </div>
-            {result.student.hostel && (
-              <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                {result.student.hostel}
+
+            {/* Student Info */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', lineHeight: 1.2 }}>
+                {result.student?.name || 'Unknown Student'}
               </div>
-            )}
+              <div style={{ fontSize: 14, color: '#64748b', fontFamily: 'monospace', marginTop: 4, fontWeight: 600 }}>
+                {result.student?.rollNo}
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hostel & Room</div>
+                <div style={{ fontSize: 14, color: '#475569', fontWeight: 500 }}>
+                  {result.student?.hostel || 'N/A'} · {result.student?.roomNo || 'N/A'}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {phase && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phase</div>
-              <div style={{
-                padding: '4px 12px', borderRadius: 6, marginTop: 4,
-                fontFamily: 'monospace', fontSize: 12, fontWeight: 700,
-                color: PHASES[phase]?.color || '#94a3b8',
-                background: `${PHASES[phase]?.color || '#94a3b8'}18`,
-              }}>{PHASES[phase]?.label || phase}</div>
-              {result.session?.deadlineToVenue && (
-                <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 6 }}>
-                  ⏰ Reach venue by {new Date(result.session.deadlineToVenue).toLocaleTimeString('en-IN')}
+          {/* Phase & Reason Section */}
+          <div style={{ 
+            background: '#f8fafc', borderRadius: 12, padding: 16, border: '1px solid #f1f5f9'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Current Phase</div>
+                <div style={{
+                  display: 'inline-block', padding: '4px 12px', borderRadius: 6,
+                  fontFamily: 'monospace', fontSize: 12, fontWeight: 700,
+                  color: PHASES[phase]?.color || '#64748b',
+                  background: `${PHASES[phase]?.color || '#64748b'}15`,
+                }}>{PHASES[phase]?.label || phase || 'N/A'}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Scan Time</div>
+                <div style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>
+                  {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                 </div>
-              )}
-              {result.session?.deadlineToHostel && (
-                <div style={{ fontSize: 11, color: '#a78bfa', marginTop: 6 }}>
-                  ⏰ Return by {new Date(result.session.deadlineToHostel).toLocaleTimeString('en-IN')}
-                </div>
-              )}
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Status Message</div>
+              <div style={{ fontSize: 14, color: isValid ? '#10b981' : '#ef4444', fontWeight: 600, lineHeight: 1.4 }}>
+                {result.reason || result.message}
+              </div>
+            </div>
+          </div>
+
+          {/* Deadline Warning */}
+          {(result.session?.deadlineToVenue || result.session?.deadlineToHostel) && (
+            <div style={{ 
+              marginTop: 16, padding: '12px 16px', borderRadius: 10, 
+              background: isValid ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+              display: 'flex', alignItems: 'center', gap: 10
+            }}>
+              <span style={{ fontSize: 20 }}>⏰</span>
+              <div style={{ fontSize: 13, fontWeight: 600, color: isValid ? '#059669' : '#dc2626' }}>
+                {result.session.deadlineToVenue 
+                  ? `Reach venue by ${new Date(result.session.deadlineToVenue).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                  : `Return to hostel by ${new Date(result.session.deadlineToHostel).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                }
+              </div>
             </div>
           )}
+
+          {/* Close Action */}
+          <button 
+            onClick={onClose}
+            style={{
+              width: '100%', marginTop: 24, padding: '14px', borderRadius: 12,
+              background: color, color: '#ffffff', border: 'none',
+              fontWeight: 800, fontSize: 15, cursor: 'pointer',
+              boxShadow: `0 10px 15px -3px ${color}44`
+            }}
+          >
+            DISMISS
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -173,10 +221,24 @@ const ScanOverlay = () => (
 
 export default function Scan() {
   const { user } = useAuth();
+  
+  // ✅ Role-based location enforcement
   const role = (user?.role || '').toLowerCase();
+  const isCaretaker = role === 'caretaker';
+  const isGuard     = role === 'guard';
+  // const isPrivileged = ['admin', 'adosa'].includes(role); // (Used in JSX logic below)
 
-  const defaultLocation = role === 'caretaker' ? 'HOSTEL' : role === 'guard' ? 'VENUE' : 'HOSTEL';
-  const [scanLocation, setScanLocation]   = useState(defaultLocation);
+  const [scanLocation, setScanLocation] = useState(
+    isGuard ? 'VENUE' : 'HOSTEL'
+  );
+
+  // If role changes, force correct location
+  useEffect(() => {
+    if (isGuard) setScanLocation('VENUE');
+    else if (isCaretaker) setScanLocation('HOSTEL');
+  }, [isGuard, isCaretaker]);
+
+  // ✅ RESTORED ORIGINAL STATE VARIABLES
   const [scanMode,     setScanMode]       = useState('A');  // 'A' = keyboard, 'B' = camera
   const [rollNo,       setRollNo]         = useState('');
   const [result,       setResult]         = useState(null);
@@ -190,28 +252,25 @@ export default function Scan() {
   const [cameras,      setCameras]        = useState([]);
   const [selectedCam,  setSelectedCam]    = useState('');
   const [lastScanned,  setLastScanned]    = useState('');
+  const [lastScanTime, setLastScanTime]   = useState(0);
 
-  const inputRef    = useRef(null);
-  const scannerRef  = useRef(null);   // html5-qrcode instance
-  const viewfinderRef = useRef(null); // DOM element id for scanner
-
+  const inputRef      = useRef(null);
+  const scannerRef    = useRef(null);   // html5-qrcode instance
   const VIEWFINDER_ID = 'night-cam-scanner';
 
-  // ── load logs ──────────────────────────────────────────────────────────────
-  const loadLogs = async () => {
+  // Fetch recent logs
+  const loadLogs = useCallback(async () => {
     try {
-      const res = await fetchScanLogs({ limit: 20 });
-      setLogs(res.data || []);
+      const res = await fetchScanLogs({ limit: 10 });
+      setLogs(res.data.logs || []);
     } catch (_) {}
-  };
+  }, []);
 
-  useEffect(() => { loadLogs(); inputRef.current?.focus(); }, []);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  // ── socket events ──────────────────────────────────────────────────────────
+  // Handle new logs via socket
   useSocket({
-    'np:student-defaulter': (data) => {
-      setResult({ result: 'DEFAULTER', reason: `CRON TIMEOUT: ${data.reason}`, student: { name: data.rollNo, rollNo: data.rollNo } });
-    },
+    'np:scan-log': (newLog) => setLogs(prev => [newLog, ...prev].slice(0, 10))
   });
 
   // ── core scan function (shared by both modes) ──────────────────────────────
@@ -219,7 +278,16 @@ export default function Scan() {
     const rn = (rollNoValue || '').trim();
     if (!rn || loading) return;
 
+    // Additional debounce for API calls (5 seconds)
+    const now = Date.now();
+    if (rn === lastScanned && (now - lastScanTime) < 5000) {
+      console.log('Skipping duplicate scan within cooldown period:', rn);
+      return;
+    }
+
     setLoading(true);
+    setLastScanned(rn);
+    setLastScanTime(now);
     setResult(null);
     setRollNo('');
 
@@ -236,7 +304,7 @@ export default function Scan() {
       setLoading(false);
       if (scanMode === 'A') setTimeout(() => inputRef.current?.focus(), 80);
     }
-  }, [scanLocation, loading, scanMode]);
+  }, [scanLocation, loading, scanMode, lastScanned, lastScanTime]);
 
   // ── Mode A: keyboard form submit ───────────────────────────────────────────
   const handleKeyboardScan = (e) => {
@@ -306,26 +374,19 @@ export default function Scan() {
           ],
         },
         (decodedText) => {
-          // Debounce: ignore same value within 3 seconds
-          if (decodedText === lastScanned) return;
-          setLastScanned(decodedText);
-
           // Extract roll number — barcode may encode just the number or a URL with it
           const rollNoMatch = decodedText.match(/\b(\d{8,12})\b/);
           const extracted   = rollNoMatch ? rollNoMatch[1] : decodedText.trim();
 
-          // Flash + beep feedback
+          // Flash feedback
           const viewfinder = document.getElementById(VIEWFINDER_ID);
           if (viewfinder) {
-            viewfinder.style.outline = '4px solid #4ade80';
+            viewfinder.style.outline = '4px solid #10b981';
             setTimeout(() => { if (viewfinder) viewfinder.style.outline = 'none'; }, 400);
           }
 
-          // Execute the scan
+          // Execute the scan (debounce is handled inside executeScan)
           executeScan(extracted);
-
-          // Reset debounce after 4s (allow same card again)
-          setTimeout(() => setLastScanned(''), 4000);
         },
         (err) => {
           // Scan errors are normal when no barcode in frame — suppress them
@@ -365,274 +426,227 @@ export default function Scan() {
   const canChangeLocation = ['adosa', 'admin'].includes(role);
 
   return (
-    <div style={{ padding: 24, maxWidth: 720 }}>
+    <div className="night-pass-container" style={{ padding: 24 }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#f1f5f9' }}>
-          Scan Terminal
-        </h1>
-        <p style={{ margin: '4px 0 0', color: '#475569', fontSize: 13 }}>
-          {role === 'caretaker' ? '🏠 Hostel scan mode (Caretaker)' :
-           role === 'guard'     ? '🏢 Venue scan mode (Guard)' :
-                                  '🔑 Admin scan — select location below'}
-        </p>
-      </div>
-
-      {/* Mode Toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button
-          onClick={switchToKeyboard}
-          style={{
-            flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontWeight: 700, fontSize: 13, transition: 'all 0.15s',
-            background: scanMode === 'A' ? '#f59e0b' : '#131820',
-            color:      scanMode === 'A' ? '#0a0d14' : '#475569',
-          }}>
-          ⌨ Mode A — Keyboard Scanner
-        </button>
-        <button
-          onClick={switchToCamera}
-          style={{
-            flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontWeight: 700, fontSize: 13, transition: 'all 0.15s',
-            background: scanMode === 'B' ? '#2dd4bf' : '#131820',
-            color:      scanMode === 'B' ? '#0a0d14' : '#475569',
-          }}>
-          📷 Mode B — Camera Scan
-        </button>
-      </div>
-
-      {/* Location Toggle */}
-      <div style={{ background: '#0f1117', border: '1px solid #1e2532', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <div style={{ marginBottom: 12, fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Scan Location
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-          {['HOSTEL', 'VENUE'].map(loc => (
-            <button key={loc}
-              disabled={!canChangeLocation && loc !== scanLocation}
-              onClick={() => canChangeLocation && setScanLocation(loc)}
-              style={{
-                flex: 1, padding: '12px 0', borderRadius: 8, border: 'none',
-                cursor: canChangeLocation ? 'pointer' : 'default',
-                fontWeight: 700, fontSize: 13, transition: 'all 0.15s',
-                background: scanLocation === loc
-                  ? (loc === 'HOSTEL' ? '#f59e0b' : '#2dd4bf')
-                  : '#0a0d14',
-                color:  scanLocation === loc ? '#0a0d14' : '#475569',
-                opacity: !canChangeLocation && loc !== scanLocation ? 0.35 : 1,
-              }}>
-              {loc === 'HOSTEL' ? '🏠 HOSTEL' : '🏢 VENUE'}
-            </button>
-          ))}
+        {/* Header */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#202124' }}>
+            Scan Terminal
+          </h1>
+          <p style={{ margin: '4px 0 0', color: '#5f6368', fontSize: 14 }}>
+            {role === 'caretaker' ? '🏠 Hostel scan mode (Caretaker)' :
+             role === 'guard'     ? '🏢 Venue scan mode (Guard)' :
+                                    '🔑 Admin scan — select location below'}
+          </p>
         </div>
 
-        {/* ── MODE A: Keyboard / Barcode Gun ── */}
-        {scanMode === 'A' && (
-          <form onSubmit={handleKeyboardScan}>
-            <label style={{ display: 'block', fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-              Roll Number / Barcode
-            </label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input
-                ref={inputRef}
-                value={rollNo}
-                onChange={e => setRollNo(e.target.value)}
-                placeholder="Scan barcode or type roll number..."
-                autoComplete="off"
-                style={{
-                  flex: 1, background: '#0a0d14',
-                  border: '2px solid #1e2532', borderRadius: 8,
-                  color: '#e2e8f0', padding: '12px 16px',
-                  fontSize: 16, outline: 'none', fontFamily: 'monospace',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => e.target.style.borderColor = '#f59e0b'}
-                onBlur={e  => e.target.style.borderColor = '#1e2532'}
-              />
-              <button type="submit" disabled={loading || !rollNo.trim()} style={{
-                padding: '12px 20px', borderRadius: 8, border: 'none',
-                background: loading ? '#1e2532' : '#f59e0b',
-                color: loading ? '#475569' : '#0a0d14',
-                fontWeight: 700, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer',
-              }}>
-                {loading ? '…' : 'Scan →'}
-              </button>
-            </div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>
-              Press Enter · Physical scanner fires Enter automatically
-            </div>
-          </form>
-        )}
-
-        {/* ── MODE B: Camera ── */}
-        {scanMode === 'B' && (
-          <div>
-            {/* Camera selector (if multiple cameras) */}
-            {cameras.length > 1 && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-                  Camera
-                </label>
-                <select
-                  value={selectedCam}
-                  onChange={async e => {
-                    setSelectedCam(e.target.value);
-                    await stopCamera();
-                  }}
-                  style={{
-                    background: '#0a0d14', border: '1px solid #1e2532', borderRadius: 8,
-                    color: '#e2e8f0', padding: '8px 12px', fontSize: 13, outline: 'none', width: '100%',
-                  }}>
-                  {cameras.map(cam => (
-                    <option key={cam.id} value={cam.id}>{cam.label || `Camera ${cam.id.slice(0,8)}`}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Error message */}
-            {cameraError && (
-              <div style={{
-                padding: '12px 16px', background: 'rgba(248,113,113,0.1)',
-                border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8,
-                color: '#f87171', fontSize: 13, marginBottom: 12,
-              }}>
-                ⚠️ {cameraError}
-              </div>
-            )}
-
-            {/* Camera viewfinder */}
-            <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000', minHeight: 240 }}>
-              {/* html5-qrcode renders into this div */}
-              <div id={VIEWFINDER_ID} style={{ width: '100%' }} />
-
-              {/* Custom overlay (only shown when camera is active) */}
-              {cameraActive && <ScanOverlay />}
-
-              {/* Loading state */}
-              {!cameraActive && !cameraError && libLoaded && (
-                <div style={{
-                  position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 12, color: '#475569',
-                }}>
-                  <div className="spin" style={{ width: 32, height: 32, border: '3px solid #1e2532', borderTopColor: '#2dd4bf', borderRadius: '50%' }} />
-                  <span style={{ fontSize: 13 }}>Starting camera...</span>
-                </div>
-              )}
-
-              {/* Initial state (enumerating cameras) */}
-              {!libLoaded && !cameraError && (
-                <div style={{
-                  position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 12, color: '#475569',
-                }}>
-                  <div className="spin" style={{ width: 32, height: 32, border: '3px solid #1e2532', borderTopColor: '#2dd4bf', borderRadius: '50%' }} />
-                  <span style={{ fontSize: 13 }}>Detecting cameras...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Camera controls */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              {!cameraActive ? (
-                <button onClick={startCamera} disabled={!selectedCam || !!cameraError} style={{
-                  flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-                  background: (!selectedCam || !!cameraError) ? '#131820' : '#2dd4bf',
-                  color: (!selectedCam || !!cameraError) ? '#475569' : '#0a0d14',
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                }}>▶ Start Camera</button>
-              ) : (
-                <button onClick={stopCamera} style={{
-                  flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
-                  background: 'rgba(248,113,113,0.1)', color: '#f87171',
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                  border: '1px solid rgba(248,113,113,0.3)',
-                }}>⏹ Stop Camera</button>
-              )}
-            </div>
-
-            {/* How it works */}
-            <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(45,212,191,0.06)', border: '1px solid rgba(45,212,191,0.15)', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, color: '#2dd4bf', fontWeight: 600, marginBottom: 4 }}>HOW IT WORKS</div>
-              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-                Hold the Thapar ID card barcode inside the green frame.
-                The camera reads the barcode number and automatically sends it to the scan API —
-                same as typing the roll number manually.
-                No manual confirm needed.
-              </div>
-            </div>
-
-            {/* Loading state for processing */}
-            {loading && (
-              <div style={{
-                marginTop: 12, padding: '12px 16px',
-                background: 'rgba(45,212,191,0.08)', border: '1px solid rgba(45,212,191,0.2)',
-                borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10,
-              }}>
-                <div className="spin" style={{ width: 18, height: 18, border: '2px solid #1e2532', borderTopColor: '#2dd4bf', borderRadius: '50%', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, color: '#2dd4bf' }}>Processing scan...</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Scan Result */}
-      {result && (
-        <div style={{ marginBottom: 20 }}>
-          <ResultCard result={result} />
-        </div>
-      )}
-
-      {/* Recent scan logs */}
-      <div style={{ background: '#0f1117', border: '1px solid #1e2532', borderRadius: 12 }}>
-        <div style={{
-          padding: '14px 20px', borderBottom: '1px solid #1e2532',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#e2e8f0' }}>🕐 Recent Scans</span>
-          <button onClick={loadLogs} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 12 }}>
-            Refresh
+        {/* Mode Toggle */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+          <button
+            onClick={switchToKeyboard}
+            className="night-btn-pill"
+            style={{
+              flex: 1, background: scanMode === 'A' ? '#1a73e8' : '#ffffff',
+              color: scanMode === 'A' ? '#ffffff' : '#5f6368',
+              border: scanMode === 'A' ? 'none' : '1px solid #dadce0',
+              justifyContent: 'center'
+            }}>
+            ⌨ Mode A — Keyboard Scanner
+          </button>
+          <button
+            onClick={switchToCamera}
+            className="night-btn-pill"
+            style={{
+              flex: 1, background: scanMode === 'B' ? '#34a853' : '#ffffff',
+              color: scanMode === 'B' ? '#ffffff' : '#5f6368',
+              border: scanMode === 'B' ? 'none' : '1px solid #dadce0',
+              justifyContent: 'center'
+            }}>
+            📷 Mode B — Camera Scan
           </button>
         </div>
-        {logs.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: '#475569', fontSize: 13 }}>
-            No scans yet this session
+
+        {/* Main Card */}
+        <div className="night-card" style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 16, fontSize: 12, color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+            Scan Location
           </div>
-        ) : (
-          <div>
-            {logs.slice(0, 12).map((log, i) => (
-              <div key={log._id || i} style={{
-                padding: '10px 20px', borderBottom: '1px solid #0d1117',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: log.result === 'VALID' ? '#4ade80' : log.result === 'DEFAULTER' ? '#f87171' : '#f59e0b',
-                }} />
-                <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#94a3b8', minWidth: 110 }}>
-                  {log.rollNo}
-                </span>
-                <span style={{ fontSize: 12, color: '#64748b', flex: 1 }}>
-                  {log.scanType?.replace(/_/g, ' ')} · {log.scanLocation}
-                </span>
-                <span style={{
-                  fontSize: 11, padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace',
-                  color: log.result === 'VALID' ? '#4ade80' : log.result === 'DEFAULTER' ? '#f87171' : '#f59e0b',
-                  background: `${log.result === 'VALID' ? '#4ade80' : log.result === 'DEFAULTER' ? '#f87171' : '#f59e0b'}18`,
-                }}>{log.result}</span>
-                <span style={{ fontSize: 10, color: '#334155', fontFamily: 'monospace' }}>
-                  {new Date(log.scanTime || log.createdAt).toLocaleTimeString('en-IN')}
-                </span>
-              </div>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+            {['HOSTEL', 'VENUE'].map(loc => (
+              <button key={loc}
+                disabled={!canChangeLocation && loc !== scanLocation}
+                onClick={() => canChangeLocation && setScanLocation(loc)}
+                className="night-btn-pill"
+                style={{
+                  flex: 1, 
+                  background: scanLocation === loc
+                    ? (loc === 'HOSTEL' ? '#f59e0b' : '#34a853')
+                    : '#ffffff',
+                  color:  scanLocation === loc ? '#ffffff' : '#5f6368',
+                  border: scanLocation === loc ? 'none' : '1px solid #dadce0',
+                  opacity: !canChangeLocation && loc !== scanLocation ? 0.35 : 1,
+                  justifyContent: 'center'
+                }}>
+                {loc === 'HOSTEL' ? '🏠 HOSTEL' : '🏢 VENUE'}
+              </button>
             ))}
           </div>
-        )}
+
+          {/* ── MODE A: Keyboard / Barcode Gun ── */}
+          {scanMode === 'A' && (
+            <form onSubmit={handleKeyboardScan}>
+              <label className="night-label">
+                Roll Number / Barcode
+              </label>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <input
+                  ref={inputRef}
+                  value={rollNo}
+                  onChange={e => setRollNo(e.target.value)}
+                  placeholder="Scan barcode or type roll number..."
+                  className="night-input"
+                  autoComplete="off"
+                  style={{ flex: 1, fontSize: 16, fontFamily: 'monospace' }}
+                />
+                <button type="submit" disabled={loading || !rollNo.trim()} className="night-btn-pill">
+                  {loading ? '…' : 'Scan →'}
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: '#5f6368', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 14 }}>ⓘ</span>
+                Press Enter · Physical scanner fires Enter automatically
+              </div>
+            </form>
+          )}
+
+          {/* ── MODE B: Camera ── */}
+          {scanMode === 'B' && (
+            <div>
+              {/* Camera selector (if multiple cameras) */}
+              {cameras.length > 1 && (
+                <div style={{ marginBottom: 16 }}>
+                  <label className="night-label">Camera</label>
+                  <select
+                    className="night-input"
+                    value={selectedCam}
+                    onChange={async e => {
+                      setSelectedCam(e.target.value);
+                      await stopCamera();
+                    }}
+                  >
+                    {cameras.map(cam => (
+                      <option key={cam.id} value={cam.id}>{cam.label || `Camera ${cam.id.slice(0,8)}`}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Error message */}
+              {cameraError && (
+                <div style={{
+                  padding: '16px', background: '#fef2f2',
+                  border: '1px solid #fee2e2', borderRadius: 12,
+                  color: '#ef4444', fontSize: 14, marginBottom: 16,
+                  display: 'flex', alignItems: 'center', gap: 10
+                }}>
+                  <span style={{ fontSize: 20 }}>❌</span> {cameraError}
+                </div>
+              )}
+
+              {/* Camera viewfinder */}
+              <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', background: '#000', minHeight: 280, border: '1px solid #dadce0' }}>
+                <div id={VIEWFINDER_ID} style={{ width: '100%' }} />
+                {cameraActive && <ScanOverlay />}
+                {!cameraActive && !cameraError && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, color: '#ffffff' }}>
+                    <div className="spin" style={{ width: 40, height: 40, border: '4px solid rgba(255,255,255,0.1)', borderTopColor: '#34a853', borderRadius: '50%' }} />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{libLoaded ? 'Starting camera...' : 'Detecting cameras...'}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Camera controls */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                {!cameraActive ? (
+                  <button onClick={startCamera} disabled={!selectedCam || !!cameraError} className="night-btn-pill" style={{ flex: 1, background: '#34a853', justifyContent: 'center' }}>
+                    ▶ Start Camera
+                  </button>
+                ) : (
+                  <button onClick={stopCamera} className="night-btn-pill" style={{ flex: 1, background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', justifyContent: 'center' }}>
+                    ⏹ Stop Camera
+                  </button>
+                )}
+              </div>
+
+              {/* How it works */}
+              <div style={{ marginTop: 24, padding: '16px', background: '#f0f9ff', border: '1px solid #e0f2fe', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: '#0284c7', fontWeight: 800, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>How it works</div>
+                <div style={{ fontSize: 13, color: '#0369a1', lineHeight: 1.6 }}>
+                  Hold the ID card barcode inside the green frame. The camera reads the number and automatically processes the scan. No manual confirmation required.
+                </div>
+              </div>
+
+              {loading && (
+                <div style={{
+                  marginTop: 16, padding: '12px 16px',
+                  background: '#e6f4ea', border: '1px solid #ceead6',
+                  borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div className="spin" style={{ width: 20, height: 20, border: '3px solid rgba(0,0,0,0.05)', borderTopColor: '#34a853', borderRadius: '50%' }} />
+                  <span style={{ fontSize: 14, color: '#137333', fontWeight: 600 }}>Processing scan...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Recent scan logs */}
+        <div className="night-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #dadce0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#202124' }}>🕐 Recent Scans</span>
+            <button onClick={loadLogs} style={{ background: 'none', border: 'none', color: '#1a73e8', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+              Refresh
+            </button>
+          </div>
+          {logs.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: '#5f6368', fontSize: 14 }}>
+              No scans recorded in this session
+            </div>
+          ) : (
+            <div>
+              {logs.slice(0, 12).map((log, i) => (
+                <div key={log._id || i} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f3f4', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <span style={{
+                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                    background: log.result === 'VALID' ? '#10b981' : log.result === 'DEFAULTER' ? '#ef4444' : '#f59e0b',
+                  }} />
+                  <span style={{ fontFamily: 'monospace', fontSize: 13, color: '#202124', fontWeight: 700, minWidth: 100 }}>
+                    {log.rollNo}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#5f6368', flex: 1 }}>
+                    {log.scanType?.replace(/_/g, ' ')} · {log.scanLocation}
+                  </span>
+                  <span className="night-badge" style={{
+                    color: log.result === 'VALID' ? '#10b981' : log.result === 'DEFAULTER' ? '#ef4444' : '#f59e0b',
+                    background: `${log.result === 'VALID' ? '#10b981' : log.result === 'DEFAULTER' ? '#ef4444' : '#f59e0b'}15`,
+                  }}>{log.result}</span>
+                  <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>
+                    {new Date(log.scanTime || log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Keyframe animations */}
+      {/* Scan Result Modal */}
+      {result && (
+        <ResultModal result={result} onClose={() => setResult(null)} />
+      )}
+
+      {/* Styles */}
       <style>{`
         @keyframes shake {
           0%,100% { transform: translateX(0); }
@@ -646,16 +660,12 @@ export default function Scan() {
           50%  { top: calc(100% - 6px); opacity: 0.6; }
           100% { top: 4px; opacity: 1; }
         }
-        @keyframes slideIn {
-          from { transform: translateY(-8px); opacity: 0; }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
           to   { transform: translateY(0);    opacity: 1; }
         }
-        #${VIEWFINDER_ID} video {
-          border-radius: 8px;
-        }
-        #${VIEWFINDER_ID} img {
-          display: none !important;
-        }
+        #${VIEWFINDER_ID} video { border-radius: 12px; }
+        #${VIEWFINDER_ID} img { display: none !important; }
       `}</style>
     </div>
   );

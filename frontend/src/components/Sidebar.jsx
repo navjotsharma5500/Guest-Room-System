@@ -17,6 +17,7 @@ export default function Sidebar({
   isSidebarOpen = true, // ✅ Default to true if not provided
 }) {
   const { currentUser, loading } = useAuth();
+  console.log('AUTH USER:', currentUser); // 🔍 DIAGNOSTIC LOG
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);

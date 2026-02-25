@@ -61,6 +61,10 @@ const nightStudentSchema = new mongoose.Schema({
     type: String,
     default: 'Active',
   },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 
   // ImageKit base path only - no binary in DB ever
   // Pattern: IMAGEKIT_URL_ENDPOINT + IMAGEKIT_STUDENT_FOLDER + "/" + rollNo

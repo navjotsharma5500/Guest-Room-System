@@ -4,9 +4,22 @@ import NightPermissionList from '../models/NightPermissionList.js';
 import NightStudent from '../models/NightStudent.js';
 import PermissionSession from '../models/PermissionSession.js';
 import VenueBooking from '../models/VenueBooking.js';
+import EventNameSuggestion from '../models/EventNameSuggestion.js';
 import { getSettings } from '../models/NightSystemSettings.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+const touchEventSuggestion = async (name = "") => {
+  const normalized = String(name || "").trim();
+  if (!normalized) return;
+  try {
+    await EventNameSuggestion.findOneAndUpdate(
+      { name: normalized },
+      { $inc: { usageCount: 1 }, $set: { lastUsed: new Date() } },
+      { upsert: true, new: true }
+    );
+  } catch (_) {}
+};
 
 const emitSafe = (event, payload, room = null) => {
   try {
@@ -32,6 +45,21 @@ export const getLists = async (req, res) => {
     const { status, page = 1, limit = 30 } = req.query;
     const query = {};
     if (status) query.status = status;
+
+    const role = (req.user?.role || '').toLowerCase();
+    const userId = req.user?._id;
+
+    // Visibility rules:
+    // 1. Admin/ADOSA/Assistant see everything
+    // 2. Gen Sec / President see only their allowed societies
+    // 3. Students see only if they are IN the list
+    if (role === 'student') {
+      const studentRollNo = req.user?.rollNo || '';
+      query['students.rollNo'] = studentRollNo;
+    } else if (role === 'gen_sec' || role === 'president') {
+      const userSocieties = req.user?.societies || [];
+      query.societyName = { $in: userSocieties };
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const [lists, total] = await Promise.all([
@@ -60,12 +88,18 @@ export const getListsForReview = async (req, res) => {
     const role = (req.user?.role || '').toLowerCase();
     let statusFilter;
 
-    if (role === 'president') statusFilter = 'PENDING_PRESIDENT';
+    if (role === 'gen_sec') statusFilter = 'STUDENT_REQUEST';
+    else if (role === 'president') statusFilter = 'PENDING_PRESIDENT';
     else if (role === 'adosa' || role === 'admin') statusFilter = 'PENDING_ADOSA';
-    else if (role === 'gen_sec') statusFilter = 'DRAFT';
     else return res.status(200).json({ lists: [] });
 
-    const lists = await NightPermissionList.find({ status: statusFilter })
+    const query = { status: statusFilter };
+    if (role === 'president' || role === 'gen_sec') {
+      const userSocieties = req.user?.societies || [];
+      query.societyName = { $in: userSocieties };
+    }
+
+    const lists = await NightPermissionList.find(query)
       .sort({ createdAt: -1 })
       .populate('createdBy', 'name email');
 
@@ -93,9 +127,6 @@ export const getListById = async (req, res) => {
   }
 };
 
-// ── POST /api/night/lists ─────────────────────────────────────────────────────
-// Gen Sec or President creates a permission list
-
 export const createList = async (req, res) => {
   try {
     const {
@@ -106,36 +137,84 @@ export const createList = async (req, res) => {
     if (!societyName || !eventName || !venueName || !startDateTime || !endDateTime) {
       return res.status(400).json({ message: 'societyName, eventName, venueName, startDateTime, endDateTime are required' });
     }
-    if (!studentRollNos || studentRollNos.length === 0) {
-      return res.status(400).json({ message: 'At least one student rollNo required' });
+
+    const role = (req.user?.role || '').toLowerCase();
+    const userSocieties = req.user?.societies || [];
+
+    // 1. Authorization: Allow roles: STUDENT, GEN_SEC, PRESIDENT, ADOSA, ADMIN
+    const ALLOWED_CREATORS = ['student', 'gen_sec', 'president', 'adosa', 'admin'];
+    if (!ALLOWED_CREATORS.includes(role)) {
+      return res.status(403).json({ message: 'Your role is not authorized to create permission lists' });
+    }
+
+    // 2. Society validation for Gen Sec / President
+    if (role === 'gen_sec' || role === 'president') {
+      if (!userSocieties.includes(societyName)) {
+        return res.status(403).json({ message: `You are not authorized to create lists for society: ${societyName}` });
+      }
+    }
+
+    // Students can create for any society (request stage)
+    
+    let students = [];
+    let studentEntries = [];
+
+    if (role === 'student') {
+      // Students create request for themselves only
+      const studentDoc = await NightStudent.findOne({ email: req.user.email, isActive: true });
+      if (!studentDoc) {
+        return res.status(404).json({ message: 'Student master record not found' });
+      }
+      if (studentDoc.defaulterBlocked) {
+        return res.status(403).json({ message: 'You are blocked from creating night pass requests' });
+      }
+      students = [studentDoc];
+      studentEntries = [{
+        rollNo: studentDoc.rollNo, name: studentDoc.name, email: studentDoc.email,
+        hostel: studentDoc.hostel, roomNo: studentDoc.roomNo, status: 'PENDING',
+      }];
+    } else {
+      if (!studentRollNos || studentRollNos.length === 0) {
+        return res.status(400).json({ message: 'At least one student rollNo required' });
+      }
+
+      // Resolve students from DB
+      const rollNos  = studentRollNos.map(r => String(r).trim().toUpperCase());
+      const resolvedStudents = await NightStudent.find({ rollNo: { $in: rollNos } });
+      const foundSet = new Set(resolvedStudents.map(s => s.rollNo));
+
+      // Check blocked students
+      const blocked = resolvedStudents.filter(s => s.defaulterBlocked);
+      if (blocked.length > 0) {
+        return res.status(400).json({
+          message: `These students are blocked and cannot be added: ${blocked.map(s => s.rollNo).join(', ')}`,
+        });
+      }
+
+      const notFound = rollNos.filter(r => !foundSet.has(r));
+      if (notFound.length > 0) {
+        return res.status(400).json({ message: `Students not found in system: ${notFound.join(', ')}` });
+      }
+
+      students = resolvedStudents;
+      studentEntries = resolvedStudents.map(s => ({
+        rollNo: s.rollNo, name: s.name, email: s.email,
+        hostel: s.hostel, roomNo: s.roomNo, status: 'PENDING',
+      }));
     }
 
     const start = new Date(startDateTime);
     const end   = new Date(endDateTime);
     if (end <= start) return res.status(400).json({ message: 'endDateTime must be after startDateTime' });
 
-    // Resolve students from DB
-    const rollNos  = studentRollNos.map(r => String(r).trim().toUpperCase());
-    const students = await NightStudent.find({ rollNo: { $in: rollNos } });
-    const foundSet = new Set(students.map(s => s.rollNo));
+    // 3. Approval Stage Logic
+    let initialStatus = 'DRAFT';
+    if (role === 'student')   initialStatus = 'STUDENT_REQUEST';
+    if (role === 'gen_sec')   initialStatus = 'PENDING_PRESIDENT';
+    if (role === 'president') initialStatus = 'PENDING_ADOSA';
+    if (role === 'adosa' || role === 'admin') initialStatus = 'APPROVED';
 
-    // Check blocked students
-    const blocked = students.filter(s => s.defaulterBlocked);
-    if (blocked.length > 0) {
-      return res.status(400).json({
-        message: `These students are blocked and cannot be added: ${blocked.map(s => s.rollNo).join(', ')}`,
-      });
-    }
-
-    const notFound = rollNos.filter(r => !foundSet.has(r));
-    if (notFound.length > 0) {
-      return res.status(400).json({ message: `Students not found in system: ${notFound.join(', ')}` });
-    }
-
-    const studentEntries = students.map(s => ({
-      rollNo: s.rollNo, name: s.name, email: s.email,
-      hostel: s.hostel, roomNo: s.roomNo, status: 'PENDING',
-    }));
+    const isAdminOrAdosa = initialStatus === 'APPROVED';
 
     const list = await NightPermissionList.create({
       societyName, eventName, venueName, venueHall: venueHall || '',
@@ -143,16 +222,161 @@ export const createList = async (req, res) => {
       description: description || '',
       attachments: attachments || [],
       students: studentEntries,
-      status: 'DRAFT',
+      status: initialStatus,
       createdBy: req.user._id,
       createdByName: req.user.name || '',
+      adosaReviewedBy: isAdminOrAdosa ? req.user._id : null,
+      adosaReviewedAt: isAdminOrAdosa ? new Date() : null,
+      adosaRemarks: isAdminOrAdosa ? 'Auto-approved by Admin/ADOSA' : '',
     });
 
-    emitSafe('np:list-created', { listId: list._id, societyName, status: 'DRAFT' }, 'night-permissions');
+    // Auto-save event name
+    await touchEventSuggestion(eventName);
 
-    res.status(201).json({ message: 'Permission list created', list });
+    // Handle auto-approval side-effects
+    if (isAdminOrAdosa) {
+      try {
+        const settings = await getSettings();
+        
+        // Mark all as APPROVED
+        for (const s of list.students) {
+          s.status = 'APPROVED';
+        }
+        await list.save();
+
+        // Create Sessions
+        const sessionDocs = students.map(student => ({
+          permissionListId: list._id,
+          studentId: student._id,
+          rollNo: student.rollNo,
+          name:   student.name,
+          venueName: list.venueName,
+          venueHall: list.venueHall || '',
+          permissionStartDateTime: list.startDateTime,
+          permissionEndDateTime:   list.endDateTime,
+          allowedToVenueMinutes:   settings.defaultToVenueTimerMinutes,
+          allowedToHostelMinutes:  settings.defaultToHostelTimerMinutes,
+          currentPhase: 'NOT_STARTED',
+        }));
+
+        if (sessionDocs.length > 0) {
+          await PermissionSession.insertMany(sessionDocs);
+        }
+
+        // Create Venue Booking
+        const vb = await VenueBooking.create({
+          hall: list.venueHall || 'Night Permission',
+          roomNo: list.venueName,
+          name: list.createdByName || 'Night Permission',
+          societyName: list.societyName,
+          eventName: list.eventName,
+          contact: '0000000000',
+          email: 'nightpermission@thapar.edu',
+          checkInDate:  list.startDateTime.toISOString().slice(0, 10),
+          checkInTime:  list.startDateTime.toISOString().slice(11, 16),
+          checkOutDate: list.endDateTime.toISOString().slice(0, 10),
+          checkOutTime: list.endDateTime.toISOString().slice(11, 16),
+          purpose: 'Night Permission',
+          description: `Night permission for ${students.length} student(s). Society: ${list.societyName} (Auto-approved)`,
+          attachments: [],
+          status: 'booked',
+          createdBy: req.user._id,
+          bookingType: 'venue',
+          isVenueBooking: true,
+          isHallBooking: false,
+          _isNightPermission: true,
+        });
+
+        list.venueBookingId = vb._id;
+        await list.save();
+
+        emitSafe('venueBookingCreated', { bookings: [vb], type: 'night-permission', isolated: true });
+        emitSafe('np:list-approved', {
+          listId: list._id, 
+          approvedStudentIds: students.map(s => s.rollNo),
+          startDateTime: list.startDateTime, 
+          endDateTime: list.endDateTime,
+        }, 'night-permissions');
+      } catch (autoErr) {
+        console.error('⚠️ Auto-approval side-effects failed:', autoErr.message);
+      }
+    } else {
+      emitSafe('np:list-created', { listId: list._id, societyName, status: initialStatus }, 'night-permissions');
+    }
+
+    res.status(201).json({ message: isAdminOrAdosa ? 'Permission list created and auto-approved' : 'Permission list created', list });
   } catch (err) {
     console.error('❌ createList error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── POST /api/night/requests ─────────────────────────────────────────────────
+// Student creates a single request for themselves
+export const createStudentRequest = async (req, res) => {
+  try {
+    const { societyName, eventName, venueName, startDateTime, endDateTime, description } = req.body;
+
+    // 1. Get student record
+    // Use regex for case-insensitive email match
+    const student = await NightStudent.findOne({ 
+      email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } 
+    });
+
+    if (!student) {
+      return res.status(403).json({ message: "Student record not found in master list" });
+    }
+
+    if (student.defaulterBlocked) {
+      return res.status(403).json({ message: "You are blocked from creating requests due to defaulter status" });
+    }
+
+    // 2. Validate inputs
+    if (!startDateTime || !endDateTime) {
+      return res.status(400).json({ message: "Start and End times are required" });
+    }
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ message: "Invalid dates" });
+    }
+    if (start >= end) {
+      return res.status(400).json({ message: "End time must be after start time" });
+    }
+
+    // 3. Create List (Single Student)
+    const list = new NightPermissionList({
+      societyName: societyName || "Individual",
+      eventName: eventName || "Night Pass Request",
+      venueName: venueName || "Other",
+      description: description || "",
+      startDateTime: start,
+      endDateTime: end,
+      students: [{
+        rollNo: student.rollNo,
+        name: student.name,
+        email: student.email,
+        hostel: student.hostel,
+        roomNo: student.roomNo,
+        status: 'PENDING' // Individual status
+      }],
+      status: 'STUDENT_REQUEST', // Overall list status
+      createdBy: req.user._id
+    });
+
+    await list.save();
+
+    // Emit event for real-time updates
+    emitSafe('np:list-created', { 
+      listId: list._id, 
+      societyName: list.societyName, 
+      status: list.status 
+    }, 'night-permissions');
+
+    res.status(201).json({ message: "Request submitted successfully", list });
+
+  } catch (err) {
+    console.error('❌ createStudentRequest error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -170,8 +394,8 @@ export const sendListForward = async (req, res) => {
     if (!list) return res.status(404).json({ message: 'List not found' });
 
     // Validate current status matches role
-    if (role === 'gen_sec' && list.status !== 'DRAFT') {
-      return res.status(400).json({ message: `List must be in DRAFT status. Current: ${list.status}` });
+    if (role === 'gen_sec' && !['DRAFT', 'STUDENT_REQUEST'].includes(list.status)) {
+      return res.status(400).json({ message: `List must be in DRAFT or STUDENT_REQUEST status. Current: ${list.status}` });
     }
     if (role === 'president' && list.status !== 'PENDING_PRESIDENT') {
       return res.status(400).json({ message: `List must be in PENDING_PRESIDENT status. Current: ${list.status}` });
@@ -183,6 +407,17 @@ export const sendListForward = async (req, res) => {
       list.presidentReviewedBy = req.user._id;
       list.presidentReviewedAt = new Date();
       list.presidentRemarks    = req.body.remarks || '';
+
+      // ✅ Handle selection: If user provided `selectedRollNos`
+      if (req.body.selectedRollNos && Array.isArray(req.body.selectedRollNos)) {
+        const selectedSet = new Set(req.body.selectedRollNos.map(r => String(r).trim().toUpperCase()));
+        for (const s of list.students) {
+           // If student is NOT selected, mark them as REJECTED by President
+           if (!selectedSet.has(s.rollNo) && s.status === 'PENDING') {
+             s.status = 'REJECTED'; 
+           }
+        }
+      }
     }
     list.status = nextStatus;
     await list.save();
@@ -299,6 +534,58 @@ export const approveStudents = async (req, res) => {
   } catch (err) {
     console.error('❌ approveStudents error:', err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// ── GET /api/night/calendar ──────────────────────────────────────────────────
+export const getCalendarEvents = async (req, res) => {
+  try {
+    const { from, to, tab } = req.query;
+    const role = (req.user?.role || '').toLowerCase();
+    const userId = req.user?._id;
+    const societies = req.user?.societies || [];
+
+    const query = {};
+
+    // 1. Role-based visibility
+    if (role === 'student') {
+      query['students.rollNo'] = req.user?.rollNo;
+    } else if (role === 'gen_sec' || role === 'president') {
+      query.societyName = { $in: societies };
+    }
+
+    // 2. Tab-based status filtering
+    const now = new Date();
+    if (tab === 'UPCOMING') {
+      query.status = 'APPROVED';
+      query.startDateTime = { $gt: now };
+    } else if (tab === 'ACTIVE') {
+      query.status = 'APPROVED';
+      query.startDateTime = { $lte: now };
+      query.endDateTime = { $gte: now };
+    } else if (tab === 'PAST') {
+      query.status = 'APPROVED';
+      query.endDateTime = { $lt: now };
+    } else if (tab === 'CANCELLED') {
+      query.status = 'CANCELLED';
+    } else {
+      // Default: show all relevant non-draft
+      query.status = { $in: ['APPROVED', 'PENDING_ADOSA', 'PENDING_PRESIDENT', 'CANCELLED'] };
+    }
+
+    // 3. Date range filtering (if provided)
+    if (from) {
+      query.startDateTime = { ...(query.startDateTime || {}), $gte: new Date(from) };
+    }
+    if (to) {
+      query.endDateTime = { ...(query.endDateTime || {}), $lte: new Date(to) };
+    }
+
+    const lists = await NightPermissionList.find(query).sort({ startDateTime: -1 });
+    res.status(200).json(lists);
+  } catch (err) {
+    console.error('❌ getCalendarEvents error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 

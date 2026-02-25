@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { User, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 import { isDDAssistantRole } from "../utils/venueAccessPolicy";
+import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 // Images
@@ -24,6 +25,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loadingBtn, setLoadingBtn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -51,7 +53,7 @@ export default function Login() {
   };
 
   // =================================================
-  // 🔥 LOGIN HANDLER (Connect to Backend API)
+  // 🔥 LOGIN HANDLER
   // =================================================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,14 +66,26 @@ export default function Login() {
     const res = await login(email.trim(), password);
 
     if (!res.success) {
+      // ✅ NEW: redirect to /access-required for system-access errors
+      if (res.code === "NO_SYSTEM_ACCESS" || res.code === "STUDENT_DEFAULTER") {
+        navigate("/access-required", {
+          state: { code: res.code, message: res.message },
+        });
+        return; // don't reset loadingBtn — we're navigating away
+      }
+
+      // All other errors (wrong password, user not found, etc.) show inline
       setError(res.message || "Invalid credentials");
       setLoadingBtn(false);
       return;
     }
 
-    // SUCCESS → redirect
+    // SUCCESS → use redirectTo from backend if available, else fall back
+    // to the original role-based logic so nothing breaks
     const userRole = res.user?.role || "";
-    if (userRole === "assistant" || isDDAssistantRole(userRole)) {
+    if (res.user?.redirectTo) {
+      window.location.href = res.user.redirectTo;
+    } else if (userRole === "assistant" || isDDAssistantRole(userRole)) {
       window.location.href = "/venue-booking";
     } else {
       window.location.href = "/dashboard";
@@ -79,21 +93,31 @@ export default function Login() {
   };
 
   // =================================================
-  // ðŸŒ GOOGLE LOGIN HANDLER
+  // 🌐 GOOGLE LOGIN HANDLER
   // =================================================
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoadingBtn(true);
     const res = await googleLogin(credentialResponse.credential);
-    
+
     if (!res.success) {
+      // ✅ NEW: same access-required redirect for Google login
+      if (res.code === "NO_SYSTEM_ACCESS" || res.code === "STUDENT_DEFAULTER") {
+        navigate("/access-required", {
+          state: { code: res.code, message: res.message },
+        });
+        return;
+      }
+
       setError(res.message || "Google Login Failed");
       setLoadingBtn(false);
       return;
     }
 
-    // SUCCESS â†’ redirect
+    // SUCCESS → same redirect logic
     const userRole = res.user?.role || "";
-    if (userRole === "assistant" || isDDAssistantRole(userRole)) {
+    if (res.user?.redirectTo) {
+      window.location.href = res.user.redirectTo;
+    } else if (userRole === "assistant" || isDDAssistantRole(userRole)) {
       window.location.href = "/venue-booking";
     } else {
       window.location.href = "/dashboard";
@@ -101,7 +125,8 @@ export default function Login() {
   };
 
   const handleGoogleError = () => {
-    setError("Google Login Failed");
+    setError("Google Login Failed. Please try again.");
+    setLoadingBtn(false);
   };
 
   // =================================================

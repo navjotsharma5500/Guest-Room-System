@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../utils/apiConfig";
 
@@ -86,18 +86,22 @@ export const AuthProvider = ({ children }) => {
       console.log("🔵 Login response:", data);
       console.log("🔵 Token in response?", data.token ? "YES ✅" : "NO ❌");
 
-      if (res.ok) {
-        setCurrentUser(data.user);
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-          console.log("✅ Token stored in localStorage (length:", data.token.length, ")");
-          console.log("🔐 Verification - can retrieve token?", localStorage.getItem("token") ? "YES ✅" : "NO ❌");
-        } else {
-          console.warn("⚠️ No token in response, checking cookies only");
-        }
+      // ✅ FIXED: use `data` not `res.data` (this is fetch, not axios)
+      if (!data.success) {
+        return { success: false, code: data.code, message: data.message };
+      }
+
+      // Login succeeded — store user and token
+      setCurrentUser(data.user);
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log("✅ Token stored in localStorage (length:", data.token.length, ")");
+      } else {
+        console.warn("⚠️ No token in response, checking cookies only");
       }
 
       return data;
+
     } catch (err) {
       console.error("❌ Login error:", err);
       return { success: false, message: "Server error" };
@@ -116,12 +120,19 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ token }),
       });
       const data = await res.json();
-      if (res.ok) {
-        setCurrentUser(data.user);
-        if (data.token) localStorage.setItem("token", data.token);
+
+      // ✅ FIXED: check data.success, not res.ok alone
+      if (!data.success) {
+        return { success: false, code: data.code, message: data.message };
       }
+
+      setCurrentUser(data.user);
+      if (data.token) localStorage.setItem("token", data.token);
+
       return data;
+
     } catch (err) {
+      console.error("❌ Google login error:", err);
       return { success: false, message: "Server error" };
     }
   };
@@ -145,35 +156,33 @@ export const AuthProvider = ({ children }) => {
 
   // =======================================================
   // 🌙 NIGHT PERMISSIONS — Role Helper Functions
-  // Used by night permissions pages via useAuth()
+  // Memoized to prevent unstable context value
   // =======================================================
-  const getRole = () => (currentUser?.role || "").toLowerCase();
+  const getNightRole = useCallback(() => (currentUser?.night?.role || "").toLowerCase(), [currentUser]);
 
-  const isAdosa     = () => ["adosa", "admin"].includes(getRole());
-  const isPresident = () => ["president", "adosa", "admin"].includes(getRole());
-  const isGenSec    = () => ["gen_sec", "president", "adosa", "admin"].includes(getRole());
-  const canScan     = () => ["caretaker", "guard", "adosa", "admin"].includes(getRole());
+  const isAdosa     = useCallback(() => ["adosa", "admin"].includes(getNightRole()), [getNightRole]);
+  const isPresident = useCallback(() => ["president", "adosa", "admin"].includes(getNightRole()), [getNightRole]);
+  const isGenSec    = useCallback(() => ["gen_sec", "president", "adosa", "admin"].includes(getNightRole()), [getNightRole]);
+  const canScan     = useCallback(() => ["caretaker", "guard", "adosa", "admin"].includes(getNightRole()), [getNightRole]);
 
-  // `user` alias — night perms pages destructure `user`, not `currentUser`
+  // `user` alias
   const user = currentUser;
 
+  const value = useMemo(() => ({
+    currentUser,
+    user,
+    loading,
+    login,
+    googleLogin,
+    logout,
+    isAdosa,
+    isPresident,
+    isGenSec,
+    canScan,
+  }), [currentUser, user, loading, login, googleLogin, logout, isAdosa, isPresident, isGenSec, canScan]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        // ── Core auth ──────────────────────────────────────
-        currentUser,
-        user,
-        loading,
-        login,
-        googleLogin,
-        logout,
-        // ── 🌙 Night permissions role helpers ──────────────
-        isAdosa,
-        isPresident,
-        isGenSec,
-        canScan,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

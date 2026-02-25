@@ -34,6 +34,7 @@ const nightPermissionListSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
+      'STUDENT_REQUEST',
       'DRAFT',
       'PENDING_PRESIDENT',
       'PENDING_ADOSA',
