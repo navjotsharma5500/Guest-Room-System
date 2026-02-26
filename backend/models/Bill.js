@@ -1,3 +1,4 @@
+//models/Bill.js
 import mongoose from "mongoose";
 
 const billSchema = new mongoose.Schema(
@@ -8,7 +9,7 @@ const billSchema = new mongoose.Schema(
       required: true
     },
 
-    // ðŸ”’ SNAPSHOT (DO NOT reference Guest)
+    // 📋 SNAPSHOT (DO NOT reference Guest)
     guestName: String,
     guestEmail: String,
     guestContact: String,
@@ -17,6 +18,8 @@ const billSchema = new mongoose.Schema(
 
     hostel: String,
     roomNo: String,
+    from: Date,
+    to: Date,
 
     billNumber: {
       type: String,
@@ -24,10 +27,20 @@ const billSchema = new mongoose.Schema(
       unique: true
     },
 
+    // Bill type: standard payment or waiver
+    billType: {
+      type: String,
+      enum: ["PAYMENT", "WAIVER"],
+      default: "PAYMENT"
+    },
+
+    totalAmount: Number,
     amountPaid: Number,
+    paidBeforeWaiver: Number, // Amount already paid before waiver
+
     paymentType: {
       type: String,
-      enum: ["FULL", "PARTIAL"]
+      enum: ["FULL", "PARTIAL", "WAIVER"]
     },
     paymentMethod: String,
     transactionId: String,
@@ -37,6 +50,22 @@ const billSchema = new mongoose.Schema(
 
     discountPercent: Number,
     discountAmount: Number,
+
+    // Waiver-specific fields
+    waiverAmount: Number,
+    waiverRemarks: String,
+    waiverAttachments: [
+      {
+        url: String,
+        fileId: String,
+        name: String,
+      }
+    ],
+    waivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    waivedAt: Date,
 
     paymentProof: [String],
     remarks: String,

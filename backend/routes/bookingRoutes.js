@@ -937,33 +937,29 @@ router.get("/debug/payment-fields/:id", protect, async (req, res) => {
   }
 });
 
-// ✅ NEW: Mark booking as Department Pay Later (NO payment, just marking)
+// ✅ UPDATED: Mark booking as Department Pay Later + Send Email to Department
 router.patch(
   "/:id/mark-department-pay",
   protect,
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { remarks } = req.body;
+      const { remarks, departmentName, departmentEmail, attachments } = req.body;
 
       console.log("🏢 Marking booking as Department Pay Later:", id);
 
       const booking = await Booking.findById(id);
       if (!booking) {
-        return res.status(404).json({
-          success: false,
-          message: "Booking not found"
-        });
+        return res.status(404).json({ success: false, message: "Booking not found" });
       }
 
       // ✅ ONLY mark responsibility - NO payment processing
       booking.paymentResponsibility = "DEPARTMENT";
       booking.paymentMode = "DEPARTMENT";
-      
-      // Save remarks if provided
-      if (remarks) {
-        booking.paymentRemarks = remarks;
-      }
+      if (remarks) booking.paymentRemarks = remarks;
+      if (departmentName) booking.departmentName = departmentName;
+      if (departmentEmail) booking.departmentEmail = departmentEmail;
+      if (Array.isArray(attachments)) booking.deptPayAttachments = attachments;
 
       await booking.save();
 
@@ -971,8 +967,113 @@ router.patch(
         bookingId: booking._id,
         guest: booking.guest,
         totalAmount: booking.totalAmount,
-        balanceAmount: booking.balanceAmount
+        departmentEmail,
       });
+
+      // ✅ Send email to department if email provided
+      if (departmentEmail) {
+        try {
+          const { sendEmail } = await import('../utils/sendEmail.js');
+          const hostelName = booking.hostel || 'Guest Hostel';
+          const guestName = booking.guest || 'Guest';
+          const totalAmount = Number(booking.totalAmount || 0);
+          const paidAmount = Number(booking.paidAmount || 0);
+          const discount = Number(booking.discount || 0);
+          const balance = Math.max(0, totalAmount - paidAmount - discount);
+          const fromDate = booking.from ? new Date(booking.from).toLocaleDateString('en-IN') : '—';
+          const toDate = booking.to ? new Date(booking.to).toLocaleDateString('en-IN') : '—';
+
+          const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>
+  body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+  .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 30px; text-align: center; }
+  .header h1 { margin: 0; font-size: 22px; }
+  .header p { margin: 8px 0 0; opacity: 0.85; font-size: 14px; }
+  .body { padding: 30px; }
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 14px; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 2px solid #e8f0fe; padding-bottom: 6px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .info-item label { display: block; font-size: 12px; color: #888; margin-bottom: 3px; }
+  .info-item span { font-weight: bold; color: #222; font-size: 15px; }
+  .amount-box { background: #e8f0fe; border: 2px solid #1a73e8; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0; }
+  .amount-box .label { font-size: 13px; color: #1a73e8; margin-bottom: 6px; }
+  .amount-box .amount { font-size: 32px; font-weight: bold; color: #0d47a1; }
+  .account-box { background: #f3f4f6; border-left: 4px solid #34a853; border-radius: 8px; padding: 16px; margin: 20px 0; }
+  .account-box .title { font-weight: bold; color: #2d6a4f; margin-bottom: 10px; font-size: 15px; }
+  .account-box .detail { font-size: 14px; color: #444; margin-bottom: 6px; }
+  .note { background: #fff8e1; border: 1px solid #ffc107; border-radius: 8px; padding: 14px; font-size: 13px; color: #5d4037; }
+  .footer { background: #f5f5f5; text-align: center; padding: 20px; font-size: 12px; color: #999; }
+</style></head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🏨 Guest Room Payment Request</h1>
+    <p>${hostelName} — Department Payment Notice</p>
+  </div>
+  <div class="body">
+    <p>Dear <strong>${departmentName || 'Department'}</strong>,</p>
+    <p>Please find below the details of a guest from your department currently staying at our hostel. As per the arrangement, the payment for this stay is to be made by your department.</p>
+
+    <div class="section">
+      <div class="section-title">Guest Details</div>
+      <div class="info-grid">
+        <div class="info-item"><label>Guest Name</label><span>${guestName}</span></div>
+        <div class="info-item"><label>Contact</label><span>${booking.contact || '—'}</span></div>
+        <div class="info-item"><label>Email</label><span>${booking.email || '—'}</span></div>
+        <div class="info-item"><label>Department</label><span>${booking.department || '—'}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Room & Stay Details</div>
+      <div class="info-grid">
+        <div class="info-item"><label>Hostel</label><span>${hostelName}</span></div>
+        <div class="info-item"><label>Room No.</label><span>${booking.roomNo || '—'}</span></div>
+        <div class="info-item"><label>Check-in</label><span>${fromDate}</span></div>
+        <div class="info-item"><label>Check-out</label><span>${toDate}</span></div>
+      </div>
+    </div>
+
+    <div class="amount-box">
+      <div class="label">Total Amount Payable by Department</div>
+      <div class="amount">₹${balance.toLocaleString('en-IN')}</div>
+    </div>
+
+    <div class="account-box">
+      <div class="title">💳 Payment Account Details</div>
+      <div class="detail"><strong>Account Name:</strong> Thapar Institute of Engineering & Technology</div>
+      <div class="detail"><strong>Account No:</strong> Please contact the hostel office for account details</div>
+      <div class="detail"><strong>Contact:</strong> hostel.admin@thapar.edu | +91-XXXXXXXXXX</div>
+    </div>
+
+    ${remarks ? `<div class="note"><strong>Remarks:</strong> ${remarks}</div>` : ''}
+
+    <p style="margin-top: 24px; font-size: 14px; color: #555;">
+      Please make the payment at the earliest and <strong>share the payment confirmation/bill on this email</strong>: 
+      <a href="mailto:hostel.admin@thapar.edu">hostel.admin@thapar.edu</a>
+    </p>
+  </div>
+  <div class="footer">
+    This is an automated email from the Guest Room Management System.<br>
+    Please do not reply to this email. For queries, contact hostel.admin@thapar.edu
+  </div>
+</div>
+</body>
+</html>`;
+
+          await sendEmail({
+            to: departmentEmail,
+            subject: `Payment Request: ${guestName} — Room ${booking.roomNo || ''} — ₹${balance.toLocaleString('en-IN')}`,
+            html: emailHtml,
+          });
+          console.log("📧 Department payment email sent to:", departmentEmail);
+        } catch (emailErr) {
+          console.error("⚠️ Department email failed (non-blocking):", emailErr.message);
+        }
+      }
 
       // ✅ Emit Socket.IO event
       const io = req.app.get('io');
@@ -983,88 +1084,17 @@ router.patch(
           hostel: booking.hostel,
           timestamp: Date.now()
         });
-        console.log('📡 Emitted department-pay-marked event');
       }
 
       res.json({
         success: true,
-        message: "✅ Marked as Department Pay Later - Guest can checkout",
+        message: "✅ Marked as Department Pay Later" + (departmentEmail ? " & Email Sent" : ""),
         booking
       });
 
     } catch (error) {
       console.error("❌ Mark department pay error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to mark department payment",
-        error: error.message
-      });
-    }
-  }
-);
-
-// ✅ NEW: Mark booking as Department Pay Later (NO payment, just marking)
-router.patch(
-  "/:id/mark-department-pay",
-  protect,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { remarks } = req.body;
-
-      console.log("🏢 Marking booking as Department Pay Later:", id);
-
-      const booking = await Booking.findById(id);
-      if (!booking) {
-        return res.status(404).json({
-          success: false,
-          message: "Booking not found"
-        });
-      }
-
-      // ✅ ONLY mark responsibility - NO payment processing
-      booking.paymentResponsibility = "DEPARTMENT";
-      booking.paymentMode = "DEPARTMENT";
-      
-      // Save remarks if provided
-      if (remarks) {
-        booking.paymentRemarks = remarks;
-      }
-
-      await booking.save();
-
-      console.log("✅ Booking marked as department responsibility:", {
-        bookingId: booking._id,
-        guest: booking.guest,
-        totalAmount: booking.totalAmount,
-        balanceAmount: booking.balanceAmount
-      });
-
-      // ✅ Emit Socket.IO event
-      const io = req.app.get('io');
-      if (io) {
-        io.to('dashboard-room').emit('department-pay-marked', {
-          bookingId: booking._id,
-          guest: booking.guest,
-          hostel: booking.hostel,
-          timestamp: Date.now()
-        });
-        console.log('📡 Emitted department-pay-marked event');
-      }
-
-      res.json({
-        success: true,
-        message: "✅ Marked as Department Pay Later - Guest can checkout",
-        booking
-      });
-
-    } catch (error) {
-      console.error("❌ Mark department pay error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to mark department payment",
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: "Failed to mark department payment", error: error.message });
     }
   }
 );

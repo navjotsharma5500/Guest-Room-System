@@ -610,3 +610,132 @@ export const downloadBillPDF = async (req, res) => {
     }
   }
 };
+// ============================================
+// 💸 PROCESS WAIVER (Admin + Manager only)
+// ============================================
+export const processWaiver = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { remarks, waiverAmount, attachments } = req.body;
+    const user = req.user;
+
+    // Role check
+    if (!['admin', 'manager'].includes(user.role)) {
+      return res.status(403).json({ success: false, message: "Only Admin and Manager can process waivers" });
+    }
+
+    if (!remarks || !remarks.trim()) {
+      return res.status(400).json({ success: false, message: "Remarks are required" });
+    }
+    if (!attachments || attachments.length === 0) {
+      return res.status(400).json({ success: false, message: "At least one attachment is required" });
+    }
+
+    const booking = await Booking.findById(id);
+    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+    const totalAmount = Number(booking.totalAmount) || 0;
+    const paidAmount = Number(booking.paidAmount) || 0;
+    const previousDiscount = Number(booking.discount) || 0;
+    const pendingBalance = Math.max(0, totalAmount - paidAmount - previousDiscount);
+
+    if (pendingBalance <= 0) {
+      return res.status(400).json({ success: false, message: "No pending balance to waive" });
+    }
+
+    const safeWaiverAmount = Number(waiverAmount) || pendingBalance;
+
+    // Store waiver details on booking
+    booking.discount = (booking.discount || 0) + safeWaiverAmount;
+    booking.waiverRemarks = remarks.trim();
+    booking.waiverAttachments = attachments;
+    booking.waivedBy = user._id;
+    booking.waivedAt = new Date();
+
+    // Recalculate balance
+    booking.balanceAmount = Math.max(0, totalAmount - paidAmount - booking.discount);
+    if (booking.balanceAmount <= 0) {
+      booking.paymentStatus = "PAID";
+    } else if (paidAmount > 0) {
+      booking.paymentStatus = "PARTIALLY_PAID";
+    }
+
+    await booking.save();
+
+    // Create a Bill record for the waiver
+    const billNumber = await generateBillNumber();
+    const waiverBill = await Bill.create({
+      bookingId: booking._id,
+      billNumber: billNumber.replace("BILL", "WAIVER"),
+      guestName: booking.guest,
+      guestEmail: booking.email,
+      guestContact: booking.contact,
+      hostel: booking.hostel,
+      roomNo: booking.roomNo,
+      department: booking.department,
+      from: booking.from,
+      to: booking.to,
+      totalAmount: totalAmount,
+      amountPaid: 0,
+      paidBeforeWaiver: paidAmount,
+      waiverAmount: safeWaiverAmount,
+      waiverRemarks: remarks.trim(),
+      waiverAttachments: attachments,
+      waivedBy: user._id,
+      waivedAt: new Date(),
+      billType: "WAIVER",
+      paymentType: "WAIVER",
+      balanceBeforePayment: pendingBalance,
+      balanceAfterPayment: booking.balanceAmount,
+      createdBy: user._id,
+    });
+
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('waiver-processed', {
+        bookingId: booking._id,
+        guest: booking.guest,
+        waiverAmount: safeWaiverAmount,
+        timestamp: Date.now()
+      });
+    }
+
+    console.log("✅ Waiver processed:", { bookingId: booking._id, waiverAmount: safeWaiverAmount, by: user.name });
+
+    res.json({
+      success: true,
+      message: `✅ Payment waiver of ₹${safeWaiverAmount} processed successfully`,
+      booking,
+      waiverBill
+    });
+
+  } catch (err) {
+    console.error("❌ Waiver error:", err);
+    res.status(500).json({ success: false, message: "Failed to process waiver", error: err.message });
+  }
+};
+
+// ============================================
+// 📋 GET ALL WAIVED BILLS
+// ============================================
+export const getWaivedBills = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!['admin', 'manager'].includes(user.role)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    const waivedBills = await Bill.find({ billType: "WAIVER" })
+      .sort({ createdAt: -1 })
+      .populate('waivedBy', 'name email role')
+      .populate('createdBy', 'name email role')
+      .lean();
+
+    res.json({ success: true, waivedBills });
+  } catch (err) {
+    console.error("❌ Get waived bills error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch waived bills", error: err.message });
+  }
+};

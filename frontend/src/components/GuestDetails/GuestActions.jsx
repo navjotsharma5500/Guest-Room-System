@@ -1,6 +1,6 @@
-// GuestActions.jsx - FIXED VERSION (Download Bill button removed)
+// GuestActions.jsx - UPDATED: Added Payment Waiver button for Admin/Manager
 import React from "react";
-import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail } from "lucide-react";
+import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,10 +13,10 @@ export default function GuestActions({
   onGuestHistory,
   onBillHistory,
   onDownloadPDF,
-  // onDownloadBill, // âŒ REMOVED - Not needed anymore
   onPayAmount,
   onExtendBooking,
   onCancelBooking,
+  onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
   const { showToast } = useToast();
@@ -24,7 +24,17 @@ export default function GuestActions({
   const canExtend = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
   const canCancel = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
 
-  // âœ… WhatsApp and Email handlers
+  // ✅ Only Admin and Manager can use Payment Waiver
+  const canWaive = (userRole === "admin" || userRole === "manager") && booking?.status !== "cancelled";
+
+  // ✅ Check if there's an actual pending balance to waive
+  const totalAmount = Number(booking?.totalAmount || 0);
+  const paidAmount = Number(booking?.paidAmount || 0);
+  const previousDiscount = Number(booking?.discount || booking?.waveOff || 0);
+  const pendingBalance = Math.max(0, totalAmount - paidAmount - previousDiscount);
+  const hasPendingBalance = pendingBalance > 0 && booking?.paymentType !== "Free";
+
+  // ✅ WhatsApp and Email handlers
   const handleWhatsAppChat = () => {
     if (booking?.contact) {
       const phoneNumber = booking.contact.replace(/\D/g, "");
@@ -89,7 +99,7 @@ export default function GuestActions({
               }`}
             >
               <div className="py-1">
-                {/* âœ… WhatsApp Chat */}
+                {/* ✅ WhatsApp Chat */}
                 {booking?.contact && (
                   <ActionButton
                     icon={<MessageCircle className="w-4 h-4" />}
@@ -100,7 +110,7 @@ export default function GuestActions({
                   />
                 )}
 
-                {/* âœ… Send Email */}
+                {/* ✅ Send Email */}
                 {booking?.email && (
                   <ActionButton
                     icon={<Mail className="w-4 h-4" />}
@@ -152,8 +162,6 @@ export default function GuestActions({
                   theme={theme}
                 />
 
-                {/* âŒ REMOVED: Download Bill button - bills are downloaded from Bill History modal */}
-
                 {/* Pay Amount */}
                 <ActionButton
                   icon={<CreditCard className="w-4 h-4" />}
@@ -161,6 +169,25 @@ export default function GuestActions({
                   onClick={onPayAmount}
                   theme={theme}
                 />
+
+                {/* ✅ Payment Waiver - Only for Admin/Manager and only if pending balance > 0 */}
+                {canWaive && hasPendingBalance && onPaymentWaiver && (
+                  <>
+                    <div className={`my-1 border-t ${
+                      theme === "dark" ? "border-gray-700" : "border-gray-200"
+                    }`} />
+                    <ActionButton
+                      icon={<ShieldOff className="w-4 h-4" />}
+                      label="Payment Waiver"
+                      onClick={() => {
+                        onPaymentWaiver();
+                        setShowActionsDropdown(false);
+                      }}
+                      theme={theme}
+                      waiver
+                    />
+                  </>
+                )}
 
                 {/* Extend Booking */}
                 {canExtend && (
@@ -197,7 +224,7 @@ export default function GuestActions({
   );
 }
 
-function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp, email }) {
+function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp, email, waiver }) {
   return (
     <button
       onClick={() => {
@@ -216,6 +243,10 @@ function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp
           ? theme === "dark"
             ? "text-blue-400 hover:bg-blue-900/30"
             : "text-blue-600 hover:bg-blue-50"
+          : waiver
+          ? theme === "dark"
+            ? "text-orange-400 hover:bg-orange-900/30"
+            : "text-orange-600 hover:bg-orange-50"
           : highlight
           ? theme === "dark"
             ? "text-blue-400 hover:bg-blue-900/30"

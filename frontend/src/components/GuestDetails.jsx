@@ -2,8 +2,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Info, Save, X, Building2, Receipt } from "lucide-react";
+import { Info, Save, X, Building2, Receipt, Upload, Trash2, CheckCircle } from "lucide-react";
 import PaymentModal from "./PaymentModal";
+import PaymentWaiverModal from "./PaymentWaiverModal";
+import { IKContext, IKUpload } from "imagekitio-react";
 import GuestHistory from "./GuestHistory";
 import ReportedModal from "./ReportedModal";
 import CancelModal from "./CancelModal";
@@ -21,7 +23,7 @@ import {
   formatDate,
   formatCreatedAt
 } from "./GuestDetails/utils";
-import { BACKEND_URL } from "../utils/apiConfig";
+import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
 
@@ -43,7 +45,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       toastContext.showToast(message, type);
     }
   };
-  const { token } = useAuth();
+  const { token, currentUser } = useAuth();
+  const userRole = currentUser?.role || currentUser?.user?.role;
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchAttempts, setFetchAttempts] = useState(0);
@@ -65,6 +68,13 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [cancelRemarks, setCancelRemarks] = useState("");
   const [showDepartmentPayModal, setShowDepartmentPayModal] = useState(false);
   const [deptPayRemarks, setDeptPayRemarks] = useState("");
+  const [showPaymentWaiverModal, setShowPaymentWaiverModal] = useState(false);
+  // Department pay modal extra fields
+  const [deptPayAttachments, setDeptPayAttachments] = useState([]);
+  const [deptPayDeptName, setDeptPayDeptName] = useState("");
+  const [deptPayDeptEmail, setDeptPayDeptEmail] = useState("");
+  const [deptPayUploading, setDeptPayUploading] = useState(false);
+  const deptPayIkRef = useRef(null);
   const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
 
   // ✅ FIXED: Close Guest Details panel on checkout
@@ -986,6 +996,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 });
               }}
               onCancelBooking={() => setShowCancelModal(true)} 
+              onPaymentWaiver={() => setShowPaymentWaiverModal(true)}
+              userRole={userRole}
             />
           </div>
           <div className="flex justify-between items-center mt-4">
@@ -1506,7 +1518,21 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         )}
       </AnimatePresence>
 
-      {/* Department Pay Later Modal */}
+      {/* ✅ Payment Waiver Modal */}
+      <AnimatePresence>
+        {showPaymentWaiverModal && (
+          <PaymentWaiverModal
+            booking={b}
+            theme={theme}
+            onClose={() => setShowPaymentWaiverModal(false)}
+            onSuccess={(updatedBooking) => {
+              setBooking(normalizeBooking(updatedBooking));
+              setShowPaymentWaiverModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+      {/* Department Pay Later Modal - Updated with Dept Name, Email & Attachments */}
       <AnimatePresence>
         {showDepartmentPayModal && (
           <motion.div
@@ -1517,13 +1543,16 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
             onClick={() => {
               setShowDepartmentPayModal(false);
               setDeptPayRemarks("");
+              setDeptPayDeptName("");
+              setDeptPayDeptEmail("");
+              setDeptPayAttachments([]);
             }}
           >
             <motion.div
               onClick={(e) => e.stopPropagation()}
               className={`${
                 theme === "dark" ? "bg-gray-800" : "bg-white"
-              } rounded-2xl shadow-2xl w-full max-w-md overflow-hidden`}
+              } rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto`}
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
@@ -1533,43 +1562,143 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   <Building2 className="w-8 h-8" />
                   <div>
                     <h3 className="text-xl font-bold">Mark as Department Pay Later</h3>
-                    <p className="text-sm text-blue-100 mt-1">
-                      Guest can checkout without paying
-                    </p>
+                    <p className="text-sm text-blue-100 mt-1">Guest can checkout — email will be sent to department</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6">
-                <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded">
+              <div className="p-6 space-y-4">
+                <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded">
                   <p className="text-sm text-amber-800">
-                    <strong>⚠️ Important:</strong> This booking will be moved to the Department Payments Pending list. 
-                    Payment must be collected later from the department.
+                    <strong>⚠️ Important:</strong> An email will be automatically sent to the department with full guest and payment details.
                   </p>
                 </div>
 
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-200" : "text-gray-700"
-                }`}>
-                  Remarks <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={deptPayRemarks}
-                  onChange={(e) => setDeptPayRemarks(e.target.value)}
-                  placeholder="Enter reason for department payment (e.g., Official visit, Conference attendee, etc.)"
-                  className={`w-full p-3 border rounded-lg resize-none ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                  }`}
-                  rows={4}
-                />
-                
-                {deptPayRemarks.trim().length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {deptPayRemarks.trim().length} characters
-                  </p>
-                )}
+                {/* Department Name */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    Department Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={deptPayDeptName}
+                    onChange={(e) => setDeptPayDeptName(e.target.value)}
+                    placeholder="e.g., Civil Engineering Department"
+                    className={`w-full p-3 border rounded-lg text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                  />
+                </div>
+
+                {/* Department Email */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    Department Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={deptPayDeptEmail}
+                    onChange={(e) => setDeptPayDeptEmail(e.target.value)}
+                    placeholder="department@example.edu"
+                    className={`w-full p-3 border rounded-lg text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                  />
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    Remarks <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={deptPayRemarks}
+                    onChange={(e) => setDeptPayRemarks(e.target.value)}
+                    placeholder="Enter reason for department payment (e.g., Official visit, Conference attendee)"
+                    className={`w-full p-3 border rounded-lg resize-none text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                    rows={3}
+                  />
+                </div>
+
+                {/* Attachments */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    Attachments <span className="text-red-500">*</span>
+                    <span className={`ml-2 text-xs font-normal ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                      ({deptPayAttachments.length}/5)
+                    </span>
+                  </label>
+                  {deptPayAttachments.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {deptPayAttachments.map((file, idx) => (
+                        <div key={idx} className={`flex items-center justify-between p-2 rounded-lg border ${
+                          theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-green-50 border-green-200"
+                        }`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            <span className="text-xs truncate text-green-700 dark:text-green-400">
+                              {file.name || `Attachment ${idx + 1}`}
+                            </span>
+                          </div>
+                          <button onClick={() => setDeptPayAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-red-500 hover:text-red-700">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {deptPayAttachments.length < 5 && (
+                    <IKContext
+                      publicKey={IMAGEKIT_PUBLIC_KEY}
+                      urlEndpoint={IMAGEKIT_URL_ENDPOINT}
+                      authenticator={imagekitAuthenticator}
+                    >
+                      <IKUpload
+                        ref={deptPayIkRef}
+                        onUploadStart={() => setDeptPayUploading(true)}
+                        onSuccess={(res) => {
+                          setDeptPayAttachments(prev => [...prev, { url: res.url, fileId: res.fileId, name: res.name || res.filePath }]);
+                          setDeptPayUploading(false);
+                          showToast("✅ Attachment uploaded", "success");
+                        }}
+                        onError={(err) => {
+                          setDeptPayUploading(false);
+                          showToast("Upload failed: " + (err?.message || "Unknown error"), "error");
+                        }}
+                        folder="/dept-pay-attachments"
+                        className="hidden"
+                        accept="image/*,application/pdf"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deptPayIkRef.current?.click()}
+                        disabled={deptPayUploading}
+                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed transition text-sm ${
+                          deptPayUploading
+                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                            : theme === "dark"
+                            ? "border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400"
+                            : "border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500"
+                        }`}
+                      >
+                        {deptPayUploading ? (
+                          <><div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> Uploading...</>
+                        ) : (
+                          <><Upload className="w-4 h-4" /> Upload Attachment</>
+                        )}
+                      </button>
+                    </IKContext>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3 p-6 pt-0">
@@ -1577,70 +1706,64 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   onClick={() => {
                     setShowDepartmentPayModal(false);
                     setDeptPayRemarks("");
+                    setDeptPayDeptName("");
+                    setDeptPayDeptEmail("");
+                    setDeptPayAttachments([]);
                   }}
-                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 
-                            rounded-lg font-medium transition"
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={async () => {
-                    if (!deptPayRemarks.trim()) {
-                      showToast("⚠️ Remarks are required", "warning");
-                      return;
-                    }
+                    if (!deptPayDeptName.trim()) { showToast("⚠️ Department Name is required", "warning"); return; }
+                    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!deptPayDeptEmail.trim() || !emailRx.test(deptPayDeptEmail)) { showToast("⚠️ Valid Department Email is required", "warning"); return; }
+                    if (!deptPayRemarks.trim()) { showToast("⚠️ Remarks are required", "warning"); return; }
+                    if (deptPayAttachments.length === 0) { showToast("⚠️ At least one attachment is required", "warning"); return; }
 
                     try {
                       const token = localStorage.getItem("token");
                       const response = await fetch(`${API}/api/bookings/${b._id}/mark-department-pay`, {
                         method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`,
-                        },
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                         credentials: "include",
-                        body: JSON.stringify({ remarks: deptPayRemarks }),
+                        body: JSON.stringify({
+                          remarks: deptPayRemarks,
+                          departmentName: deptPayDeptName,
+                          departmentEmail: deptPayDeptEmail,
+                          attachments: deptPayAttachments,
+                        }),
                       });
-
                       const data = await response.json();
+                      if (!data.success) throw new Error(data.message || "Failed to mark department payment");
 
-                      if (!data.success) {
-                        throw new Error(data.message || "Failed to mark department payment");
-                      }
-
-                      showToast("✅ Marked as Department Pay Later", "success");
+                      showToast("✅ Marked as Department Pay Later & Email Sent", "success");
                       setShowDepartmentPayModal(false);
                       setDeptPayRemarks("");
+                      setDeptPayDeptName("");
+                      setDeptPayDeptEmail("");
+                      setDeptPayAttachments([]);
                       
-                      // Refresh booking data
-                      const authToken = token || localStorage.getItem("token");
-                      const headers = { "Content-Type": "application/json" };
-                      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-                      
-                      const refreshResponse = await fetch(`${API}/api/bookings/${b._id}`, {
-                        method: "GET",
-                        credentials: "include",
-                        headers
-                      });
-                      
-                      const refreshData = await refreshResponse.json();
-                      if (refreshData.success && refreshData.booking) {
-                        setBooking(normalizeBooking(refreshData.booking));
-                      }
+                      const authToken = localStorage.getItem("token");
+                      const headers2 = { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` };
+                      const refreshRes = await fetch(`${API}/api/bookings/${b._id}`, { credentials: "include", headers: headers2 });
+                      const refreshData = await refreshRes.json();
+                      if (refreshData.success && refreshData.booking) setBooking(normalizeBooking(refreshData.booking));
                     } catch (error) {
                       console.error("❌ Error:", error);
                       showToast(error.message || "Failed to mark department payment", "error");
                     }
                   }}
-                  disabled={!deptPayRemarks.trim()}
+                  disabled={!deptPayRemarks.trim() || !deptPayDeptName.trim() || !deptPayDeptEmail.trim() || deptPayAttachments.length === 0}
                   className={`flex-1 px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                    deptPayRemarks.trim()
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
+                    deptPayRemarks.trim() && deptPayDeptName.trim() && deptPayDeptEmail.trim() && deptPayAttachments.length > 0
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
                   <Building2 size={18} />
-                  Confirm & Mark
+                  Confirm & Send Email
                 </button>
               </div>
             </motion.div>

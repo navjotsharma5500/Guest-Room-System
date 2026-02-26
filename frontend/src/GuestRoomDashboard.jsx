@@ -18,6 +18,7 @@ import CalendarGuestsPage from "./pages/CalendarGuestsPage";
 import DefaulterManagement from "./pages/DefaulterManagement";
 import DepartmentPaymentsPending from "./pages/DepartmentPaymentsPending";
 import BookingsPage from "./pages/BookingsPage";
+import WaivedBillsPage from "./pages/WaivedBillsPage";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -110,7 +111,7 @@ export default function GuestRoomDashboard() {
 
   // ✅ Auto-Hide Sidebar for specific pages
   useEffect(() => {
-    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry"];
+    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry", "Bills"];
     if (fullScreenPages.includes(activeTab)) {
       setIsSidebarOpen(false);
     } else {
@@ -859,7 +860,7 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills"].includes(prev) ? prev : "Home"));
                     setMobileMenuOpen(false); // Close menu after selection
                   }}
                   setActiveRoomRef={setActiveRoomRef}
@@ -891,7 +892,7 @@ export default function GuestRoomDashboard() {
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
@@ -1049,6 +1050,19 @@ export default function GuestRoomDashboard() {
               <BookingsPage 
                 onBack={() => setActiveTab("Home")}
                 theme={theme}
+              />
+            )}
+
+            {activeTab === "Bills" && (
+              <WaivedBillsPage
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) {
+                    setActiveHostel(currentUser.assignedHostel);
+                  }
+                }}
+                theme={theme}
+                currentUser={currentUser}
               />
             )}
           </main>  
