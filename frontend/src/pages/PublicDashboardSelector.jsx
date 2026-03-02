@@ -179,7 +179,7 @@ const PublicDashboardSelector = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(currentUser ? "/admin/dashboard-selector" : "/login")}
+              onClick={() => navigate("/login")}
               className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
             >
               <LogIn className="w-4 h-4" />
