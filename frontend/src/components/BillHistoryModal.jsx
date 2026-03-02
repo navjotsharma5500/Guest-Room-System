@@ -129,7 +129,10 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
   const totalBill = booking.totalAmount || 0;
   const totalDiscount = booking.waveOff || booking.discount || 0; // ✅ Get discount from booking
   const waveOff = totalDiscount; // ✅ Wave Off = Total Discount
-  const balanceDue = Math.max(0, totalBill - totalPaid - waveOff); // ✅ Balance after payments AND discount
+  
+  // ✅ If cancelled, balance is 0. Else standard calc.
+  const isCancelled = booking.status === "cancelled";
+  const balanceDue = isCancelled ? 0 : Math.max(0, totalBill - totalPaid - waveOff);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -179,8 +182,8 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
             </div>
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-1">Balance Due</p>
-              <p className="text-2xl font-bold text-red-700">
-                ₹{balanceDue === 0 ? '0' : balanceDue.toFixed(1)}
+              <p className={`text-2xl font-bold ${isCancelled ? 'text-red-600 line-through' : 'text-red-700'}`}>
+                {isCancelled ? 'CANCELLED' : `₹${balanceDue === 0 ? '0' : balanceDue.toFixed(1)}`}
               </p>
             </div>
           </div>

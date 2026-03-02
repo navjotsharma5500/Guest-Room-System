@@ -11,7 +11,13 @@ import connectDB from "./config/db.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { cleanupOrphanedEnquiries } from "./middleware/bookingSafetyMiddleware.js";
-import { startNoShowCronJob, startAutoCheckoutCronJob, startAutoUnblockCronJob, startVenueAutoCompletionCronJob } from "./utils/cronJobs.js";
+import { 
+  startNoShowCronJob, 
+  startAutoUnblockCronJob, 
+  startAutoCheckoutCronJob, 
+  startVenueAutoCompletionCronJob,
+  startExtensionAutoCancelCronJob
+} from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
 // Routes
@@ -28,6 +34,7 @@ import defaulterRoutes from "./routes/defaulterRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import guestFeedbackRoutes from "./routes/guestFeedbackRoutes.js";
 import departmentPaymentRoutes from "./routes/departmentPaymentRoutes.js";
+import extensionRoutes from "./routes/extensionRoutes.js";
 import venueBookingRoutes from "./routes/VenueBookingRoutes.js";
 import venueEnquiryRoutes from "./routes/venueEnquiryRoutes.js";
 import eventCalendarRoutes from "./routes/eventCalendarRoutes.js";
@@ -37,6 +44,8 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import nightPermissionRoutes from './routes/nightPermissionRoutes.js';
 import { startNightPermissionTimeoutCron } from './utils/nightPermissionCron.js';
 import societyBudgetRoutes from './routes/societyBudgetRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 const app = express();
 
@@ -306,6 +315,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/hostels", hostelRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/extensions", extensionRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use("/api/venue-bookings", venueBookingRoutes);
@@ -323,6 +333,8 @@ app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/night', nightPermissionRoutes);
 app.use('/api/societies', societyBudgetRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/ai', aiRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
@@ -454,8 +466,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
+  if (process.env.NODE_ENV === 'test') return;
+  
   try {
-    console.log("â³ Connecting to MongoDB...");
+    console.log("⏳ Connecting to MongoDB...");
     await connectDB();
     console.log("âœ… MongoDB connected");
 
@@ -469,6 +483,7 @@ const startServer = async () => {
     startAutoUnblockCronJob(io);
     startAutoCheckoutCronJob(io);
     startVenueAutoCompletionCronJob(io);
+    startExtensionAutoCancelCronJob(io);
     scheduleCleanupJob();
 
     server.listen(PORT, () => {
@@ -485,4 +500,4 @@ const startServer = async () => {
 
 startServer();
 
-export { io };
+export default app;

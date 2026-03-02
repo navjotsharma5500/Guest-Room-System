@@ -7,6 +7,7 @@ import {
   downloadBillPDF,
   processWaiver,
   getWaivedBills,
+  getCancelledBills,
 } from "../controllers/paymentController.js";
 
 const router = express.Router();
@@ -25,5 +26,8 @@ router.post("/bookings/:id/waiver", protect, processWaiver);
 
 // 📋 All waived bills
 router.get("/waived-bills", protect, getWaivedBills);
+
+// 📋 All cancelled bills
+router.get("/cancelled-bills", protect, getCancelledBills);
 
 export default router;

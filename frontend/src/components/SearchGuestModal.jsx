@@ -70,10 +70,12 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
   };
 
   // ðŸ§  Determine booking status
-  const getBookingStatus = (from, to) => {
+  const getBookingStatus = (booking) => {
+    if (booking.status === "cancelled") return "cancelled";
+    
     const now = new Date();
-    const start = new Date(from);
-    const end = new Date(to);
+    const start = new Date(booking.from);
+    const end = new Date(booking.to);
 
     if (end < now) return "past";
     if (start <= now && end >= now) return "current";
@@ -83,6 +85,8 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
   // ðŸŽ¨ Background color by status
   const getBgClass = (status) => {
     switch (status) {
+      case "cancelled":
+        return "bg-red-50 hover:bg-red-100 border-red-200 opacity-75";
       case "past":
         return "bg-gray-100 hover:bg-gray-200";
       case "current":
@@ -165,7 +169,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
               </p>
 
               {results.map((r, idx) => {
-                const status = getBookingStatus(r.booking.from, r.booking.to);
+                const status = getBookingStatus(r.booking);
                 return (
                   <motion.div
                     key={idx}
@@ -186,6 +190,8 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
                             ? "text-gray-500"
                             : status === "current"
                             ? "text-green-600"
+                            : status === "cancelled"
+                            ? "text-red-600 line-through"
                             : "text-blue-600"
                         }`}
                       >

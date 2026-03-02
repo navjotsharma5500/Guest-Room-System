@@ -29,12 +29,39 @@ import {
   getBookingHistory,
   checkOutGuest,
   updateBookingDetails,
-  getAllBookingsFlat
+  getAllBookingsFlat,
+  requestExtension,
+  approveExtension,
+  rejectExtension,
+  getExtensionRequests
 } from "../controllers/bookingController.js";
 
 router.get("/list", protect, getAllBookingsFlat);
 router.get("/history", protect, getBookingHistory);
+router.get("/extension-requests", protect, getExtensionRequests);
+router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), approveExtension);
+router.post("/extension-requests/reject", protect, authorizeRoles("admin", "adosa", "co_warden"), rejectExtension);
 router.put("/:id/details", protect, updateBookingDetails);
+
+const handleCancel = async (req, res) => { 
+  await cancelBooking(req, res); 
+  if (!res.headersSent) return; 
+  const io = req.app.get("io"); 
+  if (io) { 
+    const booking = await Booking.findById(req.params.id).lean(); 
+    io.to("dashboard-room").emit("booking-cancelled", { 
+      bookingId: req.params.id, 
+      hostel: booking?.hostel, 
+      roomNo: booking?.roomNo, 
+      timestamp: Date.now(), 
+    }); 
+  } 
+}; 
+
+router.put("/:id/cancel", protect, handleCancel);   // GuestDetails uses PUT 
+router.post("/:id/cancel", protect, handleCancel);  // useBookingHandlers uses POST 
+
+router.post("/:id/request-extension", protect, requestExtension);
 router.get("/download/csv", protect, downloadBookingsCSV);  
 router.put("/:id/reported", protect, markReported);
 router.put("/:id/not-reported", protect, markNotReported);

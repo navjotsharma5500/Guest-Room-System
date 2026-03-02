@@ -237,6 +237,10 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   const totalBilled = allBookings.reduce((sum, b) => {
     if (b.paymentType === "Paid") {
+      // ✅ If cancelled, billed amount = paid + discount (so pending is 0)
+      if (b.status === "cancelled") {
+        return sum + (Number(b.paidAmount) || 0) + (Number(b.discount) || 0);
+      }
       return sum + (Number(b.totalAmount) || 0);
     }
     return sum;
@@ -248,6 +252,13 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   const pendingAmount = totalBilled - totalRevenue - totalDiscount;
 
+  const cancelledAmount = allBookings.reduce((sum, b) => {
+    if (b.status === "cancelled") {
+      return sum + (Number(b.totalAmount) || 0);
+    }
+    return sum;
+  }, 0);
+
   const fullyPaidCount = allBookings.filter(b => 
     b.paymentType === "Paid" && b.paymentStatus === "PAID"
   ).length;
@@ -257,7 +268,7 @@ export default function AnalyticsPage({ setActiveTab }) {
   ).length;
 
   const unpaidCount = allBookings.filter(b => 
-    b.paymentType === "Paid" && b.paymentStatus === "UNPAID"
+    b.paymentType === "Paid" && b.paymentStatus === "UNPAID" && b.status !== "cancelled"
   ).length;
 
   // Status Distribution
@@ -489,7 +500,7 @@ export default function AnalyticsPage({ setActiveTab }) {
         {!loading && allBookings.length > 0 && (
           <>
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
           <StatCard
             title="Total Bookings"
             value={totalBookings}
@@ -517,6 +528,13 @@ export default function AnalyticsPage({ setActiveTab }) {
             subtitle={`Discount: ₹${totalDiscount.toLocaleString()}`}
             icon={ClockIcon}
             color="danger"
+          />
+          <StatCard
+            title="Cancelled Amount"
+            value={`₹${cancelledAmount.toLocaleString()}`}
+            subtitle={`${cancelledCount} cancellations`}
+            icon={TrendingUpIcon}
+            color="secondary"
           />
         </div>
 

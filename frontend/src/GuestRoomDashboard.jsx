@@ -1,6 +1,6 @@
 // src/GuestRoomDashboard.jsx - UPDATED WITH GUESTROOM CSS CLASSES
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { isWithinInterval } from "date-fns";
 import { AlertCircle } from "lucide-react";
@@ -32,7 +32,7 @@ import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
 import { useSwipeGesture } from "./hooks/useSwipeGesture";
-
+import ApprovalPage from "./pages/ApprovalPage";
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
@@ -66,9 +66,19 @@ export default function GuestRoomDashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   // Navigation & Selection
-  const [activeTab, setActiveTab] = useState("Home");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "Home");
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
+
+  // Read activeTab from navigation state (set by DashboardSelector)
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear so back-navigation doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.activeTab]);
 
   // 🔍 DEBUG: track active tab
   console.log("🧭 Dashboard activeTab =", activeTab);
@@ -111,7 +121,7 @@ export default function GuestRoomDashboard() {
 
   // ✅ Auto-Hide Sidebar for specific pages
   useEffect(() => {
-    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry", "Bills"];
+    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry", "Bills", "Approvals", "AllHostelsPortal"];
     if (fullScreenPages.includes(activeTab)) {
       setIsSidebarOpen(false);
     } else {
@@ -396,7 +406,7 @@ export default function GuestRoomDashboard() {
     setTimeout(() => refresh(), 100);
   };
 
-  const handleCancelModalCancel = async (remarks) => {
+  const handleCancelModalCancel = async (remarks, attachments = []) => {
     if (!cancelModal) return;
 
     const { hostel, room, booking } = cancelModal;
@@ -443,6 +453,7 @@ export default function GuestRoomDashboard() {
         headers,
         body: JSON.stringify({
           remarks: remarks || "Cancelled",
+          attachments: Array.isArray(attachments) ? attachments : [],
         }),
       });
 
@@ -587,26 +598,23 @@ export default function GuestRoomDashboard() {
     
     // ✅ CALL BACKEND API WITH PAYMENT DATA
     try {
-      console.log("⬆️ Extending booking in MongoDB:", mongoId);
+      console.log("⬆️ Submitting extension request to MongoDB:", mongoId);
 
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const payload = {
-        newTo: newToDate,
-        hostel,
-        roomNo,
+        bookingId: mongoId,
+        requestedCheckout: newToDate,
         remarks: remarks || "",
-        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
-        // ✅ ADD PAYMENT DATA
-        ...paymentData
+        paymentData: paymentData
       };
 
       console.log("📤 Sending payload:", JSON.stringify(payload, null, 2));
 
-      const response = await fetch(`${API}/api/bookings/${mongoId}/extend`, {
-        method: "PUT",
+      const response = await fetch(`${API}/api/extensions`, {
+        method: "POST",
         credentials: "include",
         headers,
         body: JSON.stringify(payload),
@@ -614,29 +622,27 @@ export default function GuestRoomDashboard() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to extend booking");
+        throw new Error(errorData.message || "Failed to submit extension request");
       }
       
       const result = await response.json();
-      console.log("✅ Booking extended in MongoDB:", result);
-
-      // ✅ UPDATE LOCAL STATE
-      extendBooking(hostel, roomNo, booking.id || booking._id, newToDate, remarks, extensionAttachments);
+      console.log("✅ Extension request submitted:", result);
 
       // ✅ CLOSE MODAL
       setExtensionModal(null);
       
-      showToast("✅ Booking extended successfully!", "success");
+      showToast("✅ Extension request submitted for approval!", "success");
 
-      // ✅ TRIGGER REFRESH
-      setTimeout(() => refresh(), 100);
+      // No need to refresh immediately as nothing changed in booking list yet
+      // But maybe we want to refresh if we show pending requests somewhere?
+      // For now, just close modal.
 
     } catch (error) {
       console.error("================================================================================");
-      console.error("❌ Extension error:", error);
+      console.error("❌ Extension request error:", error);
       console.error("Stack:", error.stack);
       console.error("================================================================================");
-      showToast(`❌ Failed to extend booking: ${error.message}`, "error");
+      showToast(`❌ Failed to submit request: ${error.message}`, "error");
     }
   };
 
@@ -782,8 +788,8 @@ export default function GuestRoomDashboard() {
 
             {/* RIGHT SIDE: Actions - Responsive */}
             <div className="flex items-center gap-1 sm:gap-3">
-              {/* Switch Dashboard Button - Admin Only */}
-              {role === "admin" && (
+              {/* Switch Dashboard Button - Admin + Caretaker */}
+              {(role === "admin" || role === "caretaker") && (
                 <button
                   onClick={() => navigate("/admin/dashboard-selector")}
                   className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 transition-all ${
@@ -860,7 +866,7 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals"].includes(prev) ? prev : "Home"));
                     setMobileMenuOpen(false); // Close menu after selection
                   }}
                   setActiveRoomRef={setActiveRoomRef}
@@ -892,7 +898,7 @@ export default function GuestRoomDashboard() {
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
@@ -945,6 +951,7 @@ export default function GuestRoomDashboard() {
                   handleStartDirectBooking,
                   currentUserData,
                   isSidebarOpen, // ✅ Pass prop
+                  setIsSidebarOpen, // ✅ Pass setter for calendar auto-hide
                 }}
               />
             )}
@@ -957,6 +964,16 @@ export default function GuestRoomDashboard() {
                 setNotificationsEnabled={setNotificationsEnabled}
                 setActiveTab={setActiveTab}
                 hostelData={hostelData}
+              />
+            )}
+
+            {activeTab === "Approvals" && (
+              <ApprovalPage
+                theme={theme}
+                onBack={() => {
+                  setActiveTab("Home");
+                  if (currentUser?.assignedHostel) setActiveHostel(currentUser.assignedHostel);
+                }}
               />
             )}
 

@@ -576,7 +576,31 @@ export const createBooking = async (req, res) => {
   }
 };
 
-// ================================
+// ======================================================
+// GET EXTENSION REQUESTS
+// ======================================================
+export const getExtensionRequests = async (req, res) => {
+  try {
+    const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+    let query = {};
+    
+    // Filter by hostel for caretaker/warden
+    if (["caretaker", "Warden"].includes(req.user.role)) {
+      query.hostel = req.user.hostel;
+    }
+    
+    const requests = await ExtensionRequest.find(query)
+      .sort({ createdAt: -1 })
+      .populate("approvedBy", "name")
+      .populate("rejectedBy", "name");
+      
+    res.json({ success: true, requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================================
 // MARK REPORTED (FIX WITH EARLY CHECK-IN HANDLING)
 // ================================
 export const markReported = async (req, res) => {
@@ -893,7 +917,327 @@ export const updatePaymentDetails = async (req, res) => {
 };
 
 // ======================================================
-// ✅ EXTEND BOOKING (Controller) — PAYMENT + EMAIL SAFE
+// REQUEST EXTENSION (NEW)
+// ======================================================
+export const requestExtension = async (req, res) => {
+  try {
+    const { bookingId, newTo, remarks, attachments, paymentType, amount } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    const currentCheckOut = new Date(booking.to);
+    const newCheckOut = new Date(newTo);
+    const diffTime = Math.abs(newCheckOut - currentCheckOut);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // ✅ Routing decision
+    const requiredApprovalLevel = diffDays <= 2 ? "co_warden" : "adosa";
+
+    const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+    const request = new ExtensionRequest({
+      bookingId,
+      guest: booking.guest,
+      hostel: booking.hostel,
+      roomNo: booking.roomNo,
+      currentCheckOutDate: booking.to,
+      newCheckOutDate: newCheckOut,
+      days: diffDays,
+      remarks,
+      attachments: attachments || [],
+      paymentType,
+      amount: Number(amount) || 0,
+      status: "PENDING",
+      requiredApprovalLevel, // ✅ NEW
+    });
+
+    await request.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("extension-requested", {
+        requestId: request._id,
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        days: diffDays,
+        requiredApprovalLevel,
+      });
+    }
+
+    // ✅ EMAIL: Notify correct approver
+    try {
+      const dashboardUrl = process.env.FRONTEND_URL
+        ? `${process.env.FRONTEND_URL}/approvals`
+        : "https://your-dashboard-url.com/approvals";
+
+      const emailContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 20px;">📋 Extension Request Requires Your Approval</h2>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">
+              ${diffDays} day${diffDays !== 1 ? "s" : ""} extension —
+              ${requiredApprovalLevel === "co_warden" ? "≤ 2 days (Co-Warden level)" : "> 2 days (ADOSA level)"}
+            </p>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;width:140px;">Guest Name</td><td style="padding:8px 0;font-weight:600;font-size:14px;">${booking.guest}</td></tr>
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Hostel / Room</td><td style="padding:8px 0;font-size:14px;">${booking.hostel} — Room ${booking.roomNo}</td></tr>
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Current Checkout</td><td style="padding:8px 0;font-size:14px;">${new Date(booking.to).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</td></tr>
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Requested Checkout</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#1e40af;">${newCheckOut.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</td></tr>
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Extension Days</td><td style="padding:8px 0;font-weight:700;font-size:16px;color:#059669;">${diffDays} day${diffDays !== 1 ? "s" : ""}</td></tr>
+              <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Payment</td><td style="padding:8px 0;font-size:14px;">${paymentType || "Not specified"}${amount ? ` — ₹${amount}` : ""}</td></tr>
+              ${remarks ? `<tr><td style="padding:8px 0;color:#64748b;font-size:14px;vertical-align:top;">Remarks</td><td style="padding:8px 0;font-size:14px;font-style:italic;">"${remarks}"</td></tr>` : ""}
+            </table>
+            <div style="margin-top:24px;text-align:center;">
+              <a href="${dashboardUrl}" style="display:inline-block;background:#1e40af;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+                View on Dashboard →
+              </a>
+            </div>
+            <p style="margin-top:16px;font-size:12px;color:#94a3b8;text-align:center;">
+              Log in to the dashboard to Approve or Reject this request.
+            </p>
+          </div>
+        </div>
+      `;
+
+      if (requiredApprovalLevel === "co_warden") {
+        safeSend({
+          to: ["cowarden@thapar.edu", "cowarden2@thapar.edu"],
+          subject: `🔔 Extension Request: ${booking.guest} — ${diffDays} Day(s) [Co-Warden Approval]`,
+          html: masterTemplate({ title: "Extension Request — Co-Warden Action Required", content: emailContent }),
+          meta: { bookingId: booking._id, type: "extension-request-co-warden" },
+        });
+        console.log(`📧 Extension notification → co_warden (${diffDays} day(s))`);
+      } else {
+        // > 2 days → adosa1 + adosa2 only (NOT adosa3)
+        safeSend({
+          to: ["adosa1@thapar.edu", "adosa2@thapar.edu"],
+          subject: `🔔 Extension Request: ${booking.guest} — ${diffDays} Day(s) [ADOSA Approval Required]`,
+          html: masterTemplate({ title: "Extension Request — ADOSA Action Required", content: emailContent }),
+          meta: { bookingId: booking._id, type: "extension-request-adosa" },
+        });
+        console.log(`📧 Extension notification → adosa (${diffDays} day(s))`);
+      }
+    } catch (emailErr) {
+      console.error("❌ Extension request email error (non-critical):", emailErr);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Extension request submitted for approval",
+      request,
+    });
+  } catch (err) {
+    console.error("❌ Extension request error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================================
+// ✅ EXTEND BOOKING (Controller) — FINAL APPROVAL
+// ======================================================
+export const approveExtension = async (req, res) => {
+  try {
+    const { requestId, updatedAmount, updatedCheckOutDate } = req.body;
+
+    const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+    const request = await ExtensionRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    // ✅ BACKEND GUARD: co_warden can only approve ≤2 day extensions
+    if (req.user.role === "co_warden" && request.days > 2) {
+      return res.status(403).json({
+        success: false,
+        message: "Co-Warden can only approve extensions of 2 days or less. This requires ADOSA approval.",
+      });
+    }
+
+    const booking = await Booking.findById(request.bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Original booking not found" });
+    }
+
+    booking.to = new Date(updatedCheckOutDate || request.newCheckOutDate);
+    booking.extensionDate = new Date(updatedCheckOutDate || request.newCheckOutDate);
+    booking.extendRemarks = request.remarks;
+
+    if (request.attachments?.length > 0) {
+      booking.extensionAttachments = [
+        ...(booking.extensionAttachments || []),
+        ...request.attachments,
+      ];
+    }
+
+    const finalAmount = Number(updatedAmount !== undefined ? updatedAmount : request.amount) || 0;
+
+    if (request.paymentType === "Paid" && finalAmount > 0) {
+      booking.extensionPaymentType = "Paid";
+      booking.extensionAmount = finalAmount;
+      booking.totalAmount = (booking.totalAmount || 0) + finalAmount;
+      booking.balanceAmount = Math.max(
+        0,
+        booking.totalAmount - (booking.paidAmount || 0) - (booking.discount || 0)
+      );
+      if (booking.balanceAmount > 0) booking.paymentStatus = "PARTIALLY_PAID";
+    } else if (request.paymentType === "Free") {
+      booking.extensionPaymentType = "Free";
+      booking.extensionAmount = 0;
+    }
+
+    // Push extension history entry
+    if (!booking.extensionHistory) booking.extensionHistory = [];
+    booking.extensionHistory.push({
+      oldCheckout: request.currentCheckOutDate,
+      newCheckout: booking.to,
+      days: request.days,
+      approvedBy: req.user._id,
+      approvedAt: new Date(),
+      paymentType: request.paymentType,
+      amount: finalAmount,
+      remarks: request.remarks,
+    });
+
+    await booking.save();
+
+    // Mark request approved
+    request.status = "APPROVED";
+    request.approvedBy = req.user._id;
+    request.reviewedAt = new Date();
+    request.finalAmount = finalAmount;
+    request.finalCheckOutDate = booking.to;
+    await request.save();
+
+    // Approval emails
+    try {
+      const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+      const managerEmails = ["navjot.sharma@thapar.edu"];
+
+      const emailContent = `
+        <p>Dear ${booking.guest},</p>
+        <p>Your booking extension request has been <strong style="color:#22c55e;">APPROVED</strong>.</p>
+        <div style="background:#dcfce7;border-left:4px solid #22c55e;padding:15px;margin:20px 0;border-radius:6px;">
+          <strong>New Checkout Date:</strong> ${new Date(booking.to).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}<br/>
+          ${finalAmount > 0 ? `<strong>Extension Amount:</strong> ₹${finalAmount}` : "<strong>Extension:</strong> Free of charge"}
+        </div>
+        <p><strong>Hostel:</strong> ${booking.hostel} | <strong>Room:</strong> ${booking.roomNo}</p>
+      `;
+
+      safeSend({
+        to: booking.email,
+        subject: "✅ Booking Extension Approved",
+        html: masterTemplate({ title: "Extension Approved", content: emailContent }),
+        meta: { bookingId: booking._id, type: "extension-approved" },
+      });
+
+      const staffEmails = [
+        hostelDoc?.caretakerEmail,
+        hostelDoc?.wardenEmail,
+        ...managerEmails,
+      ].filter(Boolean);
+
+      safeSend({
+        to: staffEmails,
+        subject: `Extension Approved — ${booking.guest} — ${booking.hostel}`,
+        html: masterTemplate({ title: "Staff: Extension Approved", content: emailContent }),
+        meta: { bookingId: booking._id, type: "extension-approved-staff" },
+      });
+    } catch (emailErr) {
+      console.error("❌ Extension approval email error:", emailErr);
+    }
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-extended", {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        newTo: booking.to,
+        timestamp: Date.now(),
+      });
+    }
+
+    res.json({ success: true, message: "Extension approved and applied", booking });
+  } catch (err) {
+    console.error("❌ Approve extension error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const rejectExtension = async (req, res) => {
+  try {
+    const { requestId, reason } = req.body;
+    
+    const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+    const request = await ExtensionRequest.findById(requestId);
+    
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    request.status = "REJECTED";
+    request.rejectedBy = req.user._id;
+    request.rejectionReason = reason || "No reason provided";
+    request.reviewedAt = new Date();
+    await request.save();
+
+    // ✅ Email Automation logic for rejection
+    const booking = await Booking.findById(request.bookingId);
+    if (booking) {
+      try {
+        const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
+        const managerEmails = ["navjot.sharma@thapar.edu"];
+
+        const emailContent = `
+          <p>Dear ${booking.guest},</p>
+          <p>Your booking extension request has been <strong>REJECTED</strong>.</p>
+          <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+            <strong>Reason:</strong> ${reason || "No reason provided"}
+          </div>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>Original Booking Details:</strong><br/>
+            Hostel: ${booking.hostel}<br/>
+            Room: ${booking.roomNo}<br/>
+            Original Checkout: ${new Date(booking.to).toLocaleDateString()}
+          </div>
+        `;
+
+        // Email to Guest
+        safeSend({
+          to: booking.email,
+          subject: "Booking Extension Request Update",
+          html: masterTemplate({ title: "Extension Request Rejected", content: emailContent }),
+          meta: { bookingId: booking._id, type: "extension-rejected" }
+        });
+
+        // Email to Staff
+        const staffEmails = [hostelDoc?.caretakerEmail, hostelDoc?.wardenEmail, ...managerEmails].filter(Boolean);
+        safeSend({
+          to: staffEmails,
+          subject: `Extension REJECTED - ${booking.guest} - ${booking.hostel}`,
+          html: masterTemplate({ title: "Staff Notification: Extension Rejected", content: emailContent }),
+          meta: { bookingId: booking._id, type: "extension-rejected-staff" }
+        });
+      } catch (emailErr) {
+        console.error("❌ Extension rejection email error:", emailErr);
+      }
+    }
+
+    res.json({ success: true, message: "Extension request rejected" });
+
+  } catch (err) {
+    console.error("❌ Reject extension error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================================
+// ✅ EXTEND BOOKING (Controller) — LEGACY / DIRECT
 // ======================================================
 export const extendBooking = async (req, res) => {
   try {
@@ -1043,47 +1387,107 @@ export const extendBooking = async (req, res) => {
 // ======================================================
 export const cancelBooking = async (req, res) => {
   try {
-    const { remarks } = req.body;
+    const { remarks, attachments } = req.body;
 
     let booking = await Booking.findById(req.params.id);
-
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    console.log("ðŸš« CANCEL BOOKING:", {
-      bookingId: booking._id,
-      hostel: booking.hostel
-    });
-
-    // ✅ Refresh emails from database
+    console.log("🚫 CANCEL BOOKING:", { bookingId: booking._id, hostel: booking.hostel });
     booking = await refreshBookingEmails(booking);
 
     booking.status = "cancelled";
     booking.cancelDate = new Date();
     if (remarks) booking.cancelRemarks = remarks;
+    if (Array.isArray(attachments)) booking.cancelAttachments = attachments;
 
-    await booking.save();
+    // ✅ UNIVERSAL RULE: Never cancel a PAID bill
+    const Bill = (await import("../models/Bill.js")).default;
 
-    console.log("✅ Booking cancelled, sending emails...");
-    sendBookingEmails(booking, "cancelled");
+    let allBills = await Bill.find({
+      bookingId: booking._id,
+      paymentType: { $nin: ["CANCELLED", "WAIVER"] },
+    });
 
-    const io = req.app.get('io');
-    if (io) {
-      io.to('dashboard-room').emit('booking-cancelled', { 
+    // ✅ If no bills exist, CREATE ONE so it appears in "Cancelled Bills"
+    if (allBills.length === 0) {
+      console.log("📝 Creating cancelled bill record for tracking");
+      const newBill = new Bill({
         bookingId: booking._id,
         hostel: booking.hostel,
         roomNo: booking.roomNo,
-        timestamp: Date.now()
+        guestName: booking.guest,
+        guestEmail: booking.email,
+        guestPhone: booking.contact,
+        totalAmount: booking.totalAmount,
+        paidAmount: 0,
+        balanceAfterPayment: 0,
+        paymentType: "CANCELLED",
+        status: "cancelled",
+        billNumber: `CNL-${Date.now()}`, // Unique ID
+        cancelMeta: {
+          reason: remarks || "Booking cancelled (No prior bill)",
+          cancelledBy: req.user?._id || null,
+          cancelledByName: req.user?.name || "System",
+          attachments: Array.isArray(attachments) ? attachments : [],
+          cancelledAt: new Date(),
+        },
+        remarks: `Booking cancelled. ${remarks || ""}`.trim(),
+        createdAt: new Date()
       });
-      console.log('📋 Emitted booking-cancelled event');
+      await newBill.save();
+    } else {
+      // Update existing bills
+      for (const bill of allBills) {
+        // Skip fully paid bills — universal rule
+        const isFullyPaid =
+          (bill.paymentType === "FULL" || bill.paymentType === "FULL_PAYMENT") &&
+          Number(bill.balanceAfterPayment) <= 0;
+
+        if (isFullyPaid) {
+          console.log(`⚠️ Skipping PAID bill ${bill._id} (universal rule: paid bills cannot be cancelled)`);
+          continue;
+        }
+
+        bill.status = "cancelled";
+        bill.paymentType = "CANCELLED";
+        bill.balanceAfterPayment = 0;
+        bill.cancelMeta = {
+          reason: remarks || "Booking cancelled",
+          cancelledBy: req.user?._id || null,
+          cancelledByName: req.user?.name || "System",
+          attachments: Array.isArray(attachments) ? attachments : [],
+          cancelledAt: new Date(),
+        };
+        bill.remarks = `Booking cancelled. ${remarks || ""}`.trim();
+        await bill.save();
+      }
     }
 
-    res.json({ success: true, message: "Booking cancelled", booking });
+    // Only zero out balance if the booking wasn't already paid
+    if (booking.paymentStatus !== "PAID") {
+      booking.balanceAmount = 0;
+      booking.paymentStatus = "CANCELLED"; // ✅ Explicitly mark as CANCELLED
+    }
 
+    await booking.save();
+
+    sendBookingEmails(booking, "cancelled");
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-cancelled", {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        timestamp: Date.now(),
+      });
+    }
+
+    res.json({ success: true, message: "Booking cancelled and bills updated", booking });
   } catch (err) {
     console.error("❌ Cancel booking error:", err);
-    console.error("Stack:", err.stack);
     res.status(500).json({ success: false, message: err.message });
   }
 };

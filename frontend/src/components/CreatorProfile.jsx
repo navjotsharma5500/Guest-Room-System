@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Github, Star, GitFork, Code, ExternalLink } from "lucide-react";
+import { X, Mail, User, Github, Star, GitFork, Code, ExternalLink, Linkedin } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function CreatorProfileRectangular({ open, onClose }) {
@@ -200,6 +200,22 @@ export default function CreatorProfileRectangular({ open, onClose }) {
                 <div className="text-left flex-1">
                   <p className="text-xs text-slate-500 font-medium">Email</p>
                   <p className="text-sm text-slate-900 font-semibold">navjot.sharma@thapar.edu</p>
+                </div>
+              </a>
+
+              {/* LinkedIn */}
+              <a
+                href="https://www.linkedin.com/in/navjot-sharma-0bb7143b1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-xl p-4 transition-colors group"
+              >
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <Linkedin className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="text-xs text-slate-500 font-medium">LinkedIn</p>
+                  <p className="text-sm text-slate-900 font-semibold">Connect on LinkedIn</p>
                 </div>
               </a>
 

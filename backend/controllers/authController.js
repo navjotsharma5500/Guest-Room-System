@@ -8,7 +8,7 @@ import crypto from "crypto";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendEmail } from "../emails/sendEmail.js";
 
-const STAFF_ROLES = ["admin", "adosa", "manager", "warden", "caretaker", "assistant", "dd_assistant", "guard"];
+const STAFF_ROLES = ["admin", "adosa", "manager", "warden", "caretaker", "assistant", "dd_assistant", "guard", "co_warden"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: resolve Night Pass access for a user
@@ -82,7 +82,7 @@ const getLoginRedirect = (role) => {
   if (r === "guard") return "/night/scan";
   if (r === "student") return "/night/student";
   if (["president", "gen_sec"].includes(r)) return "/night";
-  if (["admin", "adosa", "assistant", "caretaker"].includes(r))
+  if (["admin", "adosa", "assistant", "caretaker", "co_warden"].includes(r))
     return "/admin/dashboard-selector";
   if (["warden", "manager"].includes(r)) return "/dashboard";
   if (r === "dd_assistant") return "/venue-booking";

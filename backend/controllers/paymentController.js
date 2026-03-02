@@ -739,3 +739,26 @@ export const getWaivedBills = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch waived bills", error: err.message });
   }
 };
+
+// ============================================
+// 📋 GET ALL CANCELLED BILLS
+// ============================================
+export const getCancelledBills = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!['admin', 'manager', 'adosa', 'assistant', 'Warden', 'caretaker', 'co_warden'].includes(user.role)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    const cancelledBills = await Bill.find({ paymentType: "CANCELLED" })
+      .sort({ createdAt: -1 })
+      .populate('createdBy', 'name email role')
+      .lean();
+
+    res.json({ success: true, cancelledBills });
+  } catch (err) {
+    console.error("❌ Get cancelled bills error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch cancelled bills", error: err.message });
+  }
+};

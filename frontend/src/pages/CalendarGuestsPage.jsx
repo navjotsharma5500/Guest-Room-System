@@ -206,12 +206,14 @@ function GuestDetailsModal({ guest, onClose, theme = "light" }) {
                       ? 'bg-green-100 text-green-700' 
                       : 'bg-yellow-100 text-yellow-700'
                   }`}>
-                    {guest.paymentStatus === 'Completed' || Number(guest.paidAmount || 0) >= Number(guest.amount || 0) ? (
+                    {guest.status === 'cancelled' ? (
+                      <XCircle size={16} />
+                    ) : guest.paymentStatus === 'Completed' || Number(guest.paidAmount || 0) >= Number(guest.amount || 0) ? (
                       <CheckCircle size={16} />
                     ) : (
                       <Clock size={16} />
                     )}
-                    {guest.paymentStatus === 'Completed' || Number(guest.paidAmount || 0) >= Number(guest.amount || 0) ? 'Paid' : 'Unpaid'}
+                    {guest.status === 'cancelled' ? 'Cancelled' : (guest.paymentStatus === 'Completed' || Number(guest.paidAmount || 0) >= Number(guest.amount || 0) ? 'Paid' : 'Unpaid')}
                   </span>
                 </div>
               </div>
@@ -324,17 +326,29 @@ function GuestListItem({ guest, onViewDetails, theme = "light" }) {
           {/* Payment Status Badge */}
           <button
             className={`flex flex-col items-center justify-center px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm transition shadow-md min-w-fit ${
-              isPaid
+              guest.status === 'cancelled'
+                ? 'bg-gradient-to-br from-red-100 to-red-200 text-red-700 hover:from-red-200 hover:to-red-300 border border-red-300 opacity-75'
+                : isPaid
                 ? 'bg-gradient-to-br from-green-400 to-green-500 text-white hover:from-green-500 hover:to-green-600'
                 : 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-white hover:from-yellow-500 hover:to-yellow-600'
             }`}
             title="Click to view payment details"
           >
-            <DollarSign size={18} className="md:w-6 md:h-6 mb-0.5" />
-            <span>₹{guest.amount || 0}</span>
-            <span className="text-xs mt-0.5">
-              {isPaid ? 'PAID' : 'UNPAID'}
-            </span>
+            {guest.status === 'cancelled' ? (
+              <>
+                <XCircle size={18} className="md:w-6 md:h-6 mb-0.5" />
+                <span className="line-through">₹{guest.amount || 0}</span>
+                <span className="text-xs mt-0.5">CANCELLED</span>
+              </>
+            ) : (
+              <>
+                <DollarSign size={18} className="md:w-6 md:h-6 mb-0.5" />
+                <span>₹{guest.amount || 0}</span>
+                <span className="text-xs mt-0.5">
+                  {isPaid ? 'PAID' : 'UNPAID'}
+                </span>
+              </>
+            )}
           </button>
 
           {/* See Details Button */}

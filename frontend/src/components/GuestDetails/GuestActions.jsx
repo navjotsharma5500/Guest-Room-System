@@ -31,7 +31,12 @@ export default function GuestActions({
   const totalAmount = Number(booking?.totalAmount || 0);
   const paidAmount = Number(booking?.paidAmount || 0);
   const previousDiscount = Number(booking?.discount || booking?.waveOff || 0);
-  const pendingBalance = Math.max(0, totalAmount - paidAmount - previousDiscount);
+  
+  // ✅ If cancelled, pending balance is 0
+  const pendingBalance = booking?.status === "cancelled" 
+    ? 0 
+    : Math.max(0, totalAmount - paidAmount - previousDiscount);
+
   const hasPendingBalance = pendingBalance > 0 && booking?.paymentType !== "Free";
 
   // ✅ WhatsApp and Email handlers
@@ -162,13 +167,15 @@ export default function GuestActions({
                   theme={theme}
                 />
 
-                {/* Pay Amount */}
-                <ActionButton
-                  icon={<CreditCard className="w-4 h-4" />}
-                  label="Pay Amount"
-                  onClick={onPayAmount}
-                  theme={theme}
-                />
+                {/* Pay Amount - Only if not cancelled and has pending balance */}
+                {booking?.status !== "cancelled" && hasPendingBalance && (
+                  <ActionButton
+                    icon={<CreditCard className="w-4 h-4" />}
+                    label="Pay Amount"
+                    onClick={onPayAmount}
+                    theme={theme}
+                  />
+                )}
 
                 {/* ✅ Payment Waiver - Only for Admin/Manager and only if pending balance > 0 */}
                 {canWaive && hasPendingBalance && onPaymentWaiver && (

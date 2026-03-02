@@ -273,3 +273,99 @@ export const startAutoUnblockCronJob = (io) => {
 
   console.log("✅ Auto-unblock cron job started - runs daily at midnight");
 };
+
+// ✅ NEW: Auto-cancel expired or clashing extension requests (runs every hour)
+export const startExtensionAutoCancelCronJob = (io) => {
+  console.log("🟢 Starting extension request auto-cancel cron job...");
+
+  cron.schedule("0 * * * *", async () => {
+    const now = new Date();
+    console.log(`⏰ [${now.toISOString()}] Running extension request auto-cancel job...`);
+
+    try {
+      const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+      const Booking = (await import("../models/Booking.js")).default;
+      const { sendEmailAdvanced } = await import("../emails/sendEmail.js");
+      const extensionRejectedTemplate = (await import("../emails/templates/extensionRejected.js")).default;
+
+      // Find all pending requests
+      const pendingRequests = await ExtensionRequest.find({ status: "pending" }).populate("bookingId");
+      
+      let expiredCount = 0;
+
+      for (const req of pendingRequests) {
+        if (!req.bookingId) continue; // Skip if booking deleted
+
+        let shouldExpire = false;
+        let reason = "";
+
+        // Condition 1: current date > original checkout date AND request still pending
+        if (now > new Date(req.oldCheckout)) {
+            shouldExpire = true;
+            reason = "Original checkout date has passed.";
+        }
+
+        // Condition 2: Another booking created that clashes with requestedCheckout
+        if (!shouldExpire) {
+            const clash = await Booking.findOne({
+                hostel: req.hostel,
+                roomNo: req.bookingId.roomNo,
+                status: { $in: ["booked", "checked_in"] },
+                _id: { $ne: req.bookingId._id }, // Exclude current booking
+                $or: [
+                    {
+                        from: { $lt: req.requestedCheckout },
+                        to: { $gt: req.oldCheckout }
+                    }
+                ]
+            });
+            
+            if (clash) {
+                shouldExpire = true;
+                reason = "Room has been booked by another guest for the requested dates.";
+            }
+        }
+
+        if (shouldExpire) {
+            console.log(`🚫 Expiring extension request ${req._id}: ${reason}`);
+            
+            req.status = "expired";
+            req.rejectionReason = reason;
+            await req.save();
+            
+            // Send Email to Guest
+            const emailHtml = extensionRejectedTemplate({
+                guestName: req.bookingId.guest,
+                hostel: req.hostel,
+                roomNo: req.bookingId.roomNo,
+                oldCheckout: req.oldCheckout,
+                requestedCheckout: req.requestedCheckout,
+                reason: reason + " (Auto-expired)"
+            });
+            
+            try {
+                await sendEmailAdvanced({
+                    to: req.bookingId.email,
+                    subject: "Extension Request Expired",
+                    html: emailHtml
+                });
+            } catch (err) {
+                console.error("Failed to send expiry email:", err);
+            }
+            
+            expiredCount++;
+        }
+      }
+
+      if (expiredCount > 0) {
+        console.log(`✅ Expired ${expiredCount} extension requests.`);
+        if (io) {
+            io.emit("extension-requests-expired", { count: expiredCount });
+        }
+      }
+
+    } catch (error) {
+      console.error("❌ Extension auto-cancel error:", error);
+    }
+  });
+};

@@ -761,7 +761,11 @@ function BookingCard({ booking, index, theme }) {
             <div className="flex items-center justify-between">
               <span className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>Total Amount</span>
               <span className={`font-bold text-sm md:text-base ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                ₹{booking.totalAmount || 0}
+                {booking.status === "cancelled" ? (
+                  <span className="line-through text-red-400">₹{booking.totalAmount || 0}</span>
+                ) : (
+                  `₹${booking.totalAmount || 0}`
+                )}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -773,9 +777,11 @@ function BookingCard({ booking, index, theme }) {
             <div className={`flex items-center justify-between pt-2 border-t ${theme === 'dark' ? 'border-gray-600' : 'border-red-200'}`}>
               <span className={`text-xs md:text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-slate-700'}`}>Balance</span>
               <span className={`font-bold text-sm md:text-base ${
-                (booking.balanceAmount || 0) > 0 ? "text-red-600" : "text-green-600"
+                booking.status === "cancelled" 
+                  ? "text-red-500 italic"
+                  : (booking.balanceAmount || 0) > 0 ? "text-red-600" : "text-green-600"
               }`}>
-                ₹{booking.balanceAmount || 0}
+                {booking.status === "cancelled" ? "CANCELLED" : `₹${booking.balanceAmount || 0}`}
               </span>
             </div>
           </div>

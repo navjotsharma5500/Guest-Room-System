@@ -444,7 +444,7 @@ export default function useBookingHandlers({
 
   // Cancel Booking Handler  
   const onCancelDone = useCallback(
-    async (remarks, cancelModalData) => {
+    async (remarks, cancelModalData, attachments = []) => {
       if (!cancelModalData || !cancelModalData.hostel || !cancelModalData.room || !cancelModalData.booking) {
         showToast("⚠️ No booking selected to cancel.", "warning");
         setCancelModal(null);
@@ -454,33 +454,29 @@ export default function useBookingHandlers({
       }
 
       const { hostel, room, booking } = cancelModalData;
+      const bookingId = booking?._id || booking?.id;
+
+      if (!bookingId || (typeof bookingId === "string" && bookingId.startsWith("b_"))) {
+        showToast("❌ Cannot cancel: Booking not saved to database. Please refresh.", "error");
+        return;
+      }
 
       setCancelModal(null);
       setBookingDetailsModal(null);
       setBookingListModal(null);
 
-      // Get MongoDB _id
-      const mongoId =
-        (booking._id && !booking._id.toString().startsWith("b_") ? booking._id : null) ||
-        (booking.id && !booking.id.toString().startsWith("b_") ? booking.id : null);
-
-      if (!mongoId) {
-        console.error("❌ Missing MongoDB _id for booking:", booking);
-        showToast("❌ Cannot cancel: Booking not saved to database. Please refresh.", "error");
-        return;
-      }
-
-      // Call backend to cancel in MongoDB
       try {
         const token = localStorage.getItem("token");
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const headers = { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        };
 
-        const response = await fetch(`${API}/api/bookings/${mongoId}/cancel`, {
-          method: "PUT",
+        const response = await fetch(`${API}/api/bookings/${bookingId}/cancel`, {
+          method: "POST",
           credentials: "include",
           headers: headers,
-          body: JSON.stringify({ remarks: remarks || "Cancelled" }),
+          body: JSON.stringify({ remarks, attachments }),
         });
 
         if (!response.ok) {
@@ -493,9 +489,18 @@ export default function useBookingHandlers({
           const copy = structuredClone(prev);
           const roomToUpdate = copy[hostel]?.rooms?.find((r) => r.roomNo === room.roomNo);
           if (!roomToUpdate) return prev;
-          roomToUpdate.bookings = (roomToUpdate.bookings || []).filter(
-            (b) => b.id !== booking.id && b._id !== booking._id
-          );
+          
+          const b = roomToUpdate.bookings?.find((bk) => bk.id === bookingId || bk._id === bookingId);
+          if (b) {
+            b.status = "cancelled";
+            b.cancelRemarks = remarks;
+            b.cancelAttachments = attachments;
+            b.balanceAmount = 0;
+          } else {
+            roomToUpdate.bookings = (roomToUpdate.bookings || []).filter(
+              (bk) => bk.id !== bookingId && bk._id !== bookingId
+            );
+          }
           persistHostelData(copy);
           return copy;
         });
@@ -503,180 +508,94 @@ export default function useBookingHandlers({
         window.dispatchEvent(new Event("hostelBookingChanged"));
         window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
 
-        showToast("✅ Booking cancelled successfully", "success");
+        showToast("✅ Booking and associated bills cancelled", "success");
       } catch (error) {
         console.error("❌ Cancellation error:", error);
-        showToast(`❌ Failed to cancel booking: ${error.message}`, "error");
+        showToast(`❌ Failed to cancel: ${error.message}`, "error");
       }
     },
     [showToast, setCancelModal, setBookingDetailsModal, setBookingListModal, setHostelData]
   );
 
-  // EXTENDED BOOKING
+  // EXTENDED BOOKING (REQUEST FLOW)
   const handleExtendBooking = useCallback(
-    async (extensionData, newToDate, remarks, extensionFiles) => {
+    async (extensionData, newToDate, remarks, extensionFiles, paymentData = {}) => {
       console.log("================================================================================");
-      console.log("🔥 FRONTEND: handleExtendBooking called");
+      console.log("🔥 FRONTEND: Requesting Extension Approval");
       console.log("📦 Parameters:", {
         extensionData: extensionData ? "present" : "null",
         newToDate,
         remarks,
         filesCount: extensionFiles?.length || 0,
-        files: extensionFiles
+        paymentData
       });
       console.log("================================================================================");
       
       if (typeof newToDate !== "string") {
         console.error("❌ newToDate corrupted:", newToDate);
         showToast("❌ Internal error: invalid extension date", "error");
-        return;
+        return false;
       }
-      // ✅ Use the passed extensionData instead of extensionModal state
+
       if (!extensionData) {
         console.error("❌ extensionData is null/undefined:", extensionData);
         showToast("⚠️ No extension data available", "warning");
-        return;
+        return false;
       }
 
       const { hostel, roomNo, booking } = extensionData;
-
-      console.log("✅ Extension data:", { 
-        hostel, 
-        roomNo, 
-        bookingId: booking?._id,
-        bookingGuest: booking?.guest 
-      });
-
-      // Validation
-      const currentHostel = hostelData[hostel];
-      if (!currentHostel) {
-        showToast("❌ Hostel not found", "error");
-        setExtensionModal(null);
-        return;
-      }
-
-      const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo);
-      if (!currentRoom) {
-        showToast("❌ Room not found", "error");
-        setExtensionModal(null);
-        return;
-      }
-
-      // ✅ SAFE: always validate against original checkout date
-      const originalTo = booking._originalTo || booking.to;
-
-      if (new Date(newToDate) <= new Date(originalTo)) {
-        showToast("❌ New checkout date must be after current checkout date.", "error");
-        return;
-      }
-
-      // ✅ SAFE: prevent mutated booking.to from breaking validation
-      const extensionStart = combineDateAndTime(
-        originalTo,
-        booking.checkOutTime || "23:59"
-      );
-
-      const extensionEnd = combineDateAndTime(
-        newToDate,
-        booking.checkOutTime || "23:59"
-      );
-
-      if (!extensionStart || !extensionEnd) {
-        showToast("❌ Invalid extension dates.", "error");
-        return;
-      }    
-      
-      console.log("📅 Extension period check:", {
-        extensionStart: extensionStart.toISOString().split('T')[0],
-        extensionEnd: extensionEnd.toISOString().split('T')[0]
-      });
-      
-      const hasOverlap = (currentRoom.bookings || []).some((b) => {
-        // Skip the current booking being extended
-        if (b.id === booking.id || b._id === booking._id) return false;
-
-        // ✅ CRITICAL FIX: Skip cancelled, checked_out, and no_show bookings
-        if (["cancelled", "checked_out", "no_show"].includes(b.status)) {
-          console.log("⏭️ Skipping inactive booking:", b.guest, "- Status:", b.status);
-          return false;
-        }
-
-        const otherFrom = combineDateAndTime(
-          b.from,
-          b.checkInTime || "00:00"
-        );
-
-        const otherTo = combineDateAndTime(
-          b.to,
-          b.checkOutTime || "23:59"
-        );
-
-        if (!otherFrom || !otherTo) return false;
-
-        // ✅ FIXED: Check if EXTENSION PERIOD overlaps with other booking
-        // Overlaps if: extensionStart < otherTo AND extensionEnd > otherFrom
-        const overlaps = extensionStart < otherTo && extensionEnd > otherFrom;
-        
-        console.log("🔍 Checking overlap with booking:", {
-          guest: b.guest,
-          bookingPeriod: `${otherFrom.toISOString().split('T')[0]} → ${otherTo.toISOString().split('T')[0]}`,
-          extensionPeriod: `${extensionStart.toISOString().split('T')[0]} → ${extensionEnd.toISOString().split('T')[0]}`,
-          overlaps: overlaps
-        });
-
-        return overlaps;
-      });
-
-      if (hasOverlap) {
-        showToast("❌ Cannot extend! Dates overlap another booking.", "error");
-        return;
-      }
-
       const mongoId = booking._id || booking.id;
 
       if (!mongoId || mongoId.toString().startsWith("b_")) {
         showToast("❌ Cannot extend: Booking not saved to database. Please refresh.", "error");
         setExtensionModal(null);
-        return;
+        return false;
       }
 
-      // ✅ Normalize files to URL strings
-      const normalizedFiles = Array.isArray(extensionFiles)
-        ? extensionFiles.map(f => {
-            if (typeof f === "string") return f;
-            if (f && f.url) return f.url;
-            return String(f);
-          }).filter(Boolean)
-        : [];
+      // Validation (Overlap check)
+      const currentHostel = hostelData[hostel];
+      if (currentHostel) {
+        const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo);
+        if (currentRoom) {
+          const originalTo = booking._originalTo || booking.to;
+          const extensionStart = combineDateAndTime(originalTo, booking.checkOutTime || "23:59");
+          const extensionEnd = combineDateAndTime(newToDate, booking.checkOutTime || "23:59");
 
-      console.log("📎 Normalized extension files:", {
-        original: extensionFiles?.length || 0,
-        normalized: normalizedFiles.length,
-        files: normalizedFiles
-      });
+          const hasOverlap = (currentRoom.bookings || []).some((b) => {
+            if (b.id === booking.id || b._id === booking._id) return false;
+            if (["cancelled", "checked_out", "no_show"].includes(b.status)) return false;
+            const otherFrom = combineDateAndTime(b.from, b.checkInTime || "00:00");
+            const otherTo = combineDateAndTime(b.to, b.checkOutTime || "23:59");
+            if (!otherFrom || !otherTo) return false;
+            return extensionStart < otherTo && extensionEnd > otherFrom;
+          });
 
-      // ✅ Include extension attachments in payload
+          if (hasOverlap) {
+            showToast("❌ Cannot request extension! Dates overlap another booking.", "error");
+            return false;
+          }
+        }
+      }
+
       try {
         const token = localStorage.getItem("token");
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const headers = { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        };
 
         const payload = {
           newTo: newToDate,
-          hostel: hostel,
-          roomNo: roomNo,
           remarks: remarks || "",
-          extensionAttachments: normalizedFiles, // ✅ This is critical
+          attachments: extensionFiles || [],
+          paymentType: paymentData.extensionPaymentType || "Paid",
+          amount: paymentData.extensionAmount || 0,
+          paymentRemarks: paymentData.extensionPaymentRemarks || "",
+          paymentAttachments: paymentData.extensionPaymentAttachments || []
         };
 
-        console.log("================================================================================");
-        console.log("📤 FRONTEND: Sending extension payload to backend");
-        console.log("📦 Payload:", JSON.stringify(payload, null, 2));
-        console.log("================================================================================");
-
-        const response = await fetch(`${API}/api/bookings/${mongoId}/extend`, {
-          method: "PUT",
-          credentials: "include",
+        const response = await fetch(`${API}/api/bookings/${mongoId}/request-extension`, {
+          method: "POST",
           headers: headers,
           body: JSON.stringify(payload),
         });
@@ -684,75 +603,26 @@ export default function useBookingHandlers({
         const responseData = await response.json();
 
         if (!response.ok) {
-          throw new Error(responseData.message || "Failed to extend booking");
+          throw new Error(responseData.message || "Failed to submit extension request");
         }
 
-        console.log("================================================================================");
-        console.log("✅ FRONTEND: Extension API Response received");
-        console.log("📦 Response:", {
-          success: responseData.success,
-          bookingId: responseData.booking?._id,
-          extensionAttachments: responseData.booking?.extensionAttachments?.length || 0,
-          files: responseData.booking?.extensionAttachments
-        });
-        console.log("================================================================================");
-
-        // Update local storage
-        setHostelData((prev) => {
-          const copy = structuredClone(prev);
-          const hostelObj = copy[hostel];
-          if (!hostelObj) return prev;
-
-          const roomObj = hostelObj.rooms?.find((r) => r.roomNo === roomNo);
-          if (!roomObj) return prev;
-
-          const bookingObj = roomObj.bookings?.find(
-            (b) => b.id === booking.id || b._id === booking._id
-          );
-          if (!bookingObj) return prev;
-
-          bookingObj.to = newToDate;
-          bookingObj.extensionDate = newToDate;
-          bookingObj.extendRemarks = remarks || bookingObj.extendRemarks || "";
-          
-          // ✅ Update extension attachments from backend response
-          if (responseData.booking?.extensionAttachments) {
-            bookingObj.extensionAttachments = responseData.booking.extensionAttachments;
-            
-            console.log("✅ FRONTEND: Updated local extensionAttachments:", {
-              count: bookingObj.extensionAttachments.length,
-              files: bookingObj.extensionAttachments
-            });
-          }
-
-          persistHostelData(copy);
-          return copy;
-        });
-
-        showToast("✅ Booking extended successfully!", "success");
+        showToast("✅ Extension request submitted for approval", "success");
         setExtensionModal(null);
 
-        // Trigger UI refresh
-        window.dispatchEvent(new Event("hostelBookingChanged"));
-        window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
-        
-        console.log("✅ FRONTEND: Extension complete - UI refresh triggered");
+        // ✅ Emit event for real-time notification on approval page
+        window.dispatchEvent(new CustomEvent("extensionRequested", { 
+          detail: { bookingId: mongoId, requestId: responseData.request?._id } 
+        }));
+
+        return true;
 
       } catch (error) {
-        console.error("================================================================================");
-        console.error("❌ FRONTEND: Extension error:", error);
-        console.error("Stack:", error.stack);
-        console.error("================================================================================");
-        showToast(`❌ Failed to extend booking: ${error.message}`, "error");
-        setExtensionModal(null);
+        console.error("❌ Extension Request error:", error);
+        showToast(`❌ Failed to submit request: ${error.message}`, "error");
+        return false;
       }
     },
-    [
-      hostelData,
-      showToast,
-      setExtensionModal,
-      setHostelData,
-    ]
+    [hostelData, showToast, setExtensionModal, API]
   );
 
   // ✅ FIXED: Return all handlers

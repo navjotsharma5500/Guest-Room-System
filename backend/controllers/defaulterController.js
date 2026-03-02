@@ -128,14 +128,21 @@ export const checkGuestHistory = async (req, res) => {
 
     // Find any previous bookings with pending payments
     const query = {
-      $or: [],
       balanceAmount: { $gt: 0 },
       reportedStatus: "reported",
-      paymentType: { $ne: "Free" }
+      paymentType: { $ne: "Free" },
+      status: { $ne: "cancelled" } // ✅ IGNORE CANCELLED BOOKINGS
     };
 
-    if (email) query.$or.push({ email });
-    if (contact) query.$or.push({ contact });
+    const conditions = [];
+    if (email) conditions.push({ email });
+    if (contact) conditions.push({ contact });
+    
+    if (conditions.length > 0) {
+      query.$or = conditions;
+    } else {
+      // Should verify at least one condition exists, but outer check handles it
+    }
 
     const pendingBookings = await Booking.find(query)
       .select('guest hostel roomNo balanceAmount from to')

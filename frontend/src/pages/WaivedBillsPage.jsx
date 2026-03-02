@@ -38,23 +38,26 @@ function formatDateTime(dateString) {
   );
 }
 
-export default function WaivedBillsPage({ onBack, theme = "light", currentUser }) {
-  const [waivedBills, setWaivedBills] = useState([]);
+export default function BillsPage({ onBack, theme = "light", currentUser }) {
+  const [activeTab, setActiveTab] = useState("waived");
+  const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const isDark = theme === "dark";
 
   useEffect(() => {
-    fetchWaivedBills();
-  }, []);
+    fetchBills();
+  }, [activeTab]);
 
-  const fetchWaivedBills = async () => {
+  const fetchBills = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/api/payments/waived-bills`, {
+      const endpoint = activeTab === "waived" ? "waived-bills" : "cancelled-bills";
+      
+      const response = await fetch(`${API}/api/payments/${endpoint}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : "",
@@ -62,15 +65,25 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
         credentials: "include",
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to fetch waived bills");
-      setWaivedBills(data.waivedBills || []);
+      if (!response.ok) throw new Error(data.message || "Failed to fetch bills");
+      
+      console.log(`📥 ${activeTab} bills:`, data);
+
+      if (activeTab === "waived") {
+        setBills(data.waivedBills || []);
+      } else {
+        setBills(data.cancelledBills || []);
+      }
+
     } catch (err) {
-      console.error("Fetch waived bills error:", err);
+      console.error(`Fetch ${activeTab} bills error:`, err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const currentBills = bills || [];
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
@@ -88,19 +101,43 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Receipt className="w-6 h-6 text-orange-500" />
-              Waived Bills
+              Bills Management
             </h1>
             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              All payment waivers issued
+              Review waived and cancelled bills
             </p>
           </div>
           <div className="ml-auto">
             <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
               isDark ? "bg-orange-900/40 text-orange-400" : "bg-orange-100 text-orange-700"
             }`}>
-              {waivedBills.length} waiver{waivedBills.length !== 1 ? "s" : ""}
+              {currentBills.length} bill{currentBills.length !== 1 ? "s" : ""}
             </span>
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 max-w-6xl mx-auto mt-4">
+          <button 
+            onClick={() => setActiveTab("waived")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "waived" 
+                ? "bg-orange-500 text-white shadow-lg shadow-orange-200" 
+                : isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Waiver Bills
+          </button>
+          <button 
+            onClick={() => setActiveTab("cancelled")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "cancelled" 
+                ? "bg-red-500 text-white shadow-lg shadow-red-200" 
+                : isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Cancelled Bills
+          </button>
         </div>
       </div>
 
@@ -109,7 +146,7 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
           <div className="flex flex-col items-center justify-center py-20">
             <Loader className="w-10 h-10 animate-spin text-orange-500 mb-4" />
             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              Loading waived bills...
+              Loading bills...
             </p>
           </div>
         ) : error ? (
@@ -117,25 +154,25 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
             <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
             <p className="text-red-500 font-medium">{error}</p>
             <button
-              onClick={fetchWaivedBills}
+              onClick={fetchBills}
               className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
             >
               Retry
             </button>
           </div>
-        ) : waivedBills.length === 0 ? (
+        ) : currentBills.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Receipt className="w-16 h-16 text-gray-300 mb-4" />
             <p className={`text-lg font-semibold ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              No Waived Bills
+              No {activeTab === "waived" ? "Waived" : "Cancelled"} Bills
             </p>
             <p className={`text-sm mt-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-              No payment waivers have been issued yet.
+              No bills found in this category.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {waivedBills.map((bill, index) => (
+            {currentBills.map((bill, index) => (
               <motion.div
                 key={bill._id}
                 initial={{ opacity: 0, y: 10 }}
@@ -146,19 +183,25 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
                 }`}
               >
                 {/* Card Header */}
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 px-5 py-3 flex items-center justify-between">
+                <div className={`px-5 py-3 flex items-center justify-between ${
+                  activeTab === "waived" ? "bg-gradient-to-r from-orange-500 to-red-500" : "bg-gradient-to-r from-red-600 to-rose-600"
+                }`}>
                   <div className="flex items-center gap-2 text-white">
                     <Receipt className="w-4 h-4" />
                     <span className="font-bold text-sm">
-                      {bill.billNumber || `WAIVER-${index + 1}`}
+                      {bill.billNumber || `${activeTab.toUpperCase()}-${index + 1}`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-white">
                     <IndianRupee className="w-4 h-4" />
                     <span className="font-bold text-lg">
-                      {Number(bill.waiverAmount || 0).toLocaleString()}
+                      {/* ✅ For Cancelled Bills, show Total Amount as 0 or strike-through */}
+                      {activeTab === "waived" 
+                        ? Number(bill.waiverAmount || 0).toLocaleString()
+                        : Number(bill.totalAmount || 0).toLocaleString()
+                      }
                     </span>
-                    <span className="text-orange-100 text-xs">waived</span>
+                    <span className="text-white/70 text-xs">{activeTab === "waived" ? "waived" : "cancelled"}</span>
                   </div>
                 </div>
 
@@ -228,16 +271,24 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className={isDark ? "text-gray-400" : "text-gray-500"}>Paid</span>
-                        <span className="font-medium text-green-600">₹{Number(bill.paidBeforeWaiver || 0).toLocaleString()}</span>
+                        <span className="font-medium text-green-600">₹{Number(bill.paidBeforeWaiver || bill.amountPaid || 0).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm border-t pt-1 mt-1">
-                        <span className="font-semibold text-orange-600">Waived Off</span>
-                        <span className="font-bold text-orange-600">₹{Number(bill.waiverAmount || 0).toLocaleString()}</span>
-                      </div>
+                      {activeTab === "waived" && (
+                        <div className="flex justify-between text-sm border-t pt-1 mt-1">
+                          <span className="font-semibold text-orange-600">Waived Off</span>
+                          <span className="font-bold text-orange-600">₹{Number(bill.waiverAmount || 0).toLocaleString()}</span>
+                        </div>
+                      )}
+                      {activeTab === "cancelled" && (
+                        <div className="flex justify-between text-sm border-t pt-1 mt-1">
+                          <span className="font-semibold text-red-600">Status</span>
+                          <span className="font-bold text-red-600 uppercase">CANCELLED</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Waiver Remarks */}
+                  {/* Remarks */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <FileText className="w-4 h-4 text-yellow-500" />
@@ -246,7 +297,7 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
                       </span>
                     </div>
                     <p className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                      {bill.waiverRemarks || "—"}
+                      {bill.waiverRemarks || bill.remarks || "—"}
                     </p>
                   </div>
 
@@ -260,32 +311,18 @@ export default function WaivedBillsPage({ onBack, theme = "light", currentUser }
                     </div>
                     <div className="space-y-1.5">
                       <p className="font-semibold text-sm">
-                        {bill.waivedBy?.name || bill.createdByName || "—"}
+                        {bill.waivedBy?.name || bill.cancelMeta?.cancelledByName || bill.createdByName || "System"}
                       </p>
                       {bill.waivedBy?.email && (
                         <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                           {bill.waivedBy.email}
                         </p>
                       )}
-                      {bill.waivedBy?.role && (
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          isDark ? "bg-indigo-900/40 text-indigo-400" : "bg-indigo-100 text-indigo-700"
-                        }`}>
-                          {bill.waivedBy.role}
-                        </span>
-                      )}
+                      <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                        <Clock className="w-3 h-3" />
+                        {formatDateTime(bill.waivedAt || bill.cancelMeta?.cancelledAt || bill.createdAt)}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Action Date */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <span className={`text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                        Action Date & Time
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium">{formatDateTime(bill.waivedAt || bill.createdAt)}</p>
                   </div>
                 </div>
 

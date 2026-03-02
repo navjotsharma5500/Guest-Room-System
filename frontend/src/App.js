@@ -26,6 +26,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 // PAGE IMPORTS
 // ============================================================================
 import Login from "./pages/Login";
+import PublicDashboardSelector from "./pages/PublicDashboardSelector";
 import AccessRequired from "./nightPermissions/pages/AccessRequired";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
@@ -35,6 +36,9 @@ import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
+import AllHostelsPortal from "./pages/AllHostelsPortal";
+import ApprovalPage from "./pages/ApprovalPage";
+import SettingsPage from "./pages/SettingsPage";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // Night Permissions pages
@@ -49,8 +53,9 @@ import NightCalendar from "./nightPermissions/pages/NightCalendar";
 import NightSettings from "./nightPermissions/pages/NightSettings";
 import NightRoleManagement from "./nightPermissions/pages/NightRoleManagement";
 import NightReports from "./nightPermissions/pages/NightReports";
-import NightBudgets from "./nightPermissions/pages/NightBudgets";  // ✅ NEW
-import NightMessenger from "./nightPermissions/pages/NightMessenger"; // ✅ NEW
+import NightBudgets from "./nightPermissions/pages/NightBudgets";  
+import NightMessenger from "./nightPermissions/pages/NightMessenger";
+import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 
 // ============================================================================
 // STYLES
@@ -65,6 +70,12 @@ import "./styles/VenueBookingGlassmorphism.css";
 import { useAuth } from "./context/AuthContext";
 import { isDDAssistantRole } from "./utils/venueAccessPolicy";
 import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GLOBAL SWITCH: Set to false to hide Dashboard Selector from all non-admin roles
+// Admin always sees it regardless. Change here to toggle globally.
+// ══════════════════════════════════════════════════════════════════════════════
+const DASHBOARD_SELECTOR_ENABLED = true;
 
 // ============================================================================
 // ROLE SETS
@@ -86,8 +97,13 @@ const VENUE_BOOKING_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "v
 const NIGHT_PERM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "night") || hasAccess(r, "night_scan") || hasAccess(r, "night_scan_only") || hasAccess(r, "night_student"));
 
 // Roles allowed to access Dashboard Selector page
-const canSeeSelector = (role, isDDAssistant) =>
-  hasAccess(role, "selector") || isDDAssistant;
+const canSeeSelector = (role, isDDAssistant) => {
+  // Admin always sees the selector
+  if (role === "admin") return true;
+  // If disabled globally, no one else sees it
+  if (!DASHBOARD_SELECTOR_ENABLED) return false;
+  return hasAccess(role, "selector") || isDDAssistant;
+};
 
 // ============================================================================
 // MAIN APP
@@ -140,10 +156,15 @@ export default function App() {
         <Routes>
 
           {/* ================================================================
+              PUBLIC DASHBOARD (Landing Page)
+              ================================================================ */}
+          <Route path="/" element={<PublicDashboardSelector />} />
+
+          {/* ================================================================
               LOGIN WITH AUTO-REDIRECT
               ================================================================ */}
           <Route
-            path="/"
+            path="/login"
             element={
               currentUser && redirectPath && redirectPath !== "/"
                 ? <Navigate to={redirectPath} replace />
@@ -172,6 +193,14 @@ export default function App() {
           />
 
           {/* ================================================================
+              Dashboard-Advanced Analytics
+              ================================================================ */}
+          <Route
+            path="/admin/advanced-analytics"
+            element={<AdvancedAnalyticsPage />}
+          />
+
+          {/* ================================================================
               GUEST ROOM DASHBOARD
               admin, manager, caretaker, warden ONLY
               adosa / guard / gen_sec / president CANNOT access
@@ -181,6 +210,33 @@ export default function App() {
             element={
               currentUser && GUEST_ROOM_ROLES.includes(role)
                 ? <GuestRoomDashboard />
+                : <Navigate to="/" replace />
+            }
+          />
+
+          <Route
+            path="/approvals"
+            element={
+              currentUser && GUEST_ROOM_ROLES.includes(role)
+                ? <ApprovalPage />
+                : <Navigate to="/" replace />
+            }
+          />
+
+          <Route
+            path="/all-hostels"
+            element={
+              currentUser && role === "admin"
+                ? <AllHostelsPortal />
+                : <Navigate to="/" replace />
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              currentUser && role === "admin"
+                ? <SettingsPage />
                 : <Navigate to="/" replace />
             }
           />

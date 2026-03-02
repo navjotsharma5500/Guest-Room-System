@@ -457,43 +457,32 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     setPaymentModalOpen(false); 
   };
 
-  const handleCancelBooking = async (remarks) => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      
-      const response = await fetch(`${API}/api/bookings/${b._id || b.id}/cancel`, {
-        method: "PUT",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ remarks })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-      // Update booking with cancelled status
-      setBooking(normalizeBooking({ ...b, status: "cancelled", cancelRemarks: remarks }));
-      setShowCancelModal(false);
-      setCancelRemarks("");
-      showToast("✅ Booking cancelled successfully!", "success");
-      
-      // ✅ Close the guest details panel after short delay
-      setTimeout(() => {
-        if (onClose) {
-          onClose();
-        } else if (onCancel) {
-          onCancel();
-        }
-      }, 1500); // 1.5 second delay to let user see the success message
-    } else {
-        throw new Error(data.message || "Failed to cancel booking");
-      }
-    } catch (err) {
-      console.error("Cancel error:", err);
-      showToast(err.message || "Failed to cancel booking", "error");
-    }
+  const handleCancelBooking = async (remarks, attachments = []) => { 
+    try { 
+      const token = localStorage.getItem("token"); 
+      const headers = { "Content-Type": "application/json" }; 
+      if (token) headers["Authorization"] = `Bearer ${token}`; 
+  
+      const response = await fetch(`${API}/api/bookings/${b._id || b.id}/cancel`, { 
+        method: "PUT", 
+        headers, 
+        credentials: "include", 
+        body: JSON.stringify({ remarks, attachments }),  // ✅ attachments included 
+      }); 
+  
+      const data = await response.json(); 
+      if (data.success) { 
+        setBooking(normalizeBooking({ ...b, status: "cancelled", cancelRemarks: remarks, cancelAttachments: attachments })); 
+        setShowCancelModal(false); 
+        setCancelRemarks(""); 
+        showToast("✅ Booking cancelled successfully!", "success"); 
+        setTimeout(() => { if (onClose) onClose(); else if (onCancel) onCancel(); }, 1500); 
+      } else { 
+        throw new Error(data.message || "Failed to cancel booking"); 
+      } 
+    } catch (err) { 
+      showToast(err.message || "Failed to cancel booking", "error"); 
+    } 
   };
   
   // ============================================================================
@@ -1249,10 +1238,11 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 const discount = Number(b.discount || b.waveOff || 0);
                 const actualBalance = totalAmount - paidAmount - discount;
                 
-                // Show button if there's a balance AND it's not department payment AND it's not free
+                // Show button if there's a balance AND it's not department payment AND it's not free AND NOT CANCELLED
                 const shouldShowPaymentButton = !isDepartmentPayment && 
                                                b.paymentType !== "Free" && 
-                                               actualBalance > 0;
+                                               actualBalance > 0 &&
+                                               b.status !== "cancelled";
                 
                 return shouldShowPaymentButton && (
                   <button
@@ -1274,11 +1264,12 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 const discount = Number(b.discount || b.waveOff || 0);
                 const actualBalance = totalAmount - paidAmount - discount;
                 
-                // Show button if there's a balance AND it's not already department payment AND not checked out AND it's not free
+                // Show button if there's a balance AND it's not already department payment AND not checked out AND it's not free AND NOT CANCELLED
                 const shouldShowDeptPayButton = !isDepartmentPayment && 
                                                b.status !== "checked_out" &&
                                                b.paymentType !== "Free" && 
-                                               actualBalance > 0;
+                                               actualBalance > 0 &&
+                                               b.status !== "cancelled";
                 
                 return shouldShowDeptPayButton && (
                   <button
@@ -1293,7 +1284,11 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               })()}
 
               {/* Payment Status Badge */}
-              {b.paymentStatus && (
+              {b.status === "cancelled" ? (
+                <span className="px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700">
+                  🚫 Cancelled
+                </span>
+              ) : b.paymentStatus && (
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                   b.paymentStatus === "PAID"
                     ? "bg-green-100 text-green-700"
@@ -1309,8 +1304,25 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               )}
             </div>
 
+            {/* Cancelled Payment Message */}
+            {b.status === "cancelled" && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-500 rounded-full">
+                    <Receipt className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-red-900">Payment Cancelled</h3>
+                    <p className="text-sm text-red-700">
+                      This booking has been cancelled. No payment is required.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Department Payment Pending Card */}
-            {isDepartmentPayment && b.balanceAmount > 0 && (
+            {isDepartmentPayment && b.balanceAmount > 0 && b.status !== "cancelled" && (
               <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-400 rounded-xl p-5 shadow-md">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="p-2 bg-orange-500 rounded-lg">
@@ -1369,7 +1381,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
             )}
 
             {/* Regular Payment Breakdown */}
-            {!isDepartmentPayment && b.paymentStatus !== "PAID" && b.totalAmount > 0 && (
+            {!isDepartmentPayment && b.paymentStatus !== "PAID" && b.totalAmount > 0 && b.status !== "cancelled" && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
@@ -1431,16 +1443,24 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         />
 
         {/* Cancel Modal */}
-        <CancelModal
-          modal={showCancelModal ? { hostel: b.hostel, room: { roomNo: b.roomNo } } : null}
-          remarksText={cancelRemarks}
-          setRemarksText={setCancelRemarks}
-          onClose={() => {
-            setShowCancelModal(false);
-            setCancelRemarks("");
-          }}
-          onDone={handleCancelBooking}
-        />
+        <AnimatePresence>
+          {showCancelModal && (
+            <CancelModal
+              modal={{
+                hostel: b.hostel,
+                room: { roomNo: b.roomNo },
+                booking: b
+              }}
+              remarksText={cancelRemarks}
+              setRemarksText={setCancelRemarks}
+              onClose={() => {
+                setShowCancelModal(false);
+                setCancelRemarks("");
+              }}
+              onDone={(remarks, attachments) => handleCancelBooking(remarks, attachments)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* 6. CHECK-IN / CHECK-OUT ACTION */}
         {/* ✅ FIXED: Hide button if guest is checked out */}

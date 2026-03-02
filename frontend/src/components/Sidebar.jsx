@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt } from "lucide-react";
+import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
@@ -182,7 +182,7 @@ export default function Sidebar({
                 setActiveHostel(hostelName);
                 setActiveRoomRef(null);
                 setActiveTab((prev) =>
-                  ["Defaulters", "Feedback", "DepartmentPayments"].includes(prev) ? prev : "Home"
+                  ["Defaulters", "Feedback", "DepartmentPayments", "Approvals", "Bills", "Bookings"].includes(prev) ? prev : "Home"
                 );
               })}
               className={`
@@ -259,8 +259,8 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ BILLS BUTTON (Admin, Manager only) */}
-        {['admin', 'manager'].includes(role) && (
+        {/* ✅ BILLS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
+        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -283,6 +283,34 @@ export default function Sidebar({
             <Receipt className="w-4 h-4 text-slate-600" />
             <span className={`text-sm ${activeTab === "Bills" ? "font-semibold" : ""}`}>
               Bills
+            </span>
+          </motion.button>
+        )}
+
+        {/* ✅ APPROVALS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
+        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
+          <motion.button
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+            onClick={() => handleNavigation(() => {
+              console.log("✅ Approvals clicked");
+              setActiveTab("Approvals");
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+            })}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl border
+              bg-white/30 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "Approvals"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
+          >
+            <CheckCircle className="w-4 h-4 text-slate-600" />
+            <span className={`text-sm ${activeTab === "Approvals" ? "font-semibold" : ""}`}>
+              Approvals
             </span>
           </motion.button>
         )}
@@ -314,8 +342,9 @@ export default function Sidebar({
           </span>
         </motion.button>
 
-        {/* ✅ BOOKINGS BUTTON (All roles) */}
-        <motion.button
+        {/* ✅ BOOKINGS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
+        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
+          <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}
           whileTap={!isEnquiry ? { scale: 0.98 } : {}}
           onClick={(e) => handleNavigation(() => {
@@ -340,6 +369,7 @@ export default function Sidebar({
             All Bookings
           </span>
         </motion.button>
+        )}
       </nav>
 
       {/* FOOTER */}

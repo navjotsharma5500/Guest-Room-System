@@ -7,6 +7,7 @@ export const ROLE_ACCESS = {
   caretaker:    ["guestroom", "night_scan", "selector"],
   warden:       ["guestroom"],
   manager:      ["guestroom"],
+  co_warden:    ["guestroom"],
   dd_assistant: ["venue_limited"],
   president:    ["night"],
   gen_sec:      ["night"],

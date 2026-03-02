@@ -13,7 +13,7 @@ export default function Layout() {
 
   const nightRole = (user?.night?.role || '').toLowerCase();
   const isStudent = nightRole === 'student';
-  const canSwitch = ['admin', 'adosa', 'assistant'].includes((user?.role || '').toLowerCase());
+  const canSwitch = ['admin', 'adosa', 'assistant', 'caretaker'].includes((user?.role || '').toLowerCase());
 
   const handleLogout = async () => {
     await logout();

@@ -20,12 +20,11 @@ const connectDB = async () => {
     console.log("📌 Using URL:", urlPreview);
 
     await mongoose.connect(process.env.MONGO_URL, {
-      dbName: "guestroom",
       serverSelectionTimeoutMS: 10000,
     });
 
     console.log("🟢 MongoDB Connected Successfully 🚀");
-    console.log("📊 Database: guestroom");
+    console.log("📊 Database:", mongoose.connection.name);
     
   } catch (error) {
     console.error("🔴 MongoDB Connection Failed:", error.message);

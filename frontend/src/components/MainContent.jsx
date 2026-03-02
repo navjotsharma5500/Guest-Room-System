@@ -67,6 +67,7 @@ export default function MainContent(props) {
     currentUserData,
     handleCancelModalCancel,
     isSidebarOpen = true, // ✅ Default to true
+    setIsSidebarOpen, // ✅ Setter for auto-hide
   } = props;
 
   const { currentUser, loadingUser } = useAuth();
@@ -108,6 +109,17 @@ export default function MainContent(props) {
   const [downloadFromDate, setDownloadFromDate] = useState("");
   const [downloadToDate, setDownloadToDate] = useState("");
   const [showCalendarPage, setShowCalendarPage] = useState(false);
+
+  // ✅ Auto-hide sidebar when calendar page opens
+  useEffect(() => {
+    if (typeof setIsSidebarOpen === 'function') {
+      if (showCalendarPage) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    }
+  }, [showCalendarPage, setIsSidebarOpen]);
 
   // ====================================================
   // EVENT LISTENER – RELOAD HOSTEL DATA
@@ -1628,10 +1640,10 @@ export default function MainContent(props) {
           remarksText={remarksText}
           setRemarksText={(v) => setRemarksText(v)}
           onClose={() => setCancelModal(null)}
-          onDone={async (remarks) => {
+          onDone={async (remarks, attachments) => {
             // ✅ Use MongoDB-integrated handler from props
             if (typeof props.handleCancelModalCancel === "function") {
-              await props.handleCancelModalCancel(remarks);
+              await props.handleCancelModalCancel(remarks, attachments);
             } else {
               // ⚠️ Fallback to local-only cancellation (not recommended)
               console.warn("⚠️ handleCancelModalCancel not provided, using local-only cancel");  

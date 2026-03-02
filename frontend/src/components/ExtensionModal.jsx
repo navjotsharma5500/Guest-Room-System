@@ -165,7 +165,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
     }
 
     console.log("================================================================================");
-    console.log("🔥 EXTENSION MODAL: handleExtend triggered");
+    console.log("🔥 EXTENSION MODAL: Requesting Extension");
     console.log("📦 Data:", {
       modal: modal ? "present" : "null",
       newTo,
@@ -182,7 +182,8 @@ function ExtensionModal({ modal, onClose, onExtend }) {
     setError("");
 
     try {
-      await onExtend(
+      // ✅ Call onExtend (which will now call requestExtension API)
+      const success = await onExtend(
         {
           hostel: modal.hostel,
           roomNo: modal.roomNo,
@@ -199,15 +200,22 @@ function ExtensionModal({ modal, onClose, onExtend }) {
           extensionPaymentAttachments: paymentFiles
         }
       );
-      
-      console.log("✅ onExtend completed successfully");
-      
-      setLoading(false);
+
+      if (success) {
+        setNewTo("");
+        setRemarks("");
+        setFiles([]);
+        setStep(1);
+        setExtensionPaymentType("Paid");
+        setExtensionAmount("");
+        setExtensionPaymentRemarks("");
+        setPaymentFiles([]);
+        onClose();
+      }
     } catch (err) {
-      console.error("================================================================================");
-      console.error("❌ EXTENSION MODAL: Extension error:", err);
-      console.error("================================================================================");
-      setError(err.message || "Failed to extend booking. Please try again.");
+      console.error("❌ Extension Modal Error:", err);
+      setError(err.message || "Failed to submit extension request");
+    } finally {
       setLoading(false);
     }
   };

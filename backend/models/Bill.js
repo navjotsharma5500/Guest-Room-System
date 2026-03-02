@@ -40,7 +40,7 @@ const billSchema = new mongoose.Schema(
 
     paymentType: {
       type: String,
-      enum: ["FULL", "PARTIAL", "WAIVER"]
+      enum: ["FULL", "PARTIAL", "WAIVER", "CANCELLED"]
     },
     paymentMethod: String,
     transactionId: String,
@@ -71,6 +71,20 @@ const billSchema = new mongoose.Schema(
     remarks: String,
 
     pdfUrl: String,
+
+    status: {
+      type: String,
+      enum: ["active", "cancelled"],
+      default: "active"
+    },
+
+    cancelMeta: {
+      reason: String,
+      cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      cancelledByName: String,
+      attachments: [String],
+      cancelledAt: Date
+    },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

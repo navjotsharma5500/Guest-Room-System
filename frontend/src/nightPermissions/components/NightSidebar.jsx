@@ -23,8 +23,13 @@ const hasAccess = (roles, userRole) =>
 
 export default function NightSidebar({ onClose }) {
   const { user } = useAuth();
-  const role = (user?.night?.role || '').toLowerCase();
-  const filtered = NAV_ITEMS.filter(item => hasAccess(item.roles, role));
+  const appRole  = (user?.role || '').toLowerCase();          // e.g. "caretaker"
+  const nightRole = (user?.night?.role || '').toLowerCase();  // night-specific role
+
+  // Caretaker: ONLY show QR Scan, nothing else
+  const filtered = appRole === 'caretaker'
+    ? NAV_ITEMS.filter(i => i.path === '/night/scan')
+    : NAV_ITEMS.filter(item => hasAccess(item.roles, nightRole));
 
   const linkStyle = ({ isActive }) => ({
     display: 'flex', alignItems: 'center', gap: 10,

@@ -123,9 +123,9 @@ export function hasPermission(user, key) {
   }
 
   // -------------------------
-  // MANAGER – allowed actions
+  // MANAGER & CO_WARDEN – allowed actions
   // -------------------------
-  if (role === "manager") {
+  if (role === "manager" || role === "co_warden") {
     const perms = {
       // Sidebar
       "sidebar.allHostels": true,

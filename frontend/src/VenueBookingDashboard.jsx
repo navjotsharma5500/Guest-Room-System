@@ -1,6 +1,6 @@
 // src/VenueBookingDashboard.jsx - UPDATED WITH GOOGLE DESIGN PATCHES
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Sun, Moon } from "lucide-react";
 import "./styles/Venuebooking.css";
@@ -38,6 +38,7 @@ const sidebarVariants = {
 
 export default function VenueBookingDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, loading, logout } = useAuth();
   const role = currentUser?.role || "guest";
   const { showToast } = useToast();
@@ -57,7 +58,15 @@ export default function VenueBookingDashboard() {
 
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const [activeSection, setActiveSection] = useState("home");
+  const [activeSection, setActiveSection] = useState(location.state?.activeSection || "home");
+
+  // Read activeSection from navigation state (set by DashboardSelector)
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.activeSection]);
 
   const [extensionModal, setExtensionModal] = useState(null);
 

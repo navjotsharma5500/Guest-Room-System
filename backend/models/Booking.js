@@ -69,7 +69,7 @@ const BookingSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["UNPAID", "PARTIALLY_PAID", "PAID"],
+      enum: ["UNPAID", "PARTIALLY_PAID", "PAID", "CANCELLED"],
       default: "UNPAID",
     },
 
@@ -194,6 +194,7 @@ const BookingSchema = new mongoose.Schema(
     // =========================
     cancelDate: { type: Date },
     cancelRemarks: { type: String, default: "" },
+    cancelAttachments: { type: [String], default: [] },
 
     // =========================
     // REMARKS (FREE BOOKING)
