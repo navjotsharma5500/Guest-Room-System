@@ -38,7 +38,7 @@ const PublicDashboardSelector = () => {
       iconColor: "text-blue-600",
       available: true,
       authRequired: true,
-      onClick: () => handleAuthNavigation("/guest-enquiry"), // Assuming this is the form
+      onClick: () => navigate("/guest-enquiry"), // Assuming this is the form
       features: ["Room Availability", "Booking Request", "Status Tracking"]
     },
     {
@@ -51,7 +51,7 @@ const PublicDashboardSelector = () => {
       iconColor: "text-purple-600",
       available: true,
       authRequired: true,
-      onClick: () => handleAuthNavigation("/venue-guest-enquiry"), // Assuming this is the form
+      onClick: () => navigate("/venue-guest-enquiry"), // Assuming this is the form
       features: ["Venue Search", "Event Registration", "Approval Status"]
     },
     {
@@ -64,7 +64,7 @@ const PublicDashboardSelector = () => {
       iconColor: "text-teal-600",
       available: true,
       authRequired: true,
-      onClick: () => handleAuthNavigation("/guest-feedback"),
+      onClick: () => navigate("/guest-feedback"),
       features: ["Rate Stay", "Suggestions", "Report Issues"]
     },
     {
@@ -78,7 +78,7 @@ const PublicDashboardSelector = () => {
       available: true,
       authRequired: true,
       badge: { label: "STUDENT", bg: "bg-amber-100", text: "text-amber-700" },
-      onClick: () => handleAuthNavigation("/night"),
+      onClick: () => navigate("/night-pass"),
       features: ["Apply for Pass", "Check Status", "QR Code"]
     },
     {
@@ -175,19 +175,17 @@ const PublicDashboardSelector = () => {
           className="text-center mb-16 relative w-full max-w-7xl mx-auto"
         >
           {/* Login Button - Top Right */}
-          {!currentUser && (
-             <div className="absolute top-0 right-0 hidden md:block">
-               <motion.button
-                 whileHover={{ scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() => navigate("/login")}
-                 className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
-               >
-                 <LogIn className="w-4 h-4" />
-                 <span className="text-sm font-semibold">Admin / Staff Login</span>
-               </motion.button>
-             </div>
-          )}
+          <div className="absolute top-0 right-0 hidden md:block">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate(currentUser ? "/admin/dashboard-selector" : "/login")}
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="text-sm font-semibold">Admin / Staff Login</span>
+            </motion.button>
+          </div>
 
           {/* Thapar Logo */}
           <motion.div

@@ -259,7 +259,7 @@ export default function App() {
               admin, adosa, assistant, guard, gen_sec, president, caretaker
               ================================================================ */}
           <Route
-            path="/night"
+            path="/night-pass"
             element={
               currentUser && NIGHT_PERM_ROLES.includes(role)
                 ? <NightLayout />
