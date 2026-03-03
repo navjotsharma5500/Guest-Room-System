@@ -175,7 +175,7 @@ const PublicDashboardSelector = () => {
           className="text-center mb-16 relative w-full max-w-7xl mx-auto"
         >
           {/* Login Button - Top Right */}
-          <div className="absolute top-0 right-0 hidden md:block">
+          <div className="w-full flex justify-end md:absolute md:top-0 md:right-0 md:w-auto mb-4 md:mb-0">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
