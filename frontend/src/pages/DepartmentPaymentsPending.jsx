@@ -16,8 +16,14 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
   // ✅ ROLE-BASED ACCESS CONTROL
   const role = currentUser?.role || currentUser?.user?.role;
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
-  const isRestrictedRole = role === 'caretaker' || role === 'warden';
-  const canAccessPage = ['admin', 'manager', 'caretaker', 'warden'].includes(role);
+  
+  // ✅ Check permissions
+  const hasGuestRoomPermission = currentUser?.permissions?.guestRoom === true;
+  
+  // Restricted ONLY if role is restricted AND no override permission
+  const isRestrictedRole = (role === 'caretaker' || role === 'warden') && !hasGuestRoomPermission;
+  
+  const canAccessPage = ['admin', 'manager', 'caretaker', 'warden'].includes(role) || hasGuestRoomPermission;
 
   useEffect(() => {
     if (canAccessPage) {

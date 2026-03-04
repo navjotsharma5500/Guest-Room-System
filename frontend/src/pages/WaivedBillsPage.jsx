@@ -65,6 +65,12 @@ export default function BillsPage({ onBack, theme = "light", currentUser }) {
         credentials: "include",
       });
       const data = await response.json();
+      
+      // ✅ Handle 403 Access Denied gracefully
+      if (response.status === 403) {
+        throw new Error("You do not have permission to view these bills.");
+      }
+      
       if (!response.ok) throw new Error(data.message || "Failed to fetch bills");
       
       console.log(`📥 ${activeTab} bills:`, data);

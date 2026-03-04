@@ -129,19 +129,43 @@ export default function App() {
   // Determine where to send user after login
   const getLoginRedirect = () => {
     if (!role) return "/";
-    
-    // GUARD → Scan-only page
-    if (role === "guard") return "/night/scan";
+    const userEmail = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
+    const permissions = currentUser?.permissions || currentUser?.user?.permissions || {};
 
-    if (canSeeSelector(role, isDDAssistant)) return "/admin/dashboard-selector";
+    // ⚡ HARDCODED OVERRIDE FOR adosa2@thapar.edu
+    if (userEmail === "adosa2@thapar.edu") {
+      return "/dashboard";
+    }
     
-    // NIGHT roles that bypass selector
-    if (NIGHT_DIRECT_ROLES.includes(role)) return "/night";
+    // 1️⃣ Guard → Scan page only
+    if (role === "guard") return "/night-pass/scan";
+
+    // 2️⃣ If user has ONLY GuestRoom permission → go to GuestRoom directly
+    if (
+      permissions.guestRoom &&
+      !permissions.venue &&
+      !permissions.night
+    ) {
+      return "/dashboard";
+    }
+
+    // 3️⃣ Direct GuestRoom roles
+    if (["manager", "warden", "co_warden"].includes(role)) {
+      return "/dashboard";
+    }
+
+    // 4️⃣ Night-only roles bypass selector
+    if (NIGHT_DIRECT_ROLES.includes(role)) {
+      return "/night-pass";
+    }
+
+    // 5️⃣ Selector roles (admin, adosa, assistant etc.)
+    if (canSeeSelector(role, isDDAssistant)) {
+      return "/admin/dashboard-selector";
+    }
     
-    if (GUEST_ROOM_ROLES.includes(role)) return "/dashboard";
-    
-    // Safety check for other permissions
-    if (NIGHT_PERM_ROLES.includes(role)) return "/night";
+    // 6️⃣ Fallback permission checks
+    if (NIGHT_PERM_ROLES.includes(role)) return "/night-pass";
     if (VENUE_BOOKING_ROLES.includes(role)) return "/venue-booking";
     
     return "/"; // Stay on login if no access

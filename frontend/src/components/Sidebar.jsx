@@ -33,6 +33,7 @@ export default function Sidebar({
   // ✅ PERMISSION CHECKS
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
   const canSeeHostels = hasPermission(currentUser, "sidebar.hostels");
+  const hasGuestRoomPermission = currentUser?.permissions?.guestRoom === true; // Check custom permission
 
   const assignedHostel =
     currentUser?.assignedHostel ||
@@ -203,8 +204,8 @@ export default function Sidebar({
           );
         })}
 
-        {/* ✅ DEFAULTERS BUTTON (Admin, Manager, Caretaker, Warden) */}
-        {['admin', 'manager', 'caretaker', 'warden'].includes(role) && (
+        {/* ✅ DEFAULTERS BUTTON (Admin, Manager, Caretaker, Warden, Guest Room Permission) */}
+        {(['admin', 'manager', 'caretaker', 'warden'].includes(role) || hasGuestRoomPermission) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -231,8 +232,8 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ DEPARTMENT PAYMENTS BUTTON (Admin, Manager, Caretaker, Warden) */}
-        {['admin', 'manager', 'caretaker', 'warden'].includes(role) && (
+        {/* ✅ DEPARTMENT PAYMENTS BUTTON (Admin, Manager, Caretaker, Warden, Guest Room Permission) */}
+        {(['admin', 'manager', 'caretaker', 'warden'].includes(role) || hasGuestRoomPermission) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -259,8 +260,8 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ BILLS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
-        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
+        {/* ✅ BILLS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden, Guest Room Permission) */}
+        {(['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) || hasGuestRoomPermission) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -287,8 +288,8 @@ export default function Sidebar({
           </motion.button>
         )}
 
-        {/* ✅ APPROVALS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
-        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
+        {/* ✅ APPROVALS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden, Guest Room Permission) */}
+        {(['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) || hasGuestRoomPermission) && (
           <motion.button
             whileHover={!isEnquiry ? { scale: 1.01 } : {}}
             whileTap={!isEnquiry ? { scale: 0.98 } : {}}
@@ -342,8 +343,8 @@ export default function Sidebar({
           </span>
         </motion.button>
 
-        {/* ✅ BOOKINGS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden) */}
-        {['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) && (
+        {/* ✅ BOOKINGS BUTTON (Admin, Manager, ADOSA, Assistant, Caretaker, Warden, Co-Warden, Guest Room Permission) */}
+        {(['admin', 'manager', 'adosa', 'assistant', 'caretaker', 'warden', 'co_warden'].includes(role) || hasGuestRoomPermission) && (
           <motion.button
           whileHover={!isEnquiry ? { scale: 1.01 } : {}}
           whileTap={!isEnquiry ? { scale: 0.98 } : {}}

@@ -38,9 +38,13 @@ const DefaulterManagement = ({ currentUser, onBack, onOpenPaymentModal }) => {
 
   const role = currentUser?.role || "caretaker";
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel;
+  
+  // ✅ Check Permissions
+  const hasGuestRoomPermission = currentUser?.permissions?.guestRoom === true;
 
-  const canRollback = role === "admin" || role === "manager";
-  const isRestrictedRole = role === "caretaker" || role === "warden";
+  // ✅ Allow rollback if Admin/Manager OR has guestRoom permission
+  const canRollback = role === "admin" || role === "manager" || hasGuestRoomPermission;
+  const isRestrictedRole = (role === "caretaker" || role === "warden") && !hasGuestRoomPermission;
 
   // ✅ ADD THIS HELPER HERE
   const hasActualRollback = (d) => {

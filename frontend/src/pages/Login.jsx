@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { User, Lock, LogIn, Eye, EyeOff } from "lucide-react";
-import { isDDAssistantRole } from "../utils/venueAccessPolicy";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
@@ -31,6 +30,21 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
+  const resolveRedirectPath = (userData) => {
+    const userRole = (userData?.role || "").toLowerCase();
+    const userEmail = (userData?.email || "").toLowerCase();
+    const permissions = userData?.permissions || {};
+
+    if (userEmail === "adosa2@thapar.edu") return "/dashboard";
+    if (userRole === "guard") return "/night-pass/scan";
+    if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
+    if (["manager", "warden", "co_warden"].includes(userRole)) return "/dashboard";
+    if (["gen_sec", "president", "student"].includes(userRole)) return "/night-pass";
+    if (userRole === "dd_assistant") return "/venue-booking";
+    if (["admin", "adosa", "assistant", "caretaker"].includes(userRole)) return "/admin/dashboard-selector";
+    if (userData?.redirectTo) return userData.redirectTo;
+    return "/";
+  };
 
   // SLIDESHOW
   const backgrounds = [bg1, bg2, bg3, bg4];
@@ -80,16 +94,7 @@ export default function Login() {
       return;
     }
 
-    // SUCCESS → use redirectTo from backend if available, else fall back
-    // to the original role-based logic so nothing breaks
-    const userRole = res.user?.role || "";
-    if (res.user?.redirectTo) {
-      window.location.href = res.user.redirectTo;
-    } else if (userRole === "assistant" || isDDAssistantRole(userRole)) {
-      window.location.href = "/venue-booking";
-    } else {
-      window.location.href = "/dashboard";
-    }
+    window.location.href = resolveRedirectPath(res.user);
   };
 
   // =================================================
@@ -113,15 +118,7 @@ export default function Login() {
       return;
     }
 
-    // SUCCESS → same redirect logic
-    const userRole = res.user?.role || "";
-    if (res.user?.redirectTo) {
-      window.location.href = res.user.redirectTo;
-    } else if (userRole === "assistant" || isDDAssistantRole(userRole)) {
-      window.location.href = "/venue-booking";
-    } else {
-      window.location.href = "/dashboard";
-    }
+    window.location.href = resolveRedirectPath(res.user);
   };
 
   const handleGoogleError = () => {

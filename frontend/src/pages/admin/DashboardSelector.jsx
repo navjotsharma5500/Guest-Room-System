@@ -833,12 +833,46 @@ const DashboardSelector = () => {
   
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const role = (currentUser?.role || "").toLowerCase();
+  const role = (currentUser?.role || currentUser?.user?.role || "").toLowerCase();
+  const email = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
+  const permissions = currentUser?.permissions || currentUser?.user?.permissions || {};
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
 
-  // Night Permissions: visible to these roles
-  const NIGHT_PERM_ROLES = ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard'];
+  // ════════════════════════════════════════════════════════════════════════════
+  // DASHBOARD CARD CONFIGURATION (Hardcoded Visibility Logic)
+  // ════════════════════════════════════════════════════════════════════════════
+  
+  // Helper to check visibility
+  const canSeeCard = (cardId) => {
+    // 1. Admin sees ALL dashboards
+    if (role === 'admin') {
+      return ["guest-room", "venue-booking", "night-permissions"].includes(cardId);
+    }
+
+    // 2. Adosa Logic
+    if (role === 'adosa') {
+      // adosa2 -> Guest Room ONLY (though they should bypass this page via redirect)
+      if (email === "adosa2@thapar.edu") {
+        return ["guest-room"].includes(cardId);
+      }
+      // adosa3 (and others) -> Venue + Night (NO Guest Room)
+      return ["venue-booking", "night-permissions"].includes(cardId);
+    }
+
+    // 3. Assistant -> Selector -> Venue + Night
+    if (role === 'assistant') {
+      return ["venue-booking", "night-permissions"].includes(cardId);
+    }
+
+    // 4. Caretaker -> Selector -> Guest + Night
+    if (role === 'caretaker') {
+      return ["guest-room", "night-permissions"].includes(cardId);
+    }
+
+    // 5. Default Fallback (should not happen for selector roles, but safe to hide)
+    return false;
+  };
 
   const allDashboards = [
     {
@@ -852,8 +886,6 @@ const DashboardSelector = () => {
       available: true,
       features: ["Room Management", "Guest Tracking", "Booking System"],
       onClick: () => navigate("/dashboard"),
-      // ✅ ADOSA removed from Guest Room
-      roles: ['admin', 'assistant', 'caretaker', 'warden', 'manager']
     },
     {
       id: "venue-booking",
@@ -866,8 +898,6 @@ const DashboardSelector = () => {
       available: true,
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
       onClick: () => navigate("/venue-booking"),
-      // ✅ ADOSA added to Venue Booking
-      roles: ['admin', 'adosa', 'assistant', 'dd_assistant', 'dd assistant']
     },
     {
       id: "night-permissions",
@@ -880,55 +910,12 @@ const DashboardSelector = () => {
       available: true,
       badge: { label: "NEW", bg: "bg-amber-100", text: "text-amber-700" },
       features: ["Permission Lists", "QR Scan Entry/Exit", "Defaulter Tracking"],
-      onClick: () => navigate("/night"),
-      // ✅ ADOSA added to Night Permissions
-      roles: ['admin', 'adosa', 'assistant', 'gen_sec', 'president', 'caretaker', 'guard']
-    },
-    {
-      id: "public-forms",
-      title: "Public Forms",
-      description: "Access public booking forms and calendars",
-      icon: Globe,
-      gradient: "from-teal-600 via-teal-500 to-emerald-500",
-      iconBg: "bg-teal-100",
-      iconColor: "text-teal-600",
-      available: true,
-      features: ["Guest Enquiry", "Feedback Form", "Venue Enquiry", "Event Calendar"],
-      onClick: () => setShowPublicForms(true),
-      roles: null // always visible
-    },
-    {
-      id: "lost-and-found",
-      title: "Lost and Found",
-      description: "Search and report lost or found items",
-      icon: Search,
-      gradient: "from-indigo-600 via-indigo-500 to-blue-500",
-      iconBg: "bg-indigo-100",
-      iconColor: "text-indigo-600",
-      available: true,
-      features: ["Report Missing Items", "Browse Found Items", "Track Status"],
-      onClick: () => window.open("https://lost-and-found-portal-six.vercel.app/", "_blank"),
-      roles: null // always visible
-    },
-    {
-      id: "coming-soon",
-      title: "Coming Soon",
-      description: "New features and dashboards are on the way",
-      icon: Sparkles,
-      gradient: "from-orange-600 via-orange-500 to-yellow-500",
-      iconBg: "bg-orange-100",
-      iconColor: "text-orange-600",
-      available: false,
-      features: ["Advanced Analytics", "Mobile App", "AI Insights"],
-      roles: null // always visible
+      onClick: () => navigate("/night-pass"),
     }
   ];
 
-  // Filter dashboards by role
-  const dashboards = allDashboards.filter(d => {
-    if (!d.roles) return true; // no restriction
-    return d.roles.includes(role);
-  });
+  // Filter dashboards based on hardcoded logic
+  const dashboards = allDashboards.filter(d => canSeeCard(d.id));
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -1009,7 +996,7 @@ const DashboardSelector = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-12 pb-64">
         {/* Header Section */}
         <motion.div
           initial={{ y: -30, opacity: 0 }}
