@@ -331,6 +331,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       approvalDocuments: Array.isArray(b.approvalDocuments) ? b.approvalDocuments : [],
       paymentAttachments: Array.isArray(b.paymentAttachments) ? b.paymentAttachments : [],
       extensionAttachments: Array.isArray(b.extensionAttachments) ? b.extensionAttachments : [],
+      cancelAttachments: Array.isArray(b.cancelAttachments) ? b.cancelAttachments : [],
       files: Array.isArray(b.files) ? b.files : [],
       hostel: b.hostel || activeRoomRef?.hostel || "",
       roomNo: b.roomNo || activeRoomRef?.roomNo || ""
@@ -1437,6 +1438,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           
           extensionFiles={
             Array.isArray(b.extensionAttachments) ? b.extensionAttachments : []
+          }
+          cancelFiles={
+            Array.isArray(b.cancelAttachments) ? b.cancelAttachments : []
           }
           
           theme={theme}

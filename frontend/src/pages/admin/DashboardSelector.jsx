@@ -1006,7 +1006,16 @@ const DashboardSelector = () => {
         >
           {/* Admin Analytics Button - Top Right */}
           {isAdmin && (
-             <div className="absolute top-0 right-0 hidden md:block">
+             <div className="absolute top-0 right-0 hidden md:flex items-center gap-2">
+               <motion.button
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
+                 onClick={() => navigate("/admin/echo-knowledge")}
+                 className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
+               >
+                 <Database className="w-4 h-4" />
+                 <span className="text-sm font-semibold">Echo Knowledge</span>
+               </motion.button>
                <motion.button
                  whileHover={{ scale: 1.05 }}
                  whileTap={{ scale: 0.95 }}
@@ -1061,7 +1070,14 @@ const DashboardSelector = () => {
 
           {/* Mobile Admin Analytics Button */}
           {isAdmin && (
-             <div className="mt-6 md:hidden">
+             <div className="mt-6 md:hidden space-y-2">
+               <button
+                 onClick={() => navigate("/admin/echo-knowledge")}
+                 className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600"
+               >
+                 <Database className="w-4 h-4" />
+                 <span className="text-sm font-semibold">Manage Echo Knowledge</span>
+               </button>
                <button
                  onClick={() => setShowAnalytics(true)}
                  className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-red-600"

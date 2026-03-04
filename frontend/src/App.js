@@ -56,6 +56,7 @@ import NightReports from "./nightPermissions/pages/NightReports";
 import NightBudgets from "./nightPermissions/pages/NightBudgets";  
 import NightMessenger from "./nightPermissions/pages/NightMessenger";
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
+import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 
 // ============================================================================
 // STYLES
@@ -222,6 +223,14 @@ export default function App() {
           <Route
             path="/admin/advanced-analytics"
             element={<AdvancedAnalyticsPage />}
+          />
+          <Route
+            path="/admin/echo-knowledge"
+            element={
+              currentUser && role === "admin"
+                ? <EchoKnowledgePage />
+                : <Navigate to="/" replace />
+            }
           />
 
           {/* ================================================================

@@ -9,6 +9,7 @@ export default function AttachmentsSection({
   approvalFiles = [],
   paymentFiles = [],
   extensionFiles = [],
+  cancelFiles = [],
   theme,
 }) {
   const [activeTab, setActiveTab] = useState("enquiry");
@@ -18,13 +19,15 @@ export default function AttachmentsSection({
     enquiryFiles.length ||
     approvalFiles.length ||
     paymentFiles.length ||
-    extensionFiles.length;
+    extensionFiles.length ||
+    cancelFiles.length;
 
   console.log("ðŸ” ATTACHMENTS SECTION RENDER:", {
     enquiryFiles: enquiryFiles.length,
     approvalFiles: approvalFiles.length,
     paymentFiles: paymentFiles.length,
     extensionFiles: extensionFiles.length,
+    cancelFiles: cancelFiles.length,
     hasAnyAttachments,
   });
 
@@ -84,6 +87,13 @@ export default function AttachmentsSection({
           onClick={() => setActiveTab("extension")}
           theme={theme}
         />
+        <Tab 
+          label="Cancel" 
+          count={cancelFiles.length}
+          active={activeTab === "cancel"}
+          onClick={() => setActiveTab("cancel")}
+          theme={theme}
+        />
       </div>
 
       {/* Content */}
@@ -92,6 +102,7 @@ export default function AttachmentsSection({
         {activeTab === "approval" && <AnimatedGrid files={approvalFiles} theme={theme} label="Approval" />}
         {activeTab === "payment" && <AnimatedGrid files={paymentFiles} theme={theme} label="Payment" />}
         {activeTab === "extension" && <AnimatedGrid files={extensionFiles} theme={theme} label="Extension" />}
+        {activeTab === "cancel" && <AnimatedGrid files={cancelFiles} theme={theme} label="Cancellation" />}
       </AnimatePresence>
     </div>
   );

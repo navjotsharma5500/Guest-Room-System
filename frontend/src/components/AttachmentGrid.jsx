@@ -75,6 +75,29 @@ export default function AttachmentGrid({ files = [], theme }) {
           };
         }
 
+        if (typeof file === "object") {
+          const resolvedUrl =
+            file.url ||
+            file.filePath ||
+            file.path ||
+            file.src ||
+            "";
+          if (!resolvedUrl) return null;
+          const fileName =
+            file.name ||
+            file.fileName ||
+            file.originalName ||
+            String(resolvedUrl).split("/").pop() ||
+            `attachment-${index}`;
+          return {
+            id: `obj-${index}-${file.fileId || fileName}-${resolvedUrl.length}`,
+            name: fileName,
+            url: resolvedUrl,
+            isObjectUrl: false,
+            type: file.type || resolvedUrl,
+          };
+        }
+
         return null;
       })
       .filter(Boolean);

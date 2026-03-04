@@ -1,5 +1,5 @@
 // src/components/MainContent.jsx - COMPLETE FIXED VERSION
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
 import { Settings, Trash2, Filter, Building2, Search } from "lucide-react";
@@ -270,6 +270,35 @@ export default function MainContent(props) {
       return checkInDateTime >= now;
     })
     .slice(0, 5);
+
+  const calendarBookingDateSet = useMemo(() => {
+    const fmt = (d) => format(d, "yyyy-MM-dd");
+    const set = new Set();
+    const source = Object.entries(hostelData || {});
+
+    source.forEach(([hostel, h]) => {
+      if (!isAdminLike && userHostel && hostel !== userHostel) return;
+
+      (h.rooms || []).forEach((room) => {
+        (room.bookings || []).forEach((b) => {
+          if (!b?.from || !b?.to) return;
+          if (["cancelled", "no_show"].includes(b.status)) return;
+
+          const fromDate = new Date(b.actualCheckInDate || b.from);
+          const toDate = new Date(b.to);
+          fromDate.setHours(0, 0, 0, 0);
+          toDate.setHours(0, 0, 0, 0);
+          if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return;
+
+          for (let current = new Date(fromDate); current <= toDate; current.setDate(current.getDate() + 1)) {
+            set.add(fmt(current));
+          }
+        });
+      });
+    });
+
+    return set;
+  }, [hostelData, isAdminLike, userHostel]);
 
     const getEffectiveCheckInDate = (booking) => {
       // ✅ Use actualCheckInDate if guest reported early, otherwise use 'from'
@@ -999,6 +1028,13 @@ export default function MainContent(props) {
                     }}
                     value={selectedDate}
                     className="rounded-xl shadow-lg"
+                    tileContent={({ date, view }) =>
+                      view === "month" && calendarBookingDateSet.has(format(date, "yyyy-MM-dd")) ? (
+                        <div className="flex justify-center mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        </div>
+                      ) : null
+                    }
                   />
                   
                   <p className={`text-sm mt-4 ${

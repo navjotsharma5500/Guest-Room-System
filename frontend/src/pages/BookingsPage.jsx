@@ -25,12 +25,14 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
+  Paperclip,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { hasPermission } from "../utils/checkPermission";
 import axios from "axios";
 import { format } from "date-fns";
 import { BACKEND_URL } from "../utils/apiConfig";
+import AttachmentGrid from "../components/AttachmentGrid";
 
 export default function BookingsPage({ onBack, theme = "light" }) {
   const { currentUser } = useAuth();
@@ -642,6 +644,21 @@ export default function BookingsPage({ onBack, theme = "light" }) {
 
 // Booking Card Component
 function BookingCard({ booking, index, theme }) {
+  const enquiryFiles = Array.isArray(booking.files) ? booking.files : [];
+  const approvalFiles = Array.isArray(booking.approvalDocuments) ? booking.approvalDocuments : [];
+  const paymentFiles = Array.isArray(booking.paymentAttachments) ? booking.paymentAttachments : [];
+  const extensionFiles = Array.isArray(booking.extensionAttachments) ? booking.extensionAttachments : [];
+  const extensionPaymentFiles = Array.isArray(booking.extensionPaymentAttachments) ? booking.extensionPaymentAttachments : [];
+  const cancelFiles = Array.isArray(booking.cancelAttachments) ? booking.cancelAttachments : [];
+  const allAttachments = [
+    ...enquiryFiles,
+    ...approvalFiles,
+    ...paymentFiles,
+    ...extensionFiles,
+    ...extensionPaymentFiles,
+    ...cancelFiles,
+  ];
+
   const getStatusBadge = (status) => {
     const badges = {
       booked: { bg: "bg-blue-100", text: "text-blue-700", label: "Booked" },
@@ -717,6 +734,23 @@ function BookingCard({ booking, index, theme }) {
                 <span>
                   {[booking.city, booking.state].filter(Boolean).join(", ")}
                 </span>
+              </div>
+            )}
+
+            {allAttachments.length > 0 && (
+              <div className={`mt-3 rounded-lg border p-3 ${theme === "dark" ? "border-gray-600 bg-gray-700/40" : "border-red-200 bg-red-50/60"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Paperclip className="w-4 h-4 text-red-500" />
+                  <span className={`text-xs font-semibold ${theme === "dark" ? "text-gray-200" : "text-slate-700"}`}>
+                    Attachments ({allAttachments.length})
+                  </span>
+                </div>
+                <div className={`text-[11px] mb-2 ${theme === "dark" ? "text-gray-300" : "text-slate-600"}`}>
+                  {[`Enquiry ${enquiryFiles.length}`, `Approval ${approvalFiles.length}`, `Paid ${paymentFiles.length}`, `Extension ${extensionFiles.length}`, `Ext Payment ${extensionPaymentFiles.length}`, `Cancel ${cancelFiles.length}`]
+                    .filter((item) => !item.endsWith(" 0"))
+                    .join(" • ")}
+                </div>
+                <AttachmentGrid files={allAttachments} theme={theme} />
               </div>
             )}
           </div>
