@@ -77,14 +77,16 @@ const resolveNightPassAccess = async (user) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: compute login redirect based on role
 // ─────────────────────────────────────────────────────────────────────────────
-const getLoginRedirect = (role) => {
+const getLoginRedirect = (role, user = null) => {
   const r = (role || "").toLowerCase();
-  if (r === "guard") return "/night/scan";
-  if (r === "student") return "/night/student";
-  if (["president", "gen_sec"].includes(r)) return "/night";
-  if (["admin", "adosa", "assistant", "caretaker", "co_warden"].includes(r))
-    return "/admin/dashboard-selector";
-  if (["warden", "manager"].includes(r)) return "/dashboard";
+  const email = (user?.email || "").toLowerCase();
+  const permissions = user?.permissions || {};
+  if (email === "adosa2@thapar.edu") return "/dashboard";
+  if (r === "guard") return "/night-pass/scan";
+  if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
+  if (["manager", "warden", "co_warden"].includes(r)) return "/dashboard";
+  if (r === "student" || ["president", "gen_sec"].includes(r)) return "/night-pass";
+  if (["admin", "adosa", "assistant", "caretaker"].includes(r)) return "/admin/dashboard-selector";
   if (r === "dd_assistant") return "/venue-booking";
   return "/";
 };
@@ -135,7 +137,7 @@ export const loginUser = async (req, res) => {
     };
 
     // ✅ Include redirect hint for frontend
-    userObj.redirectTo = getLoginRedirect(access.role);
+    userObj.redirectTo = getLoginRedirect(access.role, userObj);
 
     return res.json({ success: true, token, user: userObj });
   } catch (error) {
@@ -206,7 +208,7 @@ export const googleLogin = async (req, res) => {
       societies: access.societies || [],
     };
 
-    userObj.redirectTo = getLoginRedirect(access.role);
+    userObj.redirectTo = getLoginRedirect(access.role, userObj);
 
     return res.json({ success: true, token: jwtToken, user: userObj });
   } catch (error) {

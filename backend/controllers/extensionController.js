@@ -9,7 +9,8 @@ import extensionApprovedTemplate from "../emails/templates/extensionApproved.js"
 import { sendBookingEmails } from "./bookingController.js";
 
 const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
-const ADOSA_EMAILS = ["adosa1@thapar.edu", "adosa2@thapar.edu"];
+// ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
+const ADOSA_EMAILS = ["adosa2@thapar.edu"];
 
 export const createExtensionRequest = async (req, res) => {
     try {

@@ -19,6 +19,13 @@ const userSchema = new mongoose.Schema({
   rollNo: { type: String, default: null, uppercase: true, trim: true }, // for students/society heads
   societies: [{ type: String }], // for president/gen_sec roles
   profilePicture: { type: String, default: null },
+
+  // ✅ Scalable Permissions System
+  permissions: {
+    guestRoom: { type: Boolean, default: false },
+    venue: { type: Boolean, default: false },
+    night: { type: Boolean, default: false }
+  }
 });
 
 // Hash password

@@ -9,7 +9,7 @@ const router = express.Router();
 router.get(
   "/", 
   protect, 
-  authorizeRoles("admin", "manager", "caretaker", "warden"),
+  authorizeRoles("admin", "manager", "caretaker", "warden", "co_warden", "adosa"), // ✅ Added co_warden
   async (req, res) => {
     try {
       const userRole = req.user.role;

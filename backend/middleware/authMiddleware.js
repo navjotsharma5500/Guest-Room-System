@@ -54,6 +54,18 @@ export const protect = async (req, res, next) => {
     }
 
     req.user = user; // ✅ Attach full original user object from DB
+    
+    // 🔐 SPECIAL OVERRIDE FOR adosa2@thapar.edu (OR anyone with permission overrides)
+    // If user has 'guestRoom: true' permission but role is not in standard guest room roles,
+    // we might need to pretend they are 'co_warden' for controllers that strictly check role.
+    
+    // Ideally, controllers should check permissions, but for legacy compatibility:
+    if (user.permissions?.guestRoom === true && !["admin", "manager", "warden", "caretaker", "assistant", "co_warden"].includes(user.role)) {
+       console.log(`⚡ Permission Override: ${user.email} -> Treating as CO_WARDEN for Guest Room context`);
+       req.user.originalRole = user.role;
+       req.user.role = 'co_warden'; 
+    }
+
     console.log("✅ Auth success:", req.user.email);
     next();
 

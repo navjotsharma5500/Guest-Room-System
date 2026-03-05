@@ -611,7 +611,7 @@ export const downloadBillPDF = async (req, res) => {
   }
 };
 // ============================================
-// 💸 PROCESS WAIVER (Admin + Manager only)
+// 💸 PROCESS WAIVER (Admin + Manager + Co-Warden only)
 // ============================================
 export const processWaiver = async (req, res) => {
   try {
@@ -619,9 +619,9 @@ export const processWaiver = async (req, res) => {
     const { remarks, waiverAmount, attachments } = req.body;
     const user = req.user;
 
-    // Role check
-    if (!['admin', 'manager'].includes(user.role)) {
-      return res.status(403).json({ success: false, message: "Only Admin and Manager can process waivers" });
+    // Role check: Allow Admin, Manager, and Co-Warden
+    if (!['admin', 'manager', 'co_warden', 'adosa'].includes(user.role)) {
+      return res.status(403).json({ success: false, message: "Only Admin, adosa, Manager, and Co-Warden can process waivers" });
     }
 
     if (!remarks || !remarks.trim()) {
@@ -723,7 +723,8 @@ export const getWaivedBills = async (req, res) => {
   try {
     const user = req.user;
 
-    if (!['admin', 'manager'].includes(user.role)) {
+    // Role check: Allow Admin, Manager, and Co-Warden
+    if (!['admin', 'manager', 'co_warden'].includes(user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
