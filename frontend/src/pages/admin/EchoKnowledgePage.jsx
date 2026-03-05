@@ -5,6 +5,95 @@ import { BACKEND_URL } from "../../utils/apiConfig";
 
 const API = BACKEND_URL;
 
+const normalizeBaseUrl = (value = "") => String(value || "").replace(/\/+$/, "");
+
+const buildKnowledgeUrls = (path = "") => {
+  const base = normalizeBaseUrl(API);
+  const normalizedPath = String(path || "").startsWith("/") ? String(path || "") : `/${String(path || "")}`;
+  const urls = [`${base}/api/ai${normalizedPath}`];
+  if (/\/api$/i.test(base)) urls.push(`${base}/ai${normalizedPath}`);
+  return [...new Set(urls)];
+};
+
+const parseResponseBody = async (res) => {
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.toLowerCase().includes("application/json")) {
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+const buildErrorMessage = (body, res, url, fallbackMessage) => {
+  if (body && typeof body === "object" && body.message) return body.message;
+  if (typeof body === "string" && body.trim().startsWith("<!DOCTYPE")) {
+    const pathname = (() => {
+      try {
+        return new URL(url).pathname;
+      } catch {
+        return url;
+      }
+    })();
+    return `Server route not found for ${pathname}. Check backend URL configuration.`;
+  }
+  return `${fallbackMessage} (HTTP ${res.status})`;
+};
+
+const requestJsonWithFallback = async (path, init, fallbackMessage) => {
+  const urls = buildKnowledgeUrls(path);
+  let lastError = fallbackMessage;
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, init);
+      const body = await parseResponseBody(res);
+      if (!res.ok) {
+        lastError = buildErrorMessage(body, res, url, fallbackMessage);
+        continue;
+      }
+      if (typeof body === "string" && body.trim().startsWith("<!DOCTYPE")) {
+        lastError = buildErrorMessage(body, res, url, fallbackMessage);
+        continue;
+      }
+      return body || {};
+    } catch (err) {
+      lastError = err.message || fallbackMessage;
+    }
+  }
+
+  throw new Error(lastError);
+};
+
+const requestBlobWithFallback = async (path, init, fallbackMessage) => {
+  const urls = buildKnowledgeUrls(path);
+  let lastError = fallbackMessage;
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, init);
+      if (!res.ok) {
+        const body = await parseResponseBody(res);
+        lastError = buildErrorMessage(body, res, url, fallbackMessage);
+        continue;
+      }
+      return await res.blob();
+    } catch (err) {
+      lastError = err.message || fallbackMessage;
+    }
+  }
+
+  throw new Error(lastError);
+};
+
 const INITIAL_FORM = {
   question: "",
   answer: "",
@@ -56,13 +145,11 @@ export default function EchoKnowledgePage() {
     try {
       const cleaned = String(searchTerm || "").trim();
       const query = cleaned ? `?includeInactive=true&q=${encodeURIComponent(cleaned)}` : "?includeInactive=true";
-      const res = await fetch(`${API}/api/ai/knowledge${query}`, {
+      const data = await requestJsonWithFallback(`/knowledge${query}`, {
         method: "GET",
         credentials: "include",
         headers,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to load knowledge entries");
+      }, "Failed to load knowledge entries");
       setItems(data.items || []);
     } catch (err) {
       setError(err.message || "Failed to load knowledge entries");
@@ -89,16 +176,13 @@ export default function EchoKnowledgePage() {
         throw new Error("Question and answer are required");
       }
       const isEdit = Boolean(editingId);
-      const url = isEdit ? `${API}/api/ai/knowledge/${editingId}` : `${API}/api/ai/knowledge`;
       const method = isEdit ? "PUT" : "POST";
-      const res = await fetch(url, {
+      await requestJsonWithFallback(isEdit ? `/knowledge/${editingId}` : "/knowledge", {
         method,
         credentials: "include",
         headers,
         body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save entry");
+      }, "Failed to save entry");
       resetForm();
       await loadItems(search);
     } catch (err) {
@@ -124,13 +208,11 @@ export default function EchoKnowledgePage() {
   const onDelete = async (id) => {
     setError("");
     try {
-      const res = await fetch(`${API}/api/ai/knowledge/${id}`, {
+      await requestJsonWithFallback(`/knowledge/${id}`, {
         method: "DELETE",
         credentials: "include",
         headers,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to delete entry");
+      }, "Failed to delete entry");
       if (editingId === id) resetForm();
       await loadItems(search);
     } catch (err) {
@@ -141,16 +223,11 @@ export default function EchoKnowledgePage() {
   const onExportCsv = async () => {
     setError("");
     try {
-      const res = await fetch(`${API}/api/ai/knowledge/export`, {
+      const blob = await requestBlobWithFallback("/knowledge/export", {
         method: "GET",
         credentials: "include",
         headers,
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to export CSV");
-      }
-      const blob = await res.blob();
+      }, "Failed to export CSV");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -174,14 +251,12 @@ export default function EchoKnowledgePage() {
       formData.append("file", file);
       const uploadHeaders = {};
       if (token) uploadHeaders.Authorization = `Bearer ${token}`;
-      const res = await fetch(`${API}/api/ai/knowledge/import`, {
+      await requestJsonWithFallback("/knowledge/import", {
         method: "POST",
         credentials: "include",
         headers: uploadHeaders,
         body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to import CSV");
+      }, "Failed to import CSV");
       await loadItems(search);
     } catch (err) {
       setError(err.message || "Failed to import CSV");
