@@ -102,7 +102,9 @@ export const venueRoomsConfig = [
         label: "Activity Rooms",
         enabled: true,
         rooms: [
-          { id: "activity-room", name: "Activity Room", enabled: true },
+          { id: "activity-room-1", name: "Activity Room - 1", enabled: true },
+          { id: "activity-room-2", name: "Activity Room - 2", enabled: true },
+          { id: "activity-room-3", name: "Activity Room - 3", enabled: true },
         ],
       },
       {
