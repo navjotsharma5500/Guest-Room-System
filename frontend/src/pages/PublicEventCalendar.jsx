@@ -896,6 +896,7 @@ export default function PublicEventCalendar() {
                   <div className="pt-2">
                        <p className="text-xs font-semibold uppercase text-gray-500 mb-1">Technical Support</p>
                        <a href="mailto:itmh@thapar.edu" className="text-xs sm:text-sm text-blue-500 hover:underline break-all">itmh@thapar.edu</a>
+                       <p className="text-xs sm:text-sm mt-2">Developed by Navjot Sharma</p>
                   </div>
               </div>
 
@@ -984,7 +985,7 @@ export default function PublicEventCalendar() {
                   </div>
               </div>
           </div>
-      </footer>
+            </footer>
     </div>
   );
 }

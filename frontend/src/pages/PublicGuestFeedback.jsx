@@ -10,6 +10,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Star, Send, CheckCircle, AlertCircle, UserCircle, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../utils/apiConfig';
+import PublicPageWidgets from '../components/PublicPageWidgets';
 
 const HOSTELS = [
   'Agira Hall (A)', 'Amritam Hall (B)', 'Prithvi Hall (C)', 'Neeram Hall (D)',
@@ -686,8 +687,14 @@ function PublicGuestFeedback() {
           </p>
         </div>
       </div>
+      <PublicPageWidgets
+        footerMode="flow"
+        footerClassName="mt-12 w-full"
+        echoClassName="bottom-24"
+      />
     </div>
   );
 }
 
 export default PublicGuestFeedback;
+

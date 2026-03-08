@@ -57,6 +57,7 @@ import NightBudgets from "./nightPermissions/pages/NightBudgets";
 import NightMessenger from "./nightPermissions/pages/NightMessenger";
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
+import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
 
 // ============================================================================
 // STYLES
@@ -233,6 +234,15 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/admin/public-ui-customizer"
+            element={
+              currentUser && role === "admin"
+                ? <PublicUiCustomizerPage />
+                : <Navigate to="/" replace />
+            }
+          />
+
           {/* ================================================================
               GUEST ROOM DASHBOARD
               admin, manager, caretaker, warden ONLY
@@ -343,3 +353,5 @@ export default function App() {
     </GoogleOAuthProvider>
   );
 }
+
+

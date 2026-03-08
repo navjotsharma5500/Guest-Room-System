@@ -20,6 +20,7 @@ import { getEnabledVenueFormOptions } from "../config/venueRoomsConfig";
 import { VENUE_DEPARTMENTS } from "../config/venueDepartments"; // Re-import this
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import PublicPageWidgets from "../components/PublicPageWidgets";
 
 const API = BACKEND_URL;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
@@ -833,20 +834,14 @@ export default function VenueGuestEnquiryPage() {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="fixed bottom-4 right-6 z-50 flex flex-col items-end gap-1">
-          <div className="bg-white/90 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg text-sm font-medium border border-gray-100 flex flex-col items-center">
-            <a 
-              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-blue-700 transition-colors"
-            >
-              Created and Maintained by <span className="font-semibold text-blue-600">DoSA Office</span>
-            </a>
-          </div>
-        </div>
+        <PublicPageWidgets
+          footerMode="flow"
+          footerClassName="mt-auto pt-12 w-full"
+          echoClassName="bottom-24"
+        />
       </div>
     </IKContext>
     </GoogleOAuthProvider>
   );
 }
+

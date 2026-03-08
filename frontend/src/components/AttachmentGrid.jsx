@@ -2,11 +2,13 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, X, Download, Printer, AlertCircle } from "lucide-react";
+import { FileText, X, Download, Printer } from "lucide-react";
 
 export default function AttachmentGrid({ files = [], theme }) {
   const [lightbox, setLightbox] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [failedPreviewIds, setFailedPreviewIds] = useState(() => new Set());
+  const [mimeHints, setMimeHints] = useState({});
   
   const prevFilesRef = useRef(null);
   const resolvedFilesCache = useRef([]);
@@ -124,30 +126,175 @@ export default function AttachmentGrid({ files = [], theme }) {
     return () => window.removeEventListener("keydown", onEsc);
   }, []);
 
+  useEffect(() => {
+    setFailedPreviewIds(new Set());
+  }, [resolvedFiles]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const shouldProbe = (f) => {
+      const url = String(f?.url || "").toLowerCase();
+      if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
+      if (f?.isObjectUrl) return false;
+      return true;
+    };
+
+    const probeMime = async (url) => {
+      try {
+        const head = await fetch(url, { method: "HEAD", signal: controller.signal });
+        const headType = (head.headers.get("content-type") || "").toLowerCase();
+        if (headType) return headType;
+      } catch (_) {}
+
+      try {
+        const get = await fetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-0" },
+          signal: controller.signal,
+        });
+        return (get.headers.get("content-type") || "").toLowerCase();
+      } catch (_) {
+        return "";
+      }
+    };
+
+    const run = async () => {
+      const candidates = resolvedFiles.filter((f) => shouldProbe(f) && !mimeHints[f.id]);
+      if (!candidates.length) return;
+
+      const results = await Promise.all(
+        candidates.map(async (f) => [f.id, await probeMime(f.url)])
+      );
+
+      if (cancelled) return;
+
+      setMimeHints((prev) => {
+        const next = { ...prev };
+        let changed = false;
+
+        for (const [id, mime] of results) {
+          if (mime && prev[id] !== mime) {
+            next[id] = mime;
+            changed = true;
+          }
+        }
+
+        return changed ? next : prev;
+      });
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [resolvedFiles, mimeHints]);
+
   if (!resolvedFiles.length) return null;
 
-  // Ã¢Å“â€¦ Enhanced file type detection
-  const isImage = (f) => {
-    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|heic|heif)$/i.test(f.name)) {
-      return true;
+  // Robust file type detection (supports ImageKit URLs with query params/transforms)
+  const getCleanPath = (value = "") => {
+    const raw = String(value || "");
+    try {
+      const u = new URL(raw, window.location.origin);
+      return String(u.pathname || "").toLowerCase();
+    } catch {
+      return raw.split("?")[0].split("#")[0].toLowerCase();
     }
-    if (f.url.startsWith("data:image")) {
-      return true;
-    }
-    if (f.url.includes("ik.imagekit.io")) {
-      return !f.url.endsWith('.pdf') && !f.url.includes('/pdf/');
-    }
-    if (f.type && f.type.startsWith('image/')) {
-      return true;
-    }
-    return false;
+  };
+
+  const getExt = (value = "") => {
+    const cleaned = getCleanPath(value);
+    const last = cleaned.split("/").pop() || "";
+    const dot = last.lastIndexOf(".");
+    if (dot < 0) return "";
+    return last.slice(dot + 1).toLowerCase();
   };
 
   const isPDF = (f) => {
-    return /\.pdf$/i.test(f.name) || 
-           f.url.endsWith('.pdf') || 
-           (f.type && f.type === 'application/pdf');
+    const nameExt = getExt(f.name || "");
+    const urlExt = getExt(f.url || "");
+    const type = String(f.type || "").toLowerCase();
+    const hintedType = String(mimeHints[f.id] || "").toLowerCase();
+    const url = String(f.url || "").toLowerCase();
+
+    return (
+      hintedType.includes("application/pdf") ||
+      type.includes("application/pdf") ||
+      nameExt === "pdf" ||
+      urlExt === "pdf" ||
+      url.includes(".pdf") ||
+      url.includes("/pdf/")
+    );
   };
+
+  const isImage = (f) => {
+    if (isPDF(f)) return false;
+
+    const imageExts = new Set([
+      "jpg",
+      "jpeg",
+      "png",
+      "gif",
+      "webp",
+      "svg",
+      "bmp",
+      "ico",
+      "heic",
+      "heif",
+      "avif",
+    ]);
+
+    const nameExt = getExt(f.name || "");
+    const urlExt = getExt(f.url || "");
+    const type = String(f.type || "").toLowerCase();
+    const hintedType = String(mimeHints[f.id] || "").toLowerCase();
+    const url = String(f.url || "").toLowerCase();
+
+    if (url.startsWith("data:image")) return true;
+    if (hintedType.startsWith("image/")) return true;
+    if (type.startsWith("image/")) return true;
+    if (imageExts.has(nameExt)) return true;
+    if (imageExts.has(urlExt)) return true;
+    return false;
+  };
+
+  const isLikelyImageUrl = (f) => {
+    if (isPDF(f) || isImage(f)) return isImage(f);
+
+    const url = String(f.url || "").toLowerCase();
+    if (!url || !(url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:image"))) {
+      return false;
+    }
+
+    const ext = getExt(url);
+    const nonImageExts = new Set([
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+      "txt",
+      "csv",
+      "zip",
+      "rar",
+      "7z",
+    ]);
+
+    if (ext && nonImageExts.has(ext)) return false;
+    if (url.includes("ik.imagekit.io")) return true;
+    return ext !== "";
+  };
+
+  const shouldRenderAsImage = (f) =>
+    !failedPreviewIds.has(f.id) && (isImage(f) || isLikelyImageUrl(f));
+
+  const canOpenPreview = (f) => isPDF(f) || shouldRenderAsImage(f);
 
   const handleDownload = async (file) => {
     try {
@@ -266,27 +413,21 @@ export default function AttachmentGrid({ files = [], theme }) {
                 ? "bg-gray-700 border-gray-600 hover:bg-gray-600"
                 : "bg-white border-gray-200 hover:bg-gray-50"
             }`}
-            onClick={() => (isImage(f) || isPDF(f)) && setLightbox(f)}
+            onClick={() => canOpenPreview(f) && setLightbox(f)}
           >
-            {isImage(f) ? (
+            {shouldRenderAsImage(f) ? (
               <img
                 src={f.url}
                 alt={f.name}
                 className="w-full h-28 object-contain rounded bg-white"
                 loading="lazy"
                 draggable={false}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.style.display = 'none';
-                  const parent = e.target.parentElement;
-                  parent.innerHTML = `
-                    <div class="w-full h-28 flex flex-col items-center justify-center bg-gray-100 rounded">
-                      <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <p class="text-xs text-gray-500">Failed to load</p>
-                    </div>
-                  `;
+                onError={() => {
+                  setFailedPreviewIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(f.id);
+                    return next;
+                  });
                 }}
               />
             ) : isPDF(f) ? (

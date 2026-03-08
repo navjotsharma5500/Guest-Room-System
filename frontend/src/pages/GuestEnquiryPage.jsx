@@ -20,6 +20,7 @@ import {
 
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import PublicPageWidgets from "../components/PublicPageWidgets";
 
 // ==================== CONSTANTS ====================
 const API = BACKEND_URL;
@@ -1276,7 +1277,7 @@ export default function GuestEnquiryPage() {
         </AnimatePresence>
 
         {/* SUPPORT BUTTON */}
-        <div className="fixed bottom-4 left-6 z-50">
+        <div className="fixed bottom-20 left-6 z-50">
           <div className="relative group">
             <button
               className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 shadow-lg transition-all duration-300"
@@ -1308,18 +1309,12 @@ export default function GuestEnquiryPage() {
           </div>
         </div>
 
-        <div className="fixed bottom-4 right-6 z-50 flex flex-col items-end gap-1">
-          <div className="bg-white/90 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg text-sm font-medium border border-gray-100 flex flex-col items-center">
-            <a 
-              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-blue-700 transition-colors"
-            >
-              Created and Maintained by <span className="font-semibold text-red-600">DoSA Office</span>
-            </a>
-          </div>
-        </div>
+        <PublicPageWidgets
+          hideFooter={!userType}
+          footerMode="flow"
+          footerClassName="mt-auto pt-12 w-full"
+          echoClassName="bottom-24"
+        />
       </div>
     </IKContext>
     </GoogleOAuthProvider>

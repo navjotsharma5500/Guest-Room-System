@@ -46,6 +46,8 @@ import { startNightPermissionTimeoutCron } from './utils/nightPermissionCron.js'
 import societyBudgetRoutes from './routes/societyBudgetRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
+import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
 
 const app = express();
 
@@ -335,6 +337,8 @@ app.use('/api/night', nightPermissionRoutes);
 app.use('/api/societies', societyBudgetRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use("/api/analytics", awsAnalyticsRoutes);
+app.use("/api/public-ui", publicUiConfigRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
@@ -501,3 +505,4 @@ const startServer = async () => {
 startServer();
 
 export default app;
+

@@ -13,6 +13,7 @@ const ROLE_SCOPE = {
   gen_sec: "Night Pass management",
   president: "Night Pass and Society Budgets",
   guard: "Night Pass (scan only)",
+  public: "General inquiries, navigation help, and public information",
 };
 
 const DEFAULT_FALLBACK_MESSAGE =
@@ -111,8 +112,8 @@ export const echoChat = async (req, res) => {
       return res.status(400).json({ message: "messages array is required" });
     }
 
-    const role = (req.user?.role || "").toLowerCase();
-    const name = req.user?.name || "User";
+    const role = (req.user?.role || "public").toLowerCase();
+    const name = req.user?.name || "Guest";
     const scope = ROLE_SCOPE[role] || "General portal navigation";
     const lastQuestion = getLastUserMessage(messages);
 
@@ -213,3 +214,4 @@ Guidelines:
     return res.status(500).json({ message: err.message });
   }
 };
+

@@ -37,6 +37,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const [bookings, setBookings]   = useState([]);
   const [dashStats, setDashStats] = useState(null);
   const [ga4, setGa4]             = useState(null);
+  const [awsStats, setAwsStats]   = useState(null);
+  const [awsLoading, setAwsLoading] = useState(true);
   const [ga4Days, setGa4Days]     = useState(30);
   const [loading, setLoading]     = useState(true);
   const [ga4Loading, setGa4Loading] = useState(true);
@@ -85,7 +87,23 @@ const AdminAnalyticsDashboard = ({ userName }) => {
     finally { setGa4Loading(false); }
   }, []);
 
-  useEffect(() => { fetchData(); fetchGA4(ga4Days); }, [fetchData, fetchGA4]);
+  const fetchAWS = useCallback(async () => {
+    setAwsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/analytics/aws`, {
+        credentials: "include",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setAwsStats(await res.json());
+    } catch (err) {
+      console.error("AWS analytics error:", err);
+    } finally {
+      setAwsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); fetchGA4(ga4Days); fetchAWS(); }, [fetchData, fetchGA4, fetchAWS]);
   const handleGa4Days = (d) => { setGa4Days(d); fetchGA4(d); };
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
@@ -686,21 +704,69 @@ const AdminAnalyticsDashboard = ({ userName }) => {
         </div>
       )}
 
-      {/* ── PLACEHOLDER SECTIONS FOR FUTURE EXPANSION ──────────────────────
-          Add these when backend endpoints are ready:
-          - Server Cost: /api/analytics/server-cost
-          - DB Space:    /api/analytics/db-space
-          - CPU/Memory:  /api/analytics/system-health
-          - Uptime:      /api/analytics/uptime
-      ─────────────────────────────────────────────────────────────────────── */}
-      <div className="bg-white/40 backdrop-blur-sm rounded-2xl border border-dashed border-slate-300 p-5">
-        <div className="flex items-center gap-3 text-slate-400">
-          <Zap className="w-5 h-5" />
-          <div>
-            <p className="text-sm font-semibold text-slate-500">Expandable Analytics Sections</p>
-            <p className="text-xs text-slate-400 mt-0.5">Future: Server Cost · DB Space · CPU/Memory Usage · System Health · Uptime Monitor</p>
+      {/* ══════════════════════════════════════════════════════════
+          AWS INFRASTRUCTURE
+          ══════════════════════════════════════════════════════════ */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/80 shadow-sm p-5">
+        <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <Activity className="w-4 h-4 text-slate-500" /> AWS Infrastructure
+        </h3>
+
+        {awsLoading ? (
+          <div className="flex items-center gap-2 py-4">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-slate-400">Loading AWS metrics…</p>
           </div>
-        </div>
+        ) : !awsStats ? (
+          <div className="flex items-center gap-2 py-4">
+            <AlertCircle className="w-4 h-4 text-red-400" />
+            <p className="text-xs text-red-400">AWS analytics unavailable — check EC2_INSTANCE_ID and AWS credentials in .env</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <KpiCard
+              label="CPU Usage"
+              value={`${awsStats.cpu}%`}
+              sub="EC2 CPU utilization"
+              icon={Activity}
+              iconBg="bg-blue-100"
+              iconColor="text-blue-600"
+            />
+            <KpiCard
+              label="Network In"
+              value={`${Math.round(awsStats.networkIn / 1024 / 1024)} MB`}
+              sub="Incoming traffic"
+              icon={Wifi}
+              iconBg="bg-green-100"
+              iconColor="text-green-600"
+            />
+            <KpiCard
+              label="Network Out"
+              value={`${Math.round(awsStats.networkOut / 1024 / 1024)} MB`}
+              sub="Outgoing traffic"
+              icon={Globe}
+              iconBg="bg-purple-100"
+              iconColor="text-purple-600"
+            />
+            <KpiCard
+              label="Server Status"
+              value={awsStats.instanceStatus}
+              sub="EC2 health"
+              icon={CheckCircle}
+              iconBg="bg-emerald-100"
+              iconColor="text-emerald-600"
+              color={awsStats.instanceStatus === "running" ? "text-emerald-600" : "text-red-600"}
+            />
+            <KpiCard
+              label="Monthly Cost"
+              value={`$${awsStats.monthlyCost}`}
+              sub="AWS estimated bill"
+              icon={IndianRupee}
+              iconBg="bg-amber-100"
+              iconColor="text-amber-600"
+            />
+          </div>
+        )}
       </div>
 
     </div>
