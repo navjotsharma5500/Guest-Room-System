@@ -56,8 +56,8 @@ const resolveNightPassAccess = async (user) => {
     };
   }
 
-  // ✅ CRITICAL: Blocked defaulters cannot log in
-  if (student.isDefaulter) {
+  // Only permanently blocked defaulters lose access.
+  if (student.defaulterBlocked) {
     return {
       allowed: false,
       code: "STUDENT_DEFAULTER",

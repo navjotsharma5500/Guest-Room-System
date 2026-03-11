@@ -35,6 +35,9 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
+import SocietyNightPassLandingPage from "./pages/SocietyNightPassLandingPage";
+import SocietyNightPassDashboard from "./pages/SocietyNightPassDashboard";
+import SocietyNightPassRequestPage from "./pages/SocietyNightPassRequestPage";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import ApprovalPage from "./pages/ApprovalPage";
@@ -54,7 +57,6 @@ import NightSettings from "./nightPermissions/pages/NightSettings";
 import NightRoleManagement from "./nightPermissions/pages/NightRoleManagement";
 import NightReports from "./nightPermissions/pages/NightReports";
 import NightBudgets from "./nightPermissions/pages/NightBudgets";  
-import NightMessenger from "./nightPermissions/pages/NightMessenger";
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
@@ -72,6 +74,7 @@ import "./styles/VenueBookingGlassmorphism.css";
 import { useAuth } from "./context/AuthContext";
 import { isDDAssistantRole } from "./utils/venueAccessPolicy";
 import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
+import SocietyNightProtectedRoute from "./components/SocietyNightProtectedRoute";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GLOBAL SWITCH: Set to false to hide Dashboard Selector from all non-admin roles
@@ -316,7 +319,6 @@ export default function App() {
             <Route path="students"    element={<NightStudents />} />
             <Route path="defaulters"  element={<NightDefaulters />} />
             <Route path="budgets"     element={<NightBudgets />} />   {/* ✅ NEW */}
-            <Route path="messenger"   element={<NightMessenger />} /> {/* ✅ NEW */}
             <Route path="calendar"    element={<NightCalendar />} />
             <Route path="roles"       element={<NightRoleManagement />} />
             <Route path="reports"     element={<NightReports />} />
@@ -330,6 +332,23 @@ export default function App() {
           <Route path="/venue-guest-enquiry"  element={<VenueGuestEnquiryPage />} />
           <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+          <Route path="/society-night-pass" element={<SocietyNightPassLandingPage />} />
+          <Route
+            path="/society-night-pass/dashboard"
+            element={
+              <SocietyNightProtectedRoute>
+                <SocietyNightPassDashboard />
+              </SocietyNightProtectedRoute>
+            }
+          />
+          <Route
+            path="/society-night-pass/request"
+            element={
+              <SocietyNightProtectedRoute>
+                <SocietyNightPassRequestPage />
+              </SocietyNightProtectedRoute>
+            }
+          />
 
           {/* ================================================================
               QR CODE GENERATOR (admin only)

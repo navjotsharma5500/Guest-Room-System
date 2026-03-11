@@ -5,6 +5,7 @@ import {
   Building2,
   Calendar,
   Moon,
+  Users,
   Globe,
   Search,
   Sparkles,
@@ -52,9 +53,17 @@ const CARD_META = {
     icon: Moon,
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
-    action: (navigate) => navigate("/night-pass"),
+    action: (navigate, currentUser) => navigate(currentUser ? "/night-pass" : "/login"),
     authRequired: true,
     badge: { label: "STUDENT", bg: "bg-amber-100", text: "text-amber-700" },
+  },
+  "society-night-pass": {
+    icon: Users,
+    iconBg: "bg-rose-100",
+    iconColor: "text-rose-600",
+    action: (navigate) => navigate("/society-night-pass"),
+    authRequired: false,
+    badge: { label: "PUBLIC", bg: "bg-rose-100", text: "text-rose-700" },
   },
   calendar: {
     icon: Globe,
@@ -77,6 +86,7 @@ const CARD_LABELS = {
   "venue-booking": "Venue Booking",
   feedback: "Feedback",
   "night-permissions": "Night Permissions",
+  "society-night-pass": "Society Night Pass",
   calendar: "Event Calendar",
   "lost-found": "Lost & Found",
 };
@@ -152,6 +162,18 @@ const sanitizePrefs = (prefs, selectorConfig) => {
   }
 
   return safe;
+};
+
+const appendMissingCardIds = (ids) => {
+  const ordered = [];
+  (Array.isArray(ids) ? ids : []).forEach((id) => {
+    const value = String(id || "").trim();
+    if (CARD_META[value] && !ordered.includes(value)) ordered.push(value);
+  });
+  Object.keys(CARD_META).forEach((id) => {
+    if (!ordered.includes(id)) ordered.push(id);
+  });
+  return ordered;
 };
 
 const readLocalPrefs = (selectorConfig) => {
@@ -239,20 +261,25 @@ const PublicDashboardSelector = () => {
       if (!card?.id || !CARD_META[card.id]) return;
       cardsById.set(card.id, card);
     });
+    const defaultCardsById = new Map();
+    (DEFAULT_PUBLIC_UI_CONFIG.selector.cards || []).forEach((card) => {
+      if (!card?.id || !CARD_META[card.id]) return;
+      defaultCardsById.set(card.id, card);
+    });
 
     const orderedIds = Array.isArray(effectiveSelector.cardOrder)
-      ? effectiveSelector.cardOrder
-      : DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder;
+      ? appendMissingCardIds(effectiveSelector.cardOrder)
+      : appendMissingCardIds(DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder);
 
     return orderedIds
       .filter((id) => CARD_META[id])
       .map((id) => {
         const meta = CARD_META[id];
-        const cfg = cardsById.get(id) || {};
+        const cfg = cardsById.get(id) || defaultCardsById.get(id) || {};
         return {
           id,
-          title: cfg.title,
-          description: cfg.description,
+          title: cfg.title || CARD_LABELS[id] || id,
+          description: cfg.description || "",
           features: Array.isArray(cfg.features) ? cfg.features : [],
           enabled: cfg.enabled !== false,
           ...meta,
@@ -595,7 +622,7 @@ const PublicDashboardSelector = () => {
                 className="relative group"
               >
                 <button
-                  onClick={() => dashboard.action(navigate)}
+                  onClick={() => dashboard.action(navigate, currentUser)}
                   className={`w-full h-full p-8 rounded-3xl border-2 shadow-xl transition-all duration-500 text-left cursor-pointer ${
                     CARD_STYLE_CLASSES[effectiveSelector.cardStyle] || CARD_STYLE_CLASSES.glass
                   }`}

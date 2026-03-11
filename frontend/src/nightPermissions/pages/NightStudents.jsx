@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchStudents, uploadStudentsExcel, deleteStudent } from '../utils/nightApi';
+import { fetchStudents, uploadStudentsExcel, deleteStudent, downloadStudentTemplate } from '../utils/nightApi';
 import { useToast } from '../components/NightToast';
 import Toast from '../components/NightToast';
-import { Search, Trash2, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Search, Trash2, FileSpreadsheet, AlertCircle, Download } from 'lucide-react';
 
 export default function Students() {
   const { toasts, addToast, removeToast } = useToast();
@@ -64,6 +64,26 @@ export default function Students() {
     }
   };
 
+  const handleTemplateDownload = async () => {
+    try {
+      const res = await downloadStudentTemplate();
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'night-students-template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('Template downloaded');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Template download failed', 'error');
+    }
+  };
+
   const totalPages = Math.ceil(total / LIMIT);
 
   return (
@@ -77,6 +97,9 @@ export default function Students() {
             <p style={{ margin: '4px 0 0', color: '#5f6368', fontSize: 14 }}>{total.toLocaleString()} active students in system</p>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={handleTemplateDownload} className="night-btn-pill" style={{ background: '#ffffff', color: '#1a73e8', border: '1px solid #dadce0' }}>
+              <Download size={18} /> Download Template
+            </button>
             <input type="file" accept=".xlsx,.xls" ref={fileInputRef} onChange={handleUpload} style={{ display: 'none' }} />
             <button onClick={() => fileInputRef.current.click()} disabled={uploading} className="night-btn-pill">
               {uploading ? '⏳ Uploading...' : <><FileSpreadsheet size={18} /> Upload Excel</>}

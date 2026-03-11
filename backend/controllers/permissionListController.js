@@ -29,6 +29,136 @@ const emitSafe = (event, payload, room = null) => {
   } catch (_) { /* non-critical */ }
 };
 
+const APPLICATION_CUTOFF_MESSAGE = 'Night pass applications are closed for today.';
+
+const isAfterDailyCutoff = (cutoffTime, now = new Date()) => {
+  const match = String(cutoffTime || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return false;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return false;
+
+  const cutoffAt = new Date(now);
+  cutoffAt.setHours(hours, minutes, 0, 0);
+  return now > cutoffAt;
+};
+
+const enforceApplicationCutoff = async () => {
+  const settings = await getSettings();
+  if (isAfterDailyCutoff(settings.lastApplyAllowedTime)) {
+    const error = new Error(APPLICATION_CUTOFF_MESSAGE);
+    error.statusCode = 403;
+    throw error;
+  }
+  return settings;
+};
+
+const getStudentsWithActiveSessions = async (students = []) => {
+  const studentIds = [...new Set(
+    students
+      .map((student) => student?._id?.toString())
+      .filter(Boolean)
+  )];
+
+  if (studentIds.length === 0) return [];
+
+  const sessions = await PermissionSession.find({
+    studentId: { $in: studentIds },
+    currentPhase: { $nin: ['COMPLETED', 'DEFAULTER'] },
+  }).select('studentId rollNo currentPhase');
+
+  return sessions;
+};
+
+const ensureNoActiveSessions = async (students = []) => {
+  const activeSessions = await getStudentsWithActiveSessions(students);
+  if (activeSessions.length === 0) return;
+
+  const activeRollNos = [...new Set(activeSessions.map((session) => session.rollNo).filter(Boolean))];
+  const error = new Error(
+    `Active night permission session already exists for: ${activeRollNos.join(', ')}`
+  );
+  error.statusCode = 400;
+  throw error;
+};
+
+const buildDailyPermissionWindows = (rangeStart, rangeEnd) => {
+  const start = new Date(rangeStart);
+  const end = new Date(rangeEnd);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    const error = new Error('Invalid permission date range');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const startHours = start.getHours();
+  const startMinutes = start.getMinutes();
+  const startSeconds = start.getSeconds();
+  const startMilliseconds = start.getMilliseconds();
+
+  const endHours = end.getHours();
+  const endMinutes = end.getMinutes();
+  const endSeconds = end.getSeconds();
+  const endMilliseconds = end.getMilliseconds();
+
+  const windows = [];
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+
+  const lastDay = new Date(end);
+  lastDay.setHours(0, 0, 0, 0);
+
+  while (cursor <= lastDay) {
+    const sessionStart = new Date(cursor);
+    sessionStart.setHours(startHours, startMinutes, startSeconds, startMilliseconds);
+
+    const sessionEnd = new Date(cursor);
+    sessionEnd.setHours(endHours, endMinutes, endSeconds, endMilliseconds);
+
+    if (sessionEnd <= sessionStart) {
+      const error = new Error('Daily permission end time must be after start time');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    windows.push({
+      permissionStartDateTime: sessionStart,
+      permissionEndDateTime: sessionEnd,
+    });
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return windows;
+};
+
+const buildSessionDocsForDateRange = ({ list, students, settings }) => {
+  const dailyWindows = buildDailyPermissionWindows(list.startDateTime, list.endDateTime);
+  const sessionDocs = [];
+
+  for (const student of students) {
+    for (const window of dailyWindows) {
+      sessionDocs.push({
+        permissionListId: list._id,
+        studentId: student._id,
+        rollNo: student.rollNo,
+        name: student.name,
+        venueName: list.venueName,
+        venueHall: list.venueHall || '',
+        permissionStartDateTime: window.permissionStartDateTime,
+        permissionEndDateTime: window.permissionEndDateTime,
+        allowedToVenueMinutes: settings.defaultToVenueTimerMinutes,
+        allowedToHostelMinutes: settings.defaultToHostelTimerMinutes,
+        currentPhase: 'NOT_STARTED',
+      });
+    }
+  }
+
+  return sessionDocs;
+};
+
 // Role → what stage they can forward FROM
 // Gen Sec creates → forwards to PRESIDENT
 // President reviews → forwards to ADOSA
@@ -141,6 +271,8 @@ export const createList = async (req, res) => {
     const role = (req.user?.role || '').toLowerCase();
     const userSocieties = req.user?.societies || [];
 
+    await enforceApplicationCutoff();
+
     // 1. Authorization: Allow roles: STUDENT, GEN_SEC, PRESIDENT, ADOSA, ADMIN
     const ALLOWED_CREATORS = ['student', 'gen_sec', 'president', 'adosa', 'admin'];
     if (!ALLOWED_CREATORS.includes(role)) {
@@ -215,6 +347,9 @@ export const createList = async (req, res) => {
     if (role === 'adosa' || role === 'admin') initialStatus = 'APPROVED';
 
     const isAdminOrAdosa = initialStatus === 'APPROVED';
+    if (isAdminOrAdosa) {
+      await ensureNoActiveSessions(students);
+    }
 
     const list = await NightPermissionList.create({
       societyName, eventName, venueName, venueHall: venueHall || '',
@@ -245,19 +380,7 @@ export const createList = async (req, res) => {
         await list.save();
 
         // Create Sessions
-        const sessionDocs = students.map(student => ({
-          permissionListId: list._id,
-          studentId: student._id,
-          rollNo: student.rollNo,
-          name:   student.name,
-          venueName: list.venueName,
-          venueHall: list.venueHall || '',
-          permissionStartDateTime: list.startDateTime,
-          permissionEndDateTime:   list.endDateTime,
-          allowedToVenueMinutes:   settings.defaultToVenueTimerMinutes,
-          allowedToHostelMinutes:  settings.defaultToHostelTimerMinutes,
-          currentPhase: 'NOT_STARTED',
-        }));
+        const sessionDocs = buildSessionDocsForDateRange({ list, students, settings });
 
         if (sessionDocs.length > 0) {
           await PermissionSession.insertMany(sessionDocs);
@@ -307,7 +430,7 @@ export const createList = async (req, res) => {
     res.status(201).json({ message: isAdminOrAdosa ? 'Permission list created and auto-approved' : 'Permission list created', list });
   } catch (err) {
     console.error('❌ createList error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(err.statusCode || 500).json({ message: err.message });
   }
 };
 
@@ -316,6 +439,8 @@ export const createList = async (req, res) => {
 export const createStudentRequest = async (req, res) => {
   try {
     const { societyName, eventName, venueName, startDateTime, endDateTime, description } = req.body;
+
+    await enforceApplicationCutoff();
 
     // 1. Get student record
     // Use regex for case-insensitive email match
@@ -377,7 +502,7 @@ export const createStudentRequest = async (req, res) => {
 
   } catch (err) {
     console.error('❌ createStudentRequest error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(err.statusCode || 500).json({ message: err.message });
   }
 };
 
@@ -454,6 +579,8 @@ export const approveStudents = async (req, res) => {
     const settings = await getSettings();
     const approvedSet = new Set(approvedRollNos.map(r => String(r).trim().toUpperCase()));
     const approvedStudentIds = [];
+    const approvedStudents = await NightStudent.find({ rollNo: { $in: [...approvedSet] } });
+    await ensureNoActiveSessions(approvedStudents);
 
     // Update per-student status
     for (const s of list.students) {
@@ -472,21 +599,11 @@ export const approveStudents = async (req, res) => {
     await list.save();
 
     // Create PermissionSession for each approved student
-    const approvedStudents = await NightStudent.find({ rollNo: { $in: [...approvedSet] } });
-
-    const sessionDocs = approvedStudents.map(student => ({
-      permissionListId: list._id,
-      studentId: student._id,
-      rollNo: student.rollNo,
-      name:   student.name,
-      venueName: list.venueName,
-      venueHall: list.venueHall || '',
-      permissionStartDateTime: list.startDateTime,
-      permissionEndDateTime:   list.endDateTime,
-      allowedToVenueMinutes:   settings.defaultToVenueTimerMinutes,
-      allowedToHostelMinutes:  settings.defaultToHostelTimerMinutes,
-      currentPhase: 'NOT_STARTED',
-    }));
+    const sessionDocs = buildSessionDocsForDateRange({
+      list,
+      students: approvedStudents,
+      settings,
+    });
 
     if (sessionDocs.length > 0) {
       await PermissionSession.insertMany(sessionDocs);
@@ -533,7 +650,7 @@ export const approveStudents = async (req, res) => {
     res.status(200).json({ message: `${approvedStudentIds.length} student(s) approved`, list });
   } catch (err) {
     console.error('❌ approveStudents error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(err.statusCode || 500).json({ message: err.message });
   }
 };
 

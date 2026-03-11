@@ -4,18 +4,17 @@ import { useAuth } from '../../context/AuthContext';
 import thaparLogo from '../../assets/thapar_logo.png';
 
 const NAV_ITEMS = [
-  { path: '/night',            label: 'Dashboard',   icon: '🌙', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
-  { path: '/night/lists',      label: 'Lists',       icon: '📋', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
-  { path: '/night/review',     label: 'Review',      icon: '🔍', roles: ['president', 'adosa', 'admin', 'assistant'] },
-  { path: '/night/scan',       label: 'Scan',        icon: '📷', roles: ['caretaker', 'guard', 'adosa', 'admin'] },
-  { path: '/night/students',   label: 'Students',    icon: '👤', roles: ['adosa', 'admin', 'assistant'] },
-  { path: '/night/defaulters', label: 'Defaulters',  icon: '🚫', roles: ['adosa', 'admin', 'assistant'] },
-  { path: '/night/budgets',    label: 'Budgets',     icon: '💰', roles: ['adosa', 'admin', 'assistant'] },
-  { path: '/night/messenger',  label: 'Messenger',   icon: '💬', roles: ['adosa', 'admin', 'assistant', 'president', 'gen_sec'] },
-  { path: '/night/calendar',   label: 'Calendar',    icon: '📅', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
-  { path: '/night/roles',      label: 'Roles',       icon: '🔑', roles: ['adosa', 'admin'] },
-  { path: '/night/reports',    label: 'Reports',     icon: '📊', roles: ['adosa', 'admin', 'assistant'] },
-  { path: '/night/settings',   label: 'Settings',    icon: '⚙️',  roles: ['adosa', 'admin', 'assistant'] },
+  { path: '/night-pass',            label: 'Dashboard',   icon: '🌙', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/lists',      label: 'Lists',       icon: '📋', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/review',     label: 'Review',      icon: '🔍', roles: ['president', 'adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/scan',       label: 'Scan',        icon: '📷', roles: ['caretaker', 'guard', 'adosa', 'admin'] },
+  { path: '/night-pass/students',   label: 'Students',    icon: '👤', roles: ['adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/defaulters', label: 'Defaulters',  icon: '🚫', roles: ['adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/budgets',    label: 'Budgets',     icon: '💰', roles: ['adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/calendar',   label: 'Calendar',    icon: '📅', roles: ['gen_sec', 'president', 'adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/roles',      label: 'Roles',       icon: '🔑', roles: ['adosa', 'admin'] },
+  { path: '/night-pass/reports',    label: 'Reports',     icon: '📊', roles: ['adosa', 'admin', 'assistant'] },
+  { path: '/night-pass/settings',   label: 'Settings',    icon: '⚙️',  roles: ['adosa', 'admin', 'assistant'] },
 ];
 
 const hasAccess = (roles, userRole) =>
@@ -28,7 +27,7 @@ export default function NightSidebar({ onClose }) {
 
   // Caretaker: ONLY show QR Scan, nothing else
   const filtered = appRole === 'caretaker'
-    ? NAV_ITEMS.filter(i => i.path === '/night/scan')
+    ? NAV_ITEMS.filter(i => i.path === '/night-pass/scan')
     : NAV_ITEMS.filter(item => hasAccess(item.roles, nightRole));
 
   const linkStyle = ({ isActive }) => ({
@@ -73,7 +72,7 @@ export default function NightSidebar({ onClose }) {
       {/* ── Nav ── */}
       <nav style={{ flex: 1, padding: '10px 8px', overflowY: 'auto' }}>
         {filtered.map(item => (
-          <NavLink key={item.path} to={item.path} end={item.path === '/night'} style={linkStyle} onClick={onClose}>
+          <NavLink key={item.path} to={item.path} end={item.path === '/night-pass'} style={linkStyle} onClick={onClose}>
             <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{item.icon}</span>
             <span>{item.label}</span>
           </NavLink>

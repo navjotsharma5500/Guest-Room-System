@@ -60,7 +60,7 @@ export const protect = async (req, res, next) => {
     // we might need to pretend they are 'co_warden' for controllers that strictly check role.
     
     // Ideally, controllers should check permissions, but for legacy compatibility:
-    if (user.permissions?.guestRoom === true && !["admin", "manager", "warden", "caretaker", "assistant", "co_warden"].includes(user.role)) {
+    if (user.permissions?.guestRoom === true && !["admin", "adosa", "manager", "warden", "caretaker", "assistant", "co_warden"].includes(user.role)) {
        console.log(`⚡ Permission Override: ${user.email} -> Treating as CO_WARDEN for Guest Room context`);
        req.user.originalRole = user.role;
        req.user.role = 'co_warden'; 

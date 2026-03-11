@@ -346,7 +346,7 @@ export default function Dashboard() {
         <div className="night-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 32 }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #dadce0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8f9fa' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#202124' }}>Recent Permission Lists</h2>
-            <Link to="/night/lists" style={{ fontSize: 13, color: '#1a73e8', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
+            <Link to="/night-pass/lists" style={{ fontSize: 13, color: '#1a73e8', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
           </div>
 
           {recentLists.length === 0 ? (
@@ -381,9 +381,9 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {canCreateList && <Link to="/night/lists" className="night-btn-pill">➕ Create List</Link>}
-          {canScan && <Link to="/night/scan" className="night-btn-pill" style={{ background: '#34a853' }}>📷 Scan Terminal</Link>}
-          {canReview && <Link to="/night/review" className="night-btn-pill" style={{ background: '#8b5cf6' }}>🔍 Review Lists</Link>}
+          {canCreateList && <Link to="/night-pass/lists" className="night-btn-pill">➕ Create List</Link>}
+          {canScan && <Link to="/night-pass/scan" className="night-btn-pill" style={{ background: '#34a853' }}>📷 Scan Terminal</Link>}
+          {canReview && <Link to="/night-pass/review" className="night-btn-pill" style={{ background: '#8b5cf6' }}>🔍 Review Lists</Link>}
         </div>
 
         {selectedBooking && <BookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />}

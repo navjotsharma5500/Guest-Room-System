@@ -7,6 +7,7 @@ import * as studentCtrl from '../controllers/nightStudentController.js';
 import * as listCtrl    from '../controllers/permissionListController.js';
 import * as scanCtrl    from '../controllers/scanController.js';
 import * as roleCtrl    from '../controllers/roleManagementController.js';
+import * as dashboardCtrl from '../controllers/nightDashboardController.js';
 import NightStudent      from '../models/NightStudent.js';
 import NightPermissionList from '../models/NightPermissionList.js';
 import { getSettings }   from '../models/NightSystemSettings.js';
@@ -63,6 +64,7 @@ router.get('/health', (req, res) => {
 
 router.get('/students', protect, studentCtrl.getAllStudents);
 router.get('/students/search', protect, studentCtrl.searchStudents);
+router.get('/students/template', protect, requireAdosa, studentCtrl.downloadStudentTemplate);
 router.get('/students/:rollNo', protect, studentCtrl.getStudentByRollNo);
 router.post('/students', protect, requireAdosa, studentCtrl.upsertStudent);
 router.delete('/students/:studentId', protect, requireAdosa, studentCtrl.deleteStudent);
@@ -87,6 +89,12 @@ router.patch('/lists/:listId/cancel', protect, requireAdosa, listCtrl.cancelList
 
 router.post('/scan', protect, requireScanRole, scanCtrl.processScan);
 router.get('/scan/logs', protect, requireScanRole, scanCtrl.getScanLogs);
+
+// ── LIVE OPERATIONS ──────────────────────────────────────────────────────────
+
+router.get('/dashboard', protect, dashboardCtrl.getNightDashboard);
+router.get('/gate-status', protect, dashboardCtrl.getGateStatus);
+router.get('/analytics', protect, dashboardCtrl.getNightAnalytics);
 
 // ── ROLES ─────────────────────────────────────────────────────────────────────
 
@@ -145,7 +153,14 @@ router.get('/settings', protect, async (req, res) => {
 router.put('/settings', protect, requireAdosa, async (req, res) => {
   try {
     const settings = await getSettings();
-    const allowed = ['defaultToVenueTimerMinutes', 'defaultToHostelTimerMinutes', 'defaulterStrikeLimit', 'lastApplyAllowedTime'];
+    const allowed = [
+      'defaultToVenueTimerMinutes',
+      'defaultToHostelTimerMinutes',
+      'defaulterStrikeLimit',
+      'lastApplyAllowedTime',
+      'lastScanTimeCaretaker',
+      'lastScanTimeGuard',
+    ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) settings[key] = req.body[key];
     }

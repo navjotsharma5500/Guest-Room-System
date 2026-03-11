@@ -6,6 +6,51 @@ import PermissionSession from '../models/PermissionSession.js';
 import NightStudent from '../models/NightStudent.js';
 import { getSettings } from '../models/NightSystemSettings.js';
 
+const applyDefaulterStrike = async (studentId, strikeLimit) => {
+  const student = await NightStudent.findByIdAndUpdate(
+    studentId,
+    { $inc: { defaulterCount: 1 }, isDefaulter: true },
+    { new: true }
+  );
+
+  if (student && student.defaulterCount >= strikeLimit) {
+    await NightStudent.findByIdAndUpdate(studentId, { defaulterBlocked: true });
+    return { student, blocked: true };
+  }
+
+  return { student, blocked: false };
+};
+
+const getSessionTimeoutReason = (session, now) => {
+  if (!session) return null;
+
+  if (session.currentPhase === 'NOT_STARTED' && now > session.permissionEndDateTime) {
+    return 'MISSED_HOSTEL_EXIT';
+  }
+
+  if (
+    session.currentPhase === 'GOING_TO_VENUE'
+    && session.deadlineToVenue
+    && now > session.deadlineToVenue
+  ) {
+    return 'LATE_TO_VENUE';
+  }
+
+  if (session.currentPhase === 'AT_VENUE' && now > session.permissionEndDateTime) {
+    return 'MISSED_VENUE_EXIT';
+  }
+
+  if (
+    session.currentPhase === 'RETURNING_TO_HOSTEL'
+    && session.deadlineToHostel
+    && now > session.deadlineToHostel
+  ) {
+    return 'LATE_TO_HOSTEL';
+  }
+
+  return null;
+};
+
 export const runNightPermissionTimeoutCheck = async (io) => {
   const now     = new Date();
   const summary = { checked: 0, markedDefaulter: 0, blocked: 0, errors: [] };
@@ -13,31 +58,29 @@ export const runNightPermissionTimeoutCheck = async (io) => {
   try {
     const settings = await getSettings();
 
-    const expiredToVenue  = await PermissionSession.find({ currentPhase: 'GOING_TO_VENUE',      deadlineToVenue:  { $lt: now } });
-    const expiredToHostel = await PermissionSession.find({ currentPhase: 'RETURNING_TO_HOSTEL', deadlineToHostel: { $lt: now } });
+    const candidateSessions = await PermissionSession.find({
+      currentPhase: { $in: ['NOT_STARTED', 'GOING_TO_VENUE', 'AT_VENUE', 'RETURNING_TO_HOSTEL'] },
+      permissionStartDateTime: { $lte: now },
+    });
 
-    const allExpired = [
-      ...expiredToVenue.map(s  => ({ session: s, reason: 'LATE_TO_VENUE'  })),
-      ...expiredToHostel.map(s => ({ session: s, reason: 'LATE_TO_HOSTEL' })),
-    ];
+    summary.checked = candidateSessions.length;
 
-    summary.checked = allExpired.length;
-
-    for (const { session, reason } of allExpired) {
+    for (const session of candidateSessions) {
       try {
+        const reason = getSessionTimeoutReason(session, now);
+        if (!reason) continue;
+
         session.isDefaulter     = true;
         session.defaulterReason = reason;
         session.currentPhase    = 'DEFAULTER';
         await session.save();
 
-        const student = await NightStudent.findByIdAndUpdate(
+        const { blocked } = await applyDefaulterStrike(
           session.studentId,
-          { $inc: { defaulterCount: 1 }, isDefaulter: true },
-          { new: true }
+          settings.defaulterStrikeLimit
         );
 
-        if (student && student.defaulterCount >= settings.defaulterStrikeLimit) {
-          await NightStudent.findByIdAndUpdate(session.studentId, { defaulterBlocked: true });
+        if (blocked) {
           summary.blocked++;
         }
 
@@ -48,6 +91,8 @@ export const runNightPermissionTimeoutCheck = async (io) => {
             io.to('night-permissions').emit('np:student-defaulter', {
               studentId: session.studentId, rollNo: session.rollNo,
               reason, phase: 'DEFAULTER', source: 'cron-timeout',
+              sessionId: session._id,
+              sessionDate: session.permissionStartDateTime?.toISOString?.().slice(0, 10) || null,
               timestamp: now.toISOString(),
             });
           }

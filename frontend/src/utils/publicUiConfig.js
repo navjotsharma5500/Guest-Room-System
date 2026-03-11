@@ -20,6 +20,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       "venue-booking",
       "feedback",
       "night-permissions",
+      "society-night-pass",
       "calendar",
       "lost-found",
     ],
@@ -51,6 +52,13 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
         title: "Night Permissions",
         description: "Student Night Out & Dashboard (Requires Google Login)",
         features: ["Apply for Pass", "Check Status", "QR Code"],
+      },
+      {
+        id: "society-night-pass",
+        enabled: true,
+        title: "Society Night Pass",
+        description: "Student society night event permissions",
+        features: ["Google Login", "Raise Request", "Track Status"],
       },
       {
         id: "calendar",

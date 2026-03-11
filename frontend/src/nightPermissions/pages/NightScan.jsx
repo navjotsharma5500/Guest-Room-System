@@ -262,7 +262,7 @@ export default function Scan() {
   const loadLogs = useCallback(async () => {
     try {
       const res = await fetchScanLogs({ limit: 10 });
-      setLogs(res.data.logs || []);
+      setLogs(Array.isArray(res.data) ? res.data : (res.data.logs || []));
     } catch (_) {}
   }, []);
 
@@ -274,8 +274,8 @@ export default function Scan() {
   });
 
   // ── core scan function (shared by both modes) ──────────────────────────────
-  const executeScan = useCallback(async (rollNoValue) => {
-    const rn = (rollNoValue || '').trim();
+  const executeScan = useCallback(async (scanValue) => {
+    const rn = (scanValue || '').trim();
     if (!rn || loading) return;
 
     // Additional debounce for API calls (5 seconds)
@@ -304,7 +304,7 @@ export default function Scan() {
       setLoading(false);
       if (scanMode === 'A') setTimeout(() => inputRef.current?.focus(), 80);
     }
-  }, [scanLocation, loading, scanMode, lastScanned, lastScanTime]);
+  }, [scanLocation, loading, scanMode, lastScanned, lastScanTime, loadLogs]);
 
   // ── Mode A: keyboard form submit ───────────────────────────────────────────
   const handleKeyboardScan = (e) => {
@@ -370,13 +370,11 @@ export default function Scan() {
             Html5QrcodeSupportedFormats.CODE_39,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.QR_CODE,
           ],
         },
         (decodedText) => {
-          // Extract roll number — barcode may encode just the number or a URL with it
-          const rollNoMatch = decodedText.match(/\b(\d{8,12})\b/);
-          const extracted   = rollNoMatch ? rollNoMatch[1] : decodedText.trim();
+          // The physical ID card barcode encodes the roll number.
+          const extracted = ((decodedText.match(/\b(\d{8,12})\b/) || [])[1] || decodedText.trim());
 
           // Flash feedback
           const viewfinder = document.getElementById(VIEWFINDER_ID);

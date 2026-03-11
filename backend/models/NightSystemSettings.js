@@ -14,6 +14,10 @@ const nightSystemSettingsSchema = new mongoose.Schema({
   // Cutoff time for students to apply (e.g. "21:00")
   lastApplyAllowedTime: { type: String, default: '21:00' },
 
+  // Latest allowed scan times by role (24h format)
+  lastScanTimeCaretaker: { type: String, default: '21:00' },
+  lastScanTimeGuard: { type: String, default: '23:30' },
+
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedAt: { type: Date, default: null },
 }, {

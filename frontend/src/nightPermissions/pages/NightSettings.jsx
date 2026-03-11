@@ -25,6 +25,8 @@ export default function Settings() {
         defaultToHostelTimerMinutes: Number(form.defaultToHostelTimerMinutes),
         defaulterStrikeLimit:        Number(form.defaulterStrikeLimit),
         lastApplyAllowedTime:        form.lastApplyAllowedTime,
+        lastScanTimeCaretaker:       form.lastScanTimeCaretaker,
+        lastScanTimeGuard:           form.lastScanTimeGuard,
       });
       setSettings(res.data);
       addToast('Settings saved!');
@@ -86,6 +88,18 @@ export default function Settings() {
             <input type="time" className="night-input"
               value={form.lastApplyAllowedTime || ''}
               onChange={e => setForm(f => ({ ...f, lastApplyAllowedTime: e.target.value }))} />
+          </Field>
+
+          <Field label="Caretaker Scan Cutoff" description="Latest allowed hostel-exit scan time for the day. If caretaker scans after this time, the session is marked defaulter.">
+            <input type="time" className="night-input"
+              value={form.lastScanTimeCaretaker || ''}
+              onChange={e => setForm(f => ({ ...f, lastScanTimeCaretaker: e.target.value }))} />
+          </Field>
+
+          <Field label="Guard Scan Cutoff" description="Latest allowed venue-side scan time for the day. If guard scans after this time, the session is marked defaulter.">
+            <input type="time" className="night-input"
+              value={form.lastScanTimeGuard || ''}
+              onChange={e => setForm(f => ({ ...f, lastScanTimeGuard: e.target.value }))} />
           </Field>
         </div>
 

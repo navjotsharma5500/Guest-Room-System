@@ -115,6 +115,37 @@ export const searchStudents = async (req, res) => {
   }
 };
 
+// ── GET /api/night/students/template ─────────────────────────────────────────
+export const downloadStudentTemplate = async (req, res) => {
+  try {
+    const headers = ['rollNo', 'email', 'name', 'hostel', 'roomNo', 'branch'];
+    const sampleRows = [
+      headers,
+      ['102303851', 'student1@thapar.edu', 'Student One', 'J Hall', 'A-101', 'Computer Engineering'],
+      ['102303852', 'student2@thapar.edu', 'Student Two', 'K Hall', 'B-204', 'Electronics Engineering'],
+    ];
+
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.aoa_to_sheet(sampleRows);
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'NightStudentsTemplate');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="night-students-template.xlsx"'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.status(200).send(buffer);
+  } catch (err) {
+    console.error('❌ downloadStudentTemplate error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ── POST /api/night/students ──────────────────────────────────────────────────
 
 export const upsertStudent = async (req, res) => {
