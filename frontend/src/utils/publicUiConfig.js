@@ -48,9 +48,9 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       {
         id: "society-night-pass",
         enabled: true,
-        title: "Society Night Pass",
-        description: "Student society night event permissions",
-        features: ["Google Login", "Raise Request", "Track Status"],
+        title: "Library Night Permission",
+        description: "Apply for late-night library permissions",
+        features: ["Open Portal", "Submit Request", "Track Status"],
       },
       {
         id: "calendar",

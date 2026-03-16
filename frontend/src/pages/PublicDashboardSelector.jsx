@@ -52,7 +52,7 @@ const CARD_META = {
     icon: Users,
     iconBg: "bg-rose-100",
     iconColor: "text-rose-600",
-    action: (navigate) => navigate("/society-night-pass"),
+    action: () => window.open("https://permissions.thapar.edu", "_blank"),
     authRequired: false,
     badge: { label: "PUBLIC", bg: "bg-rose-100", text: "text-rose-700" },
   },
@@ -76,7 +76,7 @@ const CARD_LABELS = {
   "guest-booking": "Guest Booking",
   "venue-booking": "Venue Booking",
   feedback: "Feedback",
-  "society-night-pass": "Society Night Pass",
+  "society-night-pass": "Library Night Permission",
   calendar: "Event Calendar",
   "lost-found": "Lost & Found",
 };

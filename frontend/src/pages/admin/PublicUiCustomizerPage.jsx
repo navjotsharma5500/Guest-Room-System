@@ -12,7 +12,7 @@ const CARD_LABELS = {
   "guest-booking": "Guest Booking",
   "venue-booking": "Venue Booking",
   feedback: "Feedback",
-  "society-night-pass": "Society Night Pass",
+  "society-night-pass": "Library Night Permission",
   calendar: "Event Calendar",
   "lost-found": "Lost & Found",
 };
