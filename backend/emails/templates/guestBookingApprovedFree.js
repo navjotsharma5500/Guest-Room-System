@@ -1,5 +1,6 @@
 // guestBookingApprovedFree.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestBookingApprovedFree(b) {
   return masterTemplate({
@@ -27,8 +28,8 @@ export default function guestBookingApprovedFree(b) {
 
         <strong>Hostel:</strong> ${b.hostel}<br/>
         <strong>Room Number:</strong> ${b.roomNo}<br/>
-        <strong>Check-in:</strong> ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
-        <strong>Check-out:</strong> ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        <strong>Check-in:</strong> ${formatDateIST(b.from)} ${b.checkInTime || ""}<br/>
+        <strong>Check-out:</strong> ${formatDateIST(b.to)} ${b.checkOutTime || ""}
       </div>
 
       <p>

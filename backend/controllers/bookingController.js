@@ -806,6 +806,12 @@ export const checkOutGuest = async (req, res) => {
       booking.actualCheckoutTime = actualCheckoutTime;
       booking.checkOutTime = actualCheckoutTime; // ✅ Update planned time for manual checkout
     }
+    if (!actualCheckoutDate) {
+      booking.actualCheckoutDate = booking.checkedOutAt;
+    }
+    if (!actualCheckoutTime) {
+      booking.actualCheckoutTime = booking.checkedOutAt.toTimeString().slice(0, 5);
+    }
 
     await booking.save();
 
@@ -921,7 +927,21 @@ export const updatePaymentDetails = async (req, res) => {
 // ======================================================
 export const requestExtension = async (req, res) => {
   try {
-    const { bookingId, newTo, remarks, attachments, paymentType, amount } = req.body;
+    const {
+      bookingId: bodyBookingId,
+      newTo,
+      remarks,
+      attachments,
+      paymentType,
+      amount,
+      paymentRemarks,
+      paymentAttachments
+    } = req.body;
+    const bookingId = req.params.id || bodyBookingId;
+
+    if (!Array.isArray(attachments) || attachments.length === 0) {
+      return res.status(400).json({ success: false, message: "Extension attachment is mandatory" });
+    }
 
     const booking = await Booking.findById(bookingId);
     if (!booking) {
@@ -930,8 +950,13 @@ export const requestExtension = async (req, res) => {
 
     const currentCheckOut = new Date(booking.to);
     const newCheckOut = new Date(newTo);
-    const diffTime = Math.abs(newCheckOut - currentCheckOut);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const toDateOnly = (d) => {
+      const dt = new Date(d);
+      return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    };
+    const diffDays = Math.round(
+      (toDateOnly(newCheckOut) - toDateOnly(currentCheckOut)) / 86400000
+    );
 
     // ✅ Routing decision
     const requiredApprovalLevel = diffDays <= 2 ? "co_warden" : "adosa";
@@ -939,18 +964,18 @@ export const requestExtension = async (req, res) => {
     const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
     const request = new ExtensionRequest({
       bookingId,
-      guest: booking.guest,
+      oldCheckout: booking.to,
+      requestedCheckout: newCheckOut,
+      remarks: remarks || "",
       hostel: booking.hostel,
-      roomNo: booking.roomNo,
-      currentCheckOutDate: booking.to,
-      newCheckOutDate: newCheckOut,
-      days: diffDays,
-      remarks,
-      attachments: attachments || [],
-      paymentType,
-      amount: Number(amount) || 0,
-      status: "PENDING",
-      requiredApprovalLevel, // ✅ NEW
+      requiredApprovalLevel,
+      createdBy: req.user?._id,
+      status: "pending",
+      extensionPaymentType: paymentType || "Paid",
+      extensionAmount: Number(amount) || 0,
+      extensionPaymentRemarks: paymentRemarks || "",
+      extensionPaymentAttachments: Array.isArray(paymentAttachments) ? paymentAttachments : [],
+      extensionAttachments: Array.isArray(attachments) ? attachments : [],
     });
 
     await request.save();
@@ -1829,7 +1854,7 @@ export const autoCheckoutOverdueGuests = async () => {
     for (const booking of overdueBookings) {
       // Calculate exact checkout datetime
       const finalCheckoutDate = booking.extensionDate || booking.to;
-      const checkoutDateTime = new Date(booking.to);
+      const checkoutDateTime = new Date(finalCheckoutDate);
       const [hours, minutes] = (booking.checkOutTime || "12:00").split(":");
       checkoutDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 

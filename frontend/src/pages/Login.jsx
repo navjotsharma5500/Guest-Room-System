@@ -30,19 +30,41 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
+
+  // IMPORTANT: This must stay in sync with getLoginRedirect() in App.js
   const resolveRedirectPath = (userData) => {
     const userRole = (userData?.role || "").toLowerCase();
     const userEmail = (userData?.email || "").toLowerCase();
     const permissions = userData?.permissions || {};
 
+    // 1️⃣ Hardcoded override
     if (userEmail === "adosa2@thapar.edu") return "/dashboard";
+
+    // 2️⃣ Guard → Scan page
     if (userRole === "guard") return "/night-pass/scan";
+
+    // 3️⃣ GuestRoom-only permission
     if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
+
+    // 4️⃣ GuestRoom direct roles
     if (["manager", "warden", "co_warden"].includes(userRole)) return "/dashboard";
-    if (["gen_sec", "president", "student"].includes(userRole)) return "/night-pass";
+
+    // 5️⃣ Student → Society Night Pass portal
+    if (userRole === "student") return "/society-night-pass";
+
+    // 6️⃣ Night-only roles (Gen Sec / President) → Night Pass dashboard
+    if (["gen_sec", "president"].includes(userRole)) return "/night-pass";
+
+    // 7️⃣ DD Assistant → Venue Booking
     if (userRole === "dd_assistant") return "/venue-booking";
+
+    // 8️⃣ Admin / ADOSA / assistant / caretaker → Dashboard selector
     if (["admin", "adosa", "assistant", "caretaker"].includes(userRole)) return "/admin/dashboard-selector";
+
+    // 9️⃣ Backend-provided redirect hint, if any
     if (userData?.redirectTo) return userData.redirectTo;
+
+    // ️🔟 Fallback to login/public selector
     return "/";
   };
 

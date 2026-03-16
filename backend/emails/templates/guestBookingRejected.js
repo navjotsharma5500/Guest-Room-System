@@ -1,5 +1,6 @@
 // guestBookingRejected.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestBookingRejected(b) {
   return masterTemplate({
@@ -22,11 +23,11 @@ export default function guestBookingRejected(b) {
         <div class="details-title">Requested Stay Details</div>
         <p>
           <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+          ${formatDateIST(b.from)} ${b.checkInTime || ""}
         </p>
         <p>
           <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 

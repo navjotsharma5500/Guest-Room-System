@@ -1,4 +1,5 @@
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function enquiryNotification(e) {
   return masterTemplate({
@@ -29,8 +30,8 @@ export default function enquiryNotification(e) {
         <strong>Email:</strong> ${e.email}<br/>
         <strong>Contact Number:</strong> ${e.contact}<br/>
         <strong>Purpose of Stay:</strong> ${e.purpose || "—"}<br/>
-        <strong>Check-in:</strong> ${new Date(e.from).toDateString()} at ${e.checkInTime}<br/>
-        <strong>Check-out:</strong> ${new Date(e.to).toDateString()} at ${e.checkOutTime}<br/>
+        <strong>Check-in:</strong> ${formatDateIST(e.from)} at ${e.checkInTime}<br/>
+        <strong>Check-out:</strong> ${formatDateIST(e.to)} at ${e.checkOutTime}<br/>
         <strong>Reference:</strong> ${e.reference || "—"}
 
       </div>

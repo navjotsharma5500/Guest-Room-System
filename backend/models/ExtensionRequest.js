@@ -44,6 +44,10 @@ const extensionRequestSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    extensionAttachments: {
+      type: [String],
+      default: [],
+    },
     hostel: {
       type: String,
       required: true,

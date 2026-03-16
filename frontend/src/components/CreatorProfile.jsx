@@ -88,7 +88,7 @@ export default function CreatorProfileRectangular({ open, onClose }) {
               <div className="relative">
                 <div className="w-36 h-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white">
                   <img
-                    src="https://ik.imagekit.io/7khjnlfow/email-assets/IMG_4888.JPG"
+                    src="https://ik.imagekit.io/7khjnlfow/email-assets/ChatGPT Image Mar 13, 2026, 02_52_10 AM.png"
                     alt="Navjot Sharma"
                     className="w-full h-full object-cover"
                     style={{ objectPosition: '50% 20%' }}

@@ -14,7 +14,7 @@ const ADOSA_EMAILS = ["adosa2@thapar.edu"];
 
 export const createExtensionRequest = async (req, res) => {
     try {
-        const { bookingId, requestedCheckout, remarks, paymentData } = req.body;
+        const { bookingId, requestedCheckout, remarks, paymentData, extensionAttachments } = req.body;
         
         if (!bookingId || !requestedCheckout) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -67,6 +67,7 @@ export const createExtensionRequest = async (req, res) => {
             extensionAmount,
             extensionPaymentRemarks,
             extensionPaymentAttachments,
+            extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
             paymentData: paymentData || {},
         });
 
@@ -117,7 +118,7 @@ export const getAllExtensionRequests = async (req, res) => {
         }
         
         const requests = await ExtensionRequest.find(query)
-            .populate("bookingId", "guest roomNo contact email")
+            .populate("bookingId", "guest roomNo contact email rollno department gender purpose")
             .populate("createdBy", "name email")
             .sort({ createdAt: -1 });
             

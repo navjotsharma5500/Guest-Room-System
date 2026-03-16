@@ -45,7 +45,7 @@ export default function bookingCancelled(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
-        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly <a href="mailto:sukhdevsingh@thapar.edu">sukhdevsingh@thapar.edu</a></strong></li>
         <li>If you had any scheduled arrangements, please cancel or reschedule as needed</li>
         <li>Contact the ProVC Office for any queries regarding your booking</li>
         <li>Keep this email for your records</li>
@@ -63,3 +63,5 @@ export default function bookingCancelled(data) {
     }),
   };
 }
+
+

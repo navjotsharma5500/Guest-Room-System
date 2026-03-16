@@ -41,14 +41,10 @@ import eventCalendarRoutes from "./routes/eventCalendarRoutes.js";
 import { seedDefaultSocietySuggestions } from "./models/SocietyNameSuggestion.js";
 import { seedDefaultEventSuggestions } from "./models/EventNameSuggestion.js";
 import uploadRoutes from './routes/uploadRoutes.js';
-import nightPermissionRoutes from './routes/nightPermissionRoutes.js';
-import { startNightPermissionTimeoutCron } from './utils/nightPermissionCron.js';
-import societyBudgetRoutes from './routes/societyBudgetRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
 import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
-import societyNightPassRoutes from "./routes/societyNightPassRoutes.js";
 
 const app = express();
 
@@ -140,6 +136,7 @@ console.log("ðŸ”Œ Socket.IO initialized with CORS support");
 app.set("io", io);
 setSocketIO(io);
 global.io = io;
+
 
 /* =========================================================
    HANDLE OPTIONS PREFLIGHT FIRST
@@ -334,13 +331,10 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/guest-feedback", guestFeedbackRoutes);
 app.use("/api/department-payments", departmentPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use('/api/night', nightPermissionRoutes);
-app.use('/api/societies', societyBudgetRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use("/api/analytics", awsAnalyticsRoutes);
 app.use("/api/public-ui", publicUiConfigRoutes);
-app.use("/api/society-night-pass", societyNightPassRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
@@ -361,12 +355,6 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on('join-night-permissions', () => {
-    socket.join('night-permissions');
-    socket.emit('night-permissions-connected', { socketId: socket.id });
-    console.log(`🌙 Socket ${socket.id} joined night-permissions room`);
-  });
-
   socket.on("disconnect", (reason) => {
     console.log("âŒ Socket disconnected:", socket.id, reason);
   });
@@ -375,8 +363,6 @@ io.on("connection", (socket) => {
     console.log("ðŸ“¡ Socket event:", event, args);
   });
 });
-
-startNightPermissionTimeoutCron(io);
 
 /* =========================================================
    ADMIN CLEANUP ENDPOINT
@@ -478,6 +464,10 @@ const startServer = async () => {
     console.log("⏳ Connecting to MongoDB...");
     await connectDB();
     console.log("âœ… MongoDB connected");
+
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("MongoDB not connected after connectDB()");
+    }
 
     await seedDefaultSocietySuggestions();
     console.log("âœ… Default society suggestions ensured");

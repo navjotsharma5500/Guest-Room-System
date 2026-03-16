@@ -19,7 +19,6 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       "guest-booking",
       "venue-booking",
       "feedback",
-      "night-permissions",
       "society-night-pass",
       "calendar",
       "lost-found",
@@ -45,13 +44,6 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
         title: "Guest Room Feedback Form",
         description: "Share your experience (Requires Google Login)",
         features: ["Rate Stay", "Suggestions", "Report Issues"],
-      },
-      {
-        id: "night-permissions",
-        enabled: true,
-        title: "Night Permissions",
-        description: "Student Night Out & Dashboard (Requires Google Login)",
-        features: ["Apply for Pass", "Check Status", "QR Code"],
       },
       {
         id: "society-night-pass",

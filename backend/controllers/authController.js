@@ -1,78 +1,12 @@
 // controllers/authController.js
 // ✅ FIXED: System Access is separate from Login success
 import User from "../models/User.js";
-import NightStudent from "../models/NightStudent.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendEmail } from "../emails/sendEmail.js";
 
-const STAFF_ROLES = ["admin", "adosa", "manager", "warden", "caretaker", "assistant", "dd_assistant", "guard", "co_warden"];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: resolve Night Pass access for a user
-// ─────────────────────────────────────────────────────────────────────────────
-const resolveNightPassAccess = async (user) => {
-  const role = (user.role || "").toLowerCase();
-
-  // 1. Staff roles always have system access
-  if (STAFF_ROLES.includes(role)) {
-    return { allowed: true, role: user.role, societies: user.societies || [] };
-  }
-
-  // 2. President / Gen Sec must exist in NightStudent master AND be active
-  if (role === "president" || role === "gen_sec") {
-    const student = await NightStudent.findOne({
-      email: { $regex: new RegExp(`^${user.email}$`, "i") },
-    });
-    if (!student || !student.isActive) {
-      return {
-        allowed: false,
-        code: "NO_SYSTEM_ACCESS",
-        message:
-          "Your account exists, but you are not added to system data. Please contact the administrator.",
-      };
-    }
-    return {
-      allowed: true,
-      role: user.role,
-      rollNo: student.rollNo,
-      societies: user.societies || [],
-    };
-  }
-
-  // 3. All other non-staff users must be in the NightStudent master list
-  const student = await NightStudent.findOne({
-    email: { $regex: new RegExp(`^${user.email}$`, "i") },
-  });
-
-  if (!student || !student.isActive) {
-    return {
-      allowed: false,
-      code: "NO_SYSTEM_ACCESS",
-      message:
-        "Your account exists, but you are not added to system data. Please contact the administrator.",
-    };
-  }
-
-  // Only permanently blocked defaulters lose access.
-  if (student.defaulterBlocked) {
-    return {
-      allowed: false,
-      code: "STUDENT_DEFAULTER",
-      message:
-        "Your account is blocked due to a night pass violation. Please contact ADOSA.",
-    };
-  }
-
-  return {
-    allowed: true,
-    role: "student",
-    rollNo: student.rollNo,
-    societies: user.societies || [],
-  };
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: compute login redirect based on role
@@ -82,10 +16,10 @@ const getLoginRedirect = (role, user = null) => {
   const email = (user?.email || "").toLowerCase();
   const permissions = user?.permissions || {};
   if (email === "adosa2@thapar.edu") return "/dashboard";
-  if (r === "guard") return "/night-pass/scan";
+  if (r === "guard") return "/dashboard";
   if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
   if (["manager", "warden", "co_warden"].includes(r)) return "/dashboard";
-  if (r === "student" || ["president", "gen_sec"].includes(r)) return "/night-pass";
+  if (r === "student" || ["president", "gen_sec"].includes(r)) return "/";
   if (["admin", "adosa", "assistant", "caretaker"].includes(r)) return "/admin/dashboard-selector";
   if (r === "dd_assistant") return "/venue-booking";
   return "/";
@@ -104,17 +38,6 @@ export const loginUser = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ success: false, message: "Invalid password" });
 
-    // ✅ CHECK SYSTEM ACCESS (separate from credential check)
-    const access = await resolveNightPassAccess(user);
-
-    if (!access.allowed) {
-      return res.status(403).json({
-        success: false,
-        code: access.code,
-        message: access.message,
-      });
-    }
-
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "30d",
     });
@@ -130,14 +53,8 @@ export const loginUser = async (req, res) => {
     const userObj = user.toObject();
     delete userObj.password;
 
-    userObj.night = {
-      role: (access.role || "").toUpperCase(),
-      rollNo: access.rollNo,
-      societies: access.societies || [],
-    };
-
     // ✅ Include redirect hint for frontend
-    userObj.redirectTo = getLoginRedirect(access.role, userObj);
+    userObj.redirectTo = getLoginRedirect(user.role, userObj);
 
     return res.json({ success: true, token, user: userObj });
   } catch (error) {
@@ -176,17 +93,6 @@ export const googleLogin = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Your email is not registered in our system." });
 
-    // ✅ CHECK SYSTEM ACCESS
-    const access = await resolveNightPassAccess(user);
-
-    if (!access.allowed) {
-      return res.status(403).json({
-        success: false,
-        code: access.code,
-        message: access.message,
-      });
-    }
-
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "30d",
     });
@@ -202,13 +108,7 @@ export const googleLogin = async (req, res) => {
     const userObj = user.toObject();
     delete userObj.password;
 
-    userObj.night = {
-      role: (access.role || "").toUpperCase(),
-      rollNo: access.rollNo,
-      societies: access.societies || [],
-    };
-
-    userObj.redirectTo = getLoginRedirect(access.role, userObj);
+    userObj.redirectTo = getLoginRedirect(user.role, userObj);
 
     return res.json({ success: true, token: jwtToken, user: userObj });
   } catch (error) {
@@ -294,7 +194,7 @@ export const updateProfile = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET ME (Cookie Auth) — resolves Night Pass access on every request
+// GET ME (Cookie Auth)
 // ─────────────────────────────────────────────────────────────────────────────
 export const getMe = async (req, res) => {
   try {
@@ -305,25 +205,8 @@ export const getMe = async (req, res) => {
     if (!user)
       return res.status(404).json({ success: false, message: "User not found" });
 
-    const access = await resolveNightPassAccess(user);
-
-    // ✅ If access was revoked after login, return 403
-    if (!access.allowed) {
-      return res.status(403).json({
-        success: false,
-        code: access.code,
-        message: access.message,
-      });
-    }
-
     const userObj = user.toObject();
     delete userObj.password;
-
-    userObj.night = {
-      role: (access.role || "").toUpperCase(),
-      rollNo: access.rollNo,
-      societies: access.societies || [],
-    };
 
     return res.status(200).json({ success: true, user: userObj });
   } catch (error) {

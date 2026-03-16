@@ -44,7 +44,7 @@ export default function enquiryReceived(data) {
       </p>
 
       <ul style="padding-left:18px;margin-top:6px;">
-        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly</strong></li>
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly <a href="mailto:sukhdevsingh@thapar.edu">sukhdevsingh@thapar.edu</a></strong></li>
         <li>Wait for confirmation from the DoSA Office regarding your enquiry</li>
         <li>Contact the DoSA Office for any queries about your request</li>
         <li>Keep this email for your records</li>
@@ -62,3 +62,5 @@ export default function enquiryReceived(data) {
     }),
   };
 }
+
+

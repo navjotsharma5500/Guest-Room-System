@@ -1,5 +1,6 @@
 // backend/emails/templates/extensionApproved.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function extensionApproved(data) {
   return masterTemplate({
@@ -15,7 +16,7 @@ export default function extensionApproved(data) {
 
       <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #bbf7d0;">
         <div style="font-weight: 700; color: #166534; margin-bottom: 8px;">Approved Details</div>
-        <p style="margin: 4px 0;"><strong>New Checkout Date:</strong> ${new Date(data.newCheckout).toDateString()}</p>
+        <p style="margin: 4px 0;"><strong>New Checkout Date:</strong> ${formatDateIST(data.newCheckout)}</p>
         ${data.approvedAmount > 0 ? `<p style="margin: 4px 0;"><strong>Additional Amount Payable:</strong> ₹${data.approvedAmount}</p>` : ""}
       </div>
 

@@ -1,5 +1,6 @@
 // guestBookingApprovedPaid.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestBookingApprovedPaid(b) {
   return masterTemplate({
@@ -21,12 +22,12 @@ export default function guestBookingApprovedPaid(b) {
 
         <p>
           <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+          ${formatDateIST(b.from)} ${b.checkInTime || ""}
         </p>
 
         <p>
           <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 
@@ -51,6 +52,13 @@ export default function guestBookingApprovedPaid(b) {
         Please report to the hostel at the specified check-in time and coordinate
         with the caretaker for room allocation and assistance.
       </p>
+
+      <div class="details-box">
+        <div class="details-title">Important Information</div>
+        <ul>
+          <li>Kindly confirm your booking only if you are certain about your stay. The payment once made is non-refundable. We advise you to make the payment on the day of arrival at the hostel to avoid any inconvenience.</li>
+        </ul>
+      </div>
 
       <p>
         We look forward to welcoming you and wish you a comfortable stay.

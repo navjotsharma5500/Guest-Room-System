@@ -1,4 +1,5 @@
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function wardenBookingCancelled(b) {
   return masterTemplate({
@@ -18,7 +19,7 @@ export default function wardenBookingCancelled(b) {
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Scheduled Stay:</strong>
-          ${new Date(b.from).toDateString()} – ${new Date(b.to).toDateString()}
+          ${formatDateIST(b.from)} – ${formatDateIST(b.to)}
         </p>
         ${
           b.cancelRemarks

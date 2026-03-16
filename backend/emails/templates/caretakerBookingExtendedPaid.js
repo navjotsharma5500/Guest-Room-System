@@ -1,5 +1,6 @@
 // caretakerBookingExtendedPaid.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function caretakerBookingExtendedPaid(b) {
   const balance = Number(b.balanceAmount || 0);
@@ -32,8 +33,8 @@ export default function caretakerBookingExtendedPaid(b) {
         <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
         <strong>Hostel:</strong> ${b.hostel}<br/>
         <strong>Room Number:</strong> ${b.roomNo}<br/>
-        <strong>Previous Check-out:</strong> ${b.previousTo ? new Date(b.previousTo).toDateString() : "—"}<br/>
-        <strong>New Check-out:</strong> ${b.to ? new Date(b.to).toDateString() : "—"}
+        <strong>Previous Check-out:</strong> ${b.previousTo ? formatDateIST(b.previousTo) : "—"}<br/>
+        <strong>New Check-out:</strong> ${b.to ? formatDateIST(b.to) : "—"}
       </div>
 
       <!-- PAYMENT INFORMATION -->

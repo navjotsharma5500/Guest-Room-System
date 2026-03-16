@@ -1,5 +1,6 @@
 // wardenBookingExtendedPaid.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function wardenBookingExtendedPaid(b) {
   const extensionAmount = Number(b.extensionAmount || 0);
@@ -24,11 +25,11 @@ export default function wardenBookingExtendedPaid(b) {
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p>
           <strong>Previous Checkout:</strong>
-          ${b.previousTo ? new Date(b.previousTo).toDateString() : "As per earlier booking"}
+          ${b.previousTo ? formatDateIST(b.previousTo) : "As per earlier booking"}
         </p>
         <p>
           <strong>New Checkout:</strong>
-          ${new Date(b.to).toDateString()}
+          ${formatDateIST(b.to)}
         </p>
       </div>
 

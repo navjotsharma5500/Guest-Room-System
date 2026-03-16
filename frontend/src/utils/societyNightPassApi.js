@@ -53,12 +53,31 @@ export const fetchSocietyNightRequests = async () => {
   return parseResponse(res);
 };
 
+export const fetchSocietyNightCurrentSession = async () => {
+  const res = await fetch(`${BACKEND_URL}/api/society-night-pass/current-session`, {
+    method: "GET",
+    headers: jsonHeaders(true),
+  });
+  return parseResponse(res);
+};
+
 export const createSocietyNightRequest = async (payload) => {
   const res = await fetch(`${BACKEND_URL}/api/society-night-pass/requests`, {
     method: "POST",
     headers: jsonHeaders(true),
     body: JSON.stringify(payload),
   });
+  return parseResponse(res);
+};
+
+export const fetchSocietyNameSuggestions = async (query = "", limit = 12) => {
+  const res = await fetch(
+    `${BACKEND_URL}/api/venue/enquiry/society-suggestions?query=${encodeURIComponent(query)}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: jsonHeaders(false),
+    }
+  );
   return parseResponse(res);
 };
 

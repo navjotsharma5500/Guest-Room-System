@@ -1,5 +1,6 @@
 // wardenDirectBookingFree.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function wardenDirectBookingFree(b) {
   const remarks = b.freeRemarks || b.remarks || "";
@@ -22,11 +23,11 @@ export default function wardenDirectBookingFree(b) {
         <p><strong>Room No.:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+          ${formatDateIST(b.from)} ${b.checkInTime || ""}
         </p>
         <p>
           <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 

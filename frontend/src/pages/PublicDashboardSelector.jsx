@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   Building2,
   Calendar,
-  Moon,
   Users,
   Globe,
   Search,
@@ -49,14 +48,6 @@ const CARD_META = {
     action: (navigate) => navigate("/guest-feedback"),
     authRequired: true,
   },
-  "night-permissions": {
-    icon: Moon,
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-    action: (navigate, currentUser) => navigate(currentUser ? "/night-pass" : "/login"),
-    authRequired: true,
-    badge: { label: "STUDENT", bg: "bg-amber-100", text: "text-amber-700" },
-  },
   "society-night-pass": {
     icon: Users,
     iconBg: "bg-rose-100",
@@ -85,7 +76,6 @@ const CARD_LABELS = {
   "guest-booking": "Guest Booking",
   "venue-booking": "Venue Booking",
   feedback: "Feedback",
-  "night-permissions": "Night Permissions",
   "society-night-pass": "Society Night Pass",
   calendar: "Event Calendar",
   "lost-found": "Lost & Found",

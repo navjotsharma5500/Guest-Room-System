@@ -229,6 +229,16 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
       return false;
     }
 
+    if (!transactionId.trim()) {
+      showToast("⚠️ Transaction ID is required", "warning");
+      return false;
+    }
+
+    if (!transactionDate) {
+      showToast("⚠️ Payment date is required", "warning");
+      return false;
+    }
+
     if (attachments.length === 0) {
       showToast("⚠️ Payment proof attachment is mandatory", "warning");
       return false;
@@ -577,7 +587,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700">
-                    UTR/Transaction Number
+                    UTR/Transaction Number <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -590,7 +600,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700">
-                    Transaction Date
+                    Transaction Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"

@@ -1,5 +1,6 @@
 // caretakerDirectBookingFree.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function caretakerDirectBookingFree(b) {
   return masterTemplate({
@@ -31,8 +32,8 @@ export default function caretakerDirectBookingFree(b) {
         <strong>Email:</strong> ${b.email || "—"}<br/>
         <strong>Hostel:</strong> ${b.hostel}<br/>
         <strong>Room Number:</strong> ${b.roomNo}<br/>
-        <strong>Check-in:</strong> ${new Date(b.from).toDateString()} ${b.checkInTime || ""}<br/>
-        <strong>Check-out:</strong> ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+        <strong>Check-in:</strong> ${formatDateIST(b.from)} ${b.checkInTime || ""}<br/>
+        <strong>Check-out:</strong> ${formatDateIST(b.to)} ${b.checkOutTime || ""}
       </div>
 
       ${

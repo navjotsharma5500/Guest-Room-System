@@ -1,4 +1,5 @@
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function wardenBookingExtended(b) {
   return masterTemplate({
@@ -18,11 +19,11 @@ export default function wardenBookingExtended(b) {
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Previous Check-out:</strong>
-          ${b.previousTo ? new Date(b.previousTo).toDateString() : "As per earlier booking"}
+          ${b.previousTo ? formatDateIST(b.previousTo) : "As per earlier booking"}
         </p>
         <p>
           <strong>New Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 

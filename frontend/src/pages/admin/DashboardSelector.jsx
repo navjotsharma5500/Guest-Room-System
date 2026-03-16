@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, Calendar, Moon, Globe, Search, Sparkles, Lock,
+  Building2, Calendar, Globe, Search, Sparkles, Lock,
   X, ArrowRight, LayoutDashboard, Settings, IndianRupee, LogOut,
   Package, Users, AlertCircle, ExternalLink, Send,
   BrainCircuit, QrCode, MessageSquare, CalendarDays,
@@ -901,7 +901,6 @@ const DashboardSelector = () => {
   const { currentUser } = useAuth();
   const role = (currentUser?.role || currentUser?.user?.role || "").toLowerCase();
   const email = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
-  const permissions = currentUser?.permissions || currentUser?.user?.permissions || {};
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
 
@@ -913,7 +912,7 @@ const DashboardSelector = () => {
   const canSeeCard = (cardId) => {
     // 1. Admin sees ALL dashboards
     if (role === 'admin') {
-      return ["guest-room", "venue-booking", "night-permissions"].includes(cardId);
+      return ["guest-room", "venue-booking"].includes(cardId);
     }
 
     // 2. Adosa Logic
@@ -923,17 +922,17 @@ const DashboardSelector = () => {
         return ["guest-room"].includes(cardId);
       }
       // adosa3 (and others) -> Venue + Night (NO Guest Room)
-      return ["venue-booking", "night-permissions"].includes(cardId);
+      return ["venue-booking"].includes(cardId);
     }
 
     // 3. Assistant -> Selector -> Venue + Night
     if (role === 'assistant') {
-      return ["venue-booking", "night-permissions"].includes(cardId);
+      return ["venue-booking"].includes(cardId);
     }
 
     // 4. Caretaker -> Selector -> Guest + Night
     if (role === 'caretaker') {
-      return ["guest-room", "night-permissions"].includes(cardId);
+      return ["guest-room"].includes(cardId);
     }
 
     // 5. Default Fallback (should not happen for selector roles, but safe to hide)
@@ -965,19 +964,6 @@ const DashboardSelector = () => {
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
       onClick: () => navigate("/venue-booking"),
     },
-    {
-      id: "night-permissions",
-      title: "Night Permissions",
-      description: "Manage student night-out requests, approvals, and QR scanning",
-      icon: Moon,
-      gradient: "from-amber-600 via-amber-500 to-yellow-400",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
-      available: true,
-      badge: { label: "NEW", bg: "bg-amber-100", text: "text-amber-700" },
-      features: ["Permission Lists", "QR Scan Entry/Exit", "Defaulter Tracking"],
-      onClick: () => navigate("/night-pass"),
-    }
   ];
 
   // Filter dashboards based on hardcoded logic
@@ -1229,7 +1215,7 @@ const DashboardSelector = () => {
                       </div>
                     )}
 
-                    {/* Generic badge support (e.g. Night Permissions) */}
+                    {/* Generic badge support */}
                     {dashboard.badge && dashboard.id !== "venue-booking" && (
                       <div className={`${dashboard.badge.bg} ${dashboard.badge.text} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
                         <Sparkles className="w-3 h-3" />

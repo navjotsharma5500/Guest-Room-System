@@ -1,5 +1,6 @@
 // backend/emails/templates/guestDirectBooking.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestDirectBooking(b) {
   return masterTemplate({
@@ -19,11 +20,11 @@ export default function guestDirectBooking(b) {
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Check-in:</strong>
-          ${new Date(b.from).toDateString()} ${b.checkInTime || ""}
+          ${formatDateIST(b.from)} ${b.checkInTime || ""}
         </p>
         <p>
           <strong>Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
 
         ${
@@ -57,6 +58,7 @@ export default function guestDirectBooking(b) {
           <li>Please arrive at the hostel at the scheduled check-in time</li>
           <li>Carry a valid government-issued photo ID</li>
           <li>Contact the hostel caretaker upon arrival for assistance</li>
+          <li>Kindly confirm your booking only if you are certain about your stay. The payment once made is non-refundable. We advise you to make the payment on the day of arrival at the hostel to avoid any inconvenience.</li>
           ${
             b.totalAmount > 0
               ? `<li>Present proof of payment for verification</li>`

@@ -1,40 +1,191 @@
 // src/components/GuestFeedbackQRCode.jsx
 // ============================================================================
 // HOSTEL-WISE QR CODE GENERATOR
-// - Generates unique QR codes for each hostel
-// - QR codes include hostel parameter in URL
-// - Bulk download all QR codes at once
-// - Individual download for each hostel
+//
+// Download strategy (avoids ALL canvas-taint / CORS issues):
+//   • QR pattern  → drawn with `qrcode` npm package directly onto a canvas
+//                   (pure JS, no DOM SVG, no external image, never tainted)
+//   • Thapar logo → fetched as a Blob, converted to object-URL, drawn on top
+//   • toDataURL() → always succeeds because canvas is never tainted
 // ============================================================================
 
-import React, { useState, useRef } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import React, { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';           // preview only
+import QRCode        from 'qrcode';                  // canvas rendering for download
 import { Download, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { GUEST_FEEDBACK_URL } from "../utils/apiConfig";
 
-// Thapar Institute Hostel List
+const THAPAR_LOGO =
+  "https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744";
+
 const HOSTELS = [
-  { code: 'A', name: 'Agira Hall (A)' },
-  { code: 'B', name: 'Amritam Hall (B)' },
-  { code: 'C', name: 'Prithvi Hall (C)' },
-  { code: 'D', name: 'Neeram Hall (D)' },
-  { code: 'H', name: 'Vyan Hall (H)' },
-  { code: 'I', name: 'Ira Hall (I)' },
-  { code: 'J', name: 'Tejas Hall (J)' },
-  { code: 'K', name: 'Ambaram Hall (K)' },
-  { code: 'L', name: 'Viyat Hall (L)' },
-  { code: 'M', name: 'Anantam Hall (M)' },
-  { code: 'N', name: 'Ananta Hall (N)' },
-  { code: 'O', name: 'Vyom Hall (O)' },
+  { code: 'A',  name: 'Agira Hall (A)'   },
+  { code: 'B',  name: 'Amritam Hall (B)' },
+  { code: 'C',  name: 'Prithvi Hall (C)' },
+  { code: 'D',  name: 'Neeram Hall (D)'  },
+  { code: 'H',  name: 'Vyan Hall (H)'    },
+  { code: 'I',  name: 'Ira Hall (I)'     },
+  { code: 'J',  name: 'Tejas Hall (J)'   },
+  { code: 'K',  name: 'Ambaram Hall (K)' },
+  { code: 'L',  name: 'Viyat Hall (L)'   },
+  { code: 'M',  name: 'Anantam Hall (M)' },
+  { code: 'N',  name: 'Ananta Hall (N)'  },
+  { code: 'O',  name: 'Vyom Hall (O)'    },
   { code: 'PG', name: 'Dhriti Hall (PG)' },
-  { code: 'Q', name: 'Vahni Hostel (Q)' },
+  { code: 'Q',  name: 'Vahni Hostel (Q)' },
 ];
 
-function HostelQRCard({ hostel, onDownload }) {
-  const [copied, setCopied] = useState(false);
+// ─── Fetch logo as blob → HTMLImageElement (never taints canvas) ─────────────
+async function fetchLogoImage(url) {
+  let blob;
+  try {
+    const r = await fetch(url, { mode: 'cors' });
+    if (!r.ok) throw new Error('cors-fail');
+    blob = await r.blob();
+  } catch {
+    const r = await fetch(url, { mode: 'no-cors' });
+    blob = await r.blob();
+  }
+
+  const objUrl = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload  = () => { URL.revokeObjectURL(objUrl); resolve(img); };
+    img.onerror = () => reject(new Error('Logo image failed to load'));
+    img.src = objUrl;
+  });
+}
+
+// ─── Main download function ──────────────────────────────────────────────────
+async function downloadQRCard(hostel, feedbackURL) {
+  try {
+    const S   = 4;
+    const W   = 560 * S;
+    const PAD = 36  * S;
+
+    const LOGO_H        = 72  * S;
+    const LOGO_GAP      = 24  * S;
+    const QR_SZ         = 420 * S;
+    const CENTER_R      = 38  * S;
+    const CENTER_LOGO_H = 56  * S;
+    const QR_GAP        = 28  * S;
+    const LABEL1_H      = 28  * S;
+    const LABEL_GAP     = 12  * S;
+    const LABEL2_H      = 22  * S;
+    const BOT_PAD       = 36  * S;
+
+    const H = PAD + LOGO_H + LOGO_GAP + QR_SZ + QR_GAP
+              + LABEL1_H + LABEL_GAP + LABEL2_H + BOT_PAD;
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#FFF7F7';
+    ctx.fillRect(0, 0, W, H);
+
+    // Border
+    ctx.strokeStyle = '#FECACA';
+    ctx.lineWidth   = 3 * S;
+    canvasRoundRect(ctx, 8 * S, 8 * S, W - 16 * S, H - 16 * S, 20 * S);
+    ctx.stroke();
+
+    // ── 1. Logo ───────────────────────────────────────────────────────────────
+    const logoImg = await fetchLogoImage(THAPAR_LOGO);
+
+    const tLogoW = (logoImg.width / logoImg.height) * LOGO_H;
+    ctx.drawImage(logoImg, (W - tLogoW) / 2, PAD, tLogoW, LOGO_H);
+
+    // ── 2. QR code via `qrcode` package (pure canvas, never tainted) ──────────
+    const qrCanvas = document.createElement('canvas');
+    await QRCode.toCanvas(qrCanvas, feedbackURL, {
+      width: QR_SZ,
+      margin: 2,
+      errorCorrectionLevel: 'H',
+      color: { dark: '#111111', light: '#FFFFFF' },
+    });
+
+    const qrX = (W - QR_SZ) / 2;
+    const qrY = PAD + LOGO_H + LOGO_GAP;
+
+    // Shadow behind QR
+    ctx.save();
+    ctx.shadowColor   = 'rgba(0,0,0,0.14)';
+    ctx.shadowBlur    = 18 * S;
+    ctx.shadowOffsetY = 4  * S;
+    ctx.fillStyle     = '#FFFFFF';
+    canvasRoundRect(ctx, qrX - 10 * S, qrY - 10 * S,
+                        QR_SZ + 20 * S, QR_SZ + 20 * S, 14 * S);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.drawImage(qrCanvas, qrX, qrY, QR_SZ, QR_SZ);
+
+    // ── 3. Centre logo on top of QR ───────────────────────────────────────────
+    const cx = W / 2;
+    const cy = qrY + QR_SZ / 2;
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(cx, cy, CENTER_R, 0, Math.PI * 2);
+    ctx.fill();
+
+    const cLogoW = (logoImg.width / logoImg.height) * CENTER_LOGO_H;
+    ctx.drawImage(logoImg,
+      cx - cLogoW / 2,
+      cy - CENTER_LOGO_H / 2,
+      cLogoW,
+      CENTER_LOGO_H,
+    );
+
+    // ── 4. Labels ─────────────────────────────────────────────────────────────
+    const labelY = qrY + QR_SZ + QR_GAP;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+
+    ctx.fillStyle = '#B91C1C';
+    ctx.font = `bold ${22 * S}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.fillText('Scan to Share Feedback', W / 2, labelY);
+
+    ctx.fillStyle = '#6B7280';
+    ctx.font = `${16 * S}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.fillText(`For ${hostel.name} Guests`, W / 2, labelY + LABEL1_H + LABEL_GAP);
+
+    // ── 5. Download ───────────────────────────────────────────────────────────
+    const link = document.createElement('a');
+    link.download = `hostel-${hostel.code}-feedback-qr.png`;
+    link.href     = canvas.toDataURL('image/png');
+    link.click();
+
+  } catch (err) {
+    console.error('QR download error:', err);
+    alert(`Download failed for ${hostel.name}:\n${err?.message ?? String(err)}`);
+  }
+}
+
+// ─── Canvas utility ───────────────────────────────────────────────────────────
+function canvasRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── Hostel card ──────────────────────────────────────────────────────────────
+function HostelQRCard({ hostel }) {
+  const [copied,   setCopied]   = useState(false);
   const [expanded, setExpanded] = useState(false);
-  
-  // Generate hostel-specific URL with hostel parameter
+  const [loading,  setLoading]  = useState(false);
+
   const feedbackURL = `${GUEST_FEEDBACK_URL}?hostel=${encodeURIComponent(hostel.name)}`;
 
   const handleCopy = () => {
@@ -43,31 +194,14 @@ function HostelQRCard({ hostel, onDownload }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadSingle = () => {
-    const svg = document.getElementById(`qr-code-${hostel.code}`);
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL('image/png');
-      
-      const downloadLink = document.createElement('a');
-      downloadLink.download = `hostel-${hostel.code}-feedback-qr.png`;
-      downloadLink.href = pngFile;
-      downloadLink.click();
-    };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+  const handleDownload = async () => {
+    setLoading(true);
+    await downloadQRCard(hostel, feedbackURL);
+    setLoading(false);
   };
 
   return (
     <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 overflow-hidden transition-all hover:shadow-xl">
-      {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white flex items-center justify-between hover:from-red-700 hover:to-red-800 transition"
@@ -84,53 +218,34 @@ function HostelQRCard({ hostel, onDownload }) {
         {expanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
       </button>
 
-      {/* Expanded Content */}
       {expanded && (
         <div className="p-6">
-          {/* QR Code Display */}
           <div className="bg-gradient-to-br from-red-50 to-white p-6 rounded-xl border-2 border-red-100 mb-4">
             <div className="flex flex-col items-center">
-              {/* Thapar Logo */}
-              <img
-                src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                alt="Thapar Logo"
-                className="w-20 h-auto mb-3"
-              />
-              
-              {/* QR Code */}
+              <img src={THAPAR_LOGO} alt="Thapar Logo" className="w-20 h-auto mb-3" />
               <div className="bg-white p-4 rounded-xl shadow-md">
                 <QRCodeSVG
-                  id={`qr-code-${hostel.code}`}
                   value={feedbackURL}
-                  size={200}
+                  size={260}
                   level="H"
                   includeMargin={true}
                   imageSettings={{
-                    src: "https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744",
-                    height: 30,
-                    width: 30,
+                    src: THAPAR_LOGO,
+                    height: 46,
+                    width: 46,
                     excavate: true,
                   }}
                 />
               </div>
-
-              {/* Instructions */}
               <div className="mt-4 text-center">
-                <p className="text-md font-semibold text-red-700 mb-1">
-                  📱 Scan to Share Feedback
-                </p>
-                <p className="text-gray-600 text-sm">
-                  For {hostel.name} Guests
-                </p>
+                <p className="text-md font-semibold text-red-700 mb-1">📱 Scan to Share Feedback</p>
+                <p className="text-gray-600 text-sm">For {hostel.name} Guests</p>
               </div>
             </div>
           </div>
 
-          {/* URL Display */}
           <div className="bg-gray-50 rounded-lg p-3 mb-4">
-            <label className="block text-xs font-semibold text-gray-700 mb-2">
-              Feedback URL:
-            </label>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">Feedback URL:</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -142,29 +257,19 @@ function HostelQRCard({ hostel, onDownload }) {
                 onClick={handleCopy}
                 className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm"
               >
-                {copied ? (
-                  <>
-                    <Check size={16} />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    Copy
-                  </>
-                )}
+                {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy</>}
               </button>
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={handleDownloadSingle}
-              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition flex items-center justify-center gap-2"
+              onClick={handleDownload}
+              disabled={loading}
+              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Download size={18} />
-              Download QR
+              {loading ? 'Generating…' : 'Download QR'}
             </button>
             <a
               href={feedbackURL}
@@ -181,59 +286,25 @@ function HostelQRCard({ hostel, onDownload }) {
   );
 }
 
+// ─── Bulk download ────────────────────────────────────────────────────────────
+async function handleDownloadAll() {
+  for (const hostel of HOSTELS) {
+    const feedbackURL = `${GUEST_FEEDBACK_URL}?hostel=${encodeURIComponent(hostel.name)}`;
+    await downloadQRCard(hostel, feedbackURL);
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 function GuestFeedbackQRCode() {
-  const [expandAll, setExpandAll] = useState(false);
-
-  const handleDownloadAll = async () => {
-    for (const hostel of HOSTELS) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Delay to avoid browser blocking
-      const svg = document.getElementById(`qr-code-${hostel.code}`);
-      if (!svg) continue;
-      
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      await new Promise((resolveImg) => {
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          const pngFile = canvas.toDataURL('image/png');
-          
-          const downloadLink = document.createElement('a');
-          downloadLink.download = `hostel-${hostel.code}-feedback-qr.png`;
-          downloadLink.href = pngFile;
-          downloadLink.click();
-          resolveImg();
-        };
-        img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-      });
-    }
-  };
-
-  const toggleExpandAll = () => {
-    setExpandAll(!expandAll);
-    // This would require lifting state up or using context
-    // For now, it's a visual indicator
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              📍 Hostel-Wise Feedback QR Codes
-            </h1>
-            <p className="text-gray-600">
-              Generate and download unique QR codes for each hostel
-            </p>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">📍 Hostel-Wise Feedback QR Codes</h1>
+            <p className="text-gray-600">Generate and download unique QR codes for each hostel</p>
           </div>
-
-          {/* Global Actions */}
           <div className="flex flex-wrap gap-4 justify-center">
             <button
               onClick={handleDownloadAll}
@@ -243,8 +314,6 @@ function GuestFeedbackQRCode() {
               Download All QR Codes ({HOSTELS.length})
             </button>
           </div>
-
-          {/* Instructions */}
           <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
             <h3 className="font-semibold text-blue-900 mb-2">ℹ️ How It Works:</h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
@@ -258,17 +327,14 @@ function GuestFeedbackQRCode() {
           </div>
         </div>
 
-        {/* Hostel QR Code Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {HOSTELS.map(hostel => (
             <HostelQRCard key={hostel.code} hostel={hostel} />
           ))}
         </div>
 
-        {/* Printing Guidelines */}
         <div className="mt-8 bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">📋 Printing & Distribution Guidelines</h2>
-          
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
               <h3 className="font-semibold text-yellow-900 mb-2">🖨️ Printing Best Practices:</h3>
@@ -280,7 +346,6 @@ function GuestFeedbackQRCode() {
                 <li>Include hostel name prominently on poster</li>
               </ol>
             </div>
-
             <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
               <h3 className="font-semibold text-green-900 mb-2">📍 Recommended Locations:</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-green-800">
@@ -293,7 +358,6 @@ function GuestFeedbackQRCode() {
               </ul>
             </div>
           </div>
-
           <div className="mt-6 bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
             <h3 className="font-semibold text-purple-900 mb-2">🔒 Privacy & Security:</h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-purple-800">

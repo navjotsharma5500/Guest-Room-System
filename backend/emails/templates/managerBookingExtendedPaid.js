@@ -1,4 +1,5 @@
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function managerBookingExtendedPaid(b) {
   const balance = Number(b.balanceAmount || 0);
@@ -24,7 +25,7 @@ export default function managerBookingExtendedPaid(b) {
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Revised Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 

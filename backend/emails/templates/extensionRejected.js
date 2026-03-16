@@ -1,5 +1,6 @@
 // backend/emails/templates/extensionRejected.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function extensionRejected(data) {
   return masterTemplate({
@@ -15,8 +16,8 @@ export default function extensionRejected(data) {
 
       <div style="background: #fef2f2; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #fecaca;">
         <div style="font-weight: 700; color: #991b1b; margin-bottom: 8px;">Rejection Details</div>
-        <p style="margin: 4px 0;"><strong>Original Checkout:</strong> ${new Date(data.oldCheckout).toDateString()}</p>
-        <p style="margin: 4px 0;"><strong>Requested Checkout:</strong> ${new Date(data.requestedCheckout).toDateString()}</p>
+        <p style="margin: 4px 0;"><strong>Original Checkout:</strong> ${formatDateIST(data.oldCheckout)}</p>
+        <p style="margin: 4px 0;"><strong>Requested Checkout:</strong> ${formatDateIST(data.requestedCheckout)}</p>
         ${data.reason ? `<p style="margin: 4px 0;"><strong>Reason:</strong> ${data.reason}</p>` : ""}
       </div>
 

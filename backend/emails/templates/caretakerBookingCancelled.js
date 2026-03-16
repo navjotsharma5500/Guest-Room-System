@@ -1,5 +1,6 @@
 // caretakerBookingCancelled.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function caretakerBookingCancelled(b) {
   return masterTemplate({
@@ -29,8 +30,8 @@ export default function caretakerBookingCancelled(b) {
         <strong>Contact Number:</strong> ${b.contact || "—"}<br/>
         <strong>Hostel:</strong> ${b.hostel}<br/>
         <strong>Room Number:</strong> ${b.roomNo}<br/>
-        <strong>Check-in:</strong> ${b.from ? new Date(b.from).toDateString() : "—"}<br/>
-        <strong>Check-out:</strong> ${b.to ? new Date(b.to).toDateString() : "—"}
+        <strong>Check-in:</strong> ${b.from ? formatDateIST(b.from) : "—"}<br/>
+        <strong>Check-out:</strong> ${b.to ? formatDateIST(b.to) : "—"}
       </div>
 
       ${

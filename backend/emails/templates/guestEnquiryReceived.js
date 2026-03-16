@@ -1,5 +1,6 @@
 // guestEnquiryReceived.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestEnquiryReceived(e) {
   return masterTemplate({
@@ -17,11 +18,11 @@ export default function guestEnquiryReceived(e) {
         <div class="details-title">Enquiry Summary</div>
         <p>
           <strong>Check-in:</strong>
-          ${new Date(e.from).toDateString()} ${e.checkInTime || ""}
+          ${formatDateIST(e.from)} ${e.checkInTime || ""}
         </p>
         <p>
           <strong>Check-out:</strong>
-          ${new Date(e.to).toDateString()} ${e.checkOutTime || ""}
+          ${formatDateIST(e.to)} ${e.checkOutTime || ""}
         </p>
         <p>
           <strong>Number of Guests:</strong> ${e.guests || 1}

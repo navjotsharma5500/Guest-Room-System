@@ -4,7 +4,7 @@ const ALLOWED_CARD_IDS = [
   "guest-booking",
   "venue-booking",
   "feedback",
-  "night-permissions",
+  "society-night-pass",
   "calendar",
   "lost-found",
 ];
@@ -48,11 +48,11 @@ const DEFAULT_PUBLIC_UI_CONFIG = {
         features: ["Rate Stay", "Suggestions", "Report Issues"],
       },
       {
-        id: "night-permissions",
+        id: "society-night-pass",
         enabled: true,
-        title: "Night Permissions",
-        description: "Student Night Out & Dashboard (Requires Google Login)",
-        features: ["Apply for Pass", "Check Status", "QR Code"],
+        title: "Society Night Pass",
+        description: "Student society night event permissions",
+        features: ["Google Login", "Raise Request", "Track Status"],
       },
       {
         id: "calendar",

@@ -140,12 +140,14 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   // ✅ Validation for Step 2 (Payment)
   const canProceedToPayment = () => {
     if (!newTo) return false;
+    if (files.length === 0) return false;
     return true;
   };
 
   // ✅ Validation for final submission
   const canSubmit = () => {
     if (!newTo) return false;
+    if (files.length === 0) return false;
     
     if (extensionPaymentType === "Paid") {
       if (!extensionAmount || Number(extensionAmount) <= 0) return false;
@@ -161,6 +163,10 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   const handleExtend = async () => {
     if (!newTo) {
       setError("Please select a new checkout date");
+      return;
+    }
+    if (files.length === 0) {
+      setError("At least one extension attachment is required");
       return;
     }
 

@@ -29,6 +29,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Sidebar from "../components/Sidebar";
 import { BACKEND_URL } from "../utils/apiConfig";
+import AttachmentGrid from "../components/AttachmentGrid";
 
 const API = BACKEND_URL;
 
@@ -375,6 +376,9 @@ function RequestCard({ request, isDark, canAct, onApprove, onReject, index }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
   const StatusIcon = cfg.icon;
+  const extensionFiles = Array.isArray(request.extensionAttachments) ? request.extensionAttachments : [];
+  const paymentFiles = Array.isArray(request.extensionPaymentAttachments) ? request.extensionPaymentAttachments : [];
+  const allFiles = [...extensionFiles, ...paymentFiles];
 
   return (
     <motion.div
@@ -424,6 +428,14 @@ function RequestCard({ request, isDark, canAct, onApprove, onReject, index }) {
           <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
             Request #{request._id?.slice(-6).toUpperCase()}
           </p>
+          <div className={`mt-3 space-y-1 text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            {request.email && <p>Email: {request.email}</p>}
+            {request.contact && <p>Contact: {request.contact}</p>}
+            {request.rollno && <p>Roll No: {request.rollno}</p>}
+            {request.department && <p>Department: {request.department}</p>}
+            {request.gender && <p>Gender: {request.gender}</p>}
+            {request.purpose && <p>Purpose: {request.purpose}</p>}
+          </div>
         </div>
 
         {/* Room & Dates */}
@@ -497,6 +509,24 @@ function RequestCard({ request, isDark, canAct, onApprove, onReject, index }) {
           </p>
         </div>
       </div>
+
+      {allFiles.length > 0 && (
+        <div
+          className={`px-5 pb-5 ${
+            isDark ? "border-t border-gray-700" : "border-t border-gray-100"
+          }`}
+        >
+          <div className="flex items-center justify-between pt-4 pb-2">
+            <span className={`text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              Attachments
+            </span>
+            <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+              Extension {extensionFiles.length} • Payment {paymentFiles.length}
+            </span>
+          </div>
+          <AttachmentGrid files={allFiles} theme={isDark ? "dark" : "light"} />
+        </div>
+      )}
 
       {/* Expandable Remarks / Rejection */}
       {(request.remarks || request.rejectionReason) && (
@@ -636,6 +666,12 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
                requestId: r._id,
                guest: r.bookingId?.guest,
                roomNo: r.bookingId?.roomNo,
+               contact: r.bookingId?.contact,
+               email: r.bookingId?.email,
+               rollno: r.bookingId?.rollno,
+               department: r.bookingId?.department,
+               gender: r.bookingId?.gender,
+               purpose: r.bookingId?.purpose,
                hostel: r.hostel,
                currentCheckOutDate: r.oldCheckout,
                newCheckOutDate: r.requestedCheckout,
@@ -649,6 +685,10 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
                paymentType,
                remarks: r.remarks,
                rejectionReason: r.rejectionReason,
+               extensionAttachments: Array.isArray(r.extensionAttachments) ? r.extensionAttachments : [],
+               extensionPaymentAttachments: Array.isArray(r.extensionPaymentAttachments)
+                 ? r.extensionPaymentAttachments
+                 : [],
              };
          });
          setRequests(mapped || []);

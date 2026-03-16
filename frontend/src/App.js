@@ -3,7 +3,8 @@
 // ROUTING STRUCTURE:
 // - Login (/) → Auto-redirects based on user role:
 //     admin, adosa, assistant → /admin/dashboard-selector
-//     guard, gen_sec, president, student → /night  (Night Permissions directly)
+//     guard, gen_sec, president → /night-pass
+//     student → /society-night-pass
 //     manager, caretaker, warden → /dashboard (Guest Room)
 //     dd_assistant → /venue-booking
 // - /admin/dashboard-selector → DashboardSelector (admin, adosa, assistant)
@@ -27,7 +28,6 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 // ============================================================================
 import Login from "./pages/Login";
 import PublicDashboardSelector from "./pages/PublicDashboardSelector";
-import AccessRequired from "./nightPermissions/pages/AccessRequired";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import VenueBookingDashboard from "./VenueBookingDashboard";
@@ -35,28 +35,12 @@ import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
-import SocietyNightPassLandingPage from "./pages/SocietyNightPassLandingPage";
-import SocietyNightPassDashboard from "./pages/SocietyNightPassDashboard";
-import SocietyNightPassRequestPage from "./pages/SocietyNightPassRequestPage";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import ApprovalPage from "./pages/ApprovalPage";
 import SettingsPage from "./pages/SettingsPage";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-// Night Permissions pages
-import NightLayout from "./nightPermissions/components/NightLayout";
-import NightDashboard from "./nightPermissions/pages/NightDashboard";
-import NightLists from "./nightPermissions/pages/NightLists";
-import NightReview from "./nightPermissions/pages/NightReview";
-import NightScan from "./nightPermissions/pages/NightScan";
-import NightStudents from "./nightPermissions/pages/NightStudents";
-import NightDefaulters from "./nightPermissions/pages/NightDefaulters";
-import NightCalendar from "./nightPermissions/pages/NightCalendar";
-import NightSettings from "./nightPermissions/pages/NightSettings";
-import NightRoleManagement from "./nightPermissions/pages/NightRoleManagement";
-import NightReports from "./nightPermissions/pages/NightReports";
-import NightBudgets from "./nightPermissions/pages/NightBudgets";  
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
@@ -65,7 +49,6 @@ import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
 // STYLES
 // ============================================================================
 import "./styles/uiTheme.css";
-import "./styles/nightPassTheme.css";
 import "./styles/VenueBookingGlassmorphism.css";
 
 // ============================================================================
@@ -74,7 +57,6 @@ import "./styles/VenueBookingGlassmorphism.css";
 import { useAuth } from "./context/AuthContext";
 import { isDDAssistantRole } from "./utils/venueAccessPolicy";
 import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
-import SocietyNightProtectedRoute from "./components/SocietyNightProtectedRoute";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GLOBAL SWITCH: Set to false to hide Dashboard Selector from all non-admin roles
@@ -86,20 +68,11 @@ const DASHBOARD_SELECTOR_ENABLED = true;
 // ROLE SETS
 // ============================================================================
 
-// Roles that land on Dashboard Selector after login
-const DASHBOARD_SELECTOR_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "selector"));
-
-// Roles that land directly on Night Permissions after login
-const NIGHT_DIRECT_ROLES = ["gen_sec", "president", "student"];
-
 // Roles allowed to access Guest Room dashboard
 const GUEST_ROOM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "guestroom"));
 
 // Roles allowed to access Venue Booking dashboard
 const VENUE_BOOKING_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "venue") || hasAccess(r, "venue_limited"));
-
-// Roles allowed to access Night Permissions routes
-const NIGHT_PERM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "night") || hasAccess(r, "night_scan") || hasAccess(r, "night_scan_only") || hasAccess(r, "night_student"));
 
 // Roles allowed to access Dashboard Selector page
 const canSeeSelector = (role, isDDAssistant) => {
@@ -141,11 +114,8 @@ export default function App() {
     if (userEmail === "adosa2@thapar.edu") {
       return "/dashboard";
     }
-    
-    // 1️⃣ Guard → Scan page only
-    if (role === "guard") return "/night-pass/scan";
 
-    // 2️⃣ If user has ONLY GuestRoom permission → go to GuestRoom directly
+    // 1️⃣ If user has ONLY GuestRoom permission → go to GuestRoom directly
     if (
       permissions.guestRoom &&
       !permissions.venue &&
@@ -154,25 +124,19 @@ export default function App() {
       return "/dashboard";
     }
 
-    // 3️⃣ Direct GuestRoom roles
+    // 2️⃣ Direct GuestRoom roles
     if (["manager", "warden", "co_warden"].includes(role)) {
       return "/dashboard";
     }
 
-    // 4️⃣ Night-only roles bypass selector
-    if (NIGHT_DIRECT_ROLES.includes(role)) {
-      return "/night-pass";
-    }
-
-    // 5️⃣ Selector roles (admin, adosa, assistant etc.)
+    // 3️⃣ Selector roles (admin, adosa, assistant etc.)
     if (canSeeSelector(role, isDDAssistant)) {
       return "/admin/dashboard-selector";
     }
-    
-    // 6️⃣ Fallback permission checks
-    if (NIGHT_PERM_ROLES.includes(role)) return "/night-pass";
+
+    // 4️⃣ Fallback permission checks
     if (VENUE_BOOKING_ROLES.includes(role)) return "/venue-booking";
-    
+
     return "/"; // Stay on login if no access
   };
 
@@ -200,13 +164,6 @@ export default function App() {
                 : <Login />
             }
           />
-
-          {/* ================================================================
-              ACCESS REQUIRED — shown when login OK but user not in system data
-              No auth guard: user must be able to reach this even after failed
-              system-access check
-              ================================================================ */}
-          <Route path="/access-required" element={<AccessRequired />} />  {/* ✅ NEW */}
 
           {/* ================================================================
               DASHBOARD SELECTOR
@@ -301,54 +258,12 @@ export default function App() {
           />
 
           {/* ================================================================
-              NIGHT PERMISSIONS
-              admin, adosa, assistant, guard, gen_sec, president, caretaker
-              ================================================================ */}
-          <Route
-            path="/night-pass"
-            element={
-              currentUser && NIGHT_PERM_ROLES.includes(role)
-                ? <NightLayout />
-                : <Navigate to="/" replace />
-            }
-          >
-            <Route index              element={<NightDashboard />} />
-            <Route path="lists"       element={<NightLists />} />
-            <Route path="review"      element={<NightReview />} />
-            <Route path="scan"        element={<NightScan />} />
-            <Route path="students"    element={<NightStudents />} />
-            <Route path="defaulters"  element={<NightDefaulters />} />
-            <Route path="budgets"     element={<NightBudgets />} />   {/* ✅ NEW */}
-            <Route path="calendar"    element={<NightCalendar />} />
-            <Route path="roles"       element={<NightRoleManagement />} />
-            <Route path="reports"     element={<NightReports />} />
-            <Route path="settings"    element={<NightSettings />} />
-          </Route>
-
-          {/* ================================================================
               PUBLIC ROUTES (no auth required)
               ================================================================ */}
           <Route path="/guest-enquiry"        element={<GuestEnquiryPage />} />
           <Route path="/venue-guest-enquiry"  element={<VenueGuestEnquiryPage />} />
           <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
-          <Route path="/society-night-pass" element={<SocietyNightPassLandingPage />} />
-          <Route
-            path="/society-night-pass/dashboard"
-            element={
-              <SocietyNightProtectedRoute>
-                <SocietyNightPassDashboard />
-              </SocietyNightProtectedRoute>
-            }
-          />
-          <Route
-            path="/society-night-pass/request"
-            element={
-              <SocietyNightProtectedRoute>
-                <SocietyNightPassRequestPage />
-              </SocietyNightProtectedRoute>
-            }
-          />
 
           {/* ================================================================
               QR CODE GENERATOR (admin only)

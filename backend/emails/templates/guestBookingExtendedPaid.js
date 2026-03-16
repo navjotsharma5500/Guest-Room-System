@@ -1,5 +1,6 @@
 // guestBookingExtendedPaid.js
 import masterTemplate from "./masterTemplate.js";
+import { formatDateIST } from "../utils/dateFormatter.js";
 
 export default function guestBookingExtendedPaid(b) {
   const balance = Number(b.balanceAmount || 0);
@@ -21,7 +22,7 @@ export default function guestBookingExtendedPaid(b) {
         <p><strong>Room Number:</strong> ${b.roomNo}</p>
         <p>
           <strong>Revised Check-out:</strong>
-          ${new Date(b.to).toDateString()} ${b.checkOutTime || ""}
+          ${formatDateIST(b.to)} ${b.checkOutTime || ""}
         </p>
       </div>
 
@@ -64,6 +65,13 @@ export default function guestBookingExtendedPaid(b) {
         `
           : ""
       }
+
+      <div class="details-box">
+        <div class="details-title">Important Information</div>
+        <ul>
+          <li>Kindly confirm your booking only if you are certain about your stay. The payment once made is non-refundable. We advise you to make the payment on the day of arrival at the hostel to avoid any inconvenience.</li>
+        </ul>
+      </div>
 
       <p>
         Please ensure the room is vacated on or before the revised check-out date.

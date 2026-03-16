@@ -58,25 +58,17 @@ const formatTime = (date) => {
   return `${hours}:${minutes}`;
 };
 
-// Helper: Calculate nights stayed (Thapar logic - based on dates only)
+// Helper: Calculate days stayed (calendar-day based)
 const calculateDays = (from, to) => {
   const start = new Date(from);
   const end = new Date(to);
-  
-  // Set both to midnight for accurate date-only comparison
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  
-  // Same day checkout = 1 day bill
-  if (start.getTime() === end.getTime()) {
-    return 1;
-  }
-  
-  // Otherwise count nights stayed
-  const diffTime = Math.abs(end - start);
-  const nightsStayed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return nightsStayed;
+
+  if (isNaN(start) || isNaN(end)) return 1;
+
+  const toDateOnly = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((toDateOnly(end) - toDateOnly(start)) / 86400000);
+
+  return Math.max(1, diffDays);
 };
 
 // Helper: Number to words (Indian system)
