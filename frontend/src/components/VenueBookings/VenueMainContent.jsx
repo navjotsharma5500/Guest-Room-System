@@ -85,10 +85,10 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
     setDateBookings(bookings);
   }, [selectedDate, venueData]);
 
-  // âœ… NEW: Handle calendar click - navigate to calendar page
-  const openFullCalendar = (date = selectedDate) => {
+  // NEW: Handle calendar click - navigate to calendar page
+  const handleCalendarClick = () => {
     if (onNavigate) {
-      onNavigate("calendar", { date });
+      onNavigate("calendar", { date: selectedDate });
     }
   };
 
@@ -169,20 +169,18 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl hover:shadow-2xl transition h-full flex flex-col ${
+          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl cursor-pointer hover:shadow-2xl transition h-full flex flex-col ${
             theme === "dark"
               ? "bg-gray-800/60 border-gray-700 hover:border-blue-500"
               : "bg-white/60 border-gray-200 hover:border-blue-500"
           }`}
+          onClick={handleCalendarClick}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
               Booking Calendar
             </h3>
-            <button
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              onClick={() => openFullCalendar()}
-            >
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               View Full
             </button>
           </div>
@@ -206,15 +204,11 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
             </div>
           )}
           
-          <button
-            type="button"
-            onClick={() => openFullCalendar()}
-            className={`text-xs text-center mt-3 ${
+          <p className={`text-xs text-center mt-3 ${
             theme === "dark" ? "text-gray-400" : "text-gray-500"
-          }`}
-          >
+          }`}>
             Click to view detailed calendar →
-          </button>
+          </p>
         </motion.div>
 
         {/* Right Side: Upcoming Bookings List */}

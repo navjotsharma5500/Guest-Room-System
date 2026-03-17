@@ -6,7 +6,7 @@ if (!BACKEND_URL) {
   throw new Error("❌ BACKEND_URL is not defined");
 }
 
-console.log("🔌 Initializing Socket.IO with URL:", BACKEND_URL);
+//console.log("🔌 Initializing Socket.IO with URL:", BACKEND_URL);
 
 export const socket = io(BACKEND_URL, {
   autoConnect: true,

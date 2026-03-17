@@ -55,9 +55,9 @@ export const API_URL = BACKEND_URL;
 export const getApiUrl = getBackendUrl;
 
 // Debug
-console.log("🌐 Backend URL configured as:", BACKEND_URL);
-console.log("🌍 Frontend URL configured as:", FRONTEND_URL);
-console.log("📢 Guest Feedback URL:", GUEST_FEEDBACK_URL);
+//console.log("🌐 Backend URL configured as:", BACKEND_URL);
+//console.log("🌍 Frontend URL configured as:", FRONTEND_URL);
+//console.log("📢 Guest Feedback URL:", GUEST_FEEDBACK_URL);
 
 export default {
   BACKEND_URL,

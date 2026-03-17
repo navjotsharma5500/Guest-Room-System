@@ -1,18 +1,18 @@
 // ============================================================================
-// ðŸ”¥ API CONFIG + DEBUG
+//  API CONFIG + DEBUG
 // ============================================================================
 
-// âœ… USE CENTRALIZED API CONFIG
+//  USE CENTRALIZED API CONFIG
 import { BACKEND_URL } from './apiConfig';
 
-console.log("%c[API CONFIG DEBUG]", "color:#e91e63;font-weight:bold;");
-console.log("BACKEND_URL from apiConfig =", BACKEND_URL);
+//console.log("%c[API CONFIG DEBUG]", "color:#e91e63;font-weight:bold;");
+//console.log("BACKEND_URL from apiConfig =", BACKEND_URL);
 
 // Export both names for backward compatibility
 export const API = BACKEND_URL;
 export { BACKEND_URL };
 
-console.log("Final API Used =", API);
+//console.log("Final API Used =", API);
 
 // ============================================================================
 // AUTH
@@ -216,7 +216,7 @@ export const apiRejectEnquiry = async (id) => {
 };
 
 // ============================================================================
-// ðŸ”¥ IMAGEKIT â€“ React SDK USES IKUpload, NOT JS SDK
+// IMAGEKIT React SDK USES IKUpload, NOT JS SDK
 // ============================================================================
 export const IMAGEKIT_PUBLIC_KEY =
   process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
@@ -226,13 +226,13 @@ export const IMAGEKIT_URL_ENDPOINT =
 
 export const IMAGEKIT_AUTH_ENDPOINT = `${API}/api/imagekit/auth`;
 
-console.log("%c[IMAGEKIT CONFIG]", "color:#4caf50;font-weight:bold;");
-console.log("publicKey =", IMAGEKIT_PUBLIC_KEY);
-console.log("urlEndpoint =", IMAGEKIT_URL_ENDPOINT);
-console.log("Auth Endpoint =", IMAGEKIT_AUTH_ENDPOINT);
+//console.log("%c[IMAGEKIT CONFIG]", "color:#4caf50;font-weight:bold;");
+//console.log("publicKey =", IMAGEKIT_PUBLIC_KEY);
+//console.log("urlEndpoint =", IMAGEKIT_URL_ENDPOINT);
+//console.log("Auth Endpoint =", IMAGEKIT_AUTH_ENDPOINT);
 
 // ============================================================================
-// ðŸ“‹ Fetch enquiries (used in MainContent.jsx)
+//  Fetch enquiries (used in MainContent.jsx)
 // ============================================================================
 export const fetchEnquiries = async () => {
   try {

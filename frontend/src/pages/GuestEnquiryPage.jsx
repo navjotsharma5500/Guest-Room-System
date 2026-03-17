@@ -26,7 +26,7 @@ import PublicPageWidgets from "../components/PublicPageWidgets";
 const API = BACKEND_URL;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
-console.log("🔧 Backend API URL:", API);
+//console.log("🔧 Backend API URL:", API);
 
 const INITIAL_FORM_STATE = {
   name: "",

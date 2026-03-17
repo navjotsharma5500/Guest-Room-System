@@ -16,7 +16,7 @@ if (!axios.defaults.baseURL) {
   console.error("❌ CRITICAL: BACKEND_URL not set in environment variables!");
 }
 
-console.log("🔧 Axios Base URL:", axios.defaults.baseURL);
+//console.log("🔧 Axios Base URL:", axios.defaults.baseURL);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     console.error("❌ CRITICAL: BACKEND_URL not set!");
   }
 
-  console.log("🔧 Auth API URL:", API);
+  //console.log("🔧 Auth API URL:", API);
 
   // =======================================================
   // 🔥 LOAD LOGGED-IN USER FROM BACKEND (/me)
@@ -48,10 +48,10 @@ export const AuthProvider = ({ children }) => {
 
         if (res.status === 200) {
           const data = await res.json();
-          console.log("🟢 Session found:", data.user);
+          //console.log("🟢 Session found:", data.user);
           setCurrentUser(data.user);
         } else {
-          console.log("🔴 No active session");
+          //console.log("🔴 No active session");
           setCurrentUser(null);
         }
       } catch (err) {
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   // =======================================================
   const login = async (email, password) => {
     try {
-      console.log("🔵 Sending login request ...");
+      //console.log("🔵 Sending login request ...");
 
       const res = await fetch(`${API}/api/auth/login`, {
         method: "POST",
@@ -83,8 +83,8 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await res.json();
-      console.log("🔵 Login response:", data);
-      console.log("🔵 Token in response?", data.token ? "YES ✅" : "NO ❌");
+      //console.log("🔵 Login response:", data);
+      //console.log("🔵 Token in response?", data.token ? "YES ✅" : "NO ❌");
 
       // ✅ FIXED: use `data` not `res.data` (this is fetch, not axios)
       if (!data.success) {
@@ -95,9 +95,9 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(data.user);
       if (data.token) {
         localStorage.setItem("token", data.token);
-        console.log("✅ Token stored in localStorage (length:", data.token.length, ")");
+        //console.log("✅ Token stored in localStorage (length:", data.token.length, ")");
       } else {
-        console.warn("⚠️ No token in response, checking cookies only");
+        //console.warn("⚠️ No token in response, checking cookies only");
       }
 
       return data;
