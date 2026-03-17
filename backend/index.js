@@ -303,10 +303,13 @@ app.get("/api/imagekit/search", async (req, res) => {
       });
     }
 
+    const escapeSearchValue = (value) =>
+      value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+    const safeName = escapeSearchValue(fileName);
     const searchQueries = [
-      `name ~ \"${fileName}\"`,
-      `name = \"${fileName}\"`,
-      `name ~ \"^${fileName}\"`,
+      `name = "${safeName}"`,
+      `name ~ "${safeName}"`,
     ];
 
     let files = [];
