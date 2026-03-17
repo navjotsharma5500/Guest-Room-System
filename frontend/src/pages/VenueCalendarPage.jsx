@@ -373,9 +373,11 @@ function BookingListItem({ booking, onViewDetails, theme }) {
 }
 
 // Main Component
-export default function VenueCalendarPage({ onBack, venueData, theme = "light" }) {
+export default function VenueCalendarPage({ onBack, venueData, theme = "light", initialDate = null }) {
   const { showToast } = useToast();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(
+    initialDate ? new Date(initialDate) : new Date()
+  );
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSociety, setSelectedSociety] = useState('all');
@@ -383,6 +385,11 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  React.useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(new Date(initialDate));
+    }
+  }, [initialDate]);
   // Format date helper
   const formatDate = (date) => {
     return date.toLocaleDateString('en-IN', { 
@@ -540,23 +547,7 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light" }
     setSelectedBooking(booking);
   }, []);
 
-  // Auto-switch to 'past' tab if any booking has expired
-  React.useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Check if there are any bookings with checkOutDate in the past
-    const hasExpiredBookings = allBookings.some(booking => {
-      const checkOut = new Date(booking.checkOutDate);
-      checkOut.setHours(0, 0, 0, 0);
-      return checkOut < today;
-    });
-    
-    // If there are expired bookings and we're not already on 'past' tab, switch to it
-    if (hasExpiredBookings && activeTab !== 'past' && activeTab !== 'cancelled') {
-      setActiveTab('past');
-    }
-  }, [allBookings]);
+  // Keep default tab as 'active' unless user changes it
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${

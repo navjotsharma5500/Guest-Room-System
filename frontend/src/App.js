@@ -75,9 +75,12 @@ const GUEST_ROOM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "gues
 const VENUE_BOOKING_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "venue") || hasAccess(r, "venue_limited"));
 
 // Roles allowed to access Dashboard Selector page
-const canSeeSelector = (role, isDDAssistant) => {
+const canSeeSelector = (role, isDDAssistant, userEmail = "") => {
   // Admin always sees the selector
   if (role === "admin") return true;
+  // Force adosa3 and assistant directly to venue booking
+  if (userEmail === "adosa3@thapar.edu") return false;
+  if (role === "assistant") return false;
   // If disabled globally, no one else sees it
   if (!DASHBOARD_SELECTOR_ENABLED) return false;
   return hasAccess(role, "selector") || isDDAssistant;
@@ -114,6 +117,15 @@ export default function App() {
     if (userEmail === "adosa2@thapar.edu") {
       return "/dashboard";
     }
+    // ⚡ HARDCODED OVERRIDE FOR adosa3@thapar.edu (Venue Booking only)
+    if (userEmail === "adosa3@thapar.edu") {
+      return "/venue-booking";
+    }
+
+    // Assistant role should land on Venue Booking dashboard
+    if (role === "assistant") {
+      return "/venue-booking";
+    }
 
     // 1️⃣ If user has ONLY GuestRoom permission → go to GuestRoom directly
     if (
@@ -130,7 +142,7 @@ export default function App() {
     }
 
     // 3️⃣ Selector roles (admin, adosa, assistant etc.)
-    if (canSeeSelector(role, isDDAssistant)) {
+    if (canSeeSelector(role, isDDAssistant, userEmail)) {
       return "/admin/dashboard-selector";
     }
 
@@ -172,7 +184,7 @@ export default function App() {
           <Route
             path="/admin/dashboard-selector"
             element={
-              currentUser && canSeeSelector(role, isDDAssistant)
+              currentUser && canSeeSelector(role, isDDAssistant, (currentUser?.email || currentUser?.user?.email || "").toLowerCase())
                 ? <DashboardSelectorGlass />
                 : <Navigate to="/" replace />
             }

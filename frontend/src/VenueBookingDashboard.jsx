@@ -164,7 +164,12 @@ export default function VenueBookingDashboard() {
     navigate("/");
   };
 
-  const handleNavigate = (section) => {
+  const [calendarFocusDate, setCalendarFocusDate] = useState(null);
+
+  const handleNavigate = (section, payload = {}) => {
+    if (section === "calendar" && payload?.date) {
+      setCalendarFocusDate(payload.date);
+    }
     setActiveSection(section);
   };
 
@@ -540,6 +545,7 @@ export default function VenueBookingDashboard() {
               <VenueCalendarPage
                 venueData={filteredVenueData}
                 theme={theme}
+                initialDate={calendarFocusDate}
                 onBack={() => handleNavigate("home")}
               />
             )}

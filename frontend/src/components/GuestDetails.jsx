@@ -842,9 +842,18 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     if (!from || !to) return 0;
     const start = new Date(from);
     const end = new Date(to);
-    const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays || 1;
+    const startDateOnly = Date.UTC(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate()
+    );
+    const endDateOnly = Date.UTC(
+      end.getFullYear(),
+      end.getMonth(),
+      end.getDate()
+    );
+    const diffDays = Math.round((endDateOnly - startDateOnly) / 86400000);
+    return Math.max(0, diffDays);
   };
 
   // Format date helper (if not already defined in utils)
@@ -1066,6 +1075,14 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                     {formatDate(b.to)} at {formatTimeWithAMPM(b.checkOutTime)}
                   </>
                 )}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                Total Booking Days
+              </p>
+              <p className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                {calculateStayDays(b.from, b.to)} {calculateStayDays(b.from, b.to) === 1 ? "day" : "days"}
               </p>
             </div>
             {(b.remarks || b.freeRemarks) && (

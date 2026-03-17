@@ -443,6 +443,8 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     from && to && checkInTime && checkOutTime
       ? validateDateRange()
       : true;
+  const totalBookingDays =
+    from && to ? Math.max(0, getDaysDifference(from, to)) : 0;
 
   /* ------------------ RENDER ------------------ */
   return (
@@ -550,6 +552,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   )}
                 </div>
               </div>
+
+              {from && to && checkInTime && checkOutTime && !validationErrors.dates && (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700 font-medium">
+                    Total Booking Days: {totalBookingDays} {totalBookingDays === 1 ? "day" : "days"}
+                  </p>
+                </div>
+              )}
 
               {validationErrors.dates && (
                 <div className="col-span-2 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">

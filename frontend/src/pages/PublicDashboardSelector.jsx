@@ -211,6 +211,14 @@ const PublicDashboardSelector = () => {
 
   const role = String(currentUser?.role || currentUser?.user?.role || "").toLowerCase();
   const isAdmin = role === "admin";
+  const userEmail = String(currentUser?.email || currentUser?.user?.email || "").toLowerCase();
+
+  useEffect(() => {
+    if (!currentUser) return;
+    if (userEmail === "adosa3@thapar.edu" || role === "assistant") {
+      navigate("/venue-booking", { replace: true });
+    }
+  }, [currentUser, userEmail, role, navigate]);
 
   useEffect(() => {
     let mounted = true;

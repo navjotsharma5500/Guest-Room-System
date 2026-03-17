@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   SETTINGS_OPEN: "settings.open",
   SETTINGS_CACHE: "settings.clearCache",
   SETTINGS_APPROVED: "settings.clearLastApproved",
+  SETTINGS_MANAGE_HOSTELS: "settings.manageHostels",
+  SETTINGS_MANAGE_ROLES: "settings.manageRoles",
   
   // Export
   DOWNLOAD_VIEW: "download.view",

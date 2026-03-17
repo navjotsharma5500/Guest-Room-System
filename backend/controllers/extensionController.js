@@ -14,7 +14,15 @@ const ADOSA_EMAILS = ["adosa2@thapar.edu"];
 
 export const createExtensionRequest = async (req, res) => {
     try {
-        const { bookingId, requestedCheckout, remarks, paymentData, extensionAttachments } = req.body;
+        const {
+            bookingId,
+            requestedCheckout,
+            remarks,
+            paymentData,
+            extensionAttachments,
+            attachments,
+            paymentAttachments
+        } = req.body;
         
         if (!bookingId || !requestedCheckout) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -51,6 +59,16 @@ export const createExtensionRequest = async (req, res) => {
         const extensionPaymentRemarks     = paymentData?.extensionPaymentRemarks      || "";
         const extensionPaymentAttachments = Array.isArray(paymentData?.extensionPaymentAttachments)
             ? paymentData.extensionPaymentAttachments
+            : Array.isArray(paymentAttachments)
+            ? paymentAttachments
+            : [];
+
+        const resolvedExtensionAttachments = Array.isArray(extensionAttachments)
+            ? extensionAttachments
+            : Array.isArray(attachments)
+            ? attachments
+            : Array.isArray(paymentData?.extensionAttachments)
+            ? paymentData.extensionAttachments
             : [];
 
         const extensionRequest = await ExtensionRequest.create({
@@ -67,7 +85,7 @@ export const createExtensionRequest = async (req, res) => {
             extensionAmount,
             extensionPaymentRemarks,
             extensionPaymentAttachments,
-            extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
+            extensionAttachments: resolvedExtensionAttachments,
             paymentData: paymentData || {},
         });
 
@@ -172,6 +190,20 @@ export const approveExtensionRequest = async (req, res) => {
             remarks: request.remarks,
             approvedAmount: request.approvedAmount
         });
+
+        if (Array.isArray(request.extensionAttachments) && request.extensionAttachments.length > 0) {
+            booking.extensionAttachments = [
+                ...(booking.extensionAttachments || []),
+                ...request.extensionAttachments
+            ];
+        }
+
+        if (Array.isArray(request.extensionPaymentAttachments) && request.extensionPaymentAttachments.length > 0) {
+            booking.extensionPaymentAttachments = [
+                ...(booking.extensionPaymentAttachments || []),
+                ...request.extensionPaymentAttachments
+            ];
+        }
         
         if (request.approvedAmount > 0) {
              booking.totalAmount = (booking.totalAmount || 0) + Number(request.approvedAmount);

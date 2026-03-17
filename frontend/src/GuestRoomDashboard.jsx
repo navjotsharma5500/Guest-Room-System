@@ -608,6 +608,7 @@ export default function GuestRoomDashboard() {
         bookingId: mongoId,
         requestedCheckout: newToDate,
         remarks: remarks || "",
+        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
         paymentData: paymentData
       };
 

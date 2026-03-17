@@ -86,9 +86,17 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
   }, [selectedDate, venueData]);
 
   // âœ… NEW: Handle calendar click - navigate to calendar page
-  const handleCalendarClick = () => {
+  const openFullCalendar = (date = selectedDate) => {
     if (onNavigate) {
-      onNavigate("calendar");
+      onNavigate("calendar", { date });
+    }
+  };
+
+  const handleDateSelect = (value, event) => {
+    if (event?.stopPropagation) event.stopPropagation();
+    setSelectedDate(value);
+    if (onNavigate) {
+      onNavigate("calendar", { date: value });
     }
   };
 
@@ -161,26 +169,29 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl cursor-pointer hover:shadow-2xl transition h-full flex flex-col ${
+          className={`p-6 rounded-2xl backdrop-blur-xl border shadow-xl hover:shadow-2xl transition h-full flex flex-col ${
             theme === "dark"
               ? "bg-gray-800/60 border-gray-700 hover:border-blue-500"
               : "bg-white/60 border-gray-200 hover:border-blue-500"
           }`}
-          onClick={handleCalendarClick}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
               Booking Calendar
             </h3>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <button
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              onClick={() => openFullCalendar()}
+            >
               View Full
             </button>
           </div>
           
-          <div className="hall-calendar-mini pointer-events-none flex-grow">
+          <div className="hall-calendar-mini flex-grow">
             <Calendar
               value={selectedDate}
               onChange={setSelectedDate}
+              onClickDay={handleDateSelect}
               tileClassName={tileClassName}
               className={`${theme === "dark" ? "dark-calendar" : ""} w-full h-full`}
             />
@@ -195,11 +206,15 @@ export default function VenueMainContent({ venueData, theme, currentUser, onRefr
             </div>
           )}
           
-          <p className={`text-xs text-center mt-3 ${
+          <button
+            type="button"
+            onClick={() => openFullCalendar()}
+            className={`text-xs text-center mt-3 ${
             theme === "dark" ? "text-gray-400" : "text-gray-500"
-          }`}>
+          }`}
+          >
             Click to view detailed calendar →
-          </p>
+          </button>
         </motion.div>
 
         {/* Right Side: Upcoming Bookings List */}

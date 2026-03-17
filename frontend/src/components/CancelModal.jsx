@@ -147,7 +147,7 @@ export default function CancelModal({ modal, remarksText, setRemarksText, onClos
               <div className="relative group">
                 <Info size={14} className="text-blue-400 cursor-help" />
                 <div className="absolute left-5 top-0 w-64 text-xs bg-gray-800 text-white rounded-lg p-2 hidden group-hover:block z-10 shadow-lg leading-relaxed">
-                  Kindly upload the guest consent to cancel or you can write it by yourself.
+                  Guest consent for cancellation is required. Kindly upload the same.
                 </div>
               </div>
             </div>

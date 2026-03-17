@@ -723,8 +723,8 @@ export const getWaivedBills = async (req, res) => {
   try {
     const user = req.user;
 
-    // Role check: Allow Admin, Manager, and Co-Warden
-    if (!['admin', 'manager', 'co_warden'].includes(user.role)) {
+    // Role check: Allow Admin, Manager, Co-Warden, and ADOSA (read-only)
+    if (!['admin', 'manager', 'co_warden', 'adosa'].includes(user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -748,7 +748,7 @@ export const getCancelledBills = async (req, res) => {
   try {
     const user = req.user;
 
-    if (!['admin', 'manager', 'adosa', 'assistant', 'Warden', 'caretaker', 'co_warden'].includes(user.role)) {
+    if (!['admin', 'manager', 'adosa', 'assistant', 'warden', 'caretaker', 'co_warden'].includes(user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 

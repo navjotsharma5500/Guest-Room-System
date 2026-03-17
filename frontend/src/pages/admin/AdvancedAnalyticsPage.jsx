@@ -118,7 +118,14 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const free       = bookings.filter(b => b.paymentType === "Free").length;
   const paid       = bookings.filter(b => b.paymentType === "Paid").length;
   const revenue    = bookings.reduce((s, b) => s + (b.paymentType === "Paid" ? Number(b.paidAmount) || 0 : 0), 0);
-  const billed     = bookings.reduce((s, b) => s + (b.paymentType === "Paid" ? Number(b.totalAmount) || 0 : 0), 0);
+  const billed     = bookings.reduce((s, b) => {
+    if (b.paymentType !== "Paid") return s;
+    // If cancelled, billed = paid + discount so pending is 0
+    if (b.status === "cancelled") {
+      return s + (Number(b.paidAmount) || 0) + (Number(b.discount) || 0);
+    }
+    return s + (Number(b.totalAmount) || 0);
+  }, 0);
   const discount   = bookings.reduce((s, b) => s + (Number(b.discount) || 0), 0);
   const pending    = Math.max(0, billed - revenue - discount);
   const fullyPaid  = bookings.filter(b => b.paymentType === "Paid" && b.paymentStatus === "PAID").length;

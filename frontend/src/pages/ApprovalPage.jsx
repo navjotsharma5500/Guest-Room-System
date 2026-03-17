@@ -661,6 +661,17 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
                || r.paymentData?.extensionPaymentType
                || "Paid";
 
+             const extensionAttachmentFiles = [
+               ...(Array.isArray(r.extensionAttachments) ? r.extensionAttachments : []),
+               ...(Array.isArray(r.attachments) ? r.attachments : []),
+               ...(Array.isArray(r.paymentData?.extensionAttachments) ? r.paymentData.extensionAttachments : [])
+             ];
+             const extensionPaymentAttachmentFiles = [
+               ...(Array.isArray(r.extensionPaymentAttachments) ? r.extensionPaymentAttachments : []),
+               ...(Array.isArray(r.paymentAttachments) ? r.paymentAttachments : []),
+               ...(Array.isArray(r.paymentData?.extensionPaymentAttachments) ? r.paymentData.extensionPaymentAttachments : [])
+             ];
+
              return {
                ...r,
                requestId: r._id,
@@ -685,10 +696,8 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
                paymentType,
                remarks: r.remarks,
                rejectionReason: r.rejectionReason,
-               extensionAttachments: Array.isArray(r.extensionAttachments) ? r.extensionAttachments : [],
-               extensionPaymentAttachments: Array.isArray(r.extensionPaymentAttachments)
-                 ? r.extensionPaymentAttachments
-                 : [],
+               extensionAttachments: extensionAttachmentFiles,
+               extensionPaymentAttachments: extensionPaymentAttachmentFiles,
              };
          });
          setRequests(mapped || []);

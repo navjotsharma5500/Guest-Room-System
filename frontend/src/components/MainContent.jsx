@@ -73,7 +73,11 @@ export default function MainContent(props) {
   const { currentUser, loadingUser } = useAuth();
   const role = currentUser?.role || currentUser?.user?.role;
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
-  const isAdminLike = role === 'admin' || role === 'manager';
+  const hasGuestRoomPermission = currentUser?.permissions?.guestRoom === true;
+  const isAdminLike =
+    role === 'admin' ||
+    role === 'manager' ||
+    (role === 'adosa' && hasGuestRoomPermission);
   const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
   // ✅ STATE HELPER - Add after state declarations
