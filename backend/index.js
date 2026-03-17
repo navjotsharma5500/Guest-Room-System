@@ -283,6 +283,88 @@ app.get("/api/imagekit/auth", (req, res) => {
 });
 
 /* =========================================================
+   IMAGEKIT SEARCH ROUTE
+========================================================= */
+app.get("/api/imagekit/search", async (req, res) => {
+  try {
+    if (!imagekitServer) {
+      return res.status(503).json({
+        success: false,
+        error: "ImageKit service unavailable",
+        message: "File search service is not configured",
+      });
+    }
+
+    const fileName = String(req.query.fileName || "").trim();
+    if (!fileName) {
+      return res.status(400).json({
+        success: false,
+        message: "fileName query param is required",
+      });
+    }
+
+    const searchQueries = [
+      `name ~ \"${fileName}\"`,
+      `name = \"${fileName}\"`,
+      `name ~ \"^${fileName}\"`,
+    ];
+
+    let files = [];
+    let lastError = null;
+
+    for (const searchQuery of searchQueries) {
+      try {
+        const result = await imagekitServer.listFiles({
+          searchQuery,
+          limit: 1,
+          skip: 0,
+        });
+
+        if (Array.isArray(result)) {
+          files = result;
+        } else if (Array.isArray(result?.data)) {
+          files = result.data;
+        } else if (Array.isArray(result?.files)) {
+          files = result.files;
+        } else {
+          files = [];
+        }
+
+        if (files.length > 0) break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!files || files.length === 0) {
+      if (lastError) {
+        console.warn("⚠️ ImageKit search failed:", lastError.message);
+      }
+      return res.json({
+        success: false,
+        message: "No matching files found",
+      });
+    }
+
+    const file = files[0];
+    return res.json({
+      success: true,
+      url: file.url,
+      fileId: file.fileId,
+      name: file.name,
+      filePath: file.filePath,
+    });
+  } catch (err) {
+    console.error("❌ ImageKit search error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "ImageKit search failed",
+      error: err.message,
+    });
+  }
+});
+
+/* =========================================================
    REQUEST LOGGING MIDDLEWARE
 ========================================================= */
 app.use((req, res, next) => {
