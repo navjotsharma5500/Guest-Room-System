@@ -32,15 +32,11 @@ export const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user)
-      return res
-        .status(401)
-        .json({ success: false, code: "INVALID_CREDENTIALS", message: "Invalid email or password" });
+      return res.status(404).json({ success: false, message: "User not found" });
 
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (!isMatch)
-      return res
-        .status(401)
-        .json({ success: false, code: "INVALID_CREDENTIALS", message: "Invalid email or password" });
+      return res.status(401).json({ success: false, message: "Invalid password" });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "30d",
@@ -94,12 +90,8 @@ export const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
     if (!user)
       return res
-        .status(403)
-        .json({
-          success: false,
-          code: "EMAIL_NOT_REGISTERED",
-          message: "Your email is not registered in our system.",
-        });
+        .status(404)
+        .json({ success: false, message: "Your email is not registered in our system." });
 
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "30d",
@@ -230,9 +222,6 @@ export const logoutUser = async (req, res) => {
   res.cookie("token", "none", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
-    sameSite: "none",
-    secure: true,
-    path: "/",
   });
   res.status(200).json({ success: true, data: {} });
 };

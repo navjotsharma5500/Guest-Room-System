@@ -5,21 +5,7 @@ export const getBackendUrl = () => {
     return process.env.REACT_APP_BACKEND_URL;
   }
 
-  if (typeof window !== "undefined") {
-    const { hostname } = window.location;
-
-    if (hostname === "guestapp.in" || hostname === "www.guestapp.in") {
-      console.warn("⚠️ REACT_APP_BACKEND_URL not set, using production API fallback");
-      return "https://api.guestapp.in";
-    }
-
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      console.warn("⚠️ REACT_APP_BACKEND_URL not set, using localhost fallback");
-      return "http://localhost:10000";
-    }
-  }
-
-  console.warn("⚠️ REACT_APP_BACKEND_URL not set, using default API fallback");
+  console.warn("⚠️ REACT_APP_BACKEND_URL not set, using localhost fallback");
   return "http://localhost:10000";
 };
 
