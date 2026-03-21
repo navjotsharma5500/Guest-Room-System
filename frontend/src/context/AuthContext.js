@@ -82,13 +82,25 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      if (res.status === 404) {
+        console.error("❌ Login endpoint not found:", `${API}/api/auth/login`);
+        return {
+          success: false,
+          message: "Login is not available: backend route /api/auth/login returned 404.",
+        };
+      }
+
+      const data = await res.json().catch(() => null);
       //console.log("🔵 Login response:", data);
       //console.log("🔵 Token in response?", data.token ? "YES ✅" : "NO ❌");
 
       // ✅ FIXED: use `data` not `res.data` (this is fetch, not axios)
-      if (!data.success) {
-        return { success: false, code: data.code, message: data.message };
+      if (!data?.success) {
+        return {
+          success: false,
+          code: data?.code,
+          message: data?.message || "Login failed",
+        };
       }
 
       // Login succeeded — store user and token
