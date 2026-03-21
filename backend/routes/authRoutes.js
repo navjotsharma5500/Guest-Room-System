@@ -14,19 +14,22 @@ import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
+const googleAuthPaths = ["/google", "/google-login"];
 
 // Login user
 router.post("/login", loginUser);
 
 // Google Login
-router.options("/google", (req, res) => res.sendStatus(200));
-router.post("/google", googleLogin);
-router.get("/google", (req, res) => {
-  return res.status(405).json({
-    success: false,
-    message: "Method not allowed. Use POST /api/auth/google with JSON body { token }",
+for (const path of googleAuthPaths) {
+  router.options(path, (req, res) => res.sendStatus(200));
+  router.post(path, googleLogin);
+  router.get(path, (req, res) => {
+    return res.status(405).json({
+      success: false,
+      message: `Method not allowed. Use POST /api/auth${path} with JSON body { token }`,
+    });
   });
-});
+}
 
 // Logout user
 router.post("/logout", logoutUser);

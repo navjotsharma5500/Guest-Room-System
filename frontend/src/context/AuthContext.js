@@ -113,44 +113,57 @@ export const AuthProvider = ({ children }) => {
   // =======================================================
   const googleLogin = async (token) => {
     try {
-      const res = await fetch(`${API}/api/auth/google`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
+      const candidateUrls = [
+        `${API}/api/auth/google`,
+        `${API}/api/auth/google-login`,
+      ];
 
-      if (res.status === 404) {
-        console.error("❌ Google login endpoint not found:", `${API}/api/auth/google`);
-        return {
-          success: false,
-          message:
-            "Google login is not available: backend route /api/auth/google returned 404.",
-        };
+      for (const url of candidateUrls) {
+        const res = await fetch(url, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        if (res.status === 404) {
+          console.warn("⚠️ Google login endpoint not found:", url);
+          continue;
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          const errData = await res.json().catch(() => null);
+          return {
+            success: false,
+            code: errData?.code,
+            message:
+              errData?.message ||
+              "Unauthorized. Please verify backend session/cors and try again.",
+          };
+        }
+
+        const data = await res.json().catch(() => null);
+
+        if (!data?.success) {
+          return {
+            success: false,
+            code: data?.code,
+            message: data?.message || "Google Login Failed",
+          };
+        }
+
+        setCurrentUser(data.user);
+        if (data.token) localStorage.setItem("token", data.token);
+
+        return data;
       }
 
-      if (res.status === 401 || res.status === 403) {
-        const errData = await res.json().catch(() => null);
-        return {
-          success: false,
-          code: errData?.code,
-          message:
-            errData?.message ||
-            "Unauthorized. Please verify backend session/cors and try again.",
-        };
-      }
-
-      const data = await res.json();
-
-      // ✅ FIXED: check data.success, not res.ok alone
-      if (!data.success) {
-        return { success: false, code: data.code, message: data.message };
-      }
-
-      setCurrentUser(data.user);
-      if (data.token) localStorage.setItem("token", data.token);
-
-      return data;
+      console.error("❌ Google login endpoint not found on any known auth route:", candidateUrls);
+      return {
+        success: false,
+        message:
+          "Google login is not available: backend routes /api/auth/google and /api/auth/google-login returned 404.",
+      };
 
     } catch (err) {
       console.error("❌ Google login error:", err);

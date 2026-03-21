@@ -46,7 +46,6 @@ export const loginUser = async (req, res) => {
       httpOnly: true,
       sameSite: "none",
       secure: true,
-      domain: ".guestapp.in",
       path: "/",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -102,7 +101,6 @@ export const googleLogin = async (req, res) => {
       httpOnly: true,
       sameSite: "none",
       secure: true,
-      domain: ".guestapp.in",
       path: "/",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -226,7 +224,6 @@ export const logoutUser = async (req, res) => {
     httpOnly: true,
     sameSite: "none",
     secure: true,
-    domain: ".guestapp.in",
     path: "/",
   });
   res.status(200).json({ success: true, data: {} });
