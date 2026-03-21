@@ -1,0 +1,169 @@
+/* Venue dashboard only: reuse Event Calendar visual theme */
+.venue-event-theme {
+  --calendar-primary: #3b82f6;
+  --calendar-secondary: #8b5cf6;
+  --calendar-accent: #ec4899;
+  --venue-surface-light: #ffffff;
+  --venue-border-light: #dbe4ff;
+  --venue-surface-dark: #1f2937;
+  --venue-surface-dark-alt: #111827;
+  --venue-border-dark: #374151;
+}
+
+.venue-event-theme {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 42%, #f5f3ff 76%, #fdf2f8 100%);
+}
+
+.dark .venue-event-theme {
+  background: linear-gradient(135deg, #111827 0%, #1e293b 55%, #312e81 100%);
+}
+
+.venue-event-theme .bg-\[\#292a2d\] {
+  background-color: var(--venue-surface-dark) !important;
+}
+
+.venue-event-theme .bg-\[\#202124\] {
+  background-color: var(--venue-surface-dark-alt) !important;
+}
+
+.venue-event-theme .border-\[\#3c4043\] {
+  border-color: var(--venue-border-dark) !important;
+}
+
+.venue-event-theme .text-\[\#e8eaed\] {
+  color: #f3f4f6 !important;
+}
+
+.venue-event-theme .text-\[\#9aa0a6\] {
+  color: #cbd5e1 !important;
+}
+
+.venue-event-theme .bg-\[\#1a73e8\],
+.venue-event-theme .bg-blue-600 {
+  background-color: var(--calendar-primary) !important;
+}
+
+.venue-event-theme .bg-\[\#8ab4f8\] {
+  background-color: var(--calendar-secondary) !important;
+}
+
+.venue-event-theme .text-\[\#1a73e8\],
+.venue-event-theme .text-blue-600,
+.venue-event-theme .text-\[\#8ab4f8\] {
+  color: var(--calendar-primary) !important;
+}
+
+.venue-event-theme .border-\[\#1a73e8\],
+.venue-event-theme .border-blue-500,
+.venue-event-theme .border-blue-600 {
+  border-color: var(--calendar-primary) !important;
+}
+
+.venue-event-theme .focus\:border-\[\#1a73e8\]:focus,
+.venue-event-theme .focus\:border-\[\#8ab4f8\]:focus {
+  border-color: var(--calendar-primary) !important;
+}
+
+.venue-event-theme .focus\:ring-\[\#1a73e8\]:focus {
+  --tw-ring-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+.venue-event-theme .hover\:bg-\[\#1967d2\]:hover,
+.venue-event-theme .hover\:bg-\[\#1765cc\]:hover,
+.venue-event-theme .hover\:bg-blue-700:hover {
+  background-color: #2563eb !important;
+}
+
+.venue-event-theme .hover\:bg-\[\#aecbfa\]:hover {
+  background-color: #a78bfa !important;
+}
+
+.venue-event-theme .bg-\[\#e8f0fe\],
+.venue-event-theme .bg-blue-100 {
+  background-color: #dbeafe !important;
+}
+
+.venue-event-theme .bg-blue-50 {
+  background-color: #eff6ff !important;
+}
+
+.venue-event-theme .text-red-400,
+.venue-event-theme .text-red-500,
+.venue-event-theme .text-red-600,
+.venue-event-theme .text-red-700,
+.venue-event-theme .text-red-800 {
+  color: var(--calendar-accent) !important;
+}
+
+.venue-event-theme .border-red-200,
+.venue-event-theme .border-red-500 {
+  border-color: rgba(236, 72, 153, 0.38) !important;
+}
+
+.venue-event-theme .bg-red-50 {
+  background-color: #fdf2f8 !important;
+}
+
+.venue-event-theme .bg-red-100 {
+  background-color: #fce7f3 !important;
+}
+
+.venue-event-theme .bg-red-500\/10 {
+  background-color: rgba(236, 72, 153, 0.1) !important;
+}
+
+.venue-event-theme .bg-red-400 {
+  background-color: #60a5fa !important;
+}
+
+.venue-event-theme .bg-purple-400 {
+  background-color: #a78bfa !important;
+}
+
+.venue-event-theme .from-red-600,
+.venue-event-theme .from-red-700,
+.venue-event-theme .to-red-600,
+.venue-event-theme .to-red-700,
+.venue-event-theme .to-orange-900\/30,
+.venue-event-theme .from-red-900\/30,
+.venue-event-theme .to-orange-50 {
+  --tw-gradient-from: var(--calendar-primary) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: var(--calendar-secondary) var(--tw-gradient-to-position) !important;
+}
+
+.venue-event-theme .from-pink-500\/10,
+.venue-event-theme .to-red-500\/10 {
+  --tw-gradient-from: rgba(139, 92, 246, 0.12) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(236, 72, 153, 0.12) var(--tw-gradient-to-position) !important;
+}
+
+.venue-event-theme .hall-calendar-mini .react-calendar__tile:enabled:hover {
+  background-color: rgba(59, 130, 246, 0.14) !important;
+}
+
+.venue-event-theme .hall-calendar-mini .react-calendar__tile--active {
+  background: linear-gradient(135deg, var(--calendar-primary), var(--calendar-secondary)) !important;
+}
+
+.venue-event-theme .hall-calendar-mini .react-calendar__tile.has-bookings {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: var(--calendar-primary) !important;
+  color: #1d4ed8 !important;
+}
+
+.venue-event-theme .dark-calendar .react-calendar__tile:enabled:hover {
+  background-color: rgba(99, 102, 241, 0.24) !important;
+}
+
+.venue-event-theme .dark-calendar .react-calendar__tile.has-bookings {
+  background: rgba(139, 92, 246, 0.24) !important;
+  color: #c4b5fd !important;
+}
+
+.venue-event-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--calendar-primary), var(--calendar-secondary)) !important;
+}
+
+.venue-event-theme .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+}
