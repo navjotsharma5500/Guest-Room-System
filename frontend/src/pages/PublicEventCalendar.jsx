@@ -509,7 +509,7 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden h-[420px] flex flex-col ${
+            className={`rounded-2xl shadow-xl overflow-hidden min-h-[480px] flex flex-col ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"
@@ -624,7 +624,7 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col h-[420px] ${
+            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[480px] ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"

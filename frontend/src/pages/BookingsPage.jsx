@@ -217,6 +217,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
       "Balance",
       "City",
       "State",
+      "Reference",
       "Purpose",
     ];
 
@@ -237,6 +238,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
       b.balanceAmount || 0,
       b.city || "",
       b.state || "",
+      b.reference || "",
       b.purpose || "",
     ]);
 
@@ -734,6 +736,12 @@ function BookingCard({ booking, index, theme }) {
                 <span>
                   {[booking.city, booking.state].filter(Boolean).join(", ")}
                 </span>
+              </div>
+            )}
+            {booking.reference && (
+              <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
+                <span className="font-medium">Ref:</span>
+                <span>{booking.reference}</span>
               </div>
             )}
 

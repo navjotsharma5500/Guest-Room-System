@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Github, Calendar, Building2,
   Moon, BookOpen, Search, Sparkles, Target,
@@ -30,12 +30,12 @@ function FadeUp({ children, delay = 0, className = "" }) {
    DATA
 ───────────────────────────────────────── */
 const FEATURES = [
-  { icon: Building2, label: "Guest Room Booking",   status: "Live",         color: "#fce8e8", ic: "#c62828" },
-  { icon: Calendar,  label: "Event Venue Booking",  status: "Live",         color: "#e3eeff", ic: "#1a56db" },
-  { icon: BookOpen,  label: "Event Calendar",       status: "Live",         color: "#e6f9f0", ic: "#0d7a4e" },
-  { icon: Moon,      label: "Library Night Pass",   status: "Live",         color: "#f0ecff", ic: "#6d28d9" },
-  { icon: Sparkles,  label: "Society Night Pass",   status: "Coming Soon",  color: "#fff8e1", ic: "#b45309" },
-  { icon: Search,    label: "Lost & Found",         status: "Live",         color: "#fff3e0", ic: "#c2410c" },
+  { icon: Building2, label: "Guest Room Booking",   status: "Live",         color: "#fce8e8", ic: "#c62828", working: "[Feature working description coming soon]" },
+  { icon: Calendar,  label: "Event Venue Booking",  status: "Live",         color: "#e3eeff", ic: "#1a56db", working: "[Feature working description coming soon]" },
+  { icon: BookOpen,  label: "Event Calendar",       status: "Live",         color: "#e6f9f0", ic: "#0d7a4e", working: "[Feature working description coming soon]" },
+  { icon: Moon,      label: "Library Night Pass",   status: "Live",         color: "#f0ecff", ic: "#6d28d9", working: "[Feature working description coming soon]" },
+  { icon: Sparkles,  label: "Society Night Pass",   status: "Coming Soon",  color: "#fff8e1", ic: "#b45309", working: "[Feature working description coming soon]" },
+  { icon: Search,    label: "Lost & Found",         status: "Live",         color: "#fff3e0", ic: "#c2410c", working: "[Feature working description coming soon]" },
 ];
 
 const WHY_POINTS = [
@@ -66,7 +66,7 @@ const TIMELINE = [
   { year: "Oct 2025", label: "Idea",         desc: "Conceptualized by Dr. Meenakshi Rana, DoSA" },
   { year: "Nov 2025", label: "Development",  desc: "Core team assembled, tech stack finalized" },
   { year: "Jan 2026", label: "Testing",      desc: "Beta launched with Guest Room & Venue modules" },
-  { year: "Mar 2026", label: "Launch",       desc: "Full platform live with 6 integrated services" },
+  { year: "Feb 2026", label: "Launch",       desc: "Full platform live with 6 integrated services" },
 ];
 
 const DEVELOPERS = [
@@ -79,7 +79,7 @@ const DEVELOPERS = [
     github: "https://github.com/navjotsharma5500",
     modules: ["Guest Room Booking", "Event Venue Booking", "Event Calendar", "Library Night Pass"],
     work: "Architected and developed the core backend infrastructure for the platform, including API design, database schema, and integration with frontend components. Led the development of the Guest Room Booking and Event Venue Booking modules, ensuring secure authentication and smooth user experience across all services.",
-    tag: "Project Supervisor",
+    tag: "Solopreneur",
     tagColor: "#c62828",
     tagBg: "#fce8e8",
   },
@@ -138,6 +138,7 @@ const COMING_SOON = [
   { icon: "🎓", label: "Society Night Pass",       desc: "Late-night permissions for student societies" },
   { icon: "📝", label: "Campus Complaint Portal",  desc: "Raise and track campus complaints digitally" },
   { icon: "📋", label: "Student Request System",   desc: "Any student request, processed instantly" },
+  { icon: "📸", label: "Main Gate Management",  desc: "Automated gate entry with facial recognition" },
   { icon: "🏛️", label: "Hostel Allotment",       desc: "Hostel room allocation and management" },
   { icon: "🪪", label: "Feedback System",  desc: "Provide feedback about the Hostel" },
 ];
@@ -210,6 +211,7 @@ function StickyNav({ active }) {
 export default function AboutUsPage() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("About");
+  const [selectedFeature, setSelectedFeature] = useState(null);
 
   // Track scroll for sticky nav highlight
   useEffect(() => {
@@ -571,7 +573,8 @@ export default function AboutUsPage() {
               return (
                 <FadeUp key={f.label} delay={i * 0.07}>
                   <div
-                    style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "28px 24px", cursor: "default", transition: "box-shadow .25s, transform .25s" }}
+                    onClick={() => setSelectedFeature(f)}
+                    style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "28px 24px", cursor: "pointer", transition: "box-shadow .25s, transform .25s" }}
                     onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,.1)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
                     onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
                   >
@@ -589,9 +592,12 @@ export default function AboutUsPage() {
                         {f.status}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.65 }}>
+                    <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.65, marginBottom: 16 }}>
                       {f.status === "Live" ? "Fully operational and available to all students." : "Under development — launching soon."}
                     </p>
+                    <button style={{ width: "100%", padding: "8px 12px", background: "#64748b", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      Learn More
+                    </button>
                   </div>
                 </FadeUp>
               );
@@ -640,7 +646,7 @@ export default function AboutUsPage() {
                   </div>
 
                   {/* content */}
-                  <div style={{ padding: "22px 22px 20px" }}>
+                  <div style={{ padding: "22px 22px 20px", display: "flex", flexDirection: "column", height: "100%" }}>
                     <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 4 }}>{dev.name}</h3>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#c62828", marginBottom: 2 }}>{dev.role}</p>
                     <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 16 }}>{dev.sub}</p>
@@ -654,18 +660,21 @@ export default function AboutUsPage() {
                       ))}
                     </div>
 
+                    {/* work */}
+                    <div style={{ flex: 1 }}>
+                      {dev.work && (
+                        <div style={{ padding: "12px 14px", borderRadius: 8, background: "#fafafa", borderLeft: `3px solid ${dev.tagColor}`, marginBottom: 16 }}>
+                          <p style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.5 }}>{dev.work}</p>
+                        </div>
+                      )}
+                    </div>
+
                     {/* links */}
                     <div style={{ display: "flex", gap: 8 }}>
                       <a href={dev.linkedin} target="_blank" rel="noopener noreferrer"
                         style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, background: "#0077b5", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", flex: 1, justifyContent: "center" }}>
                         <Linkedin size={13} /> LinkedIn
                       </a>
-                      {dev.github && (
-                        <a href={dev.github} target="_blank" rel="noopener noreferrer"
-                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, background: "#24292e", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", flex: 1, justifyContent: "center" }}>
-                          <Github size={13} /> GitHub
-                        </a>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -673,25 +682,7 @@ export default function AboutUsPage() {
             ))}
           </div>
 
-          {/* GitHub repos */}
-          <FadeUp delay={0.3}>
-            <div style={{ marginTop: 40, background: "#f9fafb", borderRadius: 16, padding: "28px 32px", border: "1px solid #e5e7eb" }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 16 }}>Project Repositories</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {[
-                  { label: "Guest Room System",  href: "https://github.com/navjotsharma5500/Guest-Room-System" },
-                  { label: "Library Night Pass", href: "https://github.com/navjotsharma5500/campus-nightpass" },
-                  { label: "Lost & Found",       href: "https://github.com/navjotsharma5500/softwareProject" },
-                  { label: "All Repositories",   href: "https://github.com/navjotsharma5500?tab=repositories" },
-                ].map(repo => (
-                  <a key={repo.label} href={repo.href} target="_blank" rel="noopener noreferrer"
-                    style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", background: "#24292e", color: "#fff", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
-                    <Github size={14} /> {repo.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </FadeUp>
+          {/* Feature Modal */}
         </div>
       </section>
 
@@ -728,6 +719,85 @@ export default function AboutUsPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════
+          FEATURE MODAL
+      ══════════════════════════════════════ */}
+      <AnimatePresence>
+        {selectedFeature && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedFeature(null)}
+              style={{
+                position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+                background: "rgba(0,0,0,.5)", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                zIndex: 1000, padding: 16
+              }}
+            >
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background: "#fff", borderRadius: 20, maxWidth: 500, width: "100%",
+                  boxShadow: "0 20px 60px rgba(0,0,0,.15)", overflow: "hidden"
+                }}
+              >
+                {/* Header */}
+                <div style={{ padding: "32px 28px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: selectedFeature.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <selectedFeature.icon size={24} color={selectedFeature.ic} />
+                      </div>
+                      <div>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111", margin: 0 }}>{selectedFeature.label}</h2>
+                        <span style={{
+                          display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                          background: selectedFeature.status === "Live" ? "#f0fdf4" : "#fef3c7",
+                          color: selectedFeature.status === "Live" ? "#15803d" : "#92400e",
+                          border: `1px solid ${selectedFeature.status === "Live" ? "#86efac" : "#fde68a"}`,
+                        }}>
+                          {selectedFeature.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedFeature(null)} style={{ background: "none", border: "none", fontSize: 24, color: "#9ca3af", cursor: "pointer", padding: 0 }}>
+                    ✕
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: "24px 28px" }}>
+                  <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, marginBottom: 16 }}>
+                    {selectedFeature.status === "Live" ? "Fully operational and available to all students." : "Under development — launching soon."}
+                  </p>
+                  <div style={{ padding: "16px 14px", borderRadius: 12, background: "#f9fafb", borderLeft: `3px solid ${selectedFeature.ic}` }}>
+                    <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.6, margin: 0 }}>
+                      <strong>Working:</strong> {selectedFeature.working}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
+                  <button onClick={() => setSelectedFeature(null)} style={{ padding: "8px 20px", background: selectedFeature.ic, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════════════════════════
           FOOTER

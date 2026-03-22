@@ -1840,10 +1840,11 @@ export const autoCheckoutOverdueGuests = async () => {
     console.log("🔍 Checking for overdue checkouts...");
     console.log("⏰ Current time:", now.toISOString());
 
-    // Find all checked-in guests
+    // Find all checked-in guests (that haven't been checked out yet)
     const overdueBookings = await Booking.find({
       status: "checked_in",
-      reportedStatus: "reported"
+      reportedStatus: "reported",
+      checkedOutAt: null
     });
 
     console.log(`📋 Found ${overdueBookings.length} checked-in bookings to evaluate`);
@@ -1859,8 +1860,8 @@ export const autoCheckoutOverdueGuests = async () => {
       const [hours, minutes] = (booking.checkOutTime || "12:00").split(":");
       checkoutDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Check if checkout time has passed
-      if (checkoutDateTime < now) {
+      // Check if checkout time has passed (includes exact time match)
+      if (now >= checkoutDateTime) {
         // ✅ UPDATE STATUS - Same as manual checkout
         booking.status = "checked_out";
         booking.reportedStatus = "reported"; // ✅ FIX: SAME as manual checkout
