@@ -77,7 +77,27 @@ function readLocalPrefs() {
   try {
     const raw = localStorage.getItem(LOCAL_PREFS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    
+    const saved = JSON.parse(raw);
+    if (!saved) return null;
+    
+    // ✨ MERGE STRATEGY: Ensure new cards are included
+    // If saved cardOrder is missing new cards, add them automatically
+    if (saved.cardOrder && Array.isArray(saved.cardOrder)) {
+      // Add any new cards from CARD_IDS that aren't in saved.cardOrder
+      const savedSet = new Set(saved.cardOrder);
+      const newCards = CARD_IDS.filter(id => !savedSet.has(id));
+      
+      if (newCards.length > 0) {
+        // Append new cards to the end (they'll be visible by default)
+        saved.cardOrder = [...saved.cardOrder, ...newCards];
+      }
+    } else {
+      // If saved.cardOrder is invalid, use default
+      saved.cardOrder = [...CARD_IDS];
+    }
+    
+    return saved;
   } catch { return null; }
 }
 
