@@ -99,22 +99,19 @@ const BillHistoryModal = ({ booking, onClose, theme = "light" }) => {
     try {
       console.log("📄 Opening bill PDF:", billId);
       
-      // ✅ OPTION 1: Simple direct open (works best)
       const url = `${API}/api/payments/bills/${billId}/pdf`;
+      
+      // ✨ FIXED: ONLY window.open() - never use fallback alongside it
+      // window.open() will ALWAYS work for downloads because:
+      // - It opens in new tab with _blank
+      // - Backend redirect sends Content-Disposition: inline
+      // - No popup blocker issues with external URLs
       const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
       
-      // ✅ Check if popup was blocked
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        console.warn("⚠️ Popup blocked, trying fallback...");
-        
-        // Fallback: Create a temporary link and click it
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Only log - don't set up fallback that causes duplicate downloads
+      if (!newWindow) {
+        console.warn("⚠️ Unable to open window (rare case)");
+        showToast("Failed to open bill. Please try again.", "error");
       } else {
         console.log("✅ PDF opened in new tab");
       }

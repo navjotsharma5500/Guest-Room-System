@@ -189,6 +189,19 @@ const BookingSchema = new mongoose.Schema(
       default: [],
     },
 
+    // ✅ CRITICAL: Extension history for accurate billing periods
+    extensionHistory: [{
+      extendedAt: { type: Date, default: Date.now },
+      extendedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      oldTo: { type: Date },           // Previous checkout date
+      newTo: { type: Date },           // New checkout date after extension
+      oldCheckout: { type: Date },     // Backward compatibility alias for oldTo
+      newCheckout: { type: Date },     // Backward compatibility alias for newTo
+      remarks: { type: String, default: "" },
+      approvedAmount: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
+    }],
+
     // =========================
     // CANCELLATION
     // =========================

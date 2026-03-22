@@ -154,6 +154,15 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
     setAttachments((prev) => [...prev, res.url]);
     showToast("✅ Attachment uploaded successfully", "success");
     setUploadingFile(false);
+    
+    // ✅ FIXED: Reset file input so same file can be selected again
+    if (ikUploadRef.current) {
+      // IKUpload wraps a file input - find and reset it
+      const fileInput = ikUploadRef.current.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    }
   };
 
   // ✅ HANDLE FILE UPLOAD ERROR
@@ -173,6 +182,14 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
   const removeAttachment = (index) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
     showToast("🗑️ Attachment removed", "info");
+    
+    // ✅ FIXED: Reset file input ref so it can be reused
+    if (ikUploadRef.current) {
+      const fileInput = ikUploadRef.current.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    }
   };
 
   // ✅ TRIGGER FILE INPUT CLICK

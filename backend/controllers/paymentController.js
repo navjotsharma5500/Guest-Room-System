@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { generateBill } from "../utils/billGenerator.js";
+import { resolveBillStayPeriod } from "../utils/billingDates.js";
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 console.log("🔥 PAYMENT CONTROLLER LOADED");
@@ -151,7 +152,7 @@ export const processPayment = async (req, res) => {
       discountPercent
     });
 
-    const booking = await Booking.findById(id).select('+discount +balanceAmount');
+    const booking = await Booking.findById(id);
 
     if (!booking) {
       return res.status(404).json({ 
@@ -248,6 +249,11 @@ export const processPayment = async (req, res) => {
     // ✅ CREATE BILL
     const billNumber = await generateBillNumber();
     
+    const billingPeriod = resolveBillStayPeriod(booking, {
+      previousPaidAmount: safePreviousPaid,
+      previousDiscount: safePreviousDiscount,
+    });
+
     const bill = await Bill.create({
       bookingId: booking._id,
       guestName: booking.guest,
@@ -257,6 +263,8 @@ export const processPayment = async (req, res) => {
       rollno: booking.rollno || "",
       hostel: booking.hostel,
       roomNo: booking.roomNo,
+      from: billingPeriod.from,
+      to: billingPeriod.to,
       billNumber,
       amountPaid: safeNewPayment,
       paymentType,
@@ -280,6 +288,8 @@ export const processPayment = async (req, res) => {
       const pdfBuffer = await generateBill(booking, {
         billNumber: bill.billNumber,
         amountPaid: bill.amountPaid,
+        from: bill.from,
+        to: bill.to,
         paidAt: bill.createdAt,
         paymentMethod: bill.paymentMethod,
         balanceBeforePayment: bill.balanceBeforePayment,

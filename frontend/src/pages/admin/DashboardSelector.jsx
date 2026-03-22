@@ -10,7 +10,7 @@ import {
   FileText, HelpCircle, BarChart3, Star, ChevronRight, Home,
   Grid, Eye, TrendingUp, TrendingDown, Activity, Clock,
   Wifi, Monitor, Smartphone, CheckCircle, XCircle, RefreshCw,
-  Database, Zap, Globe2, MousePointer, Mail
+  Database, Zap, Globe2, MousePointer, Mail, ArrowLeft
 } from "lucide-react";
 import EchoOrb from "../../components/EchoOrb";
 import EchoModal from "../../components/EchoModal";
@@ -1063,6 +1063,19 @@ const DashboardSelector = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="text-center mb-16 relative w-full max-w-7xl mx-auto"
         >
+          {/* Back Button - Top Left */}
+          <div className="absolute top-0 left-0 hidden md:flex items-center">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-semibold">Back</span>
+            </motion.button>
+          </div>
+
           {/* Admin Analytics Button - Top Right */}
           {isAdmin && (
              <div className="absolute top-0 right-0 hidden md:flex items-center gap-2">
@@ -1126,6 +1139,17 @@ const DashboardSelector = () => {
           >
             Select your administrative dashboard
           </motion.p>
+
+          {/* Mobile Admin Analytics Button */}
+          <div className="mt-6 md:hidden space-y-2">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-semibold">Back to Dashboard</span>
+            </button>
+          </div>
 
           {/* Mobile Admin Analytics Button */}
           {isAdmin && (

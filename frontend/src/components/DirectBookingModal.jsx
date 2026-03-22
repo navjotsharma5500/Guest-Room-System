@@ -338,15 +338,6 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return;
     }
 
-    const toISO = (dateStr, timeStr) => {
-      try {
-        const iso = combineDateAndTime(dateStr, timeStr || "00:00");
-        return iso ? iso.toISOString() : dateStr;
-      } catch {
-        return dateStr;
-      }
-    };
-
     // ✅ CRITICAL FIX: Proper attachment routing based on payment type
     const bookingPayload = {
       guest: form.guest,
@@ -383,10 +374,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       // ✅ Extension attachments should be EMPTY for new bookings
       extensionAttachments: [],
       
-      from: toISO(from, "00:00"),
-      to: toISO(to, "23:59"),
-      checkInTime: checkInTime || "00:00",
-      checkOutTime: checkOutTime || "23:59",
+      // ✅ FIXED: Send dates as date-only strings (YYYY-MM-DD), not ISO timestamps
+      // Backend parseDateOnlyToUtcDate() is designed to handle date-only strings correctly
+      from: from,                       // Send: "2026-04-01"
+      to: to,                           // Send: "2026-04-02"
+      checkInTime: checkInTime || "00:00",     // Time handled separately
+      checkOutTime: checkOutTime || "23:59",  // Time handled separately
       
       hostel: hostel,
       roomNo: room?.roomNo,
@@ -976,7 +969,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <>
                     <div>
                       <label className="text-sm font-medium block mb-2">
-                        Total Bill Amount (â‚¹) <span className="text-red-600">*</span>
+                        Total Bill Amount <span className="text-red-600">*</span>
                       </label>
                       <input
                         className="border p-2 rounded w-full"
@@ -1329,7 +1322,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </p>
                 {form.paymentType === "Paid" && (
                   <p>
-                    <strong>Total Bill Amount:</strong> â‚¹{form.amount}
+                    <strong>Total Bill Amount:</strong> Rs.{form.amount}
                   </p>
                 )}
                 {remarks && (

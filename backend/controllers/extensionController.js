@@ -7,6 +7,7 @@ import extensionRequestTemplate from "../emails/templates/extensionRequest.js";
 import extensionRejectedTemplate from "../emails/templates/extensionRejected.js";
 import extensionApprovedTemplate from "../emails/templates/extensionApproved.js";
 import { sendBookingEmails } from "./bookingController.js";
+import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 
 const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
 // ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
@@ -31,8 +32,8 @@ export const createExtensionRequest = async (req, res) => {
         const booking = await Booking.findById(bookingId);
         if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
 
-        const oldCheckout = new Date(booking.to);
-        const newCheckout = new Date(requestedCheckout);
+        const oldCheckout = parseDateOnlyToUtcDate(booking.to);
+        const newCheckout = parseDateOnlyToUtcDate(requestedCheckout);
         
         if (newCheckout <= oldCheckout) {
             return res.status(400).json({ success: false, message: "New checkout date must be after current checkout date" });
@@ -178,7 +179,9 @@ export const approveExtensionRequest = async (req, res) => {
         const booking = request.bookingId;
         const oldToDate = booking.to;
         
-        const finalCheckout = approvedCheckout ? new Date(approvedCheckout) : request.requestedCheckout;
+        const finalCheckout = approvedCheckout
+            ? parseDateOnlyToUtcDate(approvedCheckout)
+            : parseDateOnlyToUtcDate(request.requestedCheckout);
         booking.to = finalCheckout;
         
         if (!booking.extensionHistory) booking.extensionHistory = [];
@@ -189,6 +192,15 @@ export const approveExtensionRequest = async (req, res) => {
             newTo: finalCheckout,
             remarks: request.remarks,
             approvedAmount: request.approvedAmount
+        });
+
+        console.log("📝 Extension history saved:", {
+            bookingId: booking._id,
+            oldCheckout: oldToDate,
+            newCheckout: finalCheckout,
+            approvedAmount: request.approvedAmount,
+            extensionHistoryLength: booking.extensionHistory.length,
+            latestEntry: booking.extensionHistory[booking.extensionHistory.length - 1]
         });
 
         if (Array.isArray(request.extensionAttachments) && request.extensionAttachments.length > 0) {

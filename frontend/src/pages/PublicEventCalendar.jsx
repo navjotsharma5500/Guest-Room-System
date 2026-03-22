@@ -454,47 +454,51 @@ export default function PublicEventCalendar() {
         )}
       </AnimatePresence>
 
-      {/* Background Particles */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="floating-element absolute top-20 left-10 w-96 h-96 rounded-full blur-3xl opacity-20 bg-blue-400 dark:bg-blue-600"
-          animate={{ y: [0, -40, 0], x: [0, 20, 0], scale: [1, 1.1, 1] }}
-          transition={{ duration: 20, repeat: Infinity }}
-        />
-        <motion.div
-          className="floating-element absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl opacity-20 bg-purple-400 dark:bg-purple-600"
-          animate={{ y: [0, 40, 0], x: [0, -20, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 25, repeat: Infinity }}
-        />
-      </div>
-
       <header
-        className={`relative z-10 border-b backdrop-blur-md ${
+        className={`sticky top-0 z-30 border-b ${
           theme === "dark"
-            ? "bg-gray-800/80 border-gray-700"
-            : "bg-white/80 border-gray-200"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
         }`}
+        style={{ boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
       >
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-center relative flex-wrap gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
-              <img
-                src={thaparLogo}
-                alt="Thapar Logo"
-                className="h-12 sm:h-16 w-auto"
-              />
-              <div className="calendar-gradient-bg p-1.5 sm:p-2 rounded-xl shadow-md hidden sm:flex items-center justify-center">
-                <CalendarIcon className="w-6 sm:w-8 h-6 sm:h-8 text-white" />
-              </div>
-              <h1
-                className={`text-xl sm:text-3xl lg:text-4xl font-extrabold text-center ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Thapar Event Calendar
-              </h1>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+          style={{ height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+
+          {/* Left: Logo + Institute name */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            <img src={thaparLogo} alt="Thapar Logo"
+              style={{ height: 40, width: "auto", objectFit: "contain" }} />
+            <div className="hidden sm:block">
+              <p className={`text-xs font-bold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                THAPAR INSTITUTE OF
+              </p>
+              <p className={`text-xs font-bold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                ENGINEERING &amp; TECHNOLOGY
+              </p>
             </div>
           </div>
+
+          {/* Centre: Page title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CalendarIcon size={18} className="text-red-700" />
+            <h1 className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+              style={{ fontSize: "clamp(1rem,2.2vw,1.3rem)", letterSpacing: "-.01em" }}>
+              Thapar Event Calendar
+            </h1>
+          </div>
+
+          {/* Right: Back button */}
+          <a href="/"
+            className={`hidden sm:flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
+              theme === "dark"
+                ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
+                : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
+            }`}
+            style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
+          >
+            <ArrowLeft size={14} /> Back to Portal
+          </a>
         </div>
       </header>
 
@@ -505,7 +509,7 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden h-[600px] flex flex-col ${
+            className={`rounded-2xl shadow-xl overflow-hidden h-[420px] flex flex-col ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"
@@ -620,7 +624,7 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col h-[600px] ${
+            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col h-[420px] ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"
@@ -1150,21 +1154,18 @@ export default function PublicEventCalendar() {
         }`}
       >
         <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+
           {/* Block 1: General Query */}
           <div className="space-y-4">
-            <h3
-              className={`font-bold text-base sm:text-lg ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <h3 className={`font-bold text-base sm:text-lg ${
+              theme === "dark" ? "text-white" : "text-gray-900"
+            }`}>
               Any General Query
             </h3>
             <div className="text-xs sm:text-sm space-y-2">
               <p className="font-semibold">Contact us for any assistance:</p>
-              <a
-                href="mailto:shabnam.rani@thapar.edu"
-                className="block text-blue-500 hover:underline break-all"
-              >
+              <a href="mailto:shabnam.rani@thapar.edu"
+                className="block text-blue-500 hover:underline break-all">
                 shabnam.rani@thapar.edu
               </a>
             </div>
@@ -1172,25 +1173,19 @@ export default function PublicEventCalendar() {
               <p className="text-xs font-semibold uppercase text-gray-500 mb-1">
                 Technical Support
               </p>
-              <a
-                href="mailto:itmh@thapar.edu"
-                className="text-xs sm:text-sm text-blue-500 hover:underline break-all"
-              >
+              <a href="mailto:itmh@thapar.edu"
+                className="text-xs sm:text-sm text-blue-500 hover:underline break-all">
                 itmh@thapar.edu
               </a>
-              <p className="text-xs sm:text-sm mt-2">
-                Developed by Navjot Sharma
-              </p>
+              <p className="text-xs sm:text-sm mt-2">Developed by Navjot Sharma</p>
             </div>
           </div>
 
           {/* Block 2: Quick Links */}
           <div className="space-y-4">
-            <h3
-              className={`font-bold text-base sm:text-lg ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <h3 className={`font-bold text-base sm:text-lg ${
+              theme === "dark" ? "text-white" : "text-gray-900"
+            }`}>
               Quick Links
             </h3>
             <div className="flex flex-col gap-2">
@@ -1199,47 +1194,38 @@ export default function PublicEventCalendar() {
                 onClick={() => setShowAboutModal(true)}
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
                   theme === "dark"
-                    ? "bg-gray-700/50 hover:bg-gray-700 hover:shadow-lg hover:shadow-blue-500/10"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
                     : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
                 }`}
               >
-                <Info
-                  size={16}
-                  className="text-blue-500 group-hover:scale-110 transition-transform"
-                />
+                <Info size={15} className="text-blue-500 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-medium text-sm">About Societies</span>
               </motion.button>
 
               <motion.a
                 whileHover={{ x: 4 }}
-                href="https://guestapp.in/venue-guest-enquiry"
+                href="https://campusconnect.thapar.edu/venue-guest-enquiry"
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
                   theme === "dark"
-                    ? "bg-gray-700/50 hover:bg-gray-700 hover:shadow-lg hover:shadow-purple-500/10"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
                     : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
                 }`}
               >
-                <CalendarIcon
-                  size={16}
-                  className="text-purple-500 group-hover:scale-110 transition-transform"
-                />
+                <CalendarIcon size={15} className="text-purple-500 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-medium text-sm">Venue Booking</span>
               </motion.a>
 
               <motion.a
                 whileHover={{ x: 4 }}
-                href="https://guestapp.in/guest-enquiry"
+                href="https://campusconnect.thapar.edu/guest-enquiry"
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
                   theme === "dark"
-                    ? "bg-gray-700/50 hover:bg-gray-700 hover:shadow-lg hover:shadow-green-500/10"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
                     : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
                 }`}
               >
-                <Home
-                  size={16}
-                  className="text-green-500 group-hover:scale-110 transition-transform"
-                />
-                <span className="font-medium text-sm">Book A Guest Room</span>
+                <Home size={15} className="text-green-500 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-medium text-sm">Guest Room</span>
               </motion.a>
 
               <motion.a
@@ -1249,68 +1235,96 @@ export default function PublicEventCalendar() {
                 rel="noreferrer"
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
                   theme === "dark"
-                    ? "bg-gray-700/50 hover:bg-gray-700 hover:shadow-lg hover:shadow-orange-500/10"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
                     : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
                 }`}
               >
-                <ExternalLink
-                  size={16}
-                  className="text-orange-500 group-hover:scale-110 transition-transform"
-                />
+                <ExternalLink size={15} className="text-orange-500 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-medium text-sm">Student Amenities</span>
               </motion.a>
             </div>
           </div>
 
-          {/* Block 3: Contact */}
+          {/* Block 3: Contact Us */}
           <div className="space-y-4 sm:space-y-6">
             <div>
-              <h3
-                className={`font-bold text-base sm:text-lg mb-3 sm:mb-4 ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
+              <h3 className={`font-bold text-base sm:text-lg mb-3 sm:mb-4 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
                 Contact Us
               </h3>
               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm leading-relaxed">
                 <p>Timings: 9 AM to 5:30 PM, Monday to Friday</p>
                 <p>
                   E-mail :{" "}
-                  <a
-                    href="mailto:dosa.office@thapar.edu"
-                    className="text-blue-500 hover:underline break-all"
-                  >
+                  <a href="mailto:dosa.office@thapar.edu"
+                    className="text-blue-500 hover:underline break-all">
                     dosa.office@thapar.edu
                   </a>
                 </p>
               </div>
             </div>
-
             <div className="pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700 space-y-2 sm:space-y-3">
               <p className="text-xs">
                 Powered by Thapar Institute of Engineering &amp; Technology
               </p>
-              <div className="flex flex-col items-start gap-1">
-                <p className="text-xs font-medium">
-                  <a
-                    href="https://www.linkedin.com/in/navjot-sharma-8360631a7/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-400 transition-colors"
-                  >
-                    Created and Maintained by{" "}
-                    <span
-                      className={
-                        theme === "dark" ? "text-gray-300" : "text-gray-700"
-                      }
-                    >
-                      DoSA Office
-                    </span>
-                  </a>
-                </p>
-              </div>
+              <p className="text-xs font-medium">
+                <a
+                  href="https://www.linkedin.com/in/navjot-sharma-8360631a7/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-blue-400 transition-colors"
+                >
+                  Created and Maintained by{" "}
+                  <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
+                    DoSA Office
+                  </span>
+                </a>
+              </p>
             </div>
           </div>
+
+          {/* Block 4: Thapar Branding Card — aligned to top like other columns */}
+          <div className="flex flex-col gap-4">
+
+            {/* Heading row — matches other column headings */}
+            <h3 className={`font-bold text-base sm:text-lg ${
+              theme === "dark" ? "text-white" : "text-gray-900"
+            }`}>
+              Thapar Event Calendar
+            </h3>
+
+            {/* Branding card */}
+            <div
+              className={`rounded-2xl p-5 flex flex-col items-center gap-3 text-center ${
+                theme === "dark"
+                  ? "bg-gray-700/40 border border-gray-600"
+                  : "bg-gray-50 border border-gray-200"
+              }`}
+            >
+              <img
+                src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                alt="Thapar Logo"
+                style={{ height: 38, width: "auto", objectFit: "contain" }}
+              />
+
+              <div style={{ width: 28, height: 2, borderRadius: 2, background: "#c62828" }} />
+
+              <p className={`text-xs leading-relaxed ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}>
+                The Event Calendar page keeps all event-related information in one accessible place, ensuring a well-organized campus environment.
+              </p>
+
+              <p className={`text-[10px] font-semibold tracking-wider ${
+                theme === "dark" ? "text-gray-400" : "text-gray-400"
+              }`}>
+                EVENT CALENDAR
+              </p>
+            </div>
+
+          </div>
+
         </div>
       </footer>
     </div>

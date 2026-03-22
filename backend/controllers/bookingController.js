@@ -1,5 +1,6 @@
 // bookingController.js
 import Booking from "../models/Booking.js";
+import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { Parser } from "json2csv";
 import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
@@ -483,8 +484,8 @@ export const createBooking = async (req, res) => {
       gender: payload.gender || "",
       hostel: payload.hostel,
       roomNo: payload.roomNo,
-      from: payload.from ? new Date(payload.from) : new Date(),
-      to: payload.to ? new Date(payload.to) : new Date(),
+      from: payload.from ? parseDateOnlyToUtcDate(payload.from) : new Date(),
+      to: payload.to ? parseDateOnlyToUtcDate(payload.to) : new Date(),
       checkInTime: payload.checkInTime || "00:00",
       checkOutTime: payload.checkOutTime || "23:59",
       numGuests: Number(payload.numGuests || payload.guests || 1),
@@ -1088,8 +1089,8 @@ export const approveExtension = async (req, res) => {
       return res.status(404).json({ success: false, message: "Original booking not found" });
     }
 
-    booking.to = new Date(updatedCheckOutDate || request.newCheckOutDate);
-    booking.extensionDate = new Date(updatedCheckOutDate || request.newCheckOutDate);
+    booking.to = parseDateOnlyToUtcDate(updatedCheckOutDate || request.newCheckOutDate);
+    booking.extensionDate = parseDateOnlyToUtcDate(updatedCheckOutDate || request.newCheckOutDate);
     booking.extendRemarks = request.remarks;
 
     if (request.attachments?.length > 0) {
@@ -2113,4 +2114,3 @@ export const getAllBookingsFlat = async (req, res) => {
     });
   }
 };
-

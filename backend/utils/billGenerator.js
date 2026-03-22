@@ -4,6 +4,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import Bill from "../models/Bill.js";
+import {
+  calculateBillableDays,
+  formatBillDateLong,
+} from "./billingDates.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,44 +35,12 @@ export const generateBillNumber = async () => {
   return `BILL-${year}${month}${day}-${sequence}`;
 };
 
-// Helper: Format date (DD/MM/YYYY)
-const formatDate = (date) => {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-// Helper: Format date (DD Mon YYYY)
-const formatDateLong = (date) => {
-  const d = new Date(date);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = months[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
-};
-
 // Helper: Format time (HH:MM)
 const formatTime = (date) => {
   const d = new Date(date);
   const hours = String(d.getHours()).padStart(2, "0");
   const minutes = String(d.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
-};
-
-// Helper: Calculate days stayed (calendar-day based)
-const calculateDays = (from, to) => {
-  const start = new Date(from);
-  const end = new Date(to);
-
-  if (isNaN(start) || isNaN(end)) return 1;
-
-  const toDateOnly = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round((toDateOnly(end) - toDateOnly(start)) / 86400000);
-
-  return Math.max(1, diffDays);
 };
 
 // Helper: Number to words (Indian system)
@@ -110,7 +82,9 @@ export const generateBill = async (booking, billData) => {
       });
 
       // Calculate values
-      const totalDays = calculateDays(booking.from, booking.to);
+      const billFrom = billData.from || booking.from;
+      const billTo = billData.to || booking.to;
+      const totalDays = calculateBillableDays(billFrom, billTo);
       const totalAmount = billData.amountPaid || booking.amount || 0;
       const rentWithoutTax = totalAmount / 1.12;
       const perDayRate = rentWithoutTax / totalDays;
@@ -168,7 +142,7 @@ export const generateBill = async (booking, billData) => {
       doc.text(billData.billNumber || "BILL-0001", 455, yPos + 20, { width: 95, align: "center" });
 
       doc.fontSize(7).font("Helvetica").fillColor("#6b7280");
-      doc.text(`Issue Date: ${formatDateLong(billData.paidAt || new Date())}`, 455, yPos + 38, { width: 95, align: "center" });
+      doc.text(`Issue Date: ${formatBillDateLong(billData.paidAt || new Date())}`, 455, yPos + 38, { width: 95, align: "center" });
 
       yPos = 130;
 
@@ -260,12 +234,12 @@ export const generateBill = async (booking, billData) => {
       doc.fontSize(7.5).font("Helvetica").fillColor("#6b7280");
       doc.text("Check In", 328, yPos + 6);
       doc.fontSize(9).font("Helvetica-Bold").fillColor("#1f2937");
-      doc.text(formatDateLong(booking.from), 328, yPos + 18);
+      doc.text(formatBillDateLong(billFrom), 328, yPos + 18);
 
       doc.fontSize(7.5).font("Helvetica").fillColor("#6b7280");
       doc.text("Check Out", 451, yPos + 6);
       doc.fontSize(9).font("Helvetica-Bold").fillColor("#1f2937");
-      doc.text(formatDateLong(booking.to), 451, yPos + 18);
+      doc.text(formatBillDateLong(billTo), 451, yPos + 18);
 
       yPos += 45;
 

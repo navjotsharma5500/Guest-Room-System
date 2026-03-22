@@ -1,717 +1,1007 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2,
-  Calendar,
-  Users,
-  Globe,
-  Search,
-  Sparkles,
-  Lock,
-  MessageSquare,
-  ArrowRight,
-  LogIn,
-  SlidersHorizontal,
-  Eye,
-  Save,
-  RotateCcw,
-  ArrowUp,
-  ArrowDown,
-  X,
+  Building2, CalendarDays, Moon, Search, Sparkles,
+  ChevronDown, X, Mail, ArrowRight, AlertCircle,
+  Package, Bell, LogIn, Home, Users, Github, Clock,
+  SlidersHorizontal, Eye, Save, RotateCcw, ArrowUp,
+  ArrowDown, MessageSquare, Send, Bot,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import PublicPageWidgets from "../components/PublicPageWidgets";
-import { DEFAULT_PUBLIC_UI_CONFIG, fetchPublicUiConfig } from "../utils/publicUiConfig";
+import EchoOrb from "../components/EchoOrb";
 
+// ─── keep the original PublicPageWidgets import if it exists in your project
+// import PublicPageWidgets from "../components/PublicPageWidgets";
+
+/* ═══════════════════════════════════════════════════
+   CONSTANTS — customize-my-view (mirrors original)
+═══════════════════════════════════════════════════ */
 const LOCAL_PREFS_KEY = "public_dashboard_selector_local_prefs_v1";
 
-const CARD_META = {
-  "guest-booking": {
-    icon: Building2,
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-    action: (navigate) => navigate("/guest-enquiry"),
-    authRequired: true,
-  },
-  "venue-booking": {
-    icon: Calendar,
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
-    action: (navigate) => navigate("/venue-guest-enquiry"),
-    authRequired: true,
-  },
-  feedback: {
-    icon: MessageSquare,
-    iconBg: "bg-teal-100",
-    iconColor: "text-teal-600",
-    action: (navigate) => navigate("/guest-feedback"),
-    authRequired: true,
-  },
-  "society-night-pass": {
-    icon: Users,
-    iconBg: "bg-rose-100",
-    iconColor: "text-rose-600",
-    action: () => window.open("https://permissions.thapar.edu", "_blank"),
-    authRequired: false,
-    badge: { label: "PUBLIC", bg: "bg-rose-100", text: "text-rose-700" },
-  },
-  calendar: {
-    icon: Globe,
-    iconBg: "bg-indigo-100",
-    iconColor: "text-indigo-600",
-    action: (navigate) => navigate("/venue-event-calendar"),
-    authRequired: false,
-  },
-  "lost-found": {
-    icon: Search,
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-600",
-    action: () => window.open("https://lost-and-found-portal-six.vercel.app/", "_blank"),
-    authRequired: false,
-  },
+const THEME_OPTIONS = [
+  { value: "light", label: "Light",  bg: "#ffffff" },
+  { value: "cool",  label: "Cool",   bg: "#e0f2fe" },
+  { value: "warm",  label: "Warm",   bg: "#fff7ed" },
+  { value: "slate", label: "Slate",  bg: "#f1f5f9" },
+];
+
+const THEME_BG = {
+  light: "#ffffff",
+  cool:  "linear-gradient(135deg,#e0f2fe,#f0f9ff)",
+  warm:  "linear-gradient(135deg,#fff7ed,#fef9f0)",
+  slate: "linear-gradient(135deg,#f1f5f9,#e2e8f0)",
 };
 
-const CARD_LABELS = {
-  "guest-booking": "Guest Booking",
-  "venue-booking": "Venue Booking",
-  feedback: "Feedback",
-  "society-night-pass": "Library Night Permission",
-  calendar: "Event Calendar",
-  "lost-found": "Lost & Found",
+const CARD_STYLE_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "shadow",  label: "Shadowed" },
+  { value: "outline", label: "Outline" },
+];
+
+const LAYOUT_OPTIONS = [
+  { value: "grid-3", label: "Grid 3" },
+  { value: "grid-2", label: "Grid 2" },
+  { value: "list",   label: "List"   },
+];
+
+const CARD_IDS = [
+  "guest-booking",
+  "venue-booking",
+  "event-calendar",
+  "library-pass",
+  "society-pass",
+  "lost-found",
+];
+
+const CARD_LABELS_MAP = {
+  "guest-booking":  "Hostel Guest Room Booking",
+  "venue-booking":  "Event Venue Booking",
+  "event-calendar": "Event Calendar",
+  "library-pass":   "Library Night Pass",
+  "society-pass":   "Society Night Pass",
+  "lost-found":     "Lost & Found",
 };
 
-const THEME_CLASSES = {
-  light: "bg-gradient-to-br from-slate-50 via-white to-blue-50",
-  cool: "bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100",
-  warm: "bg-gradient-to-br from-amber-50 via-rose-50 to-orange-100",
-  slate: "bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-100",
-};
+function makeDefaultPrefs() {
+  return {
+    themePreset:  "light",
+    cardStyle:    "default",
+    layoutStyle:  "grid-3",
+    accentColor:  "#c62828",
+    cardOrder:    [...CARD_IDS],
+    hiddenCardIds: [],
+  };
+}
 
-const CARD_STYLE_CLASSES = {
-  glass: "bg-white/80 backdrop-blur-sm border-slate-200 hover:border-slate-300 hover:shadow-2xl",
-  solid: "bg-white border-slate-300 hover:border-slate-400 hover:shadow-2xl",
-  outline: "bg-transparent border-slate-300 hover:border-slate-500 hover:bg-white/60 hover:shadow-xl",
-};
-
-const GRID_CLASSES = {
-  "grid-3": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full",
-  "grid-2": "grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full",
-  list: "grid grid-cols-1 gap-6 max-w-5xl w-full",
-};
-
-const makeDefaultPrefs = (selectorConfig) => ({
-  themePreset: selectorConfig.themePreset || "light",
-  cardStyle: selectorConfig.cardStyle || "glass",
-  layoutStyle: selectorConfig.layoutStyle || "grid-3",
-  accentColor: "#2563eb",
-  cardOrder: Array.isArray(selectorConfig.cardOrder)
-    ? [...selectorConfig.cardOrder]
-    : [...DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder],
-  hiddenCardIds: [],
-});
-
-const sanitizePrefs = (prefs, selectorConfig) => {
-  const safe = makeDefaultPrefs(selectorConfig);
-  if (!prefs || typeof prefs !== "object") return safe;
-
-  if (["light", "cool", "warm", "slate"].includes(prefs.themePreset)) {
-    safe.themePreset = prefs.themePreset;
-  }
-
-  if (["glass", "solid", "outline"].includes(prefs.cardStyle)) {
-    safe.cardStyle = prefs.cardStyle;
-  }
-
-  if (["grid-3", "grid-2", "list"].includes(prefs.layoutStyle)) {
-    safe.layoutStyle = prefs.layoutStyle;
-  }
-
-  if (typeof prefs.accentColor === "string" && /^#([0-9A-Fa-f]{6})$/.test(prefs.accentColor)) {
-    safe.accentColor = prefs.accentColor;
-  }
-
-  const allowed = new Set(Object.keys(CARD_META));
-
-  if (Array.isArray(prefs.cardOrder)) {
-    const ordered = [];
-    prefs.cardOrder.forEach((id) => {
-      const value = String(id || "").trim();
-      if (allowed.has(value) && !ordered.includes(value)) ordered.push(value);
-    });
-    Object.keys(CARD_META).forEach((id) => {
-      if (!ordered.includes(id)) ordered.push(id);
-    });
-    safe.cardOrder = ordered;
-  }
-
-  if (Array.isArray(prefs.hiddenCardIds)) {
-    safe.hiddenCardIds = prefs.hiddenCardIds
-      .map((id) => String(id || "").trim())
-      .filter((id) => allowed.has(id));
-  }
-
-  return safe;
-};
-
-const appendMissingCardIds = (ids) => {
-  const ordered = [];
-  (Array.isArray(ids) ? ids : []).forEach((id) => {
-    const value = String(id || "").trim();
-    if (CARD_META[value] && !ordered.includes(value)) ordered.push(value);
-  });
-  Object.keys(CARD_META).forEach((id) => {
-    if (!ordered.includes(id)) ordered.push(id);
-  });
-  return ordered;
-};
-
-const readLocalPrefs = (selectorConfig) => {
+function readLocalPrefs() {
   try {
     const raw = localStorage.getItem(LOCAL_PREFS_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return sanitizePrefs(parsed, selectorConfig);
-  } catch {
-    return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+/* ═══════════════════════════════════════════════════
+   NAV DATA
+═══════════════════════════════════════════════════ */
+const NAV = [
+  { label: "Home", action: "home" },
+  { label: "Booking Form", items: [
+    { label: "Hostel Guest-Room Booking", href: "https://guestapp.in/guest-enquiry" },
+    { label: "Event Venue Booking",        href: "https://guestapp.in/venue-guest-enquiry" },
+  ]},
+  { label: "Calendar", items: [
+    { label: "Event Calendar", href: "https://guestapp.in/venue-event-calendar" },
+  ]},
+  { label: "Night Pass", items: [
+    { label: "Library Night Pass",  href: "https://permissions.thapar.edu/" },
+    { label: "Society Night Pass",  action: "cs" },
+  ]},
+  { label: "Services", items: [
+    { label: "Lost & Found", href: "https://lost-and-found-portal-six.vercel.app/" },
+  ]},
+  { label: "Support", items: [
+    { label: "Any Queries",     action: "q1" },
+    { label: "Reach Out To Us", action: "q2" },
+  ]},
+  { label: "About Us", action: "about" },
+];
+
+/* ═══════════════════════════════════════════════════
+   CARD DATA
+═══════════════════════════════════════════════════ */
+const ALL_CARDS = {
+  "guest-booking": {
+    id: "guest-booking", title: "Hostel Guest Room Booking", sub: "Booking Form",
+    Icon: Building2, iconBg: "#fce8e8", iconColor: "#c62828", dot: "#e57373",
+    href: "https://guestapp.in/guest-enquiry",
+    bullets: ["Single & Double Occupancy Rooms","Online Booking System","Guest Registration & Verification","Advance Booking up to 30 Days"],
+  },
+  "venue-booking": {
+    id: "venue-booking", title: "Event Venue Booking", sub: "Booking Form",
+    Icon: CalendarDays, iconBg: "#e3eeff", iconColor: "#1a56db", dot: "#60a5fa",
+    href: "https://guestapp.in/venue-guest-enquiry",
+    bullets: ["Auditorium & Seminar Hall Booking","Open Air & Outdoor Spaces","Equipment & AV Support Request","Multi-day Event Scheduling"],
+  },
+  "event-calendar": {
+    id: "event-calendar", title: "Event Calendar", sub: "Campus-wide schedule",
+    Icon: CalendarDays, iconBg: "#e6f9f0", iconColor: "#0d7a4e", dot: "#34d399",
+    href: "https://guestapp.in/venue-event-calendar",
+    bullets: ["Upcoming Fests & Competitions","Department & Club Events","Venue Availability Overview","Monthly & Weekly View"],
+  },
+  "library-pass": {
+    id: "library-pass", title: "Library Night Pass", sub: "2 pass categories",
+    Icon: Moon, iconBg: "#f0ecff", iconColor: "#6d28d9", dot: "#a78bfa",
+    href: "https://permissions.thapar.edu/",
+    bullets: ["Overnight Study Access","Research & Project Work","Barcode Scanning","Digital Pass on Mobile"],
+  },
+  "society-pass": {
+    id: "society-pass", title: "Society Night Pass", sub: "Coming soon",
+    Icon: Sparkles, iconBg: "#fff8e1", iconColor: "#b45309", dot: "#fbbf24",
+    action: "cs",
+    bullets: ["Late-Night Society Activities","Cultural & Technical Clubs","Coordinator Approval Flow","Security Gate Integration"],
+  },
+  "lost-found": {
+    id: "lost-found", title: "Lost & Found", sub: "Online Portal",
+    Icon: Search, iconBg: "#fff3e0", iconColor: "#c2410c", dot: "#fb923c",
+    href: "https://lost-and-found-portal-six.vercel.app/",
+    bullets: ["Report Lost Items Online","Browse Found Item Listings","Photo Upload & Description","Claim & Handover Process"],
+  },
+};
+
+/* ═══════════════════════════════════════════════════
+   ECHO AI — canned responses
+═══════════════════════════════════════════════════ */
+const ECHO_RESPONSES = [
+  { match: ["guest","room","hostel","book"],
+    reply: "To book a hostel guest room, visit https://guestapp.in/guest-enquiry. You can check availability and make a reservation there." },
+  { match: ["venue","event","hall","auditorium"],
+    reply: "Event venue bookings are done at https://guestapp.in/venue-guest-enquiry. You can book auditoriums, seminar halls, and open spaces." },
+  { match: ["calendar","schedule","fest","event"],
+    reply: "Check the Event Calendar at https://guestapp.in/venue-event-calendar to see all upcoming campus events and fests." },
+  { match: ["library","night","pass","permission"],
+    reply: "Library Night Pass applications are handled at https://permissions.thapar.edu. Apply there for overnight study access." },
+  { match: ["society","club","late"],
+    reply: "Society Night Pass is coming soon! We're working on integrating it into this portal." },
+  { match: ["lost","found","item"],
+    reply: "Visit the Lost & Found portal at https://lost-and-found-portal-six.vercel.app to report or search for lost items." },
+  { match: ["login","admin","staff"],
+    reply: "Admin/Staff login is at https://guestapp.in/login. Use your institutional credentials." },
+  { match: ["help","support","query","contact"],
+    reply: "For support, email itmh@thapar.edu for technical issues, or dosa.office@thapar.edu for general queries." },
+  { match: ["hello","hi","hey","namaste"],
+    reply: "Hello! 👋 I'm Echo, the DoSA Operations assistant. Ask me about guest rooms, venues, night passes, or any campus service!" },
+];
+
+function getEchoReply(input) {
+  const low = input.toLowerCase();
+  for (const r of ECHO_RESPONSES) {
+    if (r.match.some(k => low.includes(k))) return r.reply;
   }
-};
+  return "I'm here to help with campus operations! You can ask me about guest room bookings, event venues, night passes, lost & found, or admin login.";
+}
 
-const applyLocalPrefsToSelector = (selectorConfig, prefs) => {
-  if (!prefs) return selectorConfig;
-  return {
-    ...selectorConfig,
-    themePreset: prefs.themePreset,
-    cardStyle: prefs.cardStyle,
-    layoutStyle: prefs.layoutStyle,
-    accentColor: prefs.accentColor,
-    cardOrder: prefs.cardOrder,
-    cards: (selectorConfig.cards || []).map((card) => ({
-      ...card,
-      enabled: !prefs.hiddenCardIds.includes(card.id),
-    })),
-  };
-};
-
-const PublicDashboardSelector = () => {
-  const [hoveredCard, setHoveredCard] = useState(null);
-  const [uiConfig, setUiConfig] = useState(DEFAULT_PUBLIC_UI_CONFIG);
-  const [localPrefs, setLocalPrefs] = useState(() =>
-    readLocalPrefs(DEFAULT_PUBLIC_UI_CONFIG.selector)
+/* ═══════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════ */
+function Toast({ msg, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <motion.div initial={{ opacity:0, y:40 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:40 }}
+      style={{ position:"fixed", bottom:96, left:"50%", transform:"translateX(-50%)",
+               background:"#1f2937", color:"#fff", padding:"10px 22px", borderRadius:100,
+               fontSize:13, fontWeight:500, display:"flex", alignItems:"center", gap:8,
+               whiteSpace:"nowrap", zIndex:600, boxShadow:"0 4px 20px rgba(0,0,0,.3)" }}>
+      <Bell size={14}/> {msg}
+    </motion.div>
   );
-  const [draftPrefs, setDraftPrefs] = useState(() =>
-    readLocalPrefs(DEFAULT_PUBLIC_UI_CONFIG.selector) ||
-      makeDefaultPrefs(DEFAULT_PUBLIC_UI_CONFIG.selector)
+}
+
+/* ═══════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════ */
+function Modal({ title, children, onClose }) {
+  return (
+    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+      onClick={onClose}
+      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.45)", zIndex:500,
+               display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <motion.div initial={{ scale:.93, opacity:0 }} animate={{ scale:1, opacity:1 }}
+        exit={{ scale:.93, opacity:0 }} transition={{ type:"spring", damping:22 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background:"#fff", borderRadius:16, maxWidth:440, width:"100%",
+                 padding:36, position:"relative", boxShadow:"0 24px 60px rgba(0,0,0,.2)" }}>
+        <button onClick={onClose}
+          style={{ position:"absolute", top:14, right:14, background:"none", border:"none",
+                   cursor:"pointer", padding:6, borderRadius:8, lineHeight:1, display:"flex" }}>
+          <X size={18} color="#6b7280"/>
+        </button>
+        <h2 style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize:22, fontWeight:600,
+                     color:"#111", margin:"0 0 18px" }}>{title}</h2>
+        {children}
+      </motion.div>
+    </motion.div>
   );
-  const [showCustomizer, setShowCustomizer] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+}
 
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
+/* ═══════════════════════════════════════════════════
+   DROPDOWN
+═══════════════════════════════════════════════════ */
+function DropMenu({ items, onAction }) {
+  return (
+    <motion.div initial={{ opacity:0, y:5 }} animate={{ opacity:1, y:0 }}
+      exit={{ opacity:0, y:5 }} transition={{ duration:.11 }}
+      style={{ position:"absolute", top:"calc(100% + 4px)", left:0, background:"#fff",
+               borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,.13)",
+               border:"1px solid #e5e7eb", padding:"6px 0", minWidth:220, zIndex:400 }}>
+      {items.map(it => (
+        <button key={it.label}
+          onClick={() => { if(it.href) window.open(it.href,"_blank"); else if(it.action) onAction(it.action); }}
+          style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                   width:"100%", padding:"10px 16px", background:"none", border:"none",
+                   cursor:"pointer", fontSize:13, color:"#374151", textAlign:"left",
+                   fontFamily:"inherit", gap:8 }}
+          onMouseEnter={e=>{ e.currentTarget.style.background="#fef2f2"; e.currentTarget.style.color="#c62828"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.background="none"; e.currentTarget.style.color="#374151"; }}>
+          <span>{it.label}</span>
+          {it.action==="cs" && (
+            <span style={{ fontSize:10, background:"#fef3c7", color:"#92400e",
+                           padding:"2px 8px", borderRadius:20, fontWeight:600 }}>Soon</span>
+          )}
+        </button>
+      ))}
+    </motion.div>
+  );
+}
 
-  const role = String(currentUser?.role || currentUser?.user?.role || "").toLowerCase();
-  const isAdmin = role === "admin";
-  const userEmail = String(currentUser?.email || currentUser?.user?.email || "").toLowerCase();
-
+/* ═══════════════════════════════════════════════════
+   NAV ITEM
+═══════════════════════════════════════════════════ */
+function NavItem({ item, onAction }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
   useEffect(() => {
-    if (!currentUser) return;
-    if (userEmail === "adosa3@thapar.edu" || role === "assistant") {
-      navigate("/venue-booking", { replace: true });
-    }
-  }, [currentUser, userEmail, role, navigate]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadConfig = async () => {
-      try {
-        const config = await fetchPublicUiConfig();
-        if (!mounted) return;
-        setUiConfig(config);
-      } catch (error) {
-        console.error("Failed to load public selector config:", error.message);
-      }
-    };
-
-    loadConfig();
-
-    return () => {
-      mounted = false;
-    };
+    const h = e => { if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
+  const base = { background:"none", border:"none", cursor:"pointer", fontSize:13.5,
+                 fontWeight:500, color:"#374151", padding:"4px 0", fontFamily:"inherit",
+                 display:"flex", alignItems:"center", gap:3 };
+  if (!item.items) return (
+    <button style={base} onClick={() => onAction(item.action)}
+      onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
+      onMouseLeave={e=>e.currentTarget.style.color="#374151"}>
+      {item.label}
+    </button>
+  );
+  return (
+    <div ref={ref} style={{ position:"relative" }}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button style={base}
+        onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
+        onMouseLeave={e=>e.currentTarget.style.color="#374151"}>
+        {item.label}
+        <ChevronDown size={13} style={{ transform:open?"rotate(180deg)":"none", transition:"transform .18s" }}/>
+      </button>
+      <AnimatePresence>{open && <DropMenu items={item.items} onAction={onAction}/>}</AnimatePresence>
+    </div>
+  );
+}
 
-  const selectorConfig = uiConfig?.selector || DEFAULT_PUBLIC_UI_CONFIG.selector;
+/* ═══════════════════════════════════════════════════
+   SERVICE CARD
+═══════════════════════════════════════════════════ */
+function Card({ card, onAction, cardStyle, accentColor }) {
+  const { Icon } = card;
+  const [hov, setHov] = useState(false);
 
-  const effectiveSelector = useMemo(() => {
-    const base = selectorConfig;
-    if (previewMode && draftPrefs) {
-      return applyLocalPrefsToSelector(base, draftPrefs);
-    }
-    if (localPrefs) {
-      return applyLocalPrefsToSelector(base, localPrefs);
-    }
-    return base;
-  }, [selectorConfig, localPrefs, draftPrefs, previewMode]);
+  const borderStyle = cardStyle === "outline"
+    ? (hov ? "2px solid " + accentColor : "2px solid #d1d5db")
+    : (hov ? "1.5px solid #d1d5db" : "1.5px solid #e5e7eb");
 
-  const cards = useMemo(() => {
-    const cardsById = new Map();
-    (effectiveSelector.cards || []).forEach((card) => {
-      if (!card?.id || !CARD_META[card.id]) return;
-      cardsById.set(card.id, card);
-    });
-    const defaultCardsById = new Map();
-    (DEFAULT_PUBLIC_UI_CONFIG.selector.cards || []).forEach((card) => {
-      if (!card?.id || !CARD_META[card.id]) return;
-      defaultCardsById.set(card.id, card);
-    });
-
-    const orderedIds = Array.isArray(effectiveSelector.cardOrder)
-      ? appendMissingCardIds(effectiveSelector.cardOrder)
-      : appendMissingCardIds(DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder);
-
-    return orderedIds
-      .filter((id) => CARD_META[id])
-      .map((id) => {
-        const meta = CARD_META[id];
-        const cfg = cardsById.get(id) || defaultCardsById.get(id) || {};
-        return {
-          id,
-          title: cfg.title || CARD_LABELS[id] || id,
-          description: cfg.description || "",
-          features: Array.isArray(cfg.features) ? cfg.features : [],
-          enabled: cfg.enabled !== false,
-          ...meta,
-        };
-      })
-      .filter((card) => card.enabled);
-  }, [effectiveSelector]);
-
-  const updateDraft = (patch) => {
-    setDraftPrefs((prev) => {
-      const source = prev || makeDefaultPrefs(selectorConfig);
-      return { ...source, ...patch };
-    });
-  };
-
-  const moveDraftCard = (id, direction) => {
-    setDraftPrefs((prev) => {
-      const source = prev || makeDefaultPrefs(selectorConfig);
-      const order = [...source.cardOrder];
-      const index = order.indexOf(id);
-      if (index < 0) return source;
-      const nextIndex = direction === "up" ? index - 1 : index + 1;
-      if (nextIndex < 0 || nextIndex >= order.length) return source;
-      [order[index], order[nextIndex]] = [order[nextIndex], order[index]];
-      return { ...source, cardOrder: order };
-    });
-  };
-
-  const toggleDraftCardHidden = (id) => {
-    setDraftPrefs((prev) => {
-      const source = prev || makeDefaultPrefs(selectorConfig);
-      const hidden = new Set(source.hiddenCardIds || []);
-      if (hidden.has(id)) hidden.delete(id);
-      else hidden.add(id);
-      return { ...source, hiddenCardIds: [...hidden] };
-    });
-  };
-
-  const onSaveMyView = () => {
-    const sanitized = sanitizePrefs(draftPrefs, selectorConfig);
-    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(sanitized));
-    setLocalPrefs(sanitized);
-    setPreviewMode(false);
-  };
-
-  const onResetMyView = () => {
-    localStorage.removeItem(LOCAL_PREFS_KEY);
-    setLocalPrefs(null);
-    setDraftPrefs(makeDefaultPrefs(selectorConfig));
-    setPreviewMode(false);
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 30, opacity: 0 },
-    show: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 15,
-      },
-    },
-  };
-
-  const accentColor = effectiveSelector.accentColor || "#2563eb";
+  const shadowStyle = cardStyle === "shadow"
+    ? (hov ? "0 12px 36px rgba(0,0,0,.13)" : "0 2px 8px rgba(0,0,0,.07)")
+    : (hov ? "0 8px 28px rgba(0,0,0,.09)" : "none");
 
   return (
     <div
-      className={`min-h-screen relative overflow-hidden ${
-        THEME_CLASSES[effectiveSelector.themePreset] || THEME_CLASSES.light
-      }`}
-    >
-      <div className="fixed top-4 left-4 z-50 flex flex-col gap-2">
-        <button
-          onClick={() => setShowCustomizer(true)}
-          className="px-4 py-2 rounded-xl bg-white/90 border border-slate-200 shadow-md text-slate-700 hover:text-blue-700 hover:border-blue-300 transition flex items-center gap-2"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          Customize My View
-        </button>
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      onClick={() => { if(card.href) window.open(card.href,"_blank"); else if(card.action) onAction(card.action); }}
+      style={{ background:"#fff", borderRadius:16, border:borderStyle, padding:"24px 24px 20px",
+               cursor:"pointer", display:"flex", flexDirection:"column", height:"100%",
+               transition:"border-color .2s, box-shadow .2s, transform .2s",
+               transform:hov?"translateY(-4px)":"translateY(0)", boxShadow:shadowStyle }}>
 
-        {isAdmin ? (
-          <button
-            onClick={() => navigate("/admin/public-ui-customizer")}
-            className="px-4 py-2 rounded-xl bg-white/90 border border-slate-200 shadow-md text-slate-700 hover:text-rose-700 hover:border-rose-300 transition flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Admin Public UI
-          </button>
-        ) : null}
-      </div>
-
-      {showCustomizer ? (
-        <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm p-4 flex items-start justify-center overflow-auto">
-          <div className="w-full max-w-3xl bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 space-y-4 mt-12">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Customize My Dashboard View</h2>
-              <button
-                onClick={() => {
-                  setShowCustomizer(false);
-                  setPreviewMode(false);
-                }}
-                className="p-2 rounded-lg border border-slate-300 text-slate-600 hover:text-slate-900"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              These settings are saved only in your browser. They do not change footer, heading, or logo.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <label className="text-sm font-medium text-slate-700 block">
-                Theme
-                <select
-                  value={draftPrefs?.themePreset || "light"}
-                  onChange={(e) => updateDraft({ themePreset: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
-                >
-                  <option value="light">Light</option>
-                  <option value="cool">Cool</option>
-                  <option value="warm">Warm</option>
-                  <option value="slate">Slate</option>
-                </select>
-              </label>
-
-              <label className="text-sm font-medium text-slate-700 block">
-                Card Style
-                <select
-                  value={draftPrefs?.cardStyle || "glass"}
-                  onChange={(e) => updateDraft({ cardStyle: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
-                >
-                  <option value="glass">Glass</option>
-                  <option value="solid">Solid</option>
-                  <option value="outline">Outline</option>
-                </select>
-              </label>
-
-              <label className="text-sm font-medium text-slate-700 block">
-                Layout
-                <select
-                  value={draftPrefs?.layoutStyle || "grid-3"}
-                  onChange={(e) => updateDraft({ layoutStyle: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
-                >
-                  <option value="grid-3">Grid 3</option>
-                  <option value="grid-2">Grid 2</option>
-                  <option value="list">List</option>
-                </select>
-              </label>
-
-              <label className="text-sm font-medium text-slate-700 block">
-                Accent Color
-                <input
-                  type="color"
-                  value={draftPrefs?.accentColor || "#2563eb"}
-                  onChange={(e) => updateDraft({ accentColor: e.target.value })}
-                  className="mt-1 w-full h-10 px-1 py-1 rounded-lg border border-slate-300"
-                />
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-800">Buttons (order and visibility)</h3>
-              {(draftPrefs?.cardOrder || []).map((id, index) => {
-                const hidden = (draftPrefs?.hiddenCardIds || []).includes(id);
-                return (
-                  <div key={id} className="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2">
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">{CARD_LABELS[id] || id}</p>
-                      <p className="text-xs text-slate-500">{hidden ? "Hidden" : "Visible"}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={index === 0}
-                        onClick={() => moveDraftCard(id, "up")}
-                        className="p-1.5 rounded border border-slate-300 disabled:opacity-40"
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={index === (draftPrefs?.cardOrder || []).length - 1}
-                        onClick={() => moveDraftCard(id, "down")}
-                        className="p-1.5 rounded border border-slate-300 disabled:opacity-40"
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleDraftCardHidden(id)}
-                        className={`px-3 py-1 rounded text-xs font-semibold border ${
-                          hidden
-                            ? "border-amber-300 bg-amber-50 text-amber-700"
-                            : "border-emerald-300 bg-emerald-50 text-emerald-700"
-                        }`}
-                      >
-                        {hidden ? "Show" : "Hide"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap gap-2 justify-end pt-2">
-              <button
-                onClick={() => setPreviewMode((prev) => !prev)}
-                className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                {previewMode ? "Stop Preview" : "Preview"}
-              </button>
-              <button
-                onClick={onResetMyView}
-                className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 flex items-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset My View
-              </button>
-              <button
-                onClick={onSaveMyView}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save on This Device
-              </button>
-            </div>
-          </div>
+      {/* header */}
+      <div style={{ display:"flex", alignItems:"flex-start", gap:14, marginBottom:20 }}>
+        <div style={{ width:44, height:44, borderRadius:12, background:card.iconBg, flexShrink:0,
+                      display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <Icon size={20} color={card.iconColor}/>
         </div>
-      ) : null}
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.03, 0.06, 0.03] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0], opacity: [0.03, 0.06, 0.03] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-red-400 to-orange-400 rounded-full blur-3xl"
-        />
+        <div style={{ flex:1 }}>
+          <p style={{ margin:0, fontWeight:700, fontSize:15.5, color:"#111", lineHeight:1.25 }}>{card.title}</p>
+          <p style={{ margin:"3px 0 0", fontSize:12.5, color:"#9ca3af" }}>{card.sub}</p>
+        </div>
+        {card.action==="cs" && (
+          <span style={{ fontSize:10, background:"#fef9c3", color:"#92400e", border:"1px solid #fde68a",
+                         padding:"3px 8px", borderRadius:20, fontWeight:600, whiteSpace:"nowrap", marginTop:2 }}>
+            Coming Soon
+          </span>
+        )}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-12 pb-32">
-        <motion.div
-          initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-16 relative w-full max-w-7xl mx-auto"
-        >
-          <div className="w-full flex justify-end md:absolute md:top-0 md:right-0 md:w-auto mb-4 md:mb-0">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/login")}
-              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              <span className="text-sm font-semibold">Admin / Staff Login</span>
-            </motion.button>
-          </div>
+      {/* bullets */}
+      <ul style={{ margin:0, padding:0, listStyle:"none", flex:1, display:"flex", flexDirection:"column", gap:11 }}>
+        {card.bullets.map(b => (
+          <li key={b} style={{ display:"flex", alignItems:"flex-start", gap:10, fontSize:13.5, color:"#4b5563", lineHeight:1.4 }}>
+            <span style={{ width:7, height:7, borderRadius:"50%", background:card.dot, flexShrink:0, marginTop:5 }}/>
+            {b}
+          </li>
+        ))}
+      </ul>
 
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-            className="inline-flex items-center justify-center mb-6"
-          >
-            <img
-              src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-              alt="Thapar Institute Logo"
-              className="h-24 w-auto object-contain"
-            />
-          </motion.div>
-
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4 pb-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            {selectorConfig.title}
-          </motion.h1>
-
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="text-xl md:text-2xl text-slate-600 font-light"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            {selectorConfig.subtitle}
-          </motion.p>
-
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
-            className="w-24 h-1 mx-auto mt-6 rounded-full"
-            style={{ backgroundColor: accentColor }}
-          />
-        </motion.div>
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className={GRID_CLASSES[effectiveSelector.layoutStyle] || GRID_CLASSES["grid-3"]}
-        >
-          {cards.map((dashboard) => {
-            const Icon = dashboard.icon;
-            const isHovered = hoveredCard === dashboard.id;
-
-            return (
-              <motion.div
-                key={dashboard.id}
-                variants={itemVariants}
-                onMouseEnter={() => setHoveredCard(dashboard.id)}
-                onMouseLeave={() => setHoveredCard(null)}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="relative group"
-              >
-                <button
-                  onClick={() => dashboard.action(navigate, currentUser)}
-                  className={`w-full h-full p-8 rounded-3xl border-2 shadow-xl transition-all duration-500 text-left cursor-pointer ${
-                    CARD_STYLE_CLASSES[effectiveSelector.cardStyle] || CARD_STYLE_CLASSES.glass
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-6">
-                    <motion.div
-                      animate={
-                        isHovered
-                          ? {
-                              rotate: [0, -5, 5, -5, 0],
-                              scale: [1, 1.05, 1],
-                            }
-                          : {}
-                      }
-                      transition={{ duration: 0.5 }}
-                      className={`w-16 h-16 rounded-2xl flex items-center justify-center ${dashboard.iconBg} shadow-lg`}
-                    >
-                      <Icon className={`w-8 h-8 ${dashboard.iconColor}`} />
-                    </motion.div>
-
-                    {dashboard.authRequired && !currentUser ? (
-                      <div className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-semibold flex items-center gap-1 border border-slate-200">
-                        <Lock className="w-3 h-3" />
-                        Google Auth
-                      </div>
-                    ) : null}
-
-                    {dashboard.badge ? (
-                      <div
-                        className={`${dashboard.badge.bg} ${dashboard.badge.text} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        {dashboard.badge.label}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <h3
-                    className="text-2xl font-bold text-slate-900 mb-3"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
-                  >
-                    {dashboard.title}
-                  </h3>
-
-                  <p className="text-slate-600 text-sm mb-6 leading-relaxed">{dashboard.description}</p>
-
-                  <div className="space-y-2 mb-6">
-                    {dashboard.features.map((feature, idx) => (
-                      <motion.div
-                        key={`${dashboard.id}-feature-${idx}`}
-                        className="flex items-center gap-2 text-slate-500"
-                        initial={{ opacity: 0.6, x: 0 }}
-                        whileHover={{ opacity: 1, x: 4 }}
-                      >
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${dashboard.iconBg
-                            .replace("bg-", "bg-")
-                            .replace("100", "400")}`}
-                        />
-                        <span className="text-xs font-medium">{feature}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div
-                    className="flex items-center gap-2 font-semibold text-sm group-hover:translate-x-2 transition-transform duration-300"
-                    style={{ color: accentColor }}
-                  >
-                    {dashboard.authRequired && !currentUser ? "Login to Access" : "Open Portal"}
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </button>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+      {/* cta */}
+      <div style={{ borderTop:"1px solid #f3f4f6", marginTop:20, paddingTop:16 }}>
+        <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:13.5, fontWeight:600,
+                       color:hov ? accentColor : "#111", transition:"color .2s" }}>
+          Click Here To Open <ArrowRight size={14}/>
+        </span>
       </div>
-
-      <PublicPageWidgets
-        footerMode="flow"
-        footerClassName="mt-12 w-full"
-        echoClassName="bottom-24"
-      />
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;600;700&display=swap');
-      `}</style>
     </div>
   );
-};
+}
 
-export default PublicDashboardSelector;
+/* ═══════════════════════════════════════════════════
+   ECHO AI CHATBOT WIDGET
+═══════════════════════════════════════════════════ */
+function EchoChatbot({ onClose }) {
+  const [messages, setMessages] = useState([
+    { from:"bot", text:"Hello! 👋 I'm Echo, your DoSA Operations assistant. How can I help you today?" }
+  ]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const bottomRef = useRef(null);
 
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, typing]);
 
+  const send = () => {
+    const q = input.trim();
+    if (!q) return;
+    setMessages(m => [...m, { from:"user", text:q }]);
+    setInput("");
+    setTyping(true);
+    setTimeout(() => {
+      setTyping(false);
+      setMessages(m => [...m, { from:"bot", text:getEchoReply(q) }]);
+    }, 900);
+  };
+
+  const handleKey = e => { if(e.key === "Enter") send(); };
+
+  return (
+    <motion.div initial={{ opacity:0, scale:.9, y:14 }} animate={{ opacity:1, scale:1, y:0 }}
+      exit={{ opacity:0, scale:.9, y:14 }}
+      style={{ position:"fixed", bottom:92, right:24, zIndex:350, width:320,
+               background:"#fff", borderRadius:16, overflow:"hidden",
+               boxShadow:"0 12px 48px rgba(0,0,0,.2)", border:"1px solid #e5e7eb",
+               display:"flex", flexDirection:"column" }}>
+
+      {/* header */}
+      <div style={{ background:"#c62828", padding:"14px 16px",
+                    display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,.2)",
+                        display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Bot size={18} color="#fff"/>
+          </div>
+          <div>
+            <p style={{ color:"#fff", fontWeight:700, fontSize:14, margin:0, lineHeight:1 }}>Echo AI</p>
+            <p style={{ color:"#fca5a5", fontSize:11, margin:"2px 0 0" }}>DoSA Operations Assistant</p>
+          </div>
+        </div>
+        <button onClick={onClose}
+          style={{ background:"rgba(255,255,255,.15)", border:"none", cursor:"pointer",
+                   padding:6, borderRadius:8, lineHeight:1, display:"flex" }}>
+          <X size={16} color="#fff"/>
+        </button>
+      </div>
+
+      {/* messages */}
+      <div style={{ flex:1, overflowY:"auto", padding:14, display:"flex",
+                    flexDirection:"column", gap:10, maxHeight:320, minHeight:200 }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ display:"flex", justifyContent:m.from==="user"?"flex-end":"flex-start" }}>
+            {m.from==="bot" && (
+              <div style={{ width:28, height:28, borderRadius:"50%", background:"#fce8e8",
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            flexShrink:0, marginRight:8, marginTop:2 }}>
+                <Bot size={14} color="#c62828"/>
+              </div>
+            )}
+            <div style={{
+              maxWidth:"78%", padding:"9px 13px", borderRadius:12, fontSize:13, lineHeight:1.55,
+              background: m.from==="user" ? "#c62828" : "#f3f4f6",
+              color: m.from==="user" ? "#fff" : "#1f2937",
+              borderBottomRightRadius: m.from==="user" ? 3 : 12,
+              borderBottomLeftRadius:  m.from==="bot"  ? 3 : 12,
+            }}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {typing && (
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:28, height:28, borderRadius:"50%", background:"#fce8e8",
+                          display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Bot size={14} color="#c62828"/>
+            </div>
+            <div style={{ background:"#f3f4f6", borderRadius:12, borderBottomLeftRadius:3,
+                          padding:"9px 13px", display:"flex", gap:4 }}>
+              {[0,1,2].map(i => (
+                <motion.span key={i} animate={{ y:[0,-4,0] }} transition={{ repeat:Infinity, duration:.6, delay:i*.15 }}
+                  style={{ width:6, height:6, borderRadius:"50%", background:"#9ca3af", display:"block" }}/>
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* input */}
+      <div style={{ borderTop:"1px solid #f3f4f6", padding:"10px 12px",
+                    display:"flex", gap:8, alignItems:"center" }}>
+        <input
+          value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+          placeholder="Ask Echo anything..."
+          style={{ flex:1, border:"1px solid #e5e7eb", borderRadius:10, padding:"8px 12px",
+                   fontSize:13, outline:"none", fontFamily:"inherit", background:"#f9fafb",
+                   color:"#111" }}
+          onFocus={e => e.target.style.borderColor="#c62828"}
+          onBlur={e => e.target.style.borderColor="#e5e7eb"}
+        />
+        <button onClick={send}
+          style={{ width:36, height:36, borderRadius:10, background:"#c62828", border:"none",
+                   cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                   flexShrink:0, transition:"background .2s" }}
+          onMouseEnter={e => e.currentTarget.style.background="#b71c1c"}
+          onMouseLeave={e => e.currentTarget.style.background="#c62828"}>
+          <Send size={15} color="#fff"/>
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOMIZE MY VIEW — full panel (mirrors original)
+═══════════════════════════════════════════════════ */
+function CustomizePanel({ prefs, onUpdate, onMove, onToggleHide, onSave, onReset, onClose }) {
+  const [preview, setPreview] = useState(false);
+
+  return (
+    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:500,
+               backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-start",
+               justifyContent:"center", padding:"16px", overflowY:"auto" }}>
+      <motion.div initial={{ y:30, opacity:0 }} animate={{ y:0, opacity:1 }}
+        exit={{ y:30, opacity:0 }} transition={{ type:"spring", damping:22 }}
+        style={{ width:"100%", maxWidth:680, background:"#fff", borderRadius:20,
+                 border:"1px solid #e5e7eb", boxShadow:"0 24px 60px rgba(0,0,0,.18)",
+                 padding:28, marginTop:48, marginBottom:24 }}>
+
+        {/* title row */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+          <h2 style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize:22, fontWeight:600, color:"#111", margin:0 }}>
+            Customize My Dashboard View
+          </h2>
+          <button onClick={onClose}
+            style={{ padding:"6px 8px", border:"1px solid #e5e7eb", borderRadius:8,
+                     background:"none", cursor:"pointer", lineHeight:1, display:"flex" }}>
+            <X size={16} color="#6b7280"/>
+          </button>
+        </div>
+        <p style={{ fontSize:13, color:"#6b7280", marginBottom:20 }}>
+          Settings are saved only in your browser. They do not change the footer, heading, or logo.
+        </p>
+
+        {/* controls grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:16, marginBottom:24 }}>
+          {/* Theme */}
+          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Theme</span>
+            <select value={prefs.themePreset} onChange={e => onUpdate({ themePreset:e.target.value })}
+              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
+                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
+              {THEME_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </label>
+
+          {/* Card Style */}
+          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Card Style</span>
+            <select value={prefs.cardStyle} onChange={e => onUpdate({ cardStyle:e.target.value })}
+              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
+                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
+              {CARD_STYLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          {/* Layout */}
+          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Layout</span>
+            <select value={prefs.layoutStyle} onChange={e => onUpdate({ layoutStyle:e.target.value })}
+              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
+                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
+              {LAYOUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          {/* Accent Color */}
+          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Accent Color</span>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <input type="color" value={prefs.accentColor}
+                onChange={e => onUpdate({ accentColor:e.target.value })}
+                style={{ width:44, height:38, border:"1px solid #e5e7eb", borderRadius:8,
+                         padding:3, cursor:"pointer", background:"#fff" }}/>
+              <span style={{ fontSize:13, color:"#6b7280", fontFamily:"monospace" }}>{prefs.accentColor}</span>
+            </div>
+          </label>
+        </div>
+
+        {/* Card order & visibility */}
+        <p style={{ fontSize:13, fontWeight:600, color:"#374151", marginBottom:10 }}>
+          Card Order &amp; Visibility
+        </p>
+        <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+          {(prefs.cardOrder || CARD_IDS).map((id, idx) => {
+            const hidden = (prefs.hiddenCardIds||[]).includes(id);
+            return (
+              <div key={id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                                     border:"1px solid #e5e7eb", borderRadius:10,
+                                     padding:"10px 14px", background:hidden?"#f9fafb":"#fff" }}>
+                <div>
+                  <p style={{ margin:0, fontSize:13.5, fontWeight:600, color:hidden?"#9ca3af":"#111" }}>
+                    {CARD_LABELS_MAP[id]}
+                  </p>
+                  <p style={{ margin:0, fontSize:11, color:hidden?"#d1d5db":"#6b7280" }}>
+                    {hidden ? "Hidden" : "Visible"}
+                  </p>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <button disabled={idx===0} onClick={() => onMove(id,"up")}
+                    style={{ padding:"5px 7px", border:"1px solid #e5e7eb", borderRadius:7,
+                             background:"none", cursor:idx===0?"not-allowed":"pointer",
+                             opacity:idx===0?.35:1, lineHeight:1, display:"flex" }}>
+                    <ArrowUp size={14} color="#6b7280"/>
+                  </button>
+                  <button disabled={idx===(prefs.cardOrder||CARD_IDS).length-1} onClick={() => onMove(id,"down")}
+                    style={{ padding:"5px 7px", border:"1px solid #e5e7eb", borderRadius:7,
+                             background:"none", cursor:idx===(prefs.cardOrder||CARD_IDS).length-1?"not-allowed":"pointer",
+                             opacity:idx===(prefs.cardOrder||CARD_IDS).length-1?.35:1, lineHeight:1, display:"flex" }}>
+                    <ArrowDown size={14} color="#6b7280"/>
+                  </button>
+                  <button onClick={() => onToggleHide(id)}
+                    style={{ padding:"5px 12px", border:`1px solid ${hidden?"#fbbf24":"#6ee7b7"}`,
+                             borderRadius:7, background:hidden?"#fef9c3":"#ecfdf5",
+                             color:hidden?"#92400e":"#065f46", fontSize:12, fontWeight:600,
+                             cursor:"pointer", fontFamily:"inherit" }}>
+                    {hidden ? "Show" : "Hide"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* action buttons — mirror original exactly */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:10, justifyContent:"flex-end" }}>
+          <button onClick={() => setPreview(v=>!v)}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px",
+                     border:"1px solid #d1d5db", borderRadius:8, background:"#fff",
+                     color:"#374151", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>
+            <Eye size={15}/> {preview ? "Stop Preview" : "Preview"}
+          </button>
+          <button onClick={onReset}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px",
+                     border:"1px solid #d1d5db", borderRadius:8, background:"#fff",
+                     color:"#374151", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>
+            <RotateCcw size={15}/> Reset My View
+          </button>
+          <button onClick={onSave}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 18px",
+                     border:"none", borderRadius:8, background:"#2563eb",
+                     color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+            <Save size={15}/> Save on This Device
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════ */
+export default function ThaparPublicDashboard() {
+  const navigate = useNavigate();
+  const topRef = useRef(null);
+
+  // ── state ──
+  const [toast,   setToast]   = useState(null);
+  const [modal,   setModal]   = useState(null);
+  const [chat,    setChat]    = useState(false);
+  const [showCustomizer, setShowCustomizer] = useState(false);
+
+  // ── prefs (mirrors original pattern) ──
+  const [prefs, setPrefs] = useState(() => readLocalPrefs() || makeDefaultPrefs());
+
+  const updatePrefs = patch => setPrefs(p => ({ ...p, ...patch }));
+
+  const moveCard = (id, dir) => {
+    setPrefs(p => {
+      const order = [...(p.cardOrder || CARD_IDS)];
+      const idx = order.indexOf(id);
+      const next = dir==="up" ? idx-1 : idx+1;
+      if (next<0 || next>=order.length) return p;
+      [order[idx], order[next]] = [order[next], order[idx]];
+      return { ...p, cardOrder:order };
+    });
+  };
+
+  const toggleHide = id => {
+    setPrefs(p => {
+      const hidden = new Set(p.hiddenCardIds||[]);
+      if (hidden.has(id)) hidden.delete(id); else hidden.add(id);
+      return { ...p, hiddenCardIds:[...hidden] };
+    });
+  };
+
+  const savePrefs = () => {
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(prefs));
+    setShowCustomizer(false);
+    setToast("View saved to this device ✓");
+  };
+
+  const resetPrefs = () => {
+    localStorage.removeItem(LOCAL_PREFS_KEY);
+    setPrefs(makeDefaultPrefs());
+    setToast("View reset to default ✓");
+  };
+
+  // ── derived cards list (respects order + hidden) ──
+  const visibleCards = useMemo(() => {
+    const order = prefs.cardOrder || CARD_IDS;
+    const hidden = new Set(prefs.hiddenCardIds || []);
+    return order
+      .filter(id => ALL_CARDS[id] && !hidden.has(id))
+      .map(id => ALL_CARDS[id]);
+  }, [prefs.cardOrder, prefs.hiddenCardIds]);
+
+  // ── grid cols from layoutStyle ──
+  const gridCols = prefs.layoutStyle==="grid-2" ? "repeat(2,1fr)"
+                 : prefs.layoutStyle==="list"   ? "1fr"
+                 : "repeat(3,1fr)";
+
+  const act = a => {
+    if (a==="home") topRef.current?.scrollIntoView({ behavior:"smooth" });
+    else if (a==="cs")   setToast("Coming Soon!");
+    else if (a==="q1")   setModal("q1");
+    else if (a==="q2")   setModal("q2");
+    else if (a==="about") navigate("/about-us");
+  };
+
+  // ── page background from theme ──
+  const pageBg = THEME_BG[prefs.themePreset] || "#ffffff";
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        html{scroll-behavior:smooth}
+        body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        .card-grid{display:grid;gap:20px}
+        @media(max-width:960px){.card-grid{grid-template-columns:repeat(2,1fr)!important}}
+        @media(max-width:600px){.card-grid{grid-template-columns:1fr!important}}
+        .footer-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:48px}
+        @media(max-width:768px){.footer-cols{grid-template-columns:1fr!important;gap:32px!important}}
+        .nav-row{display:flex}
+        @media(max-width:1024px){.nav-row{display:none!important}}
+      `}</style>
+
+      <div ref={topRef} style={{ background: pageBg, minHeight:"100vh", transition:"background .3s" }}>
+
+        {/* ══ NAVBAR ══════════════════════════════════ */}
+        <header style={{ position:"sticky", top:0, zIndex:300, background:"#fff",
+                         borderBottom:"1px solid #e5e7eb", boxShadow:"0 1px 4px rgba(0,0,0,.06)" }}>
+          <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 24px", height:70,
+                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+            {/* logo */}
+            <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+              <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                alt="Thapar" style={{ height:42, width:"auto", objectFit:"contain" }}/>
+              <div>
+                <p style={{ fontSize:12.5, fontWeight:600, color:"#111", lineHeight:1.2, margin:0 }}>
+                  Thapar Institute of Engineering and Technology
+                </p>
+                <p style={{ fontSize:11, color:"#c62828", fontWeight:500, margin:0 }}>
+                  Created by DoSA Office
+                </p>
+              </div>
+            </div>
+            {/* tabs */}
+            <nav className="nav-row" style={{ alignItems:"center", gap:24, flex:1, justifyContent:"center" }}>
+              {NAV.map(it => <NavItem key={it.label} item={it} onAction={act}/>)}
+            </nav>
+            {/* admin */}
+            <a href="https://guestapp.in/login" target="_blank" rel="noopener noreferrer"
+              style={{ display:"flex", alignItems:"center", gap:6, background:"#c62828", color:"#fff",
+                       fontSize:12.5, fontWeight:600, padding:"8px 16px", borderRadius:6,
+                       textDecoration:"none", flexShrink:0, whiteSpace:"nowrap" }}>
+              <LogIn size={13}/> Admin Login
+            </a>
+          </div>
+        </header>
+
+        {/* ══ HERO ════════════════════════════════════ */}
+        <section style={{ background:"#fff", textAlign:"center", padding:"60px 16px 48px" }}>
+          <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ duration:.5 }}>
+            <h1 style={{ fontFamily:"'EB Garamond',Georgia,serif",
+                         fontSize:"clamp(2.4rem,4.5vw,3.6rem)",
+                         fontWeight:500, color:"#111", lineHeight:1.15, marginBottom:14 }}>
+              Thapar Operations
+            </h1>
+            <p style={{ fontSize:15, color:"#6b7280", maxWidth:500, margin:"0 auto", lineHeight:1.7 }}>
+              Centralized portal for Guest Rooms, Venues &amp; Student Services
+            </p>
+            <div style={{ display:"flex", justifyContent:"center", marginTop:22 }}>
+              <div style={{ width:88, height:3, background:"#c62828", borderRadius:2 }}/>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* ══ CARDS ═══════════════════════════════════ */}
+        <section style={{ background:"transparent", padding:"0 24px 80px" }}>
+          <div className="card-grid"
+            style={{ maxWidth:1280, margin:"0 auto", gridTemplateColumns:gridCols }}>
+            {visibleCards.map((c, i) => (
+              <motion.div key={c.id}
+                initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }}
+                viewport={{ once:true, margin:"-20px" }}
+                transition={{ duration:.35, delay:i*.06 }}>
+                <Card card={c} onAction={act}
+                  cardStyle={prefs.cardStyle}
+                  accentColor={prefs.accentColor}/>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ══ FOOTER ══════════════════════════════════ */}
+        <footer style={{ background:"#f0f1f3", borderTop:"1px solid #e5e7eb" }}>
+          <div className="footer-cols"
+            style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px 40px" }}>
+
+            {/* LEFT: logo + description */}
+            <div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+                  alt="Thapar" style={{ height:36, width:"auto", objectFit:"contain" }}/>
+                <span style={{ fontWeight:700, fontSize:14, color:"#111" }}>Thapar Operations</span>
+              </div>
+              <p style={{ fontSize:13.5, color:"#4b5563", lineHeight:1.7, maxWidth:260 }}>
+                Helping manage and streamline Thapar operations including bookings, permissions,
+                and student services — all in one place.
+              </p>
+              <p style={{ fontSize:12, color:"#9ca3af", marginTop:14 }}>
+                © {new Date().getFullYear()} DoSA Office, TIET
+              </p>
+            </div>
+
+            {/* CENTRE: Quick Links + Any General Query */}
+            <div>
+              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Quick Links</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+                <button onClick={() => act("home")}
+                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
+                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
+                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
+                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
+                  <Home size={14} color="#9ca3af"/> Home
+                </button>
+                <button onClick={() => navigate("/install-app")}
+                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
+                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
+                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
+                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
+                  <Package size={14} color="#9ca3af"/> How to Install
+                </button>
+              </div>
+
+              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:12 }}>Any General Query</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:12, fontSize:13.5, color:"#4b5563" }}>
+                <div>
+                  <p style={{ color:"#6b7280", marginBottom:3 }}>Contact us for any assistance:</p>
+                  <a href="mailto:student.help@thapar.edu"
+                    style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+                    student.help@thapar.edu
+                  </a>
+                </div>
+                <div>
+                  <p style={{ fontSize:11, fontWeight:700, color:"#9ca3af",
+                               textTransform:"uppercase", letterSpacing:".08em", marginBottom:3 }}>
+                    Technical Support
+                  </p>
+                  <a href="mailto:itmh@thapar.edu"
+                    style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+                    itmh@thapar.edu
+                  </a>
+                </div>
+                <p style={{ fontSize:12, color:"#9ca3af" }}>Developed by Navjot Sharma</p>
+              </div>
+            </div>
+
+            {/* RIGHT: Contact Us */}
+            <div>
+              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Contact Us</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:10,
+                            fontSize:13.5, color:"#4b5563", marginBottom:20 }}>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
+                  <Clock size={14} color="#9ca3af" style={{ marginTop:2, flexShrink:0 }}/>
+                  <span>Timings: 9 AM to 5:30 PM, Monday to Friday</span>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <Mail size={14} color="#9ca3af" style={{ flexShrink:0 }}/>
+                  <span>E-mail:{" "}
+                    <a href="mailto:dosa.office@thapar.edu" style={{ color:"#2563eb", textDecoration:"none" }}>
+                      dosa.office@thapar.edu
+                    </a>
+                  </span>
+                </div>
+              </div>
+              <hr style={{ border:"none", borderTop:"1px solid #d1d5db", marginBottom:14 }}/>
+              <div style={{ display:"flex", flexDirection:"column", gap:4, fontSize:12.5, color:"#6b7280" }}>
+                <p>Powered by Thapar Institute of Engineering &amp; Technology</p>
+                <p style={{ fontWeight:700, color:"#374151" }}>Created and Maintained by DoSA Office</p>
+              </div>
+            </div>
+          </div>
+
+          {/* bottom bar */}
+          <div style={{ borderTop:"1px solid #d1d5db", background:"#e5e6e8",
+                        padding:"12px 24px", display:"flex", alignItems:"center",
+                        justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+            <span style={{ fontSize:12, color:"#6b7280" }}>Managed by DOSA Office</span>
+            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#6b7280" }}>
+              Crafted by
+              <span style={{ display:"flex", alignItems:"center", gap:3, color:"#374151", marginLeft:4 }}>
+                <Github size={12}/> Navjot Sharma
+              </span>
+            </div>
+          </div>
+        </footer>
+      </div>{/* end page wrapper */}
+
+      {/* ══ FIXED: CUSTOMIZE MY VIEW ════════════════
+          — button is always visible bottom-left
+          — mirrors original SlidersHorizontal icon + label
+      ═══════════════════════════════════════════════ */}
+      <button
+        onClick={() => setShowCustomizer(true)}
+        style={{ position:"fixed", bottom:24, left:24, zIndex:350,
+                 display:"flex", alignItems:"center", gap:8,
+                 background:"rgba(255,255,255,.92)", backdropFilter:"blur(8px)",
+                 border:"1px solid #d1d5db", borderRadius:12,
+                 padding:"10px 16px", fontSize:13, fontWeight:500, color:"#374151",
+                 cursor:"pointer", fontFamily:"inherit",
+                 boxShadow:"0 2px 16px rgba(0,0,0,.12)",
+                 transition:"box-shadow .2s, transform .2s" }}
+        onMouseEnter={e=>{ e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.18)"; e.currentTarget.style.transform="translateY(-2px)"; }}
+        onMouseLeave={e=>{ e.currentTarget.style.boxShadow="0 2px 16px rgba(0,0,0,.12)"; e.currentTarget.style.transform="none"; }}>
+        <SlidersHorizontal size={15} color="#6b7280"/>
+        Customize My View
+      </button>
+
+      {/* ══ FIXED: ECHO AI CHATBOT ═══════════════════
+          — EchoOrb bot face (floating mode)
+          — full chat panel with keyword responses
+      ═══════════════════════════════════════════════ */}
+      <EchoOrb 
+        mode="floating"
+        onClick={() => setChat(v => !v)}
+      />
+
+      {/* Echo chat modal */}
+      <AnimatePresence>
+        {chat && <EchoChatbot onClose={() => setChat(false)}/>}
+      </AnimatePresence>
+
+      {/* Customize panel */}
+      <AnimatePresence>
+        {showCustomizer && (
+          <CustomizePanel
+            prefs={prefs}
+            onUpdate={updatePrefs}
+            onMove={moveCard}
+            onToggleHide={toggleHide}
+            onSave={savePrefs}
+            onReset={resetPrefs}
+            onClose={() => setShowCustomizer(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ══ MODALS ══════════════════════════════════ */}
+      <AnimatePresence>
+        {modal==="q1" && (
+          <Modal title="Any Queries?" onClose={() => setModal(null)}>
+            <div style={{ display:"flex", flexDirection:"column", gap:14,
+                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
+              <div>
+                <p style={{ fontSize:13, color:"#6b7280", marginBottom:6 }}>Contact us for any assistance:</p>
+                <a href="mailto:student.help@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+                  student.help@thapar.edu
+                </a>
+              </div>
+              <div>
+                <p style={{ fontSize:11, fontWeight:700, color:"#9ca3af",
+                           textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>
+                  Technical Support
+                </p>
+                <a href="mailto:itmh@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+                  itmh@thapar.edu
+                </a>
+              </div>
+            </div>
+          </Modal>
+        )}
+        {modal==="q2" && (
+          <Modal title="Reach Out To Us" onClose={() => setModal(null)}>
+            <div style={{ display:"flex", flexDirection:"column", gap:14,
+                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
+              <p>For any feedback you can contact us on <strong style={{ color:"#111" }}>DoSA Office</strong></p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
+                  <Clock size={14} color="#9ca3af" style={{ marginTop:2, flexShrink:0 }}/>
+                  <span style={{ fontSize:13, color:"#4b5563" }}>Timings: 9 AM to 5:30 PM, Monday to Friday</span>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <Mail size={14} color="#9ca3af" style={{ flexShrink:0 }}/>
+                  <span style={{ fontSize:13, color:"#4b5563" }}>E-mail:{" "}
+                    <a href="mailto:dosa.office@thapar.edu" style={{ color:"#2563eb", textDecoration:"none" }}>
+                      dosa.office@thapar.edu
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        )}
+        {modal==="about" && (
+          <Modal title="About Thapar Operations" onClose={() => setModal(null)}>
+            <div style={{ display:"flex", flexDirection:"column", gap:14,
+                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
+              <p>The <strong style={{ color:"#111" }}>Thapar Operations Portal</strong> was conceptualized
+                under the leadership of our Dean to digitize and centralize campus services.</p>
+              <p>Developed and maintained by the <strong style={{ color:"#111" }}>DoSA Office</strong> at
+                Thapar Institute of Engineering and Technology, Patiala.</p>
+              <div style={{ background:"#f9fafb", borderRadius:10, padding:14 }}>
+                <p style={{ fontWeight:600, color:"#111", marginBottom:8, fontSize:13.5 }}>Development Team</p>
+                <p style={{ fontSize:12.5, color:"#6b7280" }}>Developed by <strong>Navjot Sharma</strong></p>
+                <p style={{ fontSize:12.5, color:"#6b7280" }}>Crafted by <strong>Surya</strong> &amp; <strong>Akshat</strong></p>
+                <p style={{ fontSize:12, color:"#9ca3af", marginTop:8 }}>Version 1.0 · Campus Connect &amp; DoSA Office</p>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ══ TOAST ═══════════════════════════════════ */}
+      <AnimatePresence>
+        {toast && <Toast msg={toast} onClose={() => setToast(null)}/>}
+      </AnimatePresence>
+    </>
+  );
+}

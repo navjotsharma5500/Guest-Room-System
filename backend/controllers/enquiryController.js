@@ -2,6 +2,7 @@
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
+import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import EmailLog from "../models/EmailLog.js";
 import { createLog } from "../middleware/logMiddleware.js";
@@ -275,8 +276,8 @@ export const approveEnquiry = async (req, res) => {
       contact: enquiry.contact,
       hostel: hostel,
       roomNo: roomNo,
-      from: new Date(enquiry.from),
-      to: new Date(enquiry.to),
+      from: parseDateOnlyToUtcDate(enquiry.from),
+      to: parseDateOnlyToUtcDate(enquiry.to),
       checkInTime: checkInTime || enquiry.checkInTime || "00:00",
       checkOutTime: checkOutTime || enquiry.checkOutTime || "23:59",
       numGuests: enquiry.guests || 1,

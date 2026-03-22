@@ -16,16 +16,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
+import { formatBillingDate } from "../utils/billingDate";
 
 const API = BACKEND_URL;
 
 function formatDate(dateString) {
-  if (!dateString) return "—";
-  return new Date(dateString).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatBillingDate(dateString);
 }
 
 function formatDateTime(dateString) {

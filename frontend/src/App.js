@@ -28,6 +28,8 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 // ============================================================================
 import Login from "./pages/Login";
 import PublicDashboardSelector from "./pages/PublicDashboardSelector";
+import InstallApp from "./pages/InstallApp";
+import AboutUsPage from "./pages/AboutUsPage";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import VenueBookingDashboard from "./VenueBookingDashboard";
@@ -276,6 +278,8 @@ export default function App() {
           <Route path="/venue-guest-enquiry"  element={<VenueGuestEnquiryPage />} />
           <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+          <Route path="/install-app"          element={<InstallApp />} />
+          <Route path="/about-us"             element={<AboutUsPage />} />
 
           {/* ================================================================
               QR CODE GENERATOR (admin only)
