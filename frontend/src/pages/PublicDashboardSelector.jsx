@@ -838,6 +838,13 @@ export default function ThaparPublicDashboard() {
                   onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
                   <Package size={14} color="#9ca3af"/> How to Install
                 </button>
+                <button onClick={() => act("about")}
+                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
+                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
+                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
+                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
+                  <Users size={14} color="#9ca3af"/> About Us
+                </button>
               </div>
 
               <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:12 }}>Any General Query</p>
@@ -859,7 +866,6 @@ export default function ThaparPublicDashboard() {
                     itmh@thapar.edu
                   </a>
                 </div>
-                <p style={{ fontSize:12, color:"#9ca3af" }}>Developed by Navjot Sharma</p>
               </div>
             </div>
 

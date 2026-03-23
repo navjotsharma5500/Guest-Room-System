@@ -79,7 +79,7 @@ const DEVELOPERS = [
     github: "https://github.com/navjotsharma5500",
     modules: ["Guest Room Booking", "Event Venue Booking", "Event Calendar", "Library Night Pass"],
     work: "Architected and developed the core backend infrastructure for the platform, including API design, database schema, and integration with frontend components. Led the development of the Guest Room Booking and Event Venue Booking modules, ensuring secure authentication and smooth user experience across all services.",
-    tag: "Solopreneur",
+    tag: "Lead Dev",
     tagColor: "#c62828",
     tagBg: "#fce8e8",
   },
