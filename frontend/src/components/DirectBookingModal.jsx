@@ -59,6 +59,8 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     department: prefill?.department || "",
     contact: prefill?.contact || "",
     email: prefill?.email || "",
+    societyEmail: prefill?.societyEmail || "",
+    presidentEmail: prefill?.presidentEmail || "",
     gender: prefill?.gender || "Male",
     numGuests: prefill?.numGuests || prefill?.guests || 1,
     females: prefill?.females || "",
@@ -345,6 +347,8 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       department: form.department,
       contact: form.contact,
       email: form.email,
+      societyEmail: form.societyEmail,
+      presidentEmail: form.presidentEmail,
       gender: form.gender,
       numGuests: form.numGuests,
       females: form.females,
@@ -671,6 +675,28 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   placeholder="Email (.com/.in/.edu only)"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+
+                <input
+                  className={`border p-2 rounded col-span-2 ${
+                    form.societyEmail 
+                      ? (validateEmail(form.societyEmail) ? 'border-green-500' : 'border-red-500')
+                      : ''
+                  }`}
+                  placeholder="Society Email (.com/.in/.edu only)"
+                  value={form.societyEmail}
+                  onChange={(e) => setForm({ ...form, societyEmail: e.target.value })}
+                />
+
+                <input
+                  className={`border p-2 rounded col-span-2 ${
+                    form.presidentEmail 
+                      ? (validateEmail(form.presidentEmail) ? 'border-green-500' : 'border-red-500')
+                      : ''
+                  }`}
+                  placeholder="President Email (.com/.in/.edu only)"
+                  value={form.presidentEmail}
+                  onChange={(e) => setForm({ ...form, presidentEmail: e.target.value })}
                 />
 
                 <select

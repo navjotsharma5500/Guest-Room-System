@@ -8,6 +8,7 @@ import {
   getVenueEnquiryById,
   approveVenueEnquiry,
   rejectVenueEnquiry,
+  checkEnquiryConflict,  // Feature 1: Import conflict checker
 } from "../controllers/venueEnquiryController.js";
 
 const router = express.Router();
@@ -30,6 +31,7 @@ router.get("/event-suggestions", getVenueEventSuggestions);
 // Admin/Assistant endpoints
 router.get("/all", protect, getAllVenueEnquiries);
 router.get("/:id", protect, getVenueEnquiryById);
+router.post("/:id/check-conflict", protect, checkEnquiryConflict);  // Feature 1: Check date conflicts
 router.put("/:id/approved", protect, approveVenueEnquiry);
 router.put("/:id/rejected", protect, rejectVenueEnquiry);
 

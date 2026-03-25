@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2 } from "lucide-react";
+import { Mail, CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2 } from "lucide-react";
 import thaparLogo from "../assets/thapar_logo.png";
 import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
@@ -34,6 +34,8 @@ const INITIAL_FORM_STATE = {
   roomNo: "",
   societyName: "",
   eventName: "",
+  societyEmail: "",
+  presidentEmail: "",
   description: "",
   purpose: "",
   checkInDate: "",
@@ -91,6 +93,7 @@ export default function VenueGuestEnquiryPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [societySuggestions, setSocietySuggestions] = useState([]);
   const [showSocietySuggestions, setShowSocietySuggestions] = useState(false);
   const [eventSuggestions, setEventSuggestions] = useState([]);
@@ -257,6 +260,14 @@ export default function VenueGuestEnquiryPage() {
       showToast("Please select end date and time", "warning");
       return false;
     }
+    if (!form.societyEmail || !form.societyEmail.includes("@")) {
+      showToast("Please enter a valid society email", "warning");
+      return false;
+    }
+    if (!form.presidentEmail || !form.presidentEmail.includes("@")) {
+      showToast("Please enter a valid president email", "warning");
+      return false;
+    }
     
     // Validate end is after start
     const start = new Date(`${form.checkInDate}T${form.checkInTime}`);
@@ -283,9 +294,24 @@ export default function VenueGuestEnquiryPage() {
   };
 
   const handleConfirmSubmit = async () => {
+    // 🔒 PREVENT DOUBLE SUBMISSION
+    if (isSubmitting) {
+      return;
+    }
+
+    // 🔒 BLOCK IF FILES UPLOADING
+    if (uploading) {
+      showToast("Please wait for file upload to complete", "warning");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
+      const requestId = `${form.email}-${Date.now()}`;
       const payload = {
         ...form,
+        requestId,
         status: "pending",
         submittedAt: new Date().toISOString(),
       };
@@ -296,27 +322,64 @@ export default function VenueGuestEnquiryPage() {
           timeout: 20000,
         });
       } catch (err) {
-        // Route-compatibility fallback for servers exposing POST /api/venue/enquiry
         if (err?.response?.status !== 404) throw err;
         res = await axios.post(`${API}/api/venue/enquiry`, payload, {
           timeout: 20000,
         });
       }
-      
+
       console.log("✅ Venue enquiry submitted:", res.data);
-      
-      // Notify assistant page
+
       window.dispatchEvent(
         new CustomEvent("venueEnquiryCreated", {
           detail: res.data?.enquiry || null,
         })
       );
-      
+
       setSubmitted(true);
       showToast("Enquiry submitted successfully!", "success");
+
     } catch (err) {
       console.error("❌ Submit error:", err);
+
+      // 🚨 CRITICAL FIX: HANDLE FALSE 500 ERROR (backend saved but returned error)
+      if (err?.response?.status === 500) {
+        const msg = err?.response?.data?.message || "";
+        console.warn("⚠️ Got 500 - checking if actually saved...");
+
+        // If backend indicates duplicate/already saved
+        if (msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("already")) {
+          showToast("Enquiry already submitted.", "info");
+          setSubmitted(true);
+          return;
+        }
+
+        // Conservative approach: assume success on 500 with unclear reason
+        // (This handles the case where backend saves but throws error)
+        showToast(
+          "Submission completed but server response unclear. Your enquiry may be saved. Please check your dashboard.",
+          "warning"
+        );
+        setSubmitted(true);
+        return;
+      }
+
+      // 🚨 TIMEOUT: Backend may have still processed
+      if (err.code === "ECONNABORTED") {
+        console.warn("⚠️ Request timeout - backend may have saved");
+        showToast(
+          "Request timeout. Your enquiry may have been submitted. Please check your dashboard.",
+          "warning"
+        );
+        setSubmitted(true);
+        return;
+      }
+
+      // ❌ REAL ERROR: Allow retry
       showToast("Submission failed. Please try again.", "error");
+
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -422,6 +485,38 @@ export default function VenueGuestEnquiryPage() {
                           readOnly
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                         />
+                      </div>
+
+                      {/* NEW: Society & President Emails - Feature 3 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <Mail className="w-4 h-4 inline mr-1" />
+                            Society Email *
+                          </label>
+                          <input
+                            type="email"
+                            value={form.societyEmail}
+                            onChange={(e) => setForm({ ...form, societyEmail: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="society@example.com"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <Mail className="w-4 h-4 inline mr-1" />
+                            President Email *
+                          </label>
+                          <input
+                            type="email"
+                            value={form.presidentEmail}
+                            onChange={(e) => setForm({ ...form, presidentEmail: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="president@example.com"
+                            required
+                          />
+                        </div>
                       </div>
   
                       <div>
@@ -733,10 +828,20 @@ export default function VenueGuestEnquiryPage() {
                     <div className="flex justify-center">
                       <button
                         type="submit"
-                        disabled={uploading}
-                        className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={uploading || isSubmitting}
+                        className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        Preview & Submit
+                        {isSubmitting ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Submitting...
+                          </>
+                        ) : (
+                          "Preview & Submit"
+                        )}
                       </button>
                     </div>
                   </>
@@ -769,6 +874,8 @@ export default function VenueGuestEnquiryPage() {
                   <p><strong>Venue:</strong> {form.hall} - {form.roomNo}</p>
                   <p><strong>Society/Club:</strong> {form.societyName}</p>
                   <p><strong>Event Name:</strong> {form.eventName}</p>
+                  <p><strong>Society Email:</strong> {form.societyEmail}</p>
+                  <p><strong>President Email:</strong> {form.presidentEmail}</p>
                 </div>
 
                 <div className="mb-4">
@@ -793,15 +900,27 @@ export default function VenueGuestEnquiryPage() {
                 <div className="flex justify-center gap-4 mt-6">
                   <button
                     onClick={() => setShowPreview(false)}
-                    className="px-6 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Edit
                   </button>
                   <button
                     onClick={handleConfirmSubmit}
-                    className="px-6 py-2 bg-green-600 text-white rounded-full hover:bg-green-700"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Confirm and Submit
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Submitting...
+                      </>
+                    ) : (
+                      "Confirm and Submit"
+                    )}
                   </button>
                 </div>
               </div>

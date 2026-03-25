@@ -356,3 +356,19 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
   z-index: 10;
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
 }
+
+/* Smooth scrollbar — visible only on hover */
+.booking-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.booking-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.booking-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.booking-scroll:hover::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}

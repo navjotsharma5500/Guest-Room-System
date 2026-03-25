@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
+import NotificationBell from "../components/NotificationBell";
 import {
   Home,
   FileText,
@@ -74,6 +75,20 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [enquiries, setEnquiries] = useState([]);
   
+  // Feature 2: Notification Bell state
+  const [newEnquiriesCount, setNewEnquiriesCount] = useState(0);
+  const [newEnquiries, setNewEnquiries] = useState([]);
+  
+  // Feature 1: Date Editing state
+  const [isEditingDates, setIsEditingDates] = useState(false);
+  const [dateConflict, setDateConflict] = useState(null);
+  const [editForm, setEditForm] = useState({
+    checkInDate: "",
+    checkInTime: "",
+    checkOutDate: "",
+    checkOutTime: "",
+  });
+  
   const ITEMS_PER_PAGE = 10;
 
   const toastContext = useToast();
@@ -82,6 +97,20 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
       toastContext.showToast(message, type);
     }
   };
+
+  // Feature 1: Initialize edit form when selected enquiry changes
+  useEffect(() => {
+    if (selected) {
+      setEditForm({
+        checkInDate: selected.checkInDate || "",
+        checkInTime: selected.checkInTime || "",
+        checkOutDate: selected.checkOutDate || "",
+        checkOutTime: selected.checkOutTime || "",
+      });
+      setIsEditingDates(false);
+      setDateConflict(null);
+    }
+  }, [selected]);
 
   // Load venue enquiries
   const loadEnquiries = async () => {
@@ -128,23 +157,101 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
       loadEnquiries();
     };
     
+    // Feature 2: Listen for new enquiries from socket
+    const handleVenueEnquiryCreated = (data) => {
+      console.log("🔔 New enquiry created (socket):", data);
+      if (data.enquiry) {
+        // Add to notification list
+        setNewEnquiries((prev) => {
+          const isDuplicate = prev.some((e) => e._id === data.enquiry._id);
+          if (isDuplicate) return prev;
+          return [data.enquiry, ...prev].slice(0, 20);
+        });
+        setNewEnquiriesCount((prev) => prev + 1);
+        
+        // Play notification sound
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.frequency.value = 800;
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (e) {
+          console.warn("Could not play sound:", e);
+        }
+      }
+    };
+    
     window.addEventListener("venueEnquiryCreated", handleNewEnquiry);
     window.addEventListener("venueEnquiryUpdated", handleEnquiryUpdated);
+    window.addEventListener("venue-enquiry-created", handleVenueEnquiryCreated);
 
     return () => {
       window.removeEventListener("venueEnquiryCreated", handleNewEnquiry);
       window.removeEventListener("venueEnquiryUpdated", handleEnquiryUpdated);
+      window.removeEventListener("venue-enquiry-created", handleVenueEnquiryCreated);
     };
   }, []);
+
+  // Feature 1: Check venue conflicts for date/time
+  const handleCheckConflict = async () => {
+    if (!selected) return;
+
+    try {
+      console.log("🔍 Checking conflict for dates:", editForm);
+      
+      const response = await axios.post(
+        `${API}/api/venue/enquiry/${selected._id}/check-conflict`,
+        {
+          checkInDate: editForm.checkInDate,
+          checkInTime: editForm.checkInTime,
+          checkOutDate: editForm.checkOutDate,
+          checkOutTime: editForm.checkOutTime,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setDateConflict(null);
+        showToast("No conflicts detected ✅", "success");
+      } else {
+        setDateConflict(response.data.conflict);
+        showToast(response.data.message, "warning");
+      }
+    } catch (err) {
+      console.error("Conflict check error:", err);
+      setDateConflict(null);
+      showToast(err?.response?.data?.message || "Failed to check availability", "error");
+    }
+  };
 
   // Handle Approve
   const handleApprove = async () => {
     if (!selected) return;
 
     try {
+      const approveData = {};
+      
+      // Feature 1: Include modified dates if editing
+      if (isEditingDates && !dateConflict) {
+        approveData.checkInDate = editForm.checkInDate;
+        approveData.checkInTime = editForm.checkInTime;
+        approveData.checkOutDate = editForm.checkOutDate;
+        approveData.checkOutTime = editForm.checkOutTime;
+      }
+
       await axios.put(
         `${API}/api/venue/enquiry/${selected._id}/approved`,
-        {},
+        approveData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -154,6 +261,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
 
       showToast("Enquiry approved and room booked successfully.", "success");
       await loadEnquiries();
+      setNewEnquiriesCount(0);
     } catch (err) {
       console.error("Approve error:", err);
       showToast(err?.response?.data?.message || "Failed to approve enquiry", "error");
@@ -221,30 +329,44 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
             </p>
           </div>
 
-          {/* Filter Buttons */}
-          <div className="flex flex-wrap gap-1 sm:gap-2 md:gap-3">
-            {["all", "pending", "approved", "rejected"].map(f => (
-              <button
-                key={f}
-                onClick={() => {
-                  setFilter(f);
-                  setCurrentPage(1);
-                }}
-                className={`
-                  px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2 rounded-lg text-xs sm:text-sm md:text-base font-medium transition-colors capitalize
-                  ${filter === f
-                    ? theme === "dark"
-                      ? "bg-[#8ab4f8] text-[#202124]"
-                      : "bg-[#1a73e8] text-white"
-                    : theme === "dark"
-                      ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
-                      : "bg-white text-[#5f6368] hover:bg-[#f1f3f4] border border-[#dadce0]"
-                  }
-                `}
-              >
-                {f}
-              </button>
-            ))}
+          {/* Header Right: Notification Bell + Filter Buttons */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Feature 2: Notification Bell */}
+            <NotificationBell
+              unreadCount={newEnquiriesCount}
+              enquiries={newEnquiries}
+              onEnquiryClick={(enquiry) => {
+                setSelected(enquiry);
+                setNewEnquiriesCount(0);
+              }}
+              theme={theme}
+            />
+            
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-1 sm:gap-2 md:gap-3">
+              {["all", "pending", "approved", "rejected"].map(f => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setFilter(f);
+                    setCurrentPage(1);
+                  }}
+                  className={`
+                    px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2 rounded-lg text-xs sm:text-sm md:text-base font-medium transition-colors capitalize
+                    ${filter === f
+                      ? theme === "dark"
+                        ? "bg-[#8ab4f8] text-[#202124]"
+                        : "bg-[#1a73e8] text-white"
+                      : theme === "dark"
+                        ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
+                        : "bg-white text-[#5f6368] hover:bg-[#f1f3f4] border border-[#dadce0]"
+                    }
+                  `}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -417,6 +539,52 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                 </div>
               </div>
 
+              {/* Feature 3: Society & President Emails */}
+              {(selected.societyEmail || selected.presidentEmail) && (
+                <div className={`
+                  p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 overflow-hidden
+                  ${theme === "dark" ? "bg-[#3c4043]" : "bg-[#f8f9fa] border border-[#dadce0]"}
+                `}>
+                  <h3 className={`text-xs sm:text-sm font-medium mb-2 sm:mb-3 ${
+                    theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                  }`}>
+                    Financial Contacts
+                  </h3>
+                  
+                  {selected.societyEmail && (
+                    <div className="flex items-center gap-2 mb-2 min-w-0 overflow-hidden">
+                      <Mail className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <div className="min-w-0 overflow-hidden">
+                        <p className={`text-xs ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
+                          Society Email
+                        </p>
+                        <p className={`text-xs sm:text-sm truncate ${
+                          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                        }`}>
+                          {selected.societyEmail}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selected.presidentEmail && (
+                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                      <Mail className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                      <div className="min-w-0 overflow-hidden">
+                        <p className={`text-xs ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
+                          President Email
+                        </p>
+                        <p className={`text-xs sm:text-sm truncate ${
+                          theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                        }`}>
+                          {selected.presidentEmail}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Event Details */}
               <div className={`
                 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 overflow-hidden
@@ -468,6 +636,192 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                   </div>
                 </div>
               </div>
+
+              {/* Feature 1: Edit Date/Time Section */}
+              {selected.status === "pending" && (
+                <div className={`
+                  p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 overflow-hidden
+                  ${theme === "dark" ? "bg-[#3c4043]" : "bg-[#f8f9fa] border border-[#dadce0]"}
+                `}>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className={`text-xs sm:text-sm font-medium ${
+                      theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                    }`}>
+                      Modify Date & Time
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setIsEditingDates(!isEditingDates);
+                        setDateConflict(null);
+                      }}
+                      className={`
+                        px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-colors
+                        ${isEditingDates
+                          ? theme === "dark"
+                            ? "bg-[#5f6368] text-[#e8eaed]"
+                            : "bg-gray-300 text-gray-700"
+                          : theme === "dark"
+                            ? "bg-[#8ab4f8] text-[#202124]"
+                            : "bg-[#1a73e8] text-white"
+                        }
+                      `}
+                    >
+                      {isEditingDates ? "Cancel Edit" : "Edit Dates"}
+                    </button>
+                  </div>
+
+                  {isEditingDates ? (
+                    <div className="space-y-3">
+                      {/* Edit Form */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className={`text-xs sm:text-sm block mb-1 ${
+                            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                          }`}>
+                            Check-in Date
+                          </label>
+                          <input
+                            type="date"
+                            value={editForm.checkInDate}
+                            onChange={(e) => {
+                              setEditForm({ ...editForm, checkInDate: e.target.value });
+                              setDateConflict(null);
+                            }}
+                            className={`
+                              w-full px-3 py-2 rounded text-xs sm:text-sm
+                              ${theme === "dark"
+                                ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                                : "bg-white text-[#202124] border border-[#dadce0]"
+                              }
+                            `}
+                          />
+                        </div>
+                        <div>
+                          <label className={`text-xs sm:text-sm block mb-1 ${
+                            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                          }`}>
+                            Check-in Time
+                          </label>
+                          <input
+                            type="time"
+                            value={editForm.checkInTime}
+                            onChange={(e) => {
+                              setEditForm({ ...editForm, checkInTime: e.target.value });
+                              setDateConflict(null);
+                            }}
+                            className={`
+                              w-full px-3 py-2 rounded text-xs sm:text-sm
+                              ${theme === "dark"
+                                ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                                : "bg-white text-[#202124] border border-[#dadce0]"
+                              }
+                            `}
+                          />
+                        </div>
+                        <div>
+                          <label className={`text-xs sm:text-sm block mb-1 ${
+                            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                          }`}>
+                            Check-out Date
+                          </label>
+                          <input
+                            type="date"
+                            value={editForm.checkOutDate}
+                            onChange={(e) => {
+                              setEditForm({ ...editForm, checkOutDate: e.target.value });
+                              setDateConflict(null);
+                            }}
+                            className={`
+                              w-full px-3 py-2 rounded text-xs sm:text-sm
+                              ${theme === "dark"
+                                ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                                : "bg-white text-[#202124] border border-[#dadce0]"
+                              }
+                            `}
+                          />
+                        </div>
+                        <div>
+                          <label className={`text-xs sm:text-sm block mb-1 ${
+                            theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                          }`}>
+                            Check-out Time
+                          </label>
+                          <input
+                            type="time"
+                            value={editForm.checkOutTime}
+                            onChange={(e) => {
+                              setEditForm({ ...editForm, checkOutTime: e.target.value });
+                              setDateConflict(null);
+                            }}
+                            className={`
+                              w-full px-3 py-2 rounded text-xs sm:text-sm
+                              ${theme === "dark"
+                                ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                                : "bg-white text-[#202124] border border-[#dadce0]"
+                              }
+                            `}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Check Availability Button */}
+                      <button
+                        onClick={handleCheckConflict}
+                        className={`
+                          w-full py-2 rounded text-xs sm:text-sm font-medium transition-colors
+                          ${dateConflict
+                            ? theme === "dark"
+                              ? "bg-[#f28b82]/20 text-[#f28b82]"
+                              : "bg-[#fce8e6] text-[#d93025]"
+                            : theme === "dark"
+                              ? "bg-[#34a853] text-[#202124]"
+                              : "bg-[#34a853] text-white"
+                          }
+                        `}
+                      >
+                        📅 Check Availability
+                      </button>
+
+                      {/* Conflict Warning */}
+                      {dateConflict && (
+                        <div className={`
+                          p-3 rounded text-xs sm:text-sm
+                          ${theme === "dark"
+                            ? "bg-[#f28b82]/10 text-[#f28b82]"
+                            : "bg-[#fce8e6] text-[#d93025]"
+                          }
+                        `}>
+                          <p className="font-medium mb-1">⚠️ Booking Conflict Detected!</p>
+                          <p className="text-xs">
+                            <strong>{dateConflict.name}</strong> ({dateConflict.eventName}) 
+                            <br />
+                            {dateConflict.start} to {dateConflict.end}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* No Conflict Message */}
+                      {!dateConflict && editForm.checkInDate && (
+                        <div className={`
+                          p-3 rounded text-xs sm:text-sm
+                          ${theme === "dark"
+                            ? "bg-[#34a853]/10 text-[#34a853]"
+                            : "bg-[#e6f4ea] text-[#137333]"
+                          }
+                        `}>
+                          ✅ No conflicts detected. Safe to approve!
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`text-xs sm:text-sm ${
+                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                    }`}>
+                      Click "Edit Dates" to modify check-in/check-out times
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Attachments */}
               {selected.files && selected.files.length > 0 && (
@@ -568,16 +922,23 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
 
                   <button
                     onClick={handleApprove}
+                    disabled={isEditingDates && dateConflict}
                     className={`
                       flex-1 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2
-                      ${theme === "dark"
-                        ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
-                        : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                      ${isEditingDates && dateConflict
+                        ? theme === "dark"
+                          ? "bg-[#9aa0a6]/50 text-[#5f6368] cursor-not-allowed"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : theme === "dark"
+                          ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                          : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
                       }
                     `}
                   >
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="hidden sm:inline">Approve & Book Venue</span>
+                    <span className="hidden sm:inline">
+                      {isEditingDates ? "Approve with Modified Dates" : "Approve & Book Venue"}
+                    </span>
                     <span className="sm:hidden">Approve</span>
                   </button>
                 </div>

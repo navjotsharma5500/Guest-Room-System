@@ -509,7 +509,8 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden min-h-[480px] flex flex-col ${
+            style={{ height: 480 }}
+            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"
@@ -624,7 +625,8 @@ export default function PublicEventCalendar() {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[480px] ${
+            style={{ height: 480 }}
+            className={`rounded-2xl shadow-xl overflow-hidden flex flex-col ${
               theme === "dark"
                 ? "bg-gray-800 border border-gray-700"
                 : "bg-white border border-gray-200"
@@ -666,7 +668,7 @@ export default function PublicEventCalendar() {
             </div>
 
             {/* Panel Content */}
-            <div className="p-5 overflow-y-auto flex-1 relative">
+            <div className="booking-scroll p-5 overflow-y-auto flex-1 relative">
               <AnimatePresence mode="wait">
                 {/* ─── PART 6: List is always shown first; user clicks to open detail ─── */}
                 {panelMode === "list" ? (
@@ -744,13 +746,20 @@ export default function PublicEventCalendar() {
                               </span>
                               <span
                                 className={`flex items-center gap-1.5 ${
-                                  theme === "dark"
-                                    ? "text-gray-400"
-                                    : "text-gray-600"
+                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
                                 }`}
                               >
-                                <MapPin size={14} className="shrink-0" />{" "}
-                                {event.eventHall?.hall}
+                                <MapPin size={14} className="shrink-0" />
+                                <span>
+                                  {event.eventHall?.roomNo || event.eventHall?.hall}
+                                  {event.eventHall?.roomNo && event.eventHall?.hall && (
+                                    <span className={`ml-1 text-[10px] ${
+                                      theme === "dark" ? "text-gray-500" : "text-gray-400"
+                                    }`}>
+                                      ({event.eventHall.hall})
+                                    </span>
+                                  )}
+                                </span>
                               </span>
                             </div>
                           </motion.button>
@@ -924,13 +933,18 @@ export default function PublicEventCalendar() {
                                 </p>
                                 <p
                                   className={`text-sm font-medium ${
-                                    theme === "dark"
-                                      ? "text-gray-200"
-                                      : "text-gray-800"
+                                    theme === "dark" ? "text-gray-200" : "text-gray-800"
                                   }`}
                                 >
-                                  {selectedEvent.eventHall?.roomNo}
+                                  {selectedEvent.eventHall?.roomNo || selectedEvent.eventHall?.hall}
                                 </p>
+                                {selectedEvent.eventHall?.roomNo && selectedEvent.eventHall?.hall && (
+                                  <p className={`text-xs mt-0.5 ${
+                                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                  }`}>
+                                    {selectedEvent.eventHall.hall}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1060,7 +1074,7 @@ export default function PublicEventCalendar() {
                                 : "bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {event.eventHall?.hall}
+                            {event.eventHall?.roomNo || event.eventHall?.hall}
                           </span>
                           {/* Status badge in list rows too */}
                           <span

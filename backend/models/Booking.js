@@ -8,6 +8,8 @@ const BookingSchema = new mongoose.Schema(
     // =========================
     guest: { type: String, required: true },
     email: { type: String, required: true },
+    societyEmail: { type: String, default: "" },
+    presidentEmail: { type: String, default: "" },
     contact: { type: String, required: true },
 
     idType: {

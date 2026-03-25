@@ -15,6 +15,33 @@ const venueEnquirySchema = new mongoose.Schema(
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
+    // Feature 3: New email fields for society and president
+    societyEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: "",
+      validate: {
+        validator: function(v) {
+          // Allow empty, or valid email format
+          return !v || /^\S+@\S+\.\S+$/.test(v);
+        },
+        message: "Please enter a valid society email address",
+      },
+    },
+    presidentEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: "",
+      validate: {
+        validator: function(v) {
+          // Allow empty, or valid email format
+          return !v || /^\S+@\S+\.\S+$/.test(v);
+        },
+        message: "Please enter a valid president email address",
+      },
+    },
     contact: {
       type: String,
       required: true,
@@ -83,6 +110,13 @@ const venueEnquirySchema = new mongoose.Schema(
         validator: (arr) => arr.length <= 5,
         message: "Maximum 5 files allowed",
       },
+    },
+    requestId: {
+      type: String,
+      sparse: true,
+      unique: true,
+      index: true,
+      default: null,
     },
     status: {
       type: String,

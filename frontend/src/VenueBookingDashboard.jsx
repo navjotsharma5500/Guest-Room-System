@@ -7,6 +7,7 @@ import "./styles/Venuebooking.css";
 import "./styles/VenueEventTheme.css";
 
 import useVenueDataPolling from "./hooks/useVenueDataPolling";
+import useVenueEnquiries from "./hooks/useVenueEnquiries";
 
 import VenueSidebar from "./components/VenueBookings/VenueSidebar";
 import VenueMainContent from "./components/VenueBookings/VenueMainContent";
@@ -18,6 +19,7 @@ import VenueAnalyticsPage from "./pages/VenueAnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfileModal from "./components/ProfileModal";
 import VenueExtensionModal from "./components/VenueBookings/VenueExtensionModal";
+import NotificationBell from "./components/NotificationBell";
 
 import { ToastProvider, useToast } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
@@ -48,10 +50,15 @@ export default function VenueBookingDashboard() {
     loading: venueLoading, 
     hasData, 
     error: venueError,
-    lastUpdate,
     connected,
     refresh: refreshVenueData 
   } = useVenueDataPolling();
+
+  // ✅ NEW: Fetch venue enquiries for NotificationBell
+  const { 
+    enquiries, 
+    unreadCount 
+  } = useVenueEnquiries();
 
   const isIdle = useIdleTimeout(5);
   const [showScreenSaver, setShowScreenSaver] = useState(false);
@@ -394,6 +401,16 @@ export default function VenueBookingDashboard() {
               >
                 {theme === "dark" ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
+
+              {/* Notification Bell */}
+              <NotificationBell 
+                unreadCount={unreadCount}
+                enquiries={enquiries}
+                onEnquiryClick={(enquiry) => {
+                  setActiveSection("enquiries");
+                }}
+                theme={theme}
+              />
 
               {/* Settings - Hidden on mobile */}
               <button

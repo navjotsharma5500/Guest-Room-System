@@ -107,7 +107,9 @@ export const sendBookingEmails = (booking, statusType) => {
     statusType,
     caretakerEmail: booking.caretakerEmail,
     wardenEmail: booking.wardenEmail,
-    guestEmail: booking.email
+    guestEmail: booking.email,
+    societyEmail: booking.societyEmail,
+    presidentEmail: booking.presidentEmail
   });
 
   const isPaid =
@@ -117,6 +119,8 @@ export const sendBookingEmails = (booking, statusType) => {
   const caretakerEmail = booking.caretakerEmail;
   const wardenEmail = booking.wardenEmail;
   const guestEmail = booking.email;
+  const societyEmail = booking.societyEmail;
+  const presidentEmail = booking.presidentEmail;
 
   if (!caretakerEmail) {
     console.error("❌ CRITICAL: Caretaker email missing for booking:", {
@@ -197,6 +201,41 @@ export const sendBookingEmails = (booking, statusType) => {
           },
         });
       }
+
+      // Society email - if provided
+      if (societyEmail) {
+        safeSend({
+          to: societyEmail,
+          subject: isPaid 
+            ? "Guest Room Booking Notification"
+            : "Guest Room Booking Notification (Complimentary)",
+          html: isPaid
+            ? guestDirectBooking(booking)
+            : guestDirectBookingFree(booking),
+          meta: {
+            bookingId: booking._id,
+            type: isPaid ? "society-direct-booking-paid" : "society-direct-booking-free",
+          },
+        });
+      }
+
+      // President email - if provided
+      if (presidentEmail) {
+        safeSend({
+          to: presidentEmail,
+          subject: isPaid 
+            ? "Guest Room Booking Notification"
+            : "Guest Room Booking Notification (Complimentary)",
+          html: isPaid
+            ? guestDirectBooking(booking)
+            : guestDirectBookingFree(booking),
+          meta: {
+            bookingId: booking._id,
+            type: isPaid ? "president-direct-booking-paid" : "president-direct-booking-free",
+          },
+        });
+      }
+
       return;
     }
 
@@ -477,6 +516,8 @@ export const createBooking = async (req, res) => {
     const bookingData = {
       guest: payload.guest || payload.guestName || "",
       email: payload.email || payload.guestEmail || "",
+      societyEmail: payload.societyEmail || "",
+      presidentEmail: payload.presidentEmail || "",
       contact: payload.contact || payload.guestPhone || "",
       idType: payload.idType || "",
       rollno: payload.rollno || "",

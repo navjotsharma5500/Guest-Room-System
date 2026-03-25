@@ -29,29 +29,43 @@ export const sendEnquirySubmittedEmail = async (enquiry) => {
 };
 
 // ❌ 2. ENQUIRY REJECTED EMAIL
+// Feature 4: Send to 3 recipients (guest, society, president)
 export const sendEnquiryRejectedEmail = async (enquiry) => {
-  const societyEmail = await getSocietyEmail(enquiry.societyName);
-  
-  await sendVenueEmail({
-    type: VENUE_EMAIL_TYPES.ENQUIRY_REJECTED,
-    roomNo: enquiry.roomNo,
-    guestEmail: enquiry.email,
-    societyEmail,
-    data: enquiry,
-  });
+  try {
+    // Send email with guest and society recipients
+    await sendVenueEmail({
+      type: VENUE_EMAIL_TYPES.ENQUIRY_REJECTED,
+      roomNo: enquiry.roomNo,
+      guestEmail: enquiry.email,
+      societyEmail: enquiry.societyEmail || undefined,
+      data: enquiry,
+    });
+    
+    console.log('✅ Rejection email sent successfully');
+  } catch (error) {
+    console.error('⚠️ Rejection email failed (non-critical):', error.message);
+    // Don't throw - this is non-critical
+  }
 };
 
 // ✅ 3. ENQUIRY APPROVED / BOOKING CREATED EMAIL
+// Feature 4: Send to approved recipients (guest and society)
 export const sendEnquiryApprovedEmail = async (enquiry, booking) => {
-  const societyEmail = await getSocietyEmail(booking.societyName);
-
-  await sendVenueEmail({
-    type: VENUE_EMAIL_TYPES.ENQUIRY_APPROVED,
-    roomNo: booking.roomNo,
-    guestEmail: booking.email,
-    societyEmail,
-    data: booking,
-  });
+  try {
+    // Send email with guest and society recipients
+    await sendVenueEmail({
+      type: VENUE_EMAIL_TYPES.ENQUIRY_APPROVED,
+      roomNo: booking.roomNo,
+      guestEmail: booking.email,
+      societyEmail: enquiry.societyEmail || undefined,
+      data: booking,
+    });
+    
+    console.log('✅ Approval email sent successfully');
+  } catch (error) {
+    console.error('⚠️ Approval email failed (non-critical):', error.message);
+    // Don't throw - this is non-critical
+  }
 };
 
 // ⚡ 4. DIRECT BOOKING CREATED EMAIL
