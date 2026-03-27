@@ -82,11 +82,20 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   // Feature 1: Date Editing state
   const [isEditingDates, setIsEditingDates] = useState(false);
   const [dateConflict, setDateConflict] = useState(null);
+  
+  // Feature: Event Details Editing state
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  
   const [editForm, setEditForm] = useState({
     checkInDate: "",
     checkInTime: "",
     checkOutDate: "",
     checkOutTime: "",
+    department: "",
+    societyClubName: "",
+    eventName: "",
+    eventDescription: "",
+    purpose: "",
   });
   
   const ITEMS_PER_PAGE = 10;
@@ -106,8 +115,14 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         checkInTime: selected.checkInTime || "",
         checkOutDate: selected.checkOutDate || "",
         checkOutTime: selected.checkOutTime || "",
+        department: selected.department || "",
+        societyClubName: selected.societyName || selected.societyClubName || "",
+        eventName: selected.eventName || "",
+        eventDescription: selected.description || selected.eventDescription || "",
+        purpose: selected.purpose || "",
       });
       setIsEditingDates(false);
+      setIsEditingDetails(false);
       setDateConflict(null);
     }
   }, [selected]);
@@ -247,6 +262,17 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         approveData.checkInTime = editForm.checkInTime;
         approveData.checkOutDate = editForm.checkOutDate;
         approveData.checkOutTime = editForm.checkOutTime;
+      }
+
+      // Feature: Include modified event details if editing
+      if (isEditingDetails) {
+        approveData.department = editForm.department;
+        approveData.societyName = editForm.societyClubName;
+        approveData.societyClubName = editForm.societyClubName;
+        approveData.eventName = editForm.eventName;
+        approveData.description = editForm.eventDescription;
+        approveData.eventDescription = editForm.eventDescription;
+        approveData.purpose = editForm.purpose;
       }
 
       await axios.put(
@@ -823,7 +849,169 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                 </div>
               )}
 
-              {/* Attachments */}
+              {/* Feature: Edit Event Details Section */}
+              {selected.status === "pending" && (
+                <div className={`
+                  p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 overflow-hidden
+                  ${theme === "dark" ? "bg-[#3c4043]" : "bg-[#f8f9fa] border border-[#dadce0]"}
+                `}>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className={`text-xs sm:text-sm font-medium ${
+                      theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                    }`}>
+                      Modify Event Details
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setIsEditingDetails(!isEditingDetails);
+                      }}
+                      className={`
+                        px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-colors
+                        ${isEditingDetails
+                          ? theme === "dark"
+                            ? "bg-[#5f6368] text-[#e8eaed]"
+                            : "bg-gray-300 text-gray-700"
+                          : theme === "dark"
+                            ? "bg-[#8ab4f8] text-[#202124]"
+                            : "bg-[#1a73e8] text-white"
+                        }
+                      `}
+                    >
+                      {isEditingDetails ? "Cancel Edit" : "Edit Details"}
+                    </button>
+                  </div>
+
+                  {isEditingDetails ? (
+                    <div className="space-y-3">
+                      {/* Department */}
+                      <div>
+                        <label className={`text-xs sm:text-sm block mb-1 ${
+                          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                        }`}>
+                          Department
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.department}
+                          onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                          placeholder={selected.department || "Enter department"}
+                          className={`
+                            w-full px-3 py-2 rounded text-xs sm:text-sm
+                            ${theme === "dark"
+                              ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                              : "bg-white text-[#202124] border border-[#dadce0]"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      {/* Society/Club Name */}
+                      <div>
+                        <label className={`text-xs sm:text-sm block mb-1 ${
+                          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                        }`}>
+                          Society / Club Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.societyClubName}
+                          onChange={(e) => setEditForm({ ...editForm, societyClubName: e.target.value })}
+                          placeholder={selected.societyName || selected.societyClubName || "Enter society/club name"}
+                          className={`
+                            w-full px-3 py-2 rounded text-xs sm:text-sm
+                            ${theme === "dark"
+                              ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                              : "bg-white text-[#202124] border border-[#dadce0]"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      {/* Event Name */}
+                      <div>
+                        <label className={`text-xs sm:text-sm block mb-1 ${
+                          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                        }`}>
+                          Event Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.eventName}
+                          onChange={(e) => setEditForm({ ...editForm, eventName: e.target.value })}
+                          placeholder={selected.eventName || "Enter event name"}
+                          className={`
+                            w-full px-3 py-2 rounded text-xs sm:text-sm
+                            ${theme === "dark"
+                              ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                              : "bg-white text-[#202124] border border-[#dadce0]"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      {/* Event Description */}
+                      <div>
+                        <label className={`text-xs sm:text-sm block mb-1 ${
+                          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                        }`}>
+                          Event Description
+                        </label>
+                        <textarea
+                          value={editForm.eventDescription}
+                          onChange={(e) => setEditForm({ ...editForm, eventDescription: e.target.value })}
+                          placeholder={selected.description || selected.eventDescription || "Enter event description"}
+                          rows="3"
+                          className={`
+                            w-full px-3 py-2 rounded text-xs sm:text-sm resize-none
+                            ${theme === "dark"
+                              ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                              : "bg-white text-[#202124] border border-[#dadce0]"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      {/* Purpose */}
+                      <div>
+                        <label className={`text-xs sm:text-sm block mb-1 ${
+                          theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                        }`}>
+                          Purpose
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.purpose}
+                          onChange={(e) => setEditForm({ ...editForm, purpose: e.target.value })}
+                          placeholder={selected.purpose || "Enter purpose"}
+                          className={`
+                            w-full px-3 py-2 rounded text-xs sm:text-sm
+                            ${theme === "dark"
+                              ? "bg-[#5f6368] text-[#e8eaed] border border-[#3c4043]"
+                              : "bg-white text-[#202124] border border-[#dadce0]"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      <div className={`
+                        p-2 sm:p-3 rounded text-xs sm:text-sm
+                        ${theme === "dark"
+                          ? "bg-[#8ab4f8]/10 text-[#8ab4f8]"
+                          : "bg-[#e8f0fe] text-[#1967d2]"
+                        }
+                      `}>
+                        ℹ️ You can now edit the event details. Changes will be saved when you approve this enquiry.
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`text-xs sm:text-sm ${
+                      theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                    }`}>
+                      Click "Edit Details" to modify event information
+                    </p>
+                  )}
+                </div>
+              )}
               {selected.files && selected.files.length > 0 && (
                 <div className="mb-4 sm:mb-6">
                   <h3 className={`text-xs sm:text-sm font-medium mb-2 sm:mb-3 ${
@@ -937,7 +1125,9 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                   >
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span className="hidden sm:inline">
-                      {isEditingDates ? "Approve with Modified Dates" : "Approve & Book Venue"}
+                      {isEditingDates ? "Approve with Modified Dates" 
+                       : isEditingDetails ? "Approve with Modified Details"
+                       : "Approve & Book Venue"}
                     </span>
                     <span className="sm:hidden">Approve</span>
                   </button>
