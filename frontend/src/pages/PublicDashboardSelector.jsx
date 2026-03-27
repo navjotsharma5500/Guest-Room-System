@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   Building2, CalendarDays, Moon, Search, Sparkles,
   ChevronDown, X, Mail, ArrowRight, AlertCircle,
@@ -53,6 +53,13 @@ const CARD_IDS = [
   "lost-found",
 ];
 
+const TIMELINE = [
+  { year: "Oct 2025", label: "Idea",         desc: "Conceptualized by Dr. Meenakshi Rana, DoSA" },
+  { year: "Nov 2025", label: "Development",  desc: "Core team assembled, tech stack finalized" },
+  { year: "Jan 2026", label: "Testing",      desc: "Beta launched with Guest Room & Venue modules" },
+  { year: "Feb 2026", label: "Launch",       desc: "Full platform live with 6 integrated services" },
+];
+
 const CARD_LABELS_MAP = {
   "guest-booking":  "Hostel Guest Room Booking",
   "venue-booking":  "Event Venue Booking",
@@ -99,6 +106,25 @@ function readLocalPrefs() {
     
     return saved;
   } catch { return null; }
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATION HELPER — FadeUp
+═══════════════════════════════════════════════════ */
+function FadeUp({ children, delay = 0, className = "" }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════
@@ -760,30 +786,37 @@ export default function ThaparPublicDashboard() {
               style={{ display:"flex", alignItems:"center", gap:6, background:"#c62828", color:"#fff",
                        fontSize:12.5, fontWeight:600, padding:"8px 16px", borderRadius:6,
                        textDecoration:"none", flexShrink:0, whiteSpace:"nowrap" }}>
-              <LogIn size={13}/> Admin Login
+              <LogIn size={13}/> Admin/Staff Login
             </a>
           </div>
         </header>
 
         {/* ══ HERO ════════════════════════════════════ */}
-        <section style={{ background:"#fff", textAlign:"center", padding:"60px 16px 48px" }}>
-          <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ duration:.5 }}>
-            <h1 style={{ fontFamily:"'EB Garamond',Georgia,serif",
-                         fontSize:"clamp(2.4rem,4.5vw,3.6rem)",
-                         fontWeight:500, color:"#111", lineHeight:1.15, marginBottom:14 }}>
-              Thapar Operations
-            </h1>
-            <p style={{ fontSize:15, color:"#6b7280", maxWidth:500, margin:"0 auto", lineHeight:1.7 }}>
-              Centralized portal for Guest Rooms, Venues &amp; Student Services
-            </p>
-            <div style={{ display:"flex", justifyContent:"center", marginTop:22 }}>
-              <div style={{ width:88, height:3, background:"#c62828", borderRadius:2 }}/>
-            </div>
-          </motion.div>
-        </section>
+        <div style={{ position: "relative", height: "70vh", minHeight: 480, overflow: "hidden" }}>
+          <img
+            src="https://ik.imagekit.io/7khjnlfow/email-assets/03_dsyrsv.png?updatedAt=1774118995455"
+            alt="Thapar Campus"
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%)" }} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 24px" }}>
+            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+              style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.7)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 16 }}>
+              Thapar Campus Connect
+            </motion.p>
+            <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25 }}
+              style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize: "clamp(2.4rem,6vw,5rem)", fontWeight: 700, color: "#fff", lineHeight: 1.1, marginBottom: 20, maxWidth: 800 }}>
+              One Platform.<br />Every Student Need.
+            </motion.h1>
+            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45 }}
+              style={{ fontSize: 16, color: "rgba(255,255,255,.85)", maxWidth: 560, lineHeight: 1.7 }}>
+              Seamlessly Connected.
+            </motion.p>
+          </div>
+        </div>
 
         {/* ══ CARDS ═══════════════════════════════════ */}
-        <section style={{ background:"transparent", padding:"0 24px 80px" }}>
+        <section style={{ background:"transparent", padding:"120px 24px 80px" }}>
           <div className="card-grid"
             style={{ maxWidth:1280, margin:"0 auto", gridTemplateColumns:gridCols }}>
             {visibleCards.map((c, i) => (
