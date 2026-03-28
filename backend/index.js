@@ -59,15 +59,8 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5173",
 
-  // Frontend
-  "https://guestapp.in",
-  "https://www.guestapp.in",
-
-  // Backend
-  "https://api.guestapp.in",
-
-  // Old Vercel
-  "https://guestroom.vercel.app",
+  // Production frontend
+  "https://campusconnect.thapar.edu",
 ];
 
 console.log("ðŸŒ Allowed origins:", allowedOrigins);
@@ -80,7 +73,7 @@ const resolveOrigin = (origin) => {
   
   if (!origin) {
     console.log("âš ï¸ No origin header - same-origin or server request");
-    return "https://www.guestapp.in";
+    return "https://campusconnect.thapar.edu";
   }
   
   if (allowedOrigins.includes(origin)) {
