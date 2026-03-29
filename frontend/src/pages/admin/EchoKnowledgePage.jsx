@@ -132,13 +132,6 @@ export default function EchoKnowledgePage() {
   const [form, setForm] = useState(INITIAL_FORM);
   const fileInputRef = useRef(null);
 
-  const token = localStorage.getItem("token");
-  const headers = useMemo(() => {
-    const h = { "Content-Type": "application/json" };
-    if (token) h.Authorization = `Bearer ${token}`;
-    return h;
-  }, [token]);
-
   const loadItems = useCallback(async (searchTerm = "") => {
     setLoading(true);
     setError("");
@@ -148,7 +141,7 @@ export default function EchoKnowledgePage() {
       const data = await requestJsonWithFallback(`/knowledge${query}`, {
         method: "GET",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
       }, "Failed to load knowledge entries");
       setItems(data.items || []);
     } catch (err) {
@@ -156,7 +149,7 @@ export default function EchoKnowledgePage() {
     } finally {
       setLoading(false);
     }
-  }, [headers]);
+  }, []);
 
   useEffect(() => {
     loadItems("");
@@ -180,7 +173,7 @@ export default function EchoKnowledgePage() {
       await requestJsonWithFallback(isEdit ? `/knowledge/${editingId}` : "/knowledge", {
         method,
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }, "Failed to save entry");
       resetForm();
@@ -211,7 +204,7 @@ export default function EchoKnowledgePage() {
       await requestJsonWithFallback(`/knowledge/${id}`, {
         method: "DELETE",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
       }, "Failed to delete entry");
       if (editingId === id) resetForm();
       await loadItems(search);
@@ -226,7 +219,7 @@ export default function EchoKnowledgePage() {
       const blob = await requestBlobWithFallback("/knowledge/export", {
         method: "GET",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
       }, "Failed to export CSV");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -249,12 +242,9 @@ export default function EchoKnowledgePage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const uploadHeaders = {};
-      if (token) uploadHeaders.Authorization = `Bearer ${token}`;
       await requestJsonWithFallback("/knowledge/import", {
         method: "POST",
         credentials: "include",
-        headers: uploadHeaders,
         body: formData,
       }, "Failed to import CSV");
       await loadItems(search);

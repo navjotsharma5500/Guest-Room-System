@@ -21,7 +21,7 @@ export default function guestCheckoutFeedback(b) {
 
       <div style="text-align:center; margin: 28px 0;">
         <a 
-          href="${b.feedbackLink || "https://www.guestapp.in/guest-feedback"}"
+          href="${b.feedbackLink || "https://www.campusconnect.thapar.edu/guest-feedback"}"
           style="
             display:inline-block;
             padding:15px 42px;

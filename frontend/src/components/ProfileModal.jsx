@@ -119,7 +119,6 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
   // ==================== Save Profile Picture ====================
   const saveProfilePicture = async (picUrl) => {
     try {
-      const token = localStorage.getItem("token");
       const payload = {
         name: currentUser?.name || form.name,
         hostel: currentUser?.hostel || currentUser?.assignedHostel || form.hostel,
@@ -128,7 +127,6 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
       const config = {
         withCredentials: true,
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           "Content-Type": "application/json",
         },
       };
@@ -184,7 +182,6 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
   // ==========================
   const handleSaveProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
       const payload = {
         name: form.name,
         hostel: form.hostel,
@@ -193,7 +190,6 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
       const config = {
         withCredentials: true,
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           "Content-Type": "application/json",
         },
       };
@@ -257,17 +253,15 @@ export default function ProfileModal({ open, onClose, currentUser, onUpdate }) {
     }
 
     try {
-      const token = localStorage.getItem("token");
       await axios.put(
         `${API}/api/users/change-password`,
         { oldPassword, newPassword },
         {
           withCredentials: true,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
 
-      console.log("✅ Password changed successfully");
+      console.log("Password changed successfully");
       setPassMessage("Password updated successfully ✓");
       setOldPassword("");
       setNewPassword("");

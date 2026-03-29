@@ -25,8 +25,6 @@ const PublicUiCustomizerPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const token = localStorage.getItem("token") || "";
-
   useEffect(() => {
     let mounted = true;
 
@@ -116,7 +114,7 @@ const PublicUiCustomizerPage = () => {
     setSuccess("");
     try {
       const normalized = normalizePublicUiConfig(config);
-      const updated = await updatePublicUiConfig(normalized, token);
+      const updated = await updatePublicUiConfig(normalized);
       setConfig(updated);
       setSuccess("Public UI updated successfully.");
     } catch (err) {

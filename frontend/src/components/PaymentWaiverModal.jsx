@@ -75,14 +75,12 @@ export default function PaymentWaiverModal({ booking, onClose, onSuccess, theme 
 
     try {
       setSubmitting(true);
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${API}/api/payments/bookings/${booking._id}/waiver`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
           },
           credentials: "include",
           body: JSON.stringify({

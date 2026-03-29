@@ -18,22 +18,18 @@ const GuestHistory = ({ contact, email, onClose, theme = "light" }) => {
         
         setLoading(true);
         setError(null);
-        
-        const token = localStorage.getItem("token");
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const queryParams = new URLSearchParams();
         if (contact) queryParams.append("contact", contact);
         if (email) queryParams.append("email", email);
 
         const url = `${API}/api/bookings/history?${queryParams.toString()}`;
-        console.log("ðŸ“¤ Request URL:", url);
+        console.log("Request URL:", url);
 
         const response = await fetch(url, {
           method: "GET",
           credentials: "include",
-          headers,
+          headers: { "Content-Type": "application/json" },
         });
 
         console.log("ðŸ“¥ Response status:", response.status);

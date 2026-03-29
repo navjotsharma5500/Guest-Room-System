@@ -21,9 +21,7 @@ export default function LiveBookingCounter({ theme, currentUser }) {
   // âœ… ALL useCallback HOOKS BEFORE ANY CONDITIONAL RETURNS
   const fetchBookingCount = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(`${API}/api/bookings/all`, {
         method: "GET",

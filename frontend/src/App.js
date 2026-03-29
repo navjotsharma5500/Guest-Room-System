@@ -21,7 +21,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // ============================================================================
 // PAGE IMPORTS
@@ -159,7 +158,6 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Router>
-        <SpeedInsights />
         <Routes>
 
           {/* ================================================================
@@ -275,8 +273,8 @@ export default function App() {
               PUBLIC ROUTES (no auth required)
               ================================================================ */}
           <Route path="/guest-enquiry"        element={<GuestEnquiryPage />} />
-          <Route path="/venue-guest-enquiry"  element={<VenueGuestEnquiryPage />} />
-          <Route path="/venue-event-calendar" element={<PublicEventCalendar />} />
+          <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
+          <Route path="/event-calendar"       element={<PublicEventCalendar />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<AboutUsPage />} />

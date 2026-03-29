@@ -133,11 +133,11 @@ function FadeUp({ children, delay = 0, className = "" }) {
 const NAV = [
   { label: "Home", action: "home" },
   { label: "Booking Form", items: [
-    { label: "Hostel Guest-Room Booking", href: "https://guestapp.in/guest-enquiry" },
-    { label: "Event Venue Booking",        href: "https://guestapp.in/venue-guest-enquiry" },
+    { label: "Hostel Guest-Room Booking", href: "https://campusconnect.thapar.edu/guest-enquiry" },
+    { label: "Event Venue Booking",        href: "https://campusconnect.thapar.edu/venue-guest-enquiry" },
   ]},
   { label: "Calendar", items: [
-    { label: "Event Calendar", href: "https://guestapp.in/venue-event-calendar" },
+    { label: "Event Calendar", href: "https://campusconnect.thapar.edu/venue-event-calendar" },
   ]},
   { label: "Night Pass", items: [
     { label: "Library Night Pass",  href: "https://permissions.thapar.edu/" },
@@ -160,19 +160,19 @@ const ALL_CARDS = {
   "guest-booking": {
     id: "guest-booking", title: "Hostel Guest Room Booking", sub: "Booking Form",
     Icon: Building2, iconBg: "#fce8e8", iconColor: "#c62828", dot: "#e57373",
-    href: "https://guestapp.in/guest-enquiry",
+    href: "https://campusconnect.thapar.edu/guest-enquiry",
     bullets: ["Single & Double Occupancy Rooms","Online Booking System","Guest Registration & Verification","Advance Booking up to 30 Days"],
   },
   "venue-booking": {
     id: "venue-booking", title: "Event Venue Booking", sub: "Booking Form",
     Icon: CalendarDays, iconBg: "#e3eeff", iconColor: "#1a56db", dot: "#60a5fa",
-    href: "https://guestapp.in/venue-guest-enquiry",
+    href: "https://campusconnect.thapar.edu/venue-guest-enquiry",
     bullets: ["Auditorium & Seminar Hall Booking","Open Air & Outdoor Spaces","Equipment & AV Support Request","Multi-day Event Scheduling"],
   },
   "event-calendar": {
     id: "event-calendar", title: "Event Calendar", sub: "Campus-wide schedule",
     Icon: CalendarDays, iconBg: "#e6f9f0", iconColor: "#0d7a4e", dot: "#34d399",
-    href: "https://guestapp.in/venue-event-calendar",
+    href: "https://campusconnect.thapar.edu/venue-event-calendar",
     bullets: ["Upcoming Fests & Competitions","Department & Club Events","Venue Availability Overview","Monthly & Weekly View"],
   },
   "library-pass": {
@@ -200,11 +200,11 @@ const ALL_CARDS = {
 ═══════════════════════════════════════════════════ */
 const ECHO_RESPONSES = [
   { match: ["guest","room","hostel","book"],
-    reply: "To book a hostel guest room, visit https://guestapp.in/guest-enquiry. You can check availability and make a reservation there." },
+    reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-enquiry. You can check availability and make a reservation there." },
   { match: ["venue","event","hall","auditorium"],
-    reply: "Event venue bookings are done at https://guestapp.in/venue-guest-enquiry. You can book auditoriums, seminar halls, and open spaces." },
+    reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-guest-enquiry. You can book auditoriums, seminar halls, and open spaces." },
   { match: ["calendar","schedule","fest","event"],
-    reply: "Check the Event Calendar at https://guestapp.in/venue-event-calendar to see all upcoming campus events and fests." },
+    reply: "Check the Event Calendar at https://campusconnect.thapar.edu/venue-event-calendar to see all upcoming campus events and fests." },
   { match: ["library","night","pass","permission"],
     reply: "Library Night Pass applications are handled at https://permissions.thapar.edu. Apply there for overnight study access." },
   { match: ["society","club","late"],
@@ -212,7 +212,7 @@ const ECHO_RESPONSES = [
   { match: ["lost","found","item"],
     reply: "Visit the Lost & Found portal at https://lost-and-found-portal-six.vercel.app to report or search for lost items." },
   { match: ["login","admin","staff"],
-    reply: "Admin/Staff login is at https://guestapp.in/login. Use your institutional credentials." },
+    reply: "Admin/Staff login is at https://campusconnect.thapar.edu/login. Use your institutional credentials." },
   { match: ["help","support","query","contact"],
     reply: "For support, email itmh@thapar.edu for technical issues, or dosa.office@thapar.edu for general queries." },
   { match: ["hello","hi","hey","namaste"],
@@ -782,7 +782,7 @@ export default function ThaparPublicDashboard() {
               {NAV.map(it => <NavItem key={it.label} item={it} onAction={act}/>)}
             </nav>
             {/* admin */}
-            <a href="https://guestapp.in/login" target="_blank" rel="noopener noreferrer"
+            <a href="https://campusconnect.thapar.edu/login" target="_blank" rel="noopener noreferrer"
               style={{ display:"flex", alignItems:"center", gap:6, background:"#c62828", color:"#fff",
                        fontSize:12.5, fontWeight:600, padding:"8px 16px", borderRadius:6,
                        textDecoration:"none", flexShrink:0, whiteSpace:"nowrap" }}>

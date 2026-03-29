@@ -443,9 +443,7 @@ export default function GuestRoomDashboard() {
     try {
       console.log("⬆️ Cancelling booking in MongoDB:", mongoId);
 
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(`${API}/api/bookings/${mongoId}/cancel`, {
         method: "PUT",
@@ -600,9 +598,7 @@ export default function GuestRoomDashboard() {
     try {
       console.log("⬆️ Submitting extension request to MongoDB:", mongoId);
 
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const payload = {
         bookingId: mongoId,

@@ -110,31 +110,21 @@ export default function AnalyticsPage({ setActiveTab }) {
     const fetchAllBookings = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
         const API = BACKEND_URL;
-        
-        // ✅ Check if token exists
-        if (!token) {
-          console.error("❌ No authentication token found");
-          setActiveTab("Home"); // Redirect to login
-          return;
-        }
 
         const response = await fetch(`${API}/api/bookings/all-for-download`, {
           method: "GET",
-          credentials: "include", // ✅ Include cookies
+          credentials: "include",
           headers: {
-            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
           },
         });
 
         // ✅ Handle 401 Unauthorized
         if (response.status === 401) {
-          console.error("❌ Unauthorized - Token may be expired");
-          localStorage.removeItem("token"); // Clear invalid token
+          console.error("❌ Unauthorized - Session may be expired");
           alert("Session expired. Please login again.");
-          window.location.href = "/login"; // Or use your auth redirect
+          window.location.href = "/login";
           return;
         }
 

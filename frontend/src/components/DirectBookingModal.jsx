@@ -394,14 +394,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     try {
       console.log("â¬†ï¸ Uploading booking to MongoDB:", bookingPayload);
 
-      const token = localStorage.getItem("token");
       const bookingHeaders = {
         "Content-Type": "application/json",
       };
-
-      if (token) {
-        bookingHeaders["Authorization"] = `Bearer ${token}`;
-      }
 
       const res = await fetch(`${API}/api/bookings`, {
         method: "POST",

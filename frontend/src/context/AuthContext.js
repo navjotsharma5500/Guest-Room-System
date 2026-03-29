@@ -10,11 +10,7 @@ export const useAuth = () => useContext(AuthContext);
 // AXIOS GLOBAL SETTINGS
 // =============================
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = BACKEND_URL;
-
-if (!axios.defaults.baseURL) {
-  console.error("❌ CRITICAL: BACKEND_URL not set in environment variables!");
-}
+axios.defaults.baseURL = ""; // same domain
 
 //console.log("🔧 Axios Base URL:", axios.defaults.baseURL);
 
@@ -22,11 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API = BACKEND_URL;
-
-  if (!API) {
-    console.error("❌ CRITICAL: BACKEND_URL not set!");
-  }
+  const API = "";
 
   //console.log("🔧 Auth API URL:", API);
 

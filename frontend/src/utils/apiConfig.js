@@ -1,12 +1,7 @@
 // src/utils/apiConfig.js
 
 export const getBackendUrl = () => {
-  if (process.env.REACT_APP_BACKEND_URL) {
-    return process.env.REACT_APP_BACKEND_URL;
-  }
-
-  console.warn("⚠️ REACT_APP_BACKEND_URL not set, using localhost fallback");
-  return "http://localhost:10000";
+  return ""; // always same domain
 };
 
 export const BACKEND_URL = getBackendUrl();

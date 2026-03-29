@@ -50,13 +50,10 @@ export default function BillsPage({ onBack, theme = "light", currentUser }) {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem("token");
       const endpoint = activeTab === "waived" ? "waived-bills" : "cancelled-bills";
-      
       const response = await fetch(`${API}/api/payments/${endpoint}`, {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json"
         },
         credentials: "include",
       });

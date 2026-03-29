@@ -109,9 +109,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
 
       console.log("📡 Booking data updated by cron, refreshing booking...");
 
-      const authToken = token || localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
       fetch(`${API}/api/bookings/${booking._id}`, {
         method: "GET",
@@ -150,13 +148,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     console.log("🔥 Fetching enquiry files for:", enquiryId);
     console.log("📋 Booking enquiryId structure:", booking.enquiryId);
 
-    const token = localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
     };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
     fetch(`${API}/api/enquiry/${enquiryId}`, {
       credentials: "include",
@@ -210,10 +204,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       if (bookingId === currentBookingId) {
         console.log("📡 Current booking extended - refreshing...");
         
-        // ✅ FORCE REFRESH FROM API
-        const authToken = token || localStorage.getItem("token");
+        // FORCE REFRESH FROM API
         const headers = { "Content-Type": "application/json" };
-        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
         
         fetch(`${API}/api/bookings/${bookingId}`, { 
           method: "GET", 
@@ -244,9 +236,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           const hasValidMongoId = typeof bookingId === "string" && !bookingId.startsWith("b_");
           
           if (hasValidMongoId) {
-            const authToken = token || localStorage.getItem("token");
             const headers = { "Content-Type": "application/json" };
-            if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
             
             fetch(`${API}/api/bookings/${bookingId}`, { 
               method: "GET", 
@@ -274,9 +264,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         console.log("📡 Guest reported - refreshing booking data...");
         
         // Trigger full refresh to get updated dates
-        const authToken = token || localStorage.getItem("token");
         const headers = { "Content-Type": "application/json" };
-        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
         
         fetch(`${API}/api/bookings/${bookingId}`, { 
           method: "GET", 
@@ -353,9 +341,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     
     if (hasValidMongoId) {
       setLoading(true);
-      const authToken = token || localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
       
       fetch(`${API}/api/bookings/${bookingId}`, { 
         method: "GET", 

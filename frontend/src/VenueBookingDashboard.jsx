@@ -135,9 +135,7 @@ export default function VenueBookingDashboard() {
 
   const handleExtensionModalExtend = async (extensionData) => {
     try {
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(
         `${API}/api/venue-bookings/${extensionData.bookingId}/extend`,

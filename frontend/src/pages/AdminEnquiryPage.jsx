@@ -257,9 +257,7 @@ export default function AdminEnquiryPage({ setActiveTab }) {
         `${API}/api/enquiry/${selected._id}/${status}`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          withCredentials: true,
         }
       );
 

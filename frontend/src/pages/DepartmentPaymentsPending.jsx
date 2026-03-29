@@ -70,9 +70,7 @@ export default function DepartmentPaymentsPending({ onBack, currentUser, theme }
 
   const fetchPendingPayments = async () => {
     try {
-      const token = localStorage.getItem("token");
       const { data } = await axios.get(`${API}/api/department-payments`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         withCredentials: true
       });
       

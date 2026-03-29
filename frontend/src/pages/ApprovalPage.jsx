@@ -634,9 +634,7 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API}/api/extensions`, {
-        headers: { Authorization: `Bearer ${token}` },
         credentials: "include",
       });
       const data = await res.json();
@@ -726,12 +724,10 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
   const handleApproveSubmit = async ({ requestId, updatedAmount, updatedCheckOutDate }) => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API}/api/extensions/${requestId}/approve`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ approvedCheckout: updatedCheckOutDate, approvedAmount: updatedAmount }),
         credentials: "include",
@@ -754,12 +750,10 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
   const handleRejectSubmit = async ({ requestId, reason }) => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API}/api/extensions/${requestId}/reject`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ reason }),
         credentials: "include",

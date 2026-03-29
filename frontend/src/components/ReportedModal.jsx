@@ -152,9 +152,7 @@ export default function ReportedModal({
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const actualCheckoutDateTime = new Date();
       const response = await fetch(
@@ -245,9 +243,7 @@ export default function ReportedModal({
   const checkRoomAvailability = async () => {
     try {
       setCheckingRoom(true);
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch(
         `${API}/api/bookings/check-room-occupancy`,
@@ -259,7 +255,7 @@ export default function ReportedModal({
             hostel: booking.hostel,
             roomNo: booking.roomNo,
             checkInDate: actualCheckInDate,
-            excludeBookingId: booking._id // Exclude current booking from check
+            excludeBookingId: booking._id
           }),
         }
       );
@@ -286,9 +282,7 @@ export default function ReportedModal({
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       // Check for previous pending bills
       const historyCheck = await fetch(
@@ -440,14 +434,9 @@ export default function ReportedModal({
           setLoading(true);
           setError("");
 
-          const token = localStorage.getItem("token");
           const headers = {
             "Content-Type": "application/json",
           };
-          
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
 
           const response = await fetch(`${API}/api/bookings/${booking._id}/not-reported`, {
             method: "PUT",

@@ -276,9 +276,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
-
-      console.log("📤 Sending payment data:", {
+      console.log("Payment data:", {
         bookingId: booking._id,
         paymentType: billPaymentType === "Full Payment" ? "FULL" : "PARTIAL",
         amountPaid: paidAmount,
@@ -294,7 +292,6 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
           },
           credentials: "include",
           body: JSON.stringify({

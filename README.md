@@ -85,7 +85,7 @@ PM2 process management, Error handling, Environment isolation
 ┌────────────────────▼────────────────────────────────────────┐
 │  🔄 Nginx (Reverse Proxy)                                  │
 │  ├── SSL Termination (Let's Encrypt)                       │
-│  └── https://api.guestapp.in                               │
+│  └── https://api.campusconnect.thapar.edu                               │
 └────────────────────┬────────────────────────────────────────┘
                      │ Internal Port: 10000
 ┌────────────────────▼────────────────────────────────────────┐
@@ -130,7 +130,7 @@ PM2 process management, Error handling, Environment isolation
 
 ```javascript
 // src/utils/apiConfig.js (Single Source of Truth)
-const REACT_APP_BACKEND_URL = https://api.guestapp.in
+const REACT_APP_BACKEND_URL = https://api.campusconnect.thapar.edu
 
 ✅ Prevents hardcoded URLs
 ✅ Eliminates environment drift
@@ -218,7 +218,7 @@ io.to("dashboard-room").emit("booking-updated", data);
 **Internal Port:** 10000  
 **HTTPS:** Terminated by Nginx  
 **SSL:** Let's Encrypt (Auto-renewal)  
-**Public Endpoint:** https://api.guestapp.in
+**Public Endpoint:** https://api.campusconnect.thapar.edu
 
 </div>
 
@@ -563,7 +563,7 @@ frontend/
 3. React app compiled & optimized
 4. CI warnings non-blocking (warnings allowed)
 5. Auto-deployed to CDN
-6. Live at: https://guestapp.in
+6. Live at: https://campusconnect.thapar.edu
 ```
 
 </div>

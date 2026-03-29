@@ -561,26 +561,13 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   const fetchCaretakerData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      console.log('🔑 Token check:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token?.substring(0, 20)
-      });
-      
-      if (!token) {
-        setError('No authentication token found. Please login again.');
-        setLoading(false);
-        return;
-      }
 
       const [guestsRes, feedbacksRes] = await Promise.all([
         fetch(`${API}/api/bookings/checked-out`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: "include"
         }),
         fetch(`${API}/api/feedback/caretaker/list`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: "include"
         })
       ]);
 
@@ -605,22 +592,9 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   const fetchGuestFeedback = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      console.log('🔑 Token check:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token?.substring(0, 20)
-      });
-      
-      if (!token) {
-        setError('No authentication token found. Please login again.');
-        setLoading(false);
-        return;
-      }
 
       const res = await fetch(`${API}/api/guest-feedback/`, {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: "include"
       });
 
       if (!res.ok) throw new Error('Failed to fetch guest feedback');
@@ -638,13 +612,12 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
 
   const handleSubmitCaretakerFeedback = async (feedbackData) => {
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/feedback/caretaker/submit`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: "include",
         body: JSON.stringify(feedbackData)
       });
 
@@ -659,13 +632,12 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
 
   const handleGuestFeedbackStatusUpdate = async (feedbackId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/guest-feedback/${feedbackId}/status`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: "include",
         body: JSON.stringify({ status: newStatus })
       });
 

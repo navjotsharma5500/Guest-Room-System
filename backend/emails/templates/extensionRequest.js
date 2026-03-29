@@ -27,7 +27,7 @@ export default function extensionRequest(data) {
       </p>
 
       <div style="text-align: center; margin-top: 20px;">
-        <a href="https://guestapp.in"
+        <a href="https://campusconnect.thapar.edu"
            style="background-color: #dc2626; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-size: 14px;">
            Open Dashboard
         </a>

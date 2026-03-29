@@ -41,15 +41,9 @@ const NotificationBell = ({
     }
   };
 
-  // ✅ NEW: Play sound when unreadCount increases
+  // Track unreadCount changes (don't play sound here - requires user gesture)
   useEffect(() => {
     console.log(`🔔 Unread count changed: ${prevCountRef.current} → ${unreadCount}`);
-    
-    if (unreadCount > prevCountRef.current && unreadCount > 0) {
-      console.log("🔊 New enquiries detected - playing sound");
-      playNotificationSound();
-    }
-    
     prevCountRef.current = unreadCount;
   }, [unreadCount]);
 
@@ -60,6 +54,9 @@ const NotificationBell = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => {
+          if (unreadCount > 0) {
+            playNotificationSound();
+          }
           setShowDropdown(!showDropdown);
         }}
         className={`

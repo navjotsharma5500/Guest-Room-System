@@ -47,11 +47,9 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
       const [bookRes, dashRes] = await Promise.all([
-        fetch(`${API}/api/bookings/all-for-download`, { credentials: "include", headers }),
-        fetch(`${API}/api/dashboard/stats`, { credentials: "include", headers }),
+        fetch(`${API}/api/bookings/all-for-download`, { credentials: "include" }),
+        fetch(`${API}/api/dashboard/stats`, { credentials: "include" }),
       ]);
       if (bookRes.ok) {
         const data = await bookRes.json();
@@ -74,9 +72,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const fetchGA4 = useCallback(async (days = 30) => {
     setGa4Loading(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API}/api/analytics/ga4?days=${days}`, {
-        credentials: "include", headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       setGa4(await res.json());
     } catch { setGa4({ configured: false, message: "Failed to connect to analytics" }); }
@@ -86,10 +83,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const fetchAWS = useCallback(async () => {
     setAwsLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API}/api/analytics/aws`, {
         credentials: "include",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         setAwsStats(await res.json());

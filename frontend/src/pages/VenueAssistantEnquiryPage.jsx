@@ -132,9 +132,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
     try {
       console.log("🔥 Loading venue enquiries...");
       const res = await axios.get(`${API}/api/venue/enquiry/all`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        withCredentials: true,
       });
       
       console.log("✅ Fetched venue enquiries:", res.data);
@@ -229,9 +227,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
           checkOutTime: editForm.checkOutTime,
         },
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          withCredentials: true,
         }
       );
 
@@ -279,9 +275,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         `${API}/api/venue/enquiry/${selected._id}/approved`,
         approveData,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          withCredentials: true,
         }
       );
 
@@ -303,9 +297,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         `${API}/api/venue/enquiry/${selected._id}/rejected`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          withCredentials: true,
         }
       );
 
