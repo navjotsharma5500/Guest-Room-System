@@ -805,7 +805,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Venue Booking Form",
       description: "Book venues for events",
-      url: "http://campusconnect.thapar.edu/venue-guest-enquiry",
+      url: "http://campusconnect.thapar.edu/venue-enquiry",
       icon: Calendar,
       color: "text-purple-600",
       bg: "bg-purple-50",
@@ -815,7 +815,7 @@ const PublicFormsModal = ({ open, onClose }) => {
     {
       title: "Event Calendar Page",
       description: "View upcoming events",
-      url: "http://campusconnect.thapar.edu/venue-event-calendar",
+      url: "http://campusconnect.thapar.edu/event-calendar",
       icon: CalendarDays,
       color: "text-orange-600",
       bg: "bg-orange-50",

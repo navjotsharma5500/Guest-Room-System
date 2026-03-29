@@ -2,18 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/logo.png" sizes="32x32" />
-    <link rel="icon" href="%PUBLIC_URL%/logo.png" sizes="48x48" />
+
+    <!-- ✅ Favicon -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <!-- ✅ App Icons -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/Thapar_Logo.png" />
+
+    <!-- ✅ Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- ✅ Theme Color -->
     <meta name="theme-color" content="#000000" />
+
+    <!-- ✅ SEO Description -->
     <meta
       name="description"
-      content="Thapar Institute Guest Room Booking and Management System"
+      content="One Platform. Every Student Need. Seamlessly Connected."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo.png" />
+
+    <!-- ✅ Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-    <!-- ✅ Google Analytics 4 — G-Z8GK8ESCM1 -->
+    <!-- ✅ Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8GK8ESCM1"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -22,20 +33,71 @@
       gtag('config', 'G-Z8GK8ESCM1');
     </script>
 
-    <title>Thapar Guest Room Management</title>
+    <!-- ✅ Title -->
+    <title>Thapar Campus Connect</title>
+
+    <!-- ✅ Optional: Preload Logo (faster rendering) -->
+    <link rel="preload" as="image" href="%PUBLIC_URL%/Thapar_Logo.png" />
+    
+    <!-- ✅ Basic Loader Styling -->
+    <style>
+      body {
+        margin: 0;
+        background-color: #000;
+        font-family: Arial, sans-serif;
+      }
+
+      #preloader {
+        position: fixed;
+        width: 100%;
+        height: 100vh;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        z-index: 9999;
+      }
+
+      #preloader img {
+        width: 140px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+
+      #preloader h1 {
+        color: #fff;
+        font-size: 22px;
+        margin: 0;
+      }
+
+      #preloader p {
+        color: #aaa;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+    </style>
   </head>
+
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- ✅ Preloader with Logo -->
+    <div id="preloader">
+      <img src="%PUBLIC_URL%/Thapar_Logo.png" alt="Thapar Logo" />
+      <h1>Thapar Campus Connect</h1>
+      <p>One Platform. Every Student Need. Seamlessly Connected.</p>
+    </div>
+
+    <!-- ✅ React Root -->
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <!-- ✅ Remove Preloader After Load -->
+    <script>
+      window.addEventListener("load", function () {
+        const loader = document.getElementById("preloader");
+        if (loader) loader.style.display = "none";
+      });
+    </script>
   </body>
 </html>

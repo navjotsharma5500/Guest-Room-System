@@ -134,10 +134,10 @@ const NAV = [
   { label: "Home", action: "home" },
   { label: "Booking Form", items: [
     { label: "Hostel Guest-Room Booking", href: "https://campusconnect.thapar.edu/guest-enquiry" },
-    { label: "Event Venue Booking",        href: "https://campusconnect.thapar.edu/venue-guest-enquiry" },
+    { label: "Event Venue Booking",        href: "https://campusconnect.thapar.edu/venue-enquiry" },
   ]},
   { label: "Calendar", items: [
-    { label: "Event Calendar", href: "https://campusconnect.thapar.edu/venue-event-calendar" },
+    { label: "Event Calendar", href: "https://campusconnect.thapar.edu/event-calendar" },
   ]},
   { label: "Night Pass", items: [
     { label: "Library Night Pass",  href: "https://permissions.thapar.edu/" },
@@ -166,13 +166,13 @@ const ALL_CARDS = {
   "venue-booking": {
     id: "venue-booking", title: "Event Venue Booking", sub: "Booking Form",
     Icon: CalendarDays, iconBg: "#e3eeff", iconColor: "#1a56db", dot: "#60a5fa",
-    href: "https://campusconnect.thapar.edu/venue-guest-enquiry",
+    href: "https://campusconnect.thapar.edu/venue-enquiry",
     bullets: ["Auditorium & Seminar Hall Booking","Open Air & Outdoor Spaces","Equipment & AV Support Request","Multi-day Event Scheduling"],
   },
   "event-calendar": {
     id: "event-calendar", title: "Event Calendar", sub: "Campus-wide schedule",
     Icon: CalendarDays, iconBg: "#e6f9f0", iconColor: "#0d7a4e", dot: "#34d399",
-    href: "https://campusconnect.thapar.edu/venue-event-calendar",
+    href: "https://campusconnect.thapar.edu/event-calendar",
     bullets: ["Upcoming Fests & Competitions","Department & Club Events","Venue Availability Overview","Monthly & Weekly View"],
   },
   "library-pass": {
@@ -202,9 +202,9 @@ const ECHO_RESPONSES = [
   { match: ["guest","room","hostel","book"],
     reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-enquiry. You can check availability and make a reservation there." },
   { match: ["venue","event","hall","auditorium"],
-    reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-guest-enquiry. You can book auditoriums, seminar halls, and open spaces." },
+    reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-enquiry. You can book auditoriums, seminar halls, and open spaces." },
   { match: ["calendar","schedule","fest","event"],
-    reply: "Check the Event Calendar at https://campusconnect.thapar.edu/venue-event-calendar to see all upcoming campus events and fests." },
+    reply: "Check the Event Calendar at https://campusconnect.thapar.edu/event-calendar to see all upcoming campus events and fests." },
   { match: ["library","night","pass","permission"],
     reply: "Library Night Pass applications are handled at https://permissions.thapar.edu. Apply there for overnight study access." },
   { match: ["society","club","late"],

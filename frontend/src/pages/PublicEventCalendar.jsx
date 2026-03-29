@@ -1218,7 +1218,7 @@ export default function PublicEventCalendar() {
 
               <motion.a
                 whileHover={{ x: 4 }}
-                href="https://campusconnect.thapar.edu/venue-guest-enquiry"
+                href="https://campusconnect.thapar.edu/venue-enquiry"
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
                   theme === "dark"
                     ? "bg-gray-700/50 hover:bg-gray-700"
