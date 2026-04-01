@@ -273,6 +273,26 @@ export default function VenueBookingDetailsModal({
                       <p className="font-semibold text-purple-800 break-all">{booking.email || "—"}</p>
                     </div>
                   </div>
+
+                  {booking.societyEmail && (
+                    <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
+                      <Mail className="w-5 h-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs text-indigo-700 font-medium">Society Email</p>
+                        <p className="font-semibold text-indigo-800 break-all">{booking.societyEmail}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {booking.presidentEmail && (
+                    <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                      <Mail className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <p className="text-xs text-amber-700 font-medium">President Email</p>
+                        <p className="font-semibold text-amber-800 break-all">{booking.presidentEmail}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
 

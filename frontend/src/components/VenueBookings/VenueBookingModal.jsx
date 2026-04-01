@@ -61,6 +61,8 @@ export default function VenueBookingModal({
     department: prefill?.department || "",
     contact: prefill?.contact || "",
     email: prefill?.email || "",
+    societyEmail: prefill?.societyEmail || "",
+    presidentEmail: prefill?.presidentEmail || "",
     checkInDate: checkIn || prefill?.checkInDate || "",
     checkInTime: prefill?.checkInTime || "",
     checkOutDate: checkOut || prefill?.checkOutDate || "",
@@ -91,6 +93,8 @@ export default function VenueBookingModal({
       department: prefill.department || prev.department,
       contact: prefill.contact || prev.contact,
       email: prefill.email || prev.email,
+      societyEmail: prefill.societyEmail || prev.societyEmail,
+      presidentEmail: prefill.presidentEmail || prev.presidentEmail,
       checkInDate: prefill.checkInDate || prev.checkInDate,
       checkInTime: prefill.checkInTime || prev.checkInTime,
       checkOutDate: prefill.checkOutDate || prev.checkOutDate,
@@ -693,6 +697,56 @@ export default function VenueBookingModal({
                           {errors.email}
                         </motion.p>
                       )}
+                    </div>
+
+                    {/* Society Email */}
+                    <div>
+                      <label className={`block text-sm font-semibold mb-2 flex items-center gap-2 ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                        <Mail className="w-4 h-4 text-red-600" />
+                        Society Email
+                      </label>
+                      <input
+                        type="email"
+                        name="societyEmail"
+                        value={formData.societyEmail}
+                        onChange={handleChange}
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${theme === "dark"
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
+                        placeholder="society@thapar.edu"
+                      />
+                    </div>
+
+                    {/* President Email */}
+                    <div>
+                      <label className={`block text-sm font-semibold mb-2 flex items-center gap-2 ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                        <Mail className="w-4 h-4 text-red-600" />
+                        President Email
+                      </label>
+                      <input
+                        type="email"
+                        name="presidentEmail"
+                        value={formData.presidentEmail}
+                        onChange={handleChange}
+                        className={`
+                          w-full px-4 py-3 rounded border text-sm
+                          transition-all duration-200 outline-none
+                          ${theme === "dark"
+                            ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed] focus:border-[#8ab4f8]"
+                            : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                          }
+                        `}
+                        placeholder="president@thapar.edu"
+                      />
                     </div>
 
                     {/* Department */}

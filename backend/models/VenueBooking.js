@@ -44,6 +44,16 @@ const venueBookingSchema = new mongoose.Schema({
     lowercase: true,
     match: /@thapar\.edu$/,
   },
+  societyEmail: {
+    type: String,
+    default: "",
+    lowercase: true,
+  },
+  presidentEmail: {
+    type: String,
+    default: "",
+    lowercase: true,
+  },
 
   // Date & Time
   checkInDate: {
