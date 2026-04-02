@@ -2,10 +2,10 @@
 // Public Venue Enquiry Form - Based on GuestEnquiryPage pattern
 // ============================================================================
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Mail, CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2 } from "lucide-react";
+import { Mail, CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2, AlertCircle } from "lucide-react";
 import thaparLogo from "../assets/thapar_logo.png";
 import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
@@ -100,6 +100,7 @@ export default function VenueGuestEnquiryPage() {
   const [showEventSuggestions, setShowEventSuggestions] = useState(false);
   const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
   const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState(null);
   
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
@@ -107,6 +108,61 @@ export default function VenueGuestEnquiryPage() {
       toastContext.showToast(message, type);
     }
   };
+
+  const checkAvailabilityFunc = useCallback(async () => {
+    if (!form.hall || !form.roomNo || !form.checkInDate || !form.checkInTime || !form.checkOutDate || !form.checkOutTime) {
+      setAvailabilityStatus(null);
+      return;
+    }
+
+    setAvailabilityStatus("checking");
+
+    try {
+      const response = await fetch(`${API}/api/venue-bookings`);
+      if (!response.ok) {
+        console.warn("Failed to fetch venue bookings");
+        setAvailabilityStatus(null);
+        return;
+      }
+
+      const data = await response.json();
+      const bookings = Array.isArray(data) ? data : data.bookings || [];
+
+      const relevantBookings = bookings.filter(booking => {
+        const bookingVenue = `${booking.hall}||${booking.roomNo}`;
+        const selectedVenue = `${form.hall}||${form.roomNo}`;
+        return bookingVenue === selectedVenue && ["approved", "booked", "checked_in"].includes(booking.status?.toLowerCase());
+      });
+
+      const selectedStart = new Date(`${form.checkInDate}T${form.checkInTime}`);
+      const selectedEnd = new Date(`${form.checkOutDate}T${form.checkOutTime}`);
+
+      let hasOverlap = false;
+      for (const booking of relevantBookings) {
+        const existingStart = new Date(`${booking.checkInDate}T${booking.checkInTime}`);
+        const existingEnd = new Date(`${booking.checkOutDate}T${booking.checkOutTime}`);
+        const effectiveExistingEnd = new Date(existingEnd.getTime() + 60000);
+        
+        if (selectedStart <= effectiveExistingEnd && selectedEnd >= existingStart) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      setAvailabilityStatus(hasOverlap ? "overlap" : "available");
+    } catch (error) {
+      console.warn("Availability check error:", error);
+      setAvailabilityStatus(null);
+    }
+  }, [form.hall, form.roomNo, form.checkInDate, form.checkInTime, form.checkOutDate, form.checkOutTime]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkAvailabilityFunc();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.hall, form.roomNo, form.checkInDate, form.checkInTime, form.checkOutDate, form.checkOutTime, checkAvailabilityFunc]);
 
   useEffect(() => {
     const query = form.societyName.trim();
@@ -217,6 +273,10 @@ export default function VenueGuestEnquiryPage() {
   const handleGoogleError = () => {
     console.error("❌ Google Login Failed");
     showToast("Google authentication failed. Please try again.", "error");
+  };
+
+  const handleCheckAvailabilityClick = () => {
+    window.open("https://campusconnect.thapar.edu/event-calendar", "_blank");
   };
 
   const validateForm = () => {
@@ -768,6 +828,55 @@ export default function VenueGuestEnquiryPage() {
                       </div>
                     </div>
   
+                    {/* Check Availability Button */}
+                    <div className="mb-6 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={handleCheckAvailabilityClick}
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium"
+                      >
+                        Check Availability
+                      </button>
+                    </div>
+
+                    {/* Availability Status */}
+                    {availabilityStatus && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+                          availabilityStatus === "checking"
+                            ? "bg-blue-50 border border-blue-200"
+                            : availabilityStatus === "available"
+                            ? "bg-green-50 border border-green-200"
+                            : "bg-red-50 border border-red-200"
+                        }`}
+                      >
+                        {availabilityStatus === "checking" && (
+                          <>
+                            <svg className="animate-spin h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-blue-700 text-sm font-medium">Checking availability...</span>
+                          </>
+                        )}
+                        {availabilityStatus === "available" && (
+                          <>
+                            <CheckCircle2 className="text-green-600 w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <span className="text-green-700 text-sm font-medium">Venue available for selected slot.</span>
+                          </>
+                        )}
+                        {availabilityStatus === "overlap" && (
+                          <>
+                            <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <span className="text-red-700 text-sm font-medium">Selected date or time is already booked for this venue.</span>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+  
                     {/* File Upload */}
                     <div className="mb-6">
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -828,7 +937,7 @@ export default function VenueGuestEnquiryPage() {
                     <div className="flex justify-center">
                       <button
                         type="submit"
-                        disabled={uploading || isSubmitting}
+                        disabled={uploading || isSubmitting || availabilityStatus === "overlap" || availabilityStatus === "checking"}
                         className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isSubmitting ? (
