@@ -2,7 +2,7 @@
 // UPDATED: Daily Time Slot Model
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Calendar, Clock, User, Mail, Phone, Building, FileText, CheckCircle, AlertCircle, Trash2, CheckCircle2, Loader } from "lucide-react";
+import { X, Upload, Calendar, Clock, User, Mail, Phone, Building, FileText, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
@@ -14,7 +14,7 @@ import {
 } from "../../utils/apiConfig";
 import AttachmentGrid from "../AttachmentGrid";
 import { VENUE_DEPARTMENTS } from "../../config/venueDepartments";
-import { formatTimeWithAMPM, isDailySlotOverlapping, timeToMinutes } from "../../utils/dateUtils";
+import { formatTimeWithAMPM } from "../../utils/dateUtils";
 
 const API = BACKEND_URL;
 
@@ -82,15 +82,6 @@ export default function VenueBookingModal({
   const [showEventSuggestions, setShowEventSuggestions] = useState(false);
   const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
   const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
-
-  // Real-time availability checking
-  const [existingBookings, setExistingBookings] = useState([]);
-  const [availability, setAvailability] = useState({
-    isLoading: false,
-    hasOverlap: false,
-    overlapMessage: "",
-    isValid: true,
-  });
 
   useEffect(() => {
     if (!prefill) return;
@@ -176,164 +167,6 @@ export default function VenueBookingModal({
     );
     setDepartmentSuggestions(filtered);
   }, [formData.department]);
-
-  // Fetch existing bookings for selected rooms
-  useEffect(() => {
-    if (!selectedRooms || selectedRooms.length === 0) {
-      setExistingBookings([]);
-      return;
-    }
-
-    const fetchBookings = async () => {
-      try {
-        const roomIds = selectedRooms.map(room => room.id || room._id).filter(Boolean);
-        if (roomIds.length === 0) {
-          setExistingBookings([]);
-          return;
-        }
-
-        const response = await fetch(
-          `${API}/api/venue/bookings?roomIds=${roomIds.join(",")}`,
-          { method: "GET", credentials: "include" }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          const bookings = Array.isArray(data?.bookings) ? data.bookings : [];
-          setExistingBookings(bookings);
-        }
-      } catch (error) {
-        console.error("Failed to fetch existing bookings:", error);
-        setExistingBookings([]);
-      }
-    };
-
-    fetchBookings();
-  }, [selectedRooms]);
-
-  // Check availability when date/time fields change
-  useEffect(() => {
-    checkAvailability();
-  }, [
-    formData.bookingStartDate,
-    formData.bookingEndDate,
-    formData.dailyStartTime,
-    formData.dailyEndTime,
-    existingBookings
-  ]);
-
-  const checkAvailability = async () => {
-    const { bookingStartDate, bookingEndDate, dailyStartTime, dailyEndTime } = formData;
-
-    // If any field is empty, reset availability
-    if (!bookingStartDate || !bookingEndDate || !dailyStartTime || !dailyEndTime) {
-      setAvailability({
-        isLoading: false,
-        hasOverlap: false,
-        overlapMessage: "",
-        isValid: true,
-      });
-      return;
-    }
-
-    // VALIDATION 1: Check if end date/time is after start date/time
-    const startDateTime = new Date(`${bookingStartDate}T${dailyStartTime}`);
-    const endDateTime = new Date(`${bookingEndDate}T${dailyEndTime}`);
-
-    if (endDateTime <= startDateTime) {
-      setAvailability({
-        isLoading: false,
-        hasOverlap: true,
-        overlapMessage: "❌ End time must be after start time",
-        isValid: false,
-      });
-      return;
-    }
-
-    // VALIDATION 2: If same day, check time order
-    if (bookingStartDate === bookingEndDate) {
-      const startTimeMin = timeToMinutes(dailyStartTime);
-      const endTimeMin = timeToMinutes(dailyEndTime);
-      if (endTimeMin <= startTimeMin) {
-        setAvailability({
-          isLoading: false,
-          hasOverlap: true,
-          overlapMessage: "❌ End time must be after start time",
-          isValid: false,
-        });
-        return;
-      }
-    }
-
-    setAvailability((prev) => ({ ...prev, isLoading: true }));
-
-    try {
-      // Simulate API delay for smooth UX
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Check for overlaps with existing bookings
-      let hasOverlap = false;
-      let conflictingBooking = null;
-
-      for (const booking of existingBookings) {
-        if (
-          booking.status === "booked" ||
-          booking.status === "checked_in" ||
-          booking.status === "approved"
-        ) {
-          const overlap = isDailySlotOverlapping(
-            bookingStartDate,
-            bookingEndDate,
-            dailyStartTime,
-            dailyEndTime,
-            booking.checkInDate || booking.bookingStartDate,
-            booking.checkOutDate || booking.bookingEndDate,
-            booking.checkInTime || booking.dailyStartTime,
-            booking.checkOutTime || booking.dailyEndTime
-          );
-
-          if (overlap) {
-            hasOverlap = true;
-            conflictingBooking = booking;
-            break;
-          }
-        }
-      }
-
-      if (hasOverlap && conflictingBooking) {
-        const conflictStart = new Date(conflictingBooking.checkInDate || conflictingBooking.bookingStartDate);
-        const conflictEnd = new Date(conflictingBooking.checkOutDate || conflictingBooking.bookingEndDate);
-        const dateFormat = { month: "short", day: "numeric" };
-        const conflictStartTime = conflictingBooking.checkInTime || conflictingBooking.dailyStartTime;
-        const conflictEndTime = conflictingBooking.checkOutTime || conflictingBooking.dailyEndTime;
-
-        setAvailability({
-          isLoading: false,
-          hasOverlap: true,
-          overlapMessage: `❌ Time overlap detected: This venue is already booked from ${conflictStart.toLocaleDateString(
-            "en-IN",
-            dateFormat
-          )} to ${conflictEnd.toLocaleDateString("en-IN", dateFormat)} during ${conflictStartTime}–${conflictEndTime}.`,
-          isValid: false,
-        });
-      } else {
-        setAvailability({
-          isLoading: false,
-          hasOverlap: false,
-          overlapMessage: "",
-          isValid: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error checking availability:", error);
-      setAvailability({
-        isLoading: false,
-        hasOverlap: false,
-        overlapMessage: "",
-        isValid: true,
-      });
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -434,6 +267,12 @@ export default function VenueBookingModal({
     return Object.keys(newErrors).length === 0;
   };
 
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+  };
+
   const canProceedToNext = () => {
     if (step === 1) {
       return (
@@ -454,8 +293,7 @@ export default function VenueBookingModal({
       const startTimeMin = timeToMinutes(formData.dailyStartTime);
       const endTimeMin = timeToMinutes(formData.dailyEndTime);
       
-      // Check date/time validity and availability
-      return endDate >= startDate && startTimeMin < endTimeMin && availability.isValid;
+      return endDate >= startDate && startTimeMin < endTimeMin;
     }
     if (step === 3) {
       return formData.attachments.length > 0;
@@ -464,17 +302,7 @@ export default function VenueBookingModal({
   };
 
   const handleNext = () => {
-    if (!validateForm()) {
-      showToast("⚠️ Please fill all required fields correctly", "warning");
-      return;
-    }
-
-    if (step === 2 && !availability.isValid) {
-      showToast("❌ Please select an available time slot", "error");
-      return;
-    }
-
-    if (canProceedToNext()) {
+    if (validateForm() && canProceedToNext()) {
       setStep((prev) => prev + 1);
     } else {
       showToast("⚠️ Please fill all required fields correctly", "warning");
@@ -716,52 +544,13 @@ export default function VenueBookingModal({
                         {errors.dailyEndTime && <p className="text-red-500 text-xs mt-1">{errors.dailyEndTime}</p>}
                       </div>
                     </div>
-                    <p className={`text-xs mt-4 ${theme === "dark" ? "text-purple-300" : "text-purple-600"}`}>
-                      💡 This time slot will be applied daily for the selected date range
-                    </p>
                   </div>
 
-                  {/* Real-time Availability Status */}
                   {formData.bookingStartDate && formData.bookingEndDate && formData.dailyStartTime && formData.dailyEndTime && (
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
-                        availability.isLoading
-                          ? theme === "dark"
-                            ? "bg-blue-900/20 border-blue-600"
-                            : "bg-blue-50 border-blue-300"
-                          : availability.hasOverlap
-                          ? theme === "dark"
-                            ? "bg-red-900/20 border-red-600"
-                            : "bg-red-50 border-red-300"
-                          : theme === "dark"
-                          ? "bg-green-900/20 border-green-600"
-                          : "bg-green-50 border-green-300"
-                      }`}
-                    >
-                      {availability.isLoading ? (
-                        <>
-                          <Loader className={`w-5 h-5 animate-spin ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-blue-300" : "text-blue-700"}`}>
-                            Checking availability...
-                          </span>
-                        </>
-                      ) : availability.hasOverlap ? (
-                        <>
-                          <AlertCircle className={`w-5 h-5 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
-                            {availability.overlapMessage}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className={`w-5 h-5 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-green-300" : "text-green-700"}`}>
-                            ✅ Booking Summary: Daily {getDailySlotSummary()} · {formatDateRange()}
-                          </span>
-                        </>
-                      )}
+                    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`p-4 rounded-lg border-2 ${theme === "dark" ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300"}`}>
+                      <p className={`text-sm font-semibold ${theme === "dark" ? "text-green-300" : "text-green-700"}`}>
+                        ✅ Booking Summary: Daily {getDailySlotSummary()} · {formatDateRange()}
+                      </p>
                     </motion.div>
                   )}
                 </motion.div>
@@ -844,20 +633,7 @@ export default function VenueBookingModal({
               </button>
             )}
             {step < 4 && (
-              <button
-                onClick={handleNext}
-                disabled={step === 2 && !availability.isValid}
-                className={`flex-1 py-2.5 rounded font-medium text-white transition-colors ${
-                  step === 2 && !availability.isValid
-                    ? theme === "dark"
-                      ? "bg-[#5f6368] text-[#9aa0a6] cursor-not-allowed opacity-60"
-                      : "bg-[#dadce0] text-[#9aa0a6] cursor-not-allowed opacity-60"
-                    : theme === "dark"
-                    ? "bg-[#8ab4f8] hover:bg-[#aecbfa]"
-                    : "bg-[#1a73e8] hover:bg-[#1765cc]"
-                }`}
-                title={step === 2 && !availability.isValid ? "Please select an available time slot" : ""}
-              >
+              <button onClick={handleNext} className={`flex-1 py-2.5 rounded font-medium text-white transition-colors ${theme === "dark" ? "bg-[#8ab4f8] hover:bg-[#aecbfa]" : "bg-[#1a73e8] hover:bg-[#1765cc]"}`}>
                 Next
               </button>
             )}

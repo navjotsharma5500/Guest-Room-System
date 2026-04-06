@@ -153,7 +153,7 @@ export default function useVenueBookingHandlers({
       } catch (error) {
         console.error("❌ Error creating venue booking:", error);
         showToast(`❌ ${error.message}`, "error");
-        throw error;
+        // Don't re-throw - error is already shown to user via toast
       }
     },
     [selectedRooms, showToast, setBookingModal, setSelectionMode, setSelectedRooms, setBookingCompleted, approvedEnquiry, onApprovedEnquiryConsumed]

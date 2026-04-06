@@ -431,28 +431,52 @@ export default function VenueBookingDetailsModal({
                 </h3>
 
                 <div className="space-y-4">
-                  {/* Check-in */}
+                  {/* Check-in Date */}
                   <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border-2 border-green-200">
                     <div className="p-2 bg-green-100 rounded-lg">
-                      <ArrowRight className="w-5 h-5 text-green-600" />
+                      <Calendar className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-green-700 mb-1">CHECK-IN</p>
+                      <p className="text-xs font-bold text-green-700 mb-1">CHECK-IN DATE</p>
                       <p className="font-bold text-green-800 text-sm">
-                        {formatDateTime(booking.from || booking.checkInDate, booking.checkInTime)}
+                        {formatDateTime(booking.from || booking.checkInDate, null)}
                       </p>
                     </div>
                   </div>
 
-                  {/* Check-out */}
+                  {/* Check-out Date */}
                   <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl border-2 border-red-200">
                     <div className="p-2 bg-red-100 rounded-lg">
-                      <ArrowRight className="w-5 h-5 text-red-600 rotate-180" />
+                      <Calendar className="w-5 h-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-red-700 mb-1">CHECK-OUT</p>
+                      <p className="text-xs font-bold text-red-700 mb-1">CHECK-OUT DATE</p>
                       <p className="font-bold text-red-800 text-sm">
-                        {formatDateTime(booking.to || booking.checkOutDate, booking.checkOutTime)}
+                        {formatDateTime(booking.to || booking.checkOutDate, null)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Daily Time Slot */}
+                  <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-blue-700 mb-1">DAILY TIME SLOT</p>
+                      <p className="font-bold text-blue-800 text-sm">
+                        {(booking.checkInTime || "00:00")} – {(booking.checkOutTime || "23:59")}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Every day from {new Date(`2000-01-01T${booking.checkInTime || "00:00"}`).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })} to {new Date(`2000-01-01T${booking.checkOutTime || "23:59"}`).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </p>
                     </div>
                   </div>

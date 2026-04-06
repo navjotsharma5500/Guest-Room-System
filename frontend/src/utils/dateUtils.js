@@ -71,6 +71,69 @@ export const isDateTimeRangeOverlapping = (
 };
 
 /**
+ * ✅ Convert HH:MM to minutes since midnight
+ */
+export const timeToMinutes = (timeStr) => {
+  if (!timeStr || typeof timeStr !== "string") return 0;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
+};
+
+/**
+ * ✅ DAILY TIME SLOT OVERLAP CHECK (NEW MODEL)
+ *
+ * Two bookings conflict if BOTH conditions are true:
+ * 1. DATE RANGES OVERLAP (dateRange check)
+ * 2. DAILY TIME RANGES OVERLAP (time-of-day check)
+ *
+ * Example: Both date ranges [5-7] match, but times [10:00-16:00] vs [16:00-10:00 next day] = NO overlap
+ */
+export const isDailySlotOverlapping = (
+  newStartDate,
+  newEndDate,
+  newDailyStart,
+  newDailyEnd,
+  exStartDate,
+  exEndDate,
+  exDailyStart,
+  exDailyEnd
+) => {
+  if (!newStartDate || !newEndDate || !newDailyStart || !newDailyEnd) return false;
+  if (!exStartDate || !exEndDate || !exDailyStart || !exDailyEnd) return false;
+
+  // Parse dates as YYYY-MM-DD
+  const parseDate = (d) => new Date(d + "T00:00:00").getTime();
+
+  const newStart = parseDate(newStartDate);
+  const newEnd = parseDate(newEndDate);
+  const exStart = parseDate(exStartDate);
+  const exEnd = parseDate(exEndDate);
+
+  if (isNaN(newStart) || isNaN(newEnd) || isNaN(exStart) || isNaN(exEnd)) {
+    return false;
+  }
+
+  // CONDITION 1: Date ranges must overlap
+  // dateOverlap = newStart <= exEnd AND newEnd >= exStart
+  const dateRangesOverlap = newStart <= exEnd && newEnd >= exStart;
+  if (!dateRangesOverlap) {
+    return false; // No date overlap = no conflict regardless of times
+  }
+
+  // CONDITION 2: Daily times must overlap (on each overlapping day)
+  // timeOverlap = newDailyStart < exDailyEnd AND newDailyEnd > exDailyStart
+  const newDailyStartMin = timeToMinutes(newDailyStart);
+  const newDailyEndMin = timeToMinutes(newDailyEnd);
+  const exDailyStartMin = timeToMinutes(exDailyStart);
+  const exDailyEndMin = timeToMinutes(exDailyEnd);
+
+  const timesOverlap = newDailyStartMin < exDailyEndMin && newDailyEndMin > exDailyStartMin;
+
+  // Return true only if BOTH conditions are true
+  return dateRangesOverlap && timesOverlap;
+};
+
+/**
  * ✅ Format time to HH:MM AM/PM (GuestDetails UI)
  */
 export const formatTimeWithAMPM = (timeStr) => {

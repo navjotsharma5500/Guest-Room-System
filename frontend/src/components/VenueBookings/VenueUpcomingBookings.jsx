@@ -52,8 +52,30 @@ export default function VenueUpcomingBookings({ hallData, venueData, theme, onRe
             const isWithinRange = isBefore(checkInDateTime, nextWeek);
 
             if (isValidStatus && isNotFinished && isWithinRange) {
-              // Determine if Live/Active (Start <= Now <= End)
-              const isLive = isBefore(checkInDateTime, now) && isAfter(checkOutDateTime, now);
+              // Determine if Live/Active using daily slot logic:
+              // 1. Current date must be within booking date range
+              // 2. Current time must be within daily time slot
+              const today = new Date();
+              const todayString = today.toISOString().split('T')[0];
+              
+              const isDateInRange = todayString >= dateStr && todayString <= endDateStr;
+              
+              let isLive = false;
+              if (isDateInRange) {
+                // Check if current time is within daily slot
+                const currentTimeInMinutes = (today.getHours() * 60) + today.getMinutes();
+                const dailyStart = booking.checkInTime || "00:00";
+                const dailyEnd = booking.checkOutTime || "23:59";
+                
+                const startParts = dailyStart.split(':');
+                const startInMinutes = (parseInt(startParts[0]) * 60) + parseInt(startParts[1]);
+                
+                const endParts = dailyEnd.split(':');
+                const endInMinutes = (parseInt(endParts[0]) * 60) + parseInt(endParts[1]);
+                
+                const isTimeInSlot = currentTimeInMinutes >= startInMinutes && currentTimeInMinutes <= endInMinutes;
+                isLive = isTimeInSlot;
+              }
 
               bookings.push({
                 ...booking,

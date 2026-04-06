@@ -10,6 +10,10 @@ export default function FilterModal({
   checkOut,
   setCheckIn,
   setCheckOut,
+  dailyStart,
+  setDailyStart,
+  dailyEnd,
+  setDailyEnd,
   onClose,
   onSubmit,
 }) {
@@ -17,6 +21,10 @@ export default function FilterModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!checkIn || !checkOut) {
+      return;
+    }
+    // If only one time field is filled, show error
+    if ((dailyStart && !dailyEnd) || (!dailyStart && dailyEnd)) {
       return;
     }
     onSubmit();
@@ -124,6 +132,66 @@ export default function FilterModal({
               `}
               required
             />
+          </div>
+
+          {/* Daily Time Slot Section */}
+          <div className={`p-3 rounded-lg border ${
+            theme === "dark" ? "bg-[#3c4043] border-[#5f6368]" : "bg-[#f5f5f5] border-[#e0e0e0]"
+          }`}>
+            <p className={`text-xs font-medium mb-3 ${
+              theme === "dark" ? "text-[#8ab4f8]" : "text-[#1a73e8]"
+            }`}>
+              ⏰ OPTIONAL DAILY TIME SLOT
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}>
+                  Start Time (HH:MM)
+                </label>
+                <input
+                  type="time"
+                  value={dailyStart}
+                  onChange={(e) => setDailyStart(e.target.value)}
+                  placeholder="10:00"
+                  className={`
+                    w-full px-3 py-2 rounded border text-xs
+                    transition-all duration-200 outline-none
+                    ${theme === "dark"
+                      ? "bg-[#292a2d] border-[#3c4043] text-[#e8eaed] focus:border-[#8ab4f8]"
+                      : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8]"
+                    }
+                  `}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}>
+                  End Time (HH:MM)
+                </label>
+                <input
+                  type="time"
+                  value={dailyEnd}
+                  onChange={(e) => setDailyEnd(e.target.value)}
+                  placeholder="16:00"
+                  className={`
+                    w-full px-3 py-2 rounded border text-xs
+                    transition-all duration-200 outline-none
+                    ${theme === "dark"
+                      ? "bg-[#292a2d] border-[#3c4043] text-[#e8eaed] focus:border-[#8ab4f8]"
+                      : "bg-white border-[#dadce0] text-[#202124] focus:border-[#1a73e8]"
+                    }
+                  `}
+                />
+              </div>
+            </div>
+            <p className={`text-xs mt-2 ${
+              theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+            }`}>
+              Leave blank to search all day
+            </p>
           </div>
 
           {/* Action Buttons */}

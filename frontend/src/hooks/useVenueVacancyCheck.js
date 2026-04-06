@@ -1,12 +1,15 @@
 // src/hooks/useVenueVacancyCheck.js
+// UPDATED: Daily Time Slot Model
 import { useCallback } from "react";
-import { isDateTimeRangeOverlapping } from "../utils/dateUtils";
+import { isDailySlotOverlapping } from "../utils/dateUtils";
 
 export default function useVenueVacancyCheck({
   hallData,
   venueData,
   checkIn,
   checkOut,
+  dailyStart = "",
+  dailyEnd = "",
   selectedRooms,
   setSelectedRooms,
   setVacantRooms,
@@ -15,41 +18,48 @@ export default function useVenueVacancyCheck({
 }) {
   const handleFilterSubmit = useCallback(() => {
     if (!checkIn || !checkOut) {
-      showToast("⚠️ Please select both Check-in and Check-out dates.", "warning");
+      showToast("⚠️ Please select Check-in and Check-out dates.", "warning");
       return;
     }
 
-    const vacant = [];
+    // If one time field is filled but not the other, show error
+    if ((dailyStart && !dailyEnd) || (!dailyStart && dailyEnd)) {
+      showToast("⚠️ Please select both start and end time, or leave both blank for all-day search.", "warning");
+      return;
+    }
 
+    // Use provided times or default to all-day search (00:00 - 23:59)
+    const searchDailyStart = dailyStart || "00:00";
+    const searchDailyEnd = dailyEnd || "23:59";
+
+    const vacant = [];
     const sourceData = venueData || hallData || {};
 
     Object.entries(sourceData).forEach(([hall, data]) => {
       (data.rooms || []).forEach((room) => {
-        // Only check ACTIVE bookings for conflicts
         const hasOverlap = (room.bookings || []).some((b) => {
-          // Skip inactive bookings
           const inactiveStatuses = ["cancelled", "checked_out", "no_show"];
           if (inactiveStatuses.includes(b.status)) {
             console.log(`⭐️ Skipping inactive booking (${b.status}):`, b.name);
             return false;
           }
 
-          // Only consider "booked" or "checked_in" status as active
           const activeStatuses = ["booked", "checked_in"];
           if (!activeStatuses.includes(b.status)) {
             console.log(`⚠️ Unknown booking status:`, b.status, b.name);
             return false;
           }
 
-          return isDateTimeRangeOverlapping(
+          // Use new daily slot overlap logic
+          return isDailySlotOverlapping(
             checkIn,
             checkOut,
-            null,
-            null,
-            b.from || b.checkInDate,
-            b.to || b.checkOutDate,
-            b.checkInTime || null,
-            b.checkOutTime || null
+            searchDailyStart,
+            searchDailyEnd,
+            b.checkInDate || b.from,
+            b.checkOutDate || b.to,
+            b.checkInTime || "00:00",
+            b.checkOutTime || "23:59"
           );
         });
 
@@ -67,6 +77,8 @@ export default function useVenueVacancyCheck({
     venueData,
     checkIn,
     checkOut,
+    dailyStart,
+    dailyEnd,
     setVacantRooms,
     setFilterModal,
     showToast,

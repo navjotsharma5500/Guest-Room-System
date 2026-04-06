@@ -45,6 +45,7 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
 import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
+import communityRoutes from "./routes/communityRoutes.js";
 
 const app = express();
 
@@ -416,11 +417,13 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use("/api/analytics", awsAnalyticsRoutes);
 app.use("/api/public-ui", publicUiConfigRoutes);
+app.use("/api/community", communityRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
 console.log('✅ Guest room routes registered at /api/bookings (isolated)');
 console.log('✅ Unified booking routes registered at /api/unified-bookings (optional)');
+console.log('✅ Community routes mounted at /api/community');
 
 /* =========================================================
    SOCKET.IO HANDLER
@@ -578,4 +581,3 @@ const startServer = async () => {
 startServer();
 
 export default app;
-

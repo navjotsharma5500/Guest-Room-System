@@ -51,6 +51,7 @@ const CARD_IDS = [
   "library-pass",
   "society-pass",
   "lost-found",
+  "community-feedback",
 ];
 
 const TIMELINE = [
@@ -61,12 +62,13 @@ const TIMELINE = [
 ];
 
 const CARD_LABELS_MAP = {
-  "guest-booking":  "Hostel Guest Room Booking",
-  "venue-booking":  "Event Venue Booking",
-  "event-calendar": "Event Calendar",
-  "library-pass":   "Library Night Pass",
-  "society-pass":   "Society Night Pass",
-  "lost-found":     "Lost & Found",
+  "guest-booking":       "Hostel Guest Room Booking",
+  "venue-booking":       "Event Venue Booking",
+  "event-calendar":      "Event Calendar",
+  "library-pass":        "Library Night Pass",
+  "society-pass":        "Society Night Pass",
+  "lost-found":          "Lost & Found",
+  "community-feedback":  "Community & Feedback",
 };
 
 function makeDefaultPrefs() {
@@ -192,6 +194,12 @@ const ALL_CARDS = {
     Icon: Search, iconBg: "#fff3e0", iconColor: "#c2410c", dot: "#fb923c",
     href: "https://lost-and-found-portal-six.vercel.app/",
     bullets: ["Report Lost Items Online","Browse Found Item Listings","Photo Upload & Description","Claim & Handover Process"],
+  },
+  "community-feedback": {
+    id: "community-feedback", title: "Community & Feedback", sub: "Public forum",
+    Icon: MessageSquare, iconBg: "#e8f5e9", iconColor: "#2e7d32", dot: "#4caf50",
+    action: "community",
+    bullets: ["Share Suggestions & Ideas","Report Issues & Problems","Ask Questions Publicly","Like, Comment & Engage with Posts"],
   },
 };
 
@@ -732,10 +740,11 @@ export default function ThaparPublicDashboard() {
 
   const act = a => {
     if (a==="home") topRef.current?.scrollIntoView({ behavior:"smooth" });
-    else if (a==="cs")   setToast("Coming Soon!");
-    else if (a==="q1")   setModal("q1");
-    else if (a==="q2")   setModal("q2");
-    else if (a==="about") navigate("/about-us");
+    else if (a==="cs")        setToast("Coming Soon!");
+    else if (a==="q1")        setModal("q1");
+    else if (a==="q2")        setModal("q2");
+    else if (a==="about")     navigate("/about-us");
+    else if (a==="community") navigate("/community-feedback");
   };
 
   // ── page background from theme ──

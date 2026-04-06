@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Filter, Search, Calendar, RefreshCw, Download } from "lucide-react";
 import { useToast } from "../context/ToastContext";
+import { isDailySlotOverlapping } from "../utils/dateUtils";
 
 import VenueGrid from "../components/VenueBookings/VenueGrid";
 import SelectionFooter from "../components/AllHostels/SelectionFooter";
@@ -63,6 +64,8 @@ export default function VenueBookingsPortal({ venueData = {}, theme, onRefresh, 
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  const [dailyStart, setDailyStart] = useState("");
+  const [dailyEnd, setDailyEnd] = useState("");
   const [cancelModal, setCancelModal] = useState(null);
   const [extensionModal, setExtensionModal] = useState(null);
   const [bookingModal, setBookingModal] = useState(false);
@@ -134,6 +137,8 @@ export default function VenueBookingsPortal({ venueData = {}, theme, onRefresh, 
     venueData: stableVenueData,
     checkIn,
     checkOut,
+    dailyStart,
+    dailyEnd,
     selectedRooms,
     setSelectedRooms,
     setVacantRooms,
@@ -286,8 +291,12 @@ export default function VenueBookingsPortal({ venueData = {}, theme, onRefresh, 
             onClose={() => setFilterModal(false)}
             checkIn={checkIn}
             checkOut={checkOut}
+            dailyStart={dailyStart}
+            dailyEnd={dailyEnd}
             setCheckIn={setCheckIn}
             setCheckOut={setCheckOut}
+            setDailyStart={setDailyStart}
+            setDailyEnd={setDailyEnd}
             onSubmit={vacancyHandlers.handleFilterSubmit}
           />
         )}

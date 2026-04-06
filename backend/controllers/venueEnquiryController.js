@@ -1,7 +1,7 @@
 import VenueEnquiry from "../models/VenueEnquiry.js";
 import VenueBooking from "../models/VenueBooking.js";
 import { getSocketIO } from "../utils/socket.js";
-import { checkVenueConflict } from "../utils/venueConflictChecker.js";
+import { checkVenueConflict, isDailySlotOverlapping } from "../utils/venueConflictChecker.js";
 import SocietyNameSuggestion, {
   DEFAULT_SOCIETY_NAMES,
   getDefaultSocietyEmail,
@@ -76,23 +76,6 @@ const normalizePayload = (body = {}) => {
       ? body.attachments
       : [],
   };
-};
-
-const isTimeOverlapping = (
-  newCheckInDate,
-  newCheckInTime,
-  newCheckOutDate,
-  newCheckOutTime,
-  existingCheckInDate,
-  existingCheckInTime,
-  existingCheckOutDate,
-  existingCheckOutTime
-) => {
-  const newStart = new Date(`${newCheckInDate}T${newCheckInTime}`);
-  const newEnd = new Date(`${newCheckOutDate}T${newCheckOutTime}`);
-  const existingStart = new Date(`${existingCheckInDate}T${existingCheckInTime}`);
-  const existingEnd = new Date(`${existingCheckOutDate}T${existingCheckOutTime}`);
-  return newStart < existingEnd && newEnd > existingStart;
 };
 
 const touchSocietySuggestion = async (name = "") => {
@@ -402,8 +385,8 @@ export const checkEnquiryConflict = async (req, res) => {
       enquiry.hall,
       enquiry.roomNo,
       checkInDate,
-      checkInTime,
       checkOutDate,
+      checkInTime,
       checkOutTime
     );
 
@@ -460,14 +443,14 @@ export const approveVenueEnquiry = async (req, res) => {
     });
 
     for (const existing of overlappingBookings) {
-      const hasOverlap = isTimeOverlapping(
+      const hasOverlap = isDailySlotOverlapping(
         checkInDate,
-        checkInTime,
         checkOutDate,
+        checkInTime,
         checkOutTime,
         existing.checkInDate,
-        existing.checkInTime,
         existing.checkOutDate,
+        existing.checkInTime,
         existing.checkOutTime
       );
       if (hasOverlap) {

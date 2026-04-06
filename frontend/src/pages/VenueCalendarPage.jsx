@@ -458,12 +458,59 @@ export default function VenueCalendarPage({ onBack, venueData, theme = "light", 
 
       if (activeTab === 'active') {
         // Active: check-in is today or before, and check-out is today or after
-        return checkIn <= selectedDateOnly && checkOut >= selectedDateOnly;
+        // Also check if current time is within daily time slot
+        const isDateInRange = checkIn <= selectedDateOnly && checkOut >= selectedDateOnly;
+        
+        if (!isDateInRange) return false;
+        
+        // If selected date is today, also check time slot
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        
+        if (selectedDateOnly === todayString) {
+          // Check if current time is within daily slot
+          const currentTimeInMinutes = (today.getHours() * 60) + today.getMinutes();
+          const dailyStart = booking.checkInTime || "00:00";
+          const dailyEnd = booking.checkOutTime || "23:59";
+          
+          const startParts = dailyStart.split(':');
+          const startInMinutes = (parseInt(startParts[0]) * 60) + parseInt(startParts[1]);
+          
+          const endParts = dailyEnd.split(':');
+          const endInMinutes = (parseInt(endParts[0]) * 60) + parseInt(endParts[1]);
+          
+          return currentTimeInMinutes >= startInMinutes && currentTimeInMinutes <= endInMinutes;
+        }
+        
+        return true;
       }
       
       if (activeTab === 'upcoming') {
-        // Upcoming: check-in is after selected date
-        return checkIn > selectedDateOnly;
+        // Upcoming: check-in is after selected date, or same date but time hasn't started yet
+        if (checkIn > selectedDateOnly) {
+          return true;
+        }
+        
+        // If check-in is on selected date, check if time hasn't started yet
+        if (checkIn === selectedDateOnly) {
+          const today = new Date();
+          const todayString = today.toISOString().split('T')[0];
+          
+          if (selectedDateOnly === todayString) {
+            // Check if time slot hasn't started yet
+            const currentTimeInMinutes = (today.getHours() * 60) + today.getMinutes();
+            const dailyStart = booking.checkInTime || "00:00";
+            
+            const startParts = dailyStart.split(':');
+            const startInMinutes = (parseInt(startParts[0]) * 60) + parseInt(startParts[1]);
+            
+            return currentTimeInMinutes < startInMinutes;
+          }
+          
+          return true;
+        }
+        
+        return false;
       }
       
       if (activeTab === 'past') {

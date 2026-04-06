@@ -10,30 +10,12 @@ import {
   mergeRoleRoomFilter,
   filterRecordsByVenueRole,
 } from '../utils/venueAccessPolicy.js';
+import { isDailySlotOverlapping } from '../utils/venueConflictChecker.js';
 import {
   sendDirectBookingEmail,
   sendBookingExtendedEmail,
   sendBookingCancelledEmail,
 } from '../emails/venueEmailService.js';
-
-// Helper function to check for time overlaps
-const isTimeOverlapping = (
-  newCheckInDate,
-  newCheckInTime,
-  newCheckOutDate,
-  newCheckOutTime,
-  existingCheckInDate,
-  existingCheckInTime,
-  existingCheckOutDate,
-  existingCheckOutTime
-) => {
-  const newStart = new Date(`${newCheckInDate}T${newCheckInTime}`);
-  const newEnd = new Date(`${newCheckOutDate}T${newCheckOutTime}`);
-  const existingStart = new Date(`${existingCheckInDate}T${existingCheckInTime}`);
-  const existingEnd = new Date(`${existingCheckOutDate}T${existingCheckOutTime}`);
-
-  return newStart < existingEnd && newEnd > existingStart;
-};
 
 // Isolation wrapper - prevents errors from affecting other systems
 const isolatedHandler = (handler) => async (req, res) => {
@@ -150,14 +132,14 @@ const createVenueBookingCore = async (req, res) => {
     });
 
     for (const existing of overlappingBookings) {
-      const hasOverlap = isTimeOverlapping(
+      const hasOverlap = isDailySlotOverlapping(
         checkInDate,
-        checkInTime,
         checkOutDate,
+        checkInTime,
         checkOutTime,
         existing.checkInDate,
-        existing.checkInTime,
         existing.checkOutDate,
+        existing.checkInTime,
         existing.checkOutTime
       );
 
@@ -328,14 +310,14 @@ const extendVenueBookingCore = async (req, res) => {
   });
 
   for (const existing of overlappingBookings) {
-    const hasOverlap = isTimeOverlapping(
+    const hasOverlap = isDailySlotOverlapping(
       booking.checkInDate,
-      booking.checkInTime,
       extendedDate,
+      booking.checkInTime,
       extendedTime,
       existing.checkInDate,
-      existing.checkInTime,
       existing.checkOutDate,
+      existing.checkInTime,
       existing.checkOutTime
     );
 

@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
 import { Mail, CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2, AlertCircle } from "lucide-react";
+import { isDailySlotOverlapping, timeToMinutes } from "../utils/dateUtils";
 import thaparLogo from "../assets/thapar_logo.png";
 import bgImage from "../assets/ThaparBackground1.png";
 import axios from "axios";
@@ -115,6 +116,25 @@ export default function VenueGuestEnquiryPage() {
       return;
     }
 
+    // VALIDATION 1: Check if end date/time is after start date/time
+    const startDateTime = new Date(`${form.checkInDate}T${form.checkInTime}`);
+    const endDateTime = new Date(`${form.checkOutDate}T${form.checkOutTime}`);
+
+    if (endDateTime <= startDateTime) {
+      setAvailabilityStatus("invalid");
+      return;
+    }
+
+    // VALIDATION 2: If same day, double check time order
+    if (form.checkInDate === form.checkOutDate) {
+      const startTimeMin = timeToMinutes(form.checkInTime);
+      const endTimeMin = timeToMinutes(form.checkOutTime);
+      if (endTimeMin <= startTimeMin) {
+        setAvailabilityStatus("invalid");
+        return;
+      }
+    }
+
     setAvailabilityStatus("checking");
 
     try {
@@ -134,16 +154,21 @@ export default function VenueGuestEnquiryPage() {
         return bookingVenue === selectedVenue && ["approved", "booked", "checked_in"].includes(booking.status?.toLowerCase());
       });
 
-      const selectedStart = new Date(`${form.checkInDate}T${form.checkInTime}`);
-      const selectedEnd = new Date(`${form.checkOutDate}T${form.checkOutTime}`);
-
       let hasOverlap = false;
       for (const booking of relevantBookings) {
-        const existingStart = new Date(`${booking.checkInDate}T${booking.checkInTime}`);
-        const existingEnd = new Date(`${booking.checkOutDate}T${booking.checkOutTime}`);
-        const effectiveExistingEnd = new Date(existingEnd.getTime() + 60000);
+        // Use new daily slot overlap logic
+        const overlap = isDailySlotOverlapping(
+          form.checkInDate,
+          form.checkOutDate,
+          form.checkInTime,
+          form.checkOutTime,
+          booking.checkInDate || booking.from,
+          booking.checkOutDate || booking.to,
+          booking.checkInTime || "00:00",
+          booking.checkOutTime || "23:59"
+        );
         
-        if (selectedStart <= effectiveExistingEnd && selectedEnd >= existingStart) {
+        if (overlap) {
           hasOverlap = true;
           break;
         }
@@ -827,6 +852,13 @@ export default function VenueGuestEnquiryPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Daily Time Slot Helper Text */}
+                    <div className="mb-6 text-center">
+                      <p className="text-sm text-gray-500">
+                         This time slot will be applied on a daily basis for the selected date range.
+                      </p>
+                    </div>
   
                     {/* Check Availability Button */}
                     <div className="mb-6 flex justify-center">
@@ -865,13 +897,19 @@ export default function VenueGuestEnquiryPage() {
                         {availabilityStatus === "available" && (
                           <>
                             <CheckCircle2 className="text-green-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-                            <span className="text-green-700 text-sm font-medium">Venue available for selected slot.</span>
+                            <span className="text-green-700 text-sm font-medium">✅ Venue available for selected slot.</span>
+                          </>
+                        )}
+                        {availabilityStatus === "invalid" && (
+                          <>
+                            <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <span className="text-red-700 text-sm font-medium">❌ End time must be after start time</span>
                           </>
                         )}
                         {availabilityStatus === "overlap" && (
                           <>
                             <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-                            <span className="text-red-700 text-sm font-medium">Selected date or time is already booked for this venue.</span>
+                            <span className="text-red-700 text-sm font-medium">❌ Selected date or time is already booked for this venue.</span>
                           </>
                         )}
                       </motion.div>
@@ -937,7 +975,7 @@ export default function VenueGuestEnquiryPage() {
                     <div className="flex justify-center">
                       <button
                         type="submit"
-                        disabled={uploading || isSubmitting || availabilityStatus === "overlap" || availabilityStatus === "checking"}
+                        disabled={uploading || isSubmitting || availabilityStatus === "overlap" || availabilityStatus === "invalid" || availabilityStatus === "checking"}
                         className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isSubmitting ? (
