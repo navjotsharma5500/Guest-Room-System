@@ -54,7 +54,7 @@ const extensionRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "expired"],
+      enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
     requiredApprovalLevel: {

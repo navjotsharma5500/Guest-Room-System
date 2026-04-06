@@ -35,6 +35,18 @@ export const createExtensionRequest = async (req, res) => {
         const oldCheckout = parseDateOnlyToUtcDate(booking.to);
         const newCheckout = parseDateOnlyToUtcDate(requestedCheckout);
         
+        // ✅ Check: Can only request extension UNTIL the checkout date (not after)
+        const toDateOnly = (d) => {
+            const dt = new Date(d);
+            return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
+        };
+        const nowDateOnly = toDateOnly(new Date());
+        const checkoutDateOnly = toDateOnly(oldCheckout);
+        
+        if (nowDateOnly > checkoutDateOnly) {
+            return res.status(400).json({ success: false, message: "Cannot submit extension request after checkout date has passed" });
+        }
+        
         if (newCheckout <= oldCheckout) {
             return res.status(400).json({ success: false, message: "New checkout date must be after current checkout date" });
         }
@@ -42,10 +54,6 @@ export const createExtensionRequest = async (req, res) => {
         // ✅ FIX: Date-only diff — strips the time component so IST/UTC offset never
         // inflates the count.  10 Mar → 11 Mar = exactly 1 day regardless of whether
         // booking.to is stored as midnight UTC or 18:30 UTC (midnight IST).
-        const toDateOnly = (d) => {
-            const dt = new Date(d);
-            return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
-        };
         const daysExtended = Math.round((toDateOnly(newCheckout) - toDateOnly(oldCheckout)) / 86400000);
 
         let requiredApprovalLevel = "adosa";

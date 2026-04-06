@@ -11,10 +11,12 @@ const NotificationBell = ({
   unreadCount = 0, 
   enquiries = [], 
   onEnquiryClick = () => {},
+  onViewAll = () => {},
   theme = "dark" 
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const prevCountRef = useRef(0);
+  const dropdownRef = useRef(null);
 
   // Play notification sound using Web Audio API
   const playNotificationSound = () => {
@@ -46,6 +48,34 @@ const NotificationBell = ({
     console.log(`🔔 Unread count changed: ${prevCountRef.current} → ${unreadCount}`);
     prevCountRef.current = unreadCount;
   }, [unreadCount]);
+
+  // ✅ Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showDropdown) return;
+
+    const handleClickOutside = (event) => {
+      // Don't close if clicking inside the dropdown or the bell button
+      if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+        return;
+      }
+      
+      // Check if clicking on the bell button itself
+      const bellButton = dropdownRef.current?.previousElementSibling;
+      if (bellButton && bellButton.contains(event.target)) {
+        return;
+      }
+
+      console.log("📌 Closing dropdown (outside click detected)");
+      setShowDropdown(false);
+    };
+
+    // Add event listener with capture phase to catch all clicks
+    document.addEventListener("mousedown", handleClickOutside, true);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside, true);
+    };
+  }, [showDropdown]);
 
   return (
     <div className="relative">
@@ -91,6 +121,7 @@ const NotificationBell = ({
       <AnimatePresence>
         {showDropdown && (
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -123,10 +154,14 @@ const NotificationBell = ({
               </p>
             </div>
 
-            {/* Enquiries List */}
+            {/* Enquiries List - ✅ FILTERED TO SHOW ONLY PENDING */}
             <div className="max-h-96 overflow-y-auto">
               {enquiries && enquiries.length > 0 ? (
-                enquiries.slice(0, 10).map((enquiry, idx) => (
+                enquiries
+                  // ✅ Filter to only show PENDING enquiries
+                  .filter(e => e.status && e.status.toLowerCase() === "pending")
+                  .slice(0, 10)
+                  .map((enquiry, idx) => (
                   <motion.div
                     key={enquiry._id || idx}
                     initial={{ opacity: 0, x: -20 }}
@@ -178,15 +213,22 @@ const NotificationBell = ({
               )}
             </div>
 
-            {/* Footer */}
-            {enquiries.length > 10 && (
-              <div className={`
-                p-3 border-t text-center text-sm font-medium cursor-pointer transition
-                ${theme === "dark"
-                  ? "border-[#3c4043] text-[#8ab4f8] hover:bg-[#3c4043]"
-                  : "border-gray-100 text-blue-600 hover:bg-gray-50"
-                }
-              `}>
+            {/* Footer - ✅ View All Enquiries button with onClick handler */}
+            {enquiries && enquiries.filter(e => e.status && e.status.toLowerCase() === "pending").length > 10 && (
+              <div 
+                onClick={() => {
+                  console.log("📋 View All Enquiries clicked");
+                  onViewAll();
+                  setShowDropdown(false);
+                }}
+                className={`
+                  p-3 border-t text-center text-sm font-medium cursor-pointer transition
+                  ${theme === "dark"
+                    ? "border-[#3c4043] text-[#8ab4f8] hover:bg-[#3c4043]"
+                    : "border-gray-100 text-blue-600 hover:bg-gray-50"
+                  }
+                `}
+              >
                 View all enquiries
               </div>
             )}

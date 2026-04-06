@@ -276,11 +276,11 @@ export const startAutoUnblockCronJob = (io) => {
 
 // ✅ NEW: Auto-cancel expired or clashing extension requests (runs every hour)
 export const startExtensionAutoCancelCronJob = (io) => {
-  console.log("🟢 Starting extension request auto-cancel cron job...");
+  console.log("🟢 Starting extension request auto-reject cron job...");
 
   cron.schedule("0 * * * *", async () => {
     const now = new Date();
-    console.log(`⏰ [${now.toISOString()}] Running extension request auto-cancel job...`);
+    console.log(`⏰ [${now.toISOString()}] Running extension request auto-reject job...`);
 
     try {
       const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
@@ -288,25 +288,34 @@ export const startExtensionAutoCancelCronJob = (io) => {
       const { sendEmailAdvanced } = await import("../emails/sendEmail.js");
       const extensionRejectedTemplate = (await import("../emails/templates/extensionRejected.js")).default;
 
+      // ✅ Date-only comparison (consistent with extension creation logic)
+      const toDateOnly = (d) => {
+        const dt = new Date(d);
+        return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      };
+      const todayDateOnly = toDateOnly(now);
+
       // Find all pending requests
       const pendingRequests = await ExtensionRequest.find({ status: "pending" }).populate("bookingId");
       
-      let expiredCount = 0;
+      let rejectedCount = 0;
 
       for (const req of pendingRequests) {
         if (!req.bookingId) continue; // Skip if booking deleted
 
-        let shouldExpire = false;
+        let shouldReject = false;
         let reason = "";
 
         // Condition 1: current date > original checkout date AND request still pending
-        if (now > new Date(req.oldCheckout)) {
-            shouldExpire = true;
-            reason = "Original checkout date has passed.";
+        // ✅ Use date-only comparison to avoid IST/UTC timezone issues
+        const checkoutDateOnly = toDateOnly(req.oldCheckout);
+        if (todayDateOnly > checkoutDateOnly) {
+            shouldReject = true;
+            reason = "Checkout date exceeded";
         }
 
         // Condition 2: Another booking created that clashes with requestedCheckout
-        if (!shouldExpire) {
+        if (!shouldReject) {
             const clash = await Booking.findOne({
                 hostel: req.hostel,
                 roomNo: req.bookingId.roomNo,
@@ -321,15 +330,16 @@ export const startExtensionAutoCancelCronJob = (io) => {
             });
             
             if (clash) {
-                shouldExpire = true;
+                shouldReject = true;
                 reason = "Room has been booked by another guest for the requested dates.";
             }
         }
 
-        if (shouldExpire) {
-            console.log(`🚫 Expiring extension request ${req._id}: ${reason}`);
+        if (shouldReject) {
+            console.log(`🚫 Auto-rejecting extension request ${req._id}: ${reason}`);
             
-            req.status = "expired";
+            // ✅ Set to "rejected" status — requests NEVER disappear, only change status
+            req.status = "rejected";
             req.rejectionReason = reason;
             await req.save();
             
@@ -340,32 +350,32 @@ export const startExtensionAutoCancelCronJob = (io) => {
                 roomNo: req.bookingId.roomNo,
                 oldCheckout: req.oldCheckout,
                 requestedCheckout: req.requestedCheckout,
-                reason: reason + " (Auto-expired)"
+                reason: reason
             });
             
             try {
                 await sendEmailAdvanced({
                     to: req.bookingId.email,
-                    subject: "Extension Request Expired",
+                    subject: "Extension Request Rejected",
                     html: emailHtml
                 });
             } catch (err) {
-                console.error("Failed to send expiry email:", err);
+                console.error("Failed to send rejection email:", err);
             }
             
-            expiredCount++;
+            rejectedCount++;
         }
       }
 
-      if (expiredCount > 0) {
-        console.log(`✅ Expired ${expiredCount} extension requests.`);
+      if (rejectedCount > 0) {
+        console.log(`✅ Auto-rejected ${rejectedCount} extension requests (checkout date exceeded or room clash).`);
         if (io) {
-            io.emit("extension-requests-expired", { count: expiredCount });
+            io.emit("extension-requests-updated", { count: rejectedCount, action: "rejected" });
         }
       }
 
     } catch (error) {
-      console.error("❌ Extension auto-cancel error:", error);
+      console.error("❌ Extension auto-reject error:", error);
     }
   });
 };

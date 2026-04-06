@@ -407,6 +407,10 @@ export default function VenueBookingDashboard() {
                 onEnquiryClick={(enquiry) => {
                   setActiveSection("enquiries");
                 }}
+                onViewAll={() => {
+                  // ✅ Navigate to enquiries section when "View All" is clicked
+                  setActiveSection("enquiries");
+                }}
                 theme={theme}
               />
 

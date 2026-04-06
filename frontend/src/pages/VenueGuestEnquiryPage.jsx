@@ -102,6 +102,7 @@ export default function VenueGuestEnquiryPage() {
   const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
   const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
   const [availabilityStatus, setAvailabilityStatus] = useState(null);
+  const [attachmentError, setAttachmentError] = useState("");
   
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
@@ -257,6 +258,8 @@ export default function VenueGuestEnquiryPage() {
         ...prev,
         files: [...prev.files, fileUrl]
       }));
+      // ✅ Clear attachment error when file is uploaded
+      setAttachmentError("");
       showToast("File uploaded successfully", "success");
     }
     setUploading(false);
@@ -353,6 +356,15 @@ export default function VenueGuestEnquiryPage() {
       showToast("Please enter a valid president email", "warning");
       return false;
     }
+    
+    // ✅ MANDATORY: Validate attachment is required
+    if (!form.files || form.files.length === 0) {
+      setAttachmentError("Attachment is required to submit the enquiry.");
+      showToast("Attachment is required to submit the enquiry.", "warning");
+      return false;
+    }
+    // Clear error if validation passes
+    setAttachmentError("");
     
     // Validate end is after start
     const start = new Date(`${form.checkInDate}T${form.checkInTime}`);
@@ -920,7 +932,16 @@ export default function VenueGuestEnquiryPage() {
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         <Upload className="w-4 h-4 inline mr-1" />
                         Attachments (Max 5 files, 5MB each)
+                        <span className="text-red-600 ml-1">*</span>
                       </label>
+                      
+                      {/* ✅ Attachment validation error */}
+                      {attachmentError && (
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-red-700 font-medium">{attachmentError}</span>
+                        </div>
+                      )}
                       
                       {form.files.length < IMAGEKIT_CONFIG.MAX_FILES && (
                         <IKUpload
@@ -975,7 +996,7 @@ export default function VenueGuestEnquiryPage() {
                     <div className="flex justify-center">
                       <button
                         type="submit"
-                        disabled={uploading || isSubmitting || availabilityStatus === "overlap" || availabilityStatus === "invalid" || availabilityStatus === "checking"}
+                        disabled={uploading || isSubmitting || availabilityStatus === "overlap" || availabilityStatus === "invalid" || availabilityStatus === "checking" || form.files.length === 0}
                         className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isSubmitting ? (
