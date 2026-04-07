@@ -146,7 +146,7 @@ const NAV = [
     { label: "Society Night Pass",  action: "cs" },
   ]},
   { label: "Services", items: [
-    { label: "Lost & Found", href: "https://lost-and-found-portal-six.vercel.app/" },
+    { label: "Lost & Found", href: "https://campusconnect.thapar.edu/lostnfound" },
   ]},
   { label: "Support", items: [
     { label: "Any Queries",     action: "q1" },
@@ -192,7 +192,7 @@ const ALL_CARDS = {
   "lost-found": {
     id: "lost-found", title: "Lost & Found", sub: "Online Portal",
     Icon: Search, iconBg: "#fff3e0", iconColor: "#c2410c", dot: "#fb923c",
-    href: "https://lost-and-found-portal-six.vercel.app/",
+    href: "https://campusconnect.thapar.edu/lostnfound",
     bullets: ["Report Lost Items Online","Browse Found Item Listings","Photo Upload & Description","Claim & Handover Process"],
   },
   "community-feedback": {
@@ -218,7 +218,7 @@ const ECHO_RESPONSES = [
   { match: ["society","club","late"],
     reply: "Society Night Pass is coming soon! We're working on integrating it into this portal." },
   { match: ["lost","found","item"],
-    reply: "Visit the Lost & Found portal at https://lost-and-found-portal-six.vercel.app to report or search for lost items." },
+    reply: "Visit the Lost & Found portal at https://campusconnect.thapar.edu/lostnfound to report or search for lost items." },
   { match: ["login","admin","staff"],
     reply: "Admin/Staff login is at https://campusconnect.thapar.edu/login. Use your institutional credentials." },
   { match: ["help","support","query","contact"],

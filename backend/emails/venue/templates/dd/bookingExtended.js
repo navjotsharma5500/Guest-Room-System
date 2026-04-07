@@ -24,6 +24,7 @@ export default function bookingExtended(data) {
         padding:18px 20px;
         margin:18px 0;
         font-size:14.5px;
+        text-align:left;
       ">
         <div style="font-weight:600;margin-bottom:10px;color:#ea580c;">
           Updated Booking Details
@@ -43,15 +44,14 @@ export default function bookingExtended(data) {
       </div>
       ` : ''}
 
-      <p style="font-weight:600;margin-bottom:6px;">
+      <p style="font-weight:600;margin-bottom:6px;text-align:left;">
         Instructions:
       </p>
 
-      <ul style="padding-left:18px;margin-top:6px;">
-        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly <a href="mailto:sukhdevsingh@thapar.edu">sukhdevsingh@thapar.edu</a></strong></li>
+      <ul style="padding-left:18px;margin-top:6px;text-align:left;">
+        <li><strong style="color:#2563eb;">For any PA / WiFi / Technical Requirements Contact CITM Office Directly at <a href="mailto:sukhdevsingh@thapar.edu">sukhdevsingh@thapar.edu</a></strong></li>
         <li>If you have any scheduled arrangements, please update them according to the new booking time</li>
-        <li>Contact the ProVC Office for any queries regarding your booking extension</li>
-        <li>Keep this email for your records</li>
+        <li>Contact the ProVC Office for any queries regarding your booking extension</li>        <li><strong style="color:#dc2626;">In the event of an emergency, the institute reserves the right to relocate the originally booked venue to an alternative venue.</strong></li>        <li>Keep this email for your records</li>
       </ul>
 
       <p>

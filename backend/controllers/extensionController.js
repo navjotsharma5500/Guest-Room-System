@@ -2,6 +2,7 @@
 import ExtensionRequest from "../models/ExtensionRequest.js";
 import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
+import User from "../models/User.js";
 import { sendEmailAdvanced } from "../emails/sendEmail.js";
 import extensionRequestTemplate from "../emails/templates/extensionRequest.js";
 import extensionRejectedTemplate from "../emails/templates/extensionRejected.js";
@@ -12,6 +13,30 @@ import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
 // ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
 const ADOSA_EMAILS = ["adosa2@thapar.edu"];
+
+// ✅ NEW: Helper function to get hostel warden and caretaker emails
+const getHostelStaffEmails = async (hostel) => {
+    try {
+        const staffEmails = [];
+        
+        // Find warden for this hostel
+        const warden = await User.findOne({ role: "warden", hostel: hostel });
+        if (warden && warden.email) {
+            staffEmails.push(warden.email);
+        }
+        
+        // Find caretaker for this hostel
+        const caretaker = await User.findOne({ role: "caretaker", assignedHostel: hostel });
+        if (caretaker && caretaker.email) {
+            staffEmails.push(caretaker.email);
+        }
+        
+        return staffEmails;
+    } catch (error) {
+        console.error("Error fetching hostel staff emails:", error);
+        return [];
+    }
+};
 
 export const createExtensionRequest = async (req, res) => {
     try {
@@ -238,6 +263,9 @@ export const approveExtensionRequest = async (req, res) => {
         try {
             await sendBookingEmails(booking, "extended");
             
+            // ✅ Get hostel staff emails (warden and caretaker)
+            const staffEmails = await getHostelStaffEmails(booking.hostel);
+            
             // Send specific approval email to guest
             const approvalEmailHtml = extensionApprovedTemplate({
                 guestName: booking.guest,
@@ -247,11 +275,40 @@ export const approveExtensionRequest = async (req, res) => {
                 approvedAmount: request.approvedAmount
             });
             
+            // ✅ Send to guest
             await sendEmailAdvanced({
                 to: booking.email,
                 subject: "Extension Request Approved",
                 html: approvalEmailHtml
             });
+            
+            // ✅ Send to hostel warden and caretaker (if available)
+            if (staffEmails.length > 0) {
+                const staffNotificationHtml = `
+                    <div style="font-family: Arial, sans-serif; color: #333;">
+                        <h2 style="color: #27ae60;">Extension Request Approved</h2>
+                        <p>An extension request has been <strong>approved</strong> for:</p>
+                        <ul>
+                            <li><strong>Guest:</strong> ${booking.guest}</li>
+                            <li><strong>Room:</strong> ${booking.roomNo}</li>
+                            <li><strong>Original Checkout:</strong> ${new Date(oldToDate).toLocaleDateString('en-IN')}</li>
+                            <li><strong>New Checkout:</strong> ${new Date(finalCheckout).toLocaleDateString('en-IN')}</li>
+                            <li><strong>Approved Amount:</strong> ₹${request.approvedAmount || 0}</li>
+                        </ul>
+                        <p style="margin-top: 20px; color: #666;">Please ensure the room status is updated accordingly.</p>
+                    </div>
+                `;
+                
+                try {
+                    await sendEmailAdvanced({
+                        to: staffEmails,
+                        subject: `[FYI] Extension Approved - ${booking.hostel} Room ${booking.roomNo}`,
+                        html: staffNotificationHtml
+                    });
+                } catch (staffEmailError) {
+                    console.warn("Failed to send extension approval notification to hostel staff:", staffEmailError);
+                }
+            }
             
         } catch (emailError) {
             console.error("Failed to send extension approval email:", emailError);
@@ -282,6 +339,9 @@ export const rejectExtensionRequest = async (req, res) => {
         
         await request.save();
         
+        // ✅ Get hostel staff emails (warden and caretaker)
+        const staffEmails = await getHostelStaffEmails(request.hostel);
+        
         const emailHtml = extensionRejectedTemplate({
             guestName: request.bookingId.guest,
             hostel: request.bookingId.hostel,
@@ -292,11 +352,41 @@ export const rejectExtensionRequest = async (req, res) => {
         });
 
         try {
+            // ✅ Send to guest
             await sendEmailAdvanced({
                 to: request.bookingId.email,
                 subject: "Extension Request Rejected",
                 html: emailHtml
             });
+            
+            // ✅ Send to hostel warden and caretaker (if available)
+            if (staffEmails.length > 0) {
+                const staffNotificationHtml = `
+                    <div style="font-family: Arial, sans-serif; color: #333;">
+                        <h2 style="color: #e74c3c;">Extension Request Rejected</h2>
+                        <p>An extension request has been <strong>rejected</strong> for:</p>
+                        <ul>
+                            <li><strong>Guest:</strong> ${request.bookingId.guest}</li>
+                            <li><strong>Room:</strong> ${request.bookingId.roomNo}</li>
+                            <li><strong>Original Checkout:</strong> ${new Date(request.oldCheckout).toLocaleDateString('en-IN')}</li>
+                            <li><strong>Requested Checkout:</strong> ${new Date(request.requestedCheckout).toLocaleDateString('en-IN')}</li>
+                            <li><strong>Rejection Reason:</strong> ${reason}</li>
+                        </ul>
+                        <p style="margin-top: 20px; color: #666;">The guest has been notified accordingly.</p>
+                    </div>
+                `;
+                
+                try {
+                    await sendEmailAdvanced({
+                        to: staffEmails,
+                        subject: `[FYI] Extension Rejected - ${request.hostel} Room ${request.bookingId.roomNo}`,
+                        html: staffNotificationHtml
+                    });
+                } catch (staffEmailError) {
+                    console.warn("Failed to send extension rejection notification to hostel staff:", staffEmailError);
+                }
+            }
+            
         } catch (emailError) {
              console.error("Failed to send extension rejection email:", emailError);
         }

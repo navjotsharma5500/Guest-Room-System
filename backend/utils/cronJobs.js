@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { autoCancelNoShows, autoCheckoutOverdueGuests } from "../controllers/bookingController.js";
 import Hostel from "../models/Hostel.js";
+import User from "../models/User.js";
 
 export const startNoShowCronJob = (io) => {
   console.log("🟢 Starting no-show auto-cancel cron job...");
@@ -306,12 +307,14 @@ export const startExtensionAutoCancelCronJob = (io) => {
         let shouldReject = false;
         let reason = "";
 
-        // Condition 1: current date > original checkout date AND request still pending
-        // ✅ Use date-only comparison to avoid IST/UTC timezone issues
-        const checkoutDateOnly = toDateOnly(req.oldCheckout);
-        if (todayDateOnly > checkoutDateOnly) {
+        // ✅ FIXED: Check if guest has already checked out (current date >= booking's checkout date)
+        // Once the guest checks out, extending is meaningless. We must auto-reject to prevent
+        // approving extensions AFTER the guest has already left the room.
+        const bookingCheckoutDateOnly = toDateOnly(req.bookingId.to);
+        if (todayDateOnly >= bookingCheckoutDateOnly) {
             shouldReject = true;
-            reason = "Checkout date exceeded";
+            reason = "Extension request expired (guest checkout date has passed)";
+            console.log(`📅 Request ${req._id}: Guest checkout date (${bookingCheckoutDateOnly}) passed`);
         }
 
         // Condition 2: Another booking created that clashes with requestedCheckout
@@ -354,11 +357,47 @@ export const startExtensionAutoCancelCronJob = (io) => {
             });
             
             try {
+                // ✅ Send to guest
                 await sendEmailAdvanced({
                     to: req.bookingId.email,
-                    subject: "Extension Request Rejected",
+                    subject: "Extension Request Rejected (Auto)",
                     html: emailHtml
                 });
+                
+                // ✅ Send to hostel warden and caretaker
+                const warden = await User.findOne({ role: "warden", hostel: req.hostel });
+                const caretaker = await User.findOne({ role: "caretaker", assignedHostel: req.hostel });
+                
+                const staffEmails = [];
+                if (warden && warden.email) staffEmails.push(warden.email);
+                if (caretaker && caretaker.email) staffEmails.push(caretaker.email);
+                
+                if (staffEmails.length > 0) {
+                    const staffNotificationHtml = `
+                        <div style="font-family: Arial, sans-serif; color: #333;">
+                            <h2 style="color: #e74c3c;">Extension Request Auto-Rejected</h2>
+                            <p>An extension request has been <strong>automatically rejected</strong> for:</p>
+                            <ul>
+                                <li><strong>Guest:</strong> ${req.bookingId.guest}</li>
+                                <li><strong>Room:</strong> ${req.bookingId.roomNo}</li>
+                                <li><strong>Original Checkout:</strong> ${new Date(req.oldCheckout).toLocaleDateString('en-IN')}</li>
+                                <li><strong>Requested Checkout:</strong> ${new Date(req.requestedCheckout).toLocaleDateString('en-IN')}</li>
+                                <li><strong>Rejection Reason:</strong> ${reason}</li>
+                            </ul>
+                            <p style="margin-top: 20px; color: #666;">The guest has been notified accordingly.</p>
+                        </div>
+                    `;
+                    
+                    try {
+                        await sendEmailAdvanced({
+                            to: staffEmails,
+                            subject: `[FYI] Extension Auto-Rejected - ${req.hostel} Room ${req.bookingId.roomNo}`,
+                            html: staffNotificationHtml
+                        });
+                    } catch (staffEmailError) {
+                        console.warn("Failed to send auto-rejection notification to hostel staff:", staffEmailError);
+                    }
+                }
             } catch (err) {
                 console.error("Failed to send rejection email:", err);
             }
@@ -368,7 +407,7 @@ export const startExtensionAutoCancelCronJob = (io) => {
       }
 
       if (rejectedCount > 0) {
-        console.log(`✅ Auto-rejected ${rejectedCount} extension requests (checkout date exceeded or room clash).`);
+        console.log(`✅ Auto-rejected ${rejectedCount} extension requests (guest checkout date passed or room clash).`);
         if (io) {
             io.emit("extension-requests-updated", { count: rejectedCount, action: "rejected" });
         }
