@@ -46,6 +46,7 @@ import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
 import CommunityFeedbackPage from "./pages/CommunityFeedbackPage";
+import PublicVenueCalendar from "./pages/PublicVenueCalendar";
 
 // ============================================================================
 // STYLES
@@ -280,6 +281,7 @@ export default function App() {
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<AboutUsPage />} />
           <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />
+          <Route path="/venue-calendar"       element={<PublicVenueCalendar />} />
 
           {/* ================================================================
               QR CODE GENERATOR (admin only)

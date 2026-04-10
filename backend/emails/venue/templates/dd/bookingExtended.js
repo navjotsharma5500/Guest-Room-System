@@ -24,7 +24,7 @@ export default function bookingExtended(data) {
         padding:18px 20px;
         margin:18px 0;
         font-size:14.5px;
-        text-align:left;
+        text-align:center;
       ">
         <div style="font-weight:600;margin-bottom:10px;color:#ea580c;">
           Updated Booking Details

@@ -22,6 +22,7 @@ export default function bookingCancelled(data) {
         padding:18px 20px;
         margin:18px 0;
         font-size:14.5px;
+        text-align:center;
       ">
         <div style="font-weight:600;margin-bottom:10px;color:#dc2626;">
           Booking Details

@@ -192,8 +192,10 @@ export default function CommunityFeedbackPage() {
         ...(search.trim() && { search: search.trim() }),
       });
       const res  = await fetch(`${BACKEND}/api/community/posts?${params}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch posts: ${res.status}`);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
       const incoming = data.posts || [];
       setPosts(prev => reset ? incoming : [...prev, ...incoming]);
       setHasMore(incoming.length === 10);

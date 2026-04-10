@@ -488,17 +488,29 @@ export default function PublicEventCalendar() {
             </h1>
           </div>
 
-          {/* Right: Back button */}
-          <a href="/"
-            className={`hidden sm:flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
-              theme === "dark"
-                ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
-                : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
-            }`}
-            style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
-          >
-            <ArrowLeft size={14} /> Back to Portal
-          </a>
+          {/* Right: Actions buttons */}
+          <div className="hidden sm:flex items-center gap-3">
+            <a href="https://campusconnect.thapar.edu/venue-calendar"
+              className={`flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
+                theme === "dark"
+                  ? "border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-400"
+                  : "border-gray-200 text-gray-600 hover:border-purple-600 hover:text-purple-600"
+              }`}
+              style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
+            >
+              <CalendarIcon size={14} /> Venue Booking
+            </a>
+            <a href="/"
+              className={`flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
+                theme === "dark"
+                  ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
+                  : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
+              }`}
+              style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
+            >
+              <ArrowLeft size={14} /> Back to Portal
+            </a>
+          </div>
         </div>
       </header>
 
