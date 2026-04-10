@@ -91,8 +91,9 @@ const createVenueBookingCore = async (req, res) => {
     return res.status(400).json({ message: 'At least one room is required' });
   }
 
-  if (!name || !societyName || !eventName || !contact || !email) {
-    return res.status(400).json({ message: 'All mandatory fields are required' });
+  // Required: name, eventName, email | Optional: societyName, contact
+  if (!name || !eventName || !email) {
+    return res.status(400).json({ message: 'Name, event name, and email are mandatory fields' });
   }
 
   if (!checkInDate || !checkInTime || !checkOutDate || !checkOutTime) {
@@ -103,7 +104,8 @@ const createVenueBookingCore = async (req, res) => {
     return res.status(400).json({ message: 'At least one attachment is required' });
   }
 
-  if (!/^\d{10}$/.test(contact)) {
+  // Contact is optional but must be 10 digits if provided
+  if (contact && !/^\d{10}$/.test(contact)) {
     return res.status(400).json({ message: 'Contact must be exactly 10 digits' });
   }
 

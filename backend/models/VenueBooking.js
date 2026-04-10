@@ -20,8 +20,8 @@ const venueBookingSchema = new mongoose.Schema({
   },
   societyName: {
     type: String,
-    required: true,
     trim: true,
+    default: '',
   },
   eventName: {
     type: String,
@@ -35,8 +35,14 @@ const venueBookingSchema = new mongoose.Schema({
   },
   contact: {
     type: String,
-    required: true,
-    match: /^\d{10}$/,
+    default: '',
+    validate: {
+      validator: function(v) {
+        // Empty string is valid (optional), or must be exactly 10 digits
+        return v === '' || /^\d{10}$/.test(v);
+      },
+      message: 'Contact must be exactly 10 digits if provided'
+    }
   },
   email: {
     type: String,
