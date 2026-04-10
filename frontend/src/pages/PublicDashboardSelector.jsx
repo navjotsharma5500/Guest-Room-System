@@ -242,7 +242,13 @@ function Toast({ msg, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
     <motion.div initial={{ opacity:0, y:40 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:40 }}
-      style={{ position:"fixed", bottom:96, left:"50%", transform:"translateX(-50%)",
+      style={{ 
+      position:"fixed",
+      bottom:96,
+      left:0,
+      right:0,
+      margin:"0 auto",
+      width:"fit-content",
                background:"#1f2937", color:"#fff", padding:"10px 22px", borderRadius:100,
                fontSize:13, fontWeight:500, display:"flex", alignItems:"center", gap:8,
                whiteSpace:"nowrap", zIndex:600, boxShadow:"0 4px 20px rgba(0,0,0,.3)" }}>
@@ -346,7 +352,7 @@ function NavItem({ item, onAction }) {
 /* ═══════════════════════════════════════════════════
    SERVICE CARD
 ═══════════════════════════════════════════════════ */
-function Card({ card, onAction, cardStyle, accentColor }) {
+function Card({ card, onAction, cardStyle, accentColor, libraryToastShows }) {
   const { Icon } = card;
   const [hov, setHov] = useState(false);
 
@@ -361,7 +367,24 @@ function Card({ card, onAction, cardStyle, accentColor }) {
   return (
     <div
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      onClick={() => { if(card.href) window.open(card.href,"_blank"); else if(card.action) onAction(card.action); }}
+      onClick={() => {
+
+        // 🎯 Library Night Pass control
+        if (card.id === "library-pass") {
+
+          if (libraryToastShows) {
+            onAction("library-toast");
+            return;
+          } else {
+            window.open("https://permissions.thapar.edu/", "_blank");
+            return;
+          }
+        }
+
+        // default behavior
+        if(card.href) window.open(card.href,"_blank");
+        else if(card.action) onAction(card.action);
+      }}
       style={{ background:"#fff", borderRadius:16, border:borderStyle, padding:"24px 24px 20px",
                cursor:"pointer", display:"flex", flexDirection:"column", height:"100%",
                transition:"border-color .2s, box-shadow .2s, transform .2s",
@@ -688,6 +711,13 @@ export default function ThaparPublicDashboard() {
   const [chat,    setChat]    = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
+  // ── LIBRARY NIGHT PASS CONTROL ──
+  const LIBRARY_START_DATE = new Date("2026-05-07");
+
+  // auto switch based on date
+  const libraryToastShows = true;  // show toast
+  // const libraryToastShows = false; // open site
+
   // ── prefs (mirrors original pattern) ──
   const [prefs, setPrefs] = useState(() => readLocalPrefs() || makeDefaultPrefs());
 
@@ -745,6 +775,9 @@ export default function ThaparPublicDashboard() {
     else if (a==="q2")        setModal("q2");
     else if (a==="about")     navigate("/about-us");
     else if (a==="community") navigate("/community-feedback");
+    else if (a === "library-toast") {
+      setToast("Library Night Pass facility will commence from 7th May 2026 for the upcoming examination period.");
+    }
   };
 
   // ── page background from theme ──
@@ -835,7 +868,8 @@ export default function ThaparPublicDashboard() {
                 transition={{ duration:.35, delay:i*.06 }}>
                 <Card card={c} onAction={act}
                   cardStyle={prefs.cardStyle}
-                  accentColor={prefs.accentColor}/>
+                  accentColor={prefs.accentColor}
+                  libraryToastShows={libraryToastShows}/>
               </motion.div>
             ))}
           </div>
