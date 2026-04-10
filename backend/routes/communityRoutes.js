@@ -37,8 +37,13 @@ function communityAuth(req, res, next) {
 }
 
 /* ─────────────────────────────────────────
-   AUTH
+   AUTH & DEBUG
 ───────────────────────────────────────── */
+// GET /api/community/health - Debug endpoint to verify routes are working
+router.get("/health", (req, res) => {
+  res.json({ message: "Community routes are working!", status: "ok", timestamp: new Date().toISOString() });
+});
+
 // POST /api/community/auth/google
 // Body: { credential: <Google ID token> }
 router.post("/auth/google", googleAuth);

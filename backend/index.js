@@ -425,6 +425,13 @@ console.log('✅ Guest room routes registered at /api/bookings (isolated)');
 console.log('✅ Unified booking routes registered at /api/unified-bookings (optional)');
 console.log('✅ Community routes mounted at /api/community');
 
+// Verify community routes are properly loaded
+if (!communityRoutes || typeof communityRoutes !== 'object') {
+  console.error('❌ CRITICAL: Community routes failed to load properly');
+} else {
+  console.log('✅ Community routes loaded successfully:', typeof communityRoutes);
+}
+
 /* =========================================================
    SOCKET.IO HANDLER
 ========================================================= */
@@ -512,6 +519,26 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
   });
+});
+
+/* =========================================================
+   404 NOT FOUND HANDLER (must be before error handler)
+========================================================= */
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({
+      success: false,
+      message: `API endpoint not found: ${req.method} ${req.path}`,
+      availableEndpoints: {
+        community: "/api/community/posts, /api/community/auth/google, etc.",
+        auth: "/api/auth/*",
+        bookings: "/api/bookings/*",
+        enquiry: "/api/enquiry/*",
+        feedback: "/api/feedback/*",
+      }
+    });
+  }
+  next();
 });
 
 /* =========================================================
