@@ -829,8 +829,8 @@ export default function PublicVenueCalendar() {
             <div className="bg-slate-800 rounded-2xl p-4 text-white">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contact</p>
               <p className="text-xs text-slate-300 leading-relaxed">For venue queries, contact DoSA Office:</p>
-              <a href="mailto:dosa.office@thapar.edu" className="text-xs text-blue-400 hover:text-blue-300 mt-1 block">
-                dosa.office@thapar.edu
+              <a href="mailto:shabnam.rani@thapar.edu" className="text-xs text-blue-400 hover:text-blue-300 mt-1 block">
+                shabnam.rani@thapar.edu
               </a>
               <p className="text-xs text-slate-500 mt-1">Mon – Fri · 9 AM – 5:30 PM</p>
               <a
