@@ -19,7 +19,11 @@ export const PERMISSIONS = {
   SIDEBAR_HOSTELS: "sidebar.hostels",
   ENQUIRY_VIEW: "enquiry.view",
   ENQUIRY_DOWNLOAD: "enquiry.download",
-
+  
+  // Society Budget
+  SOCIETY_BUDGET_VIEW:   "societyBudget.view",
+  SOCIETY_BUDGET_MANAGE: "societyBudget.manage",
+  
   // Night
   NIGHT_SCAN: "night.scan",
   NIGHT_ROLE: "night.role",

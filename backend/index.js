@@ -46,6 +46,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
 import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
+import societyBudgetRoutes from "./routes/societyBudgetRoutes.js";
 
 const app = express();
 
@@ -418,6 +419,7 @@ app.use('/api/ai', aiRoutes);
 app.use("/api/analytics", awsAnalyticsRoutes);
 app.use("/api/public-ui", publicUiConfigRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/societies", societyBudgetRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");

@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import Creator from "../Creator";
+import { Wallet } from "lucide-react"; 
 import { getEnabledVenueRoomsConfig } from "../../config/venueRoomsConfig";
 
 export default function VenueSidebar({ theme, onNavigate, activeSection = "home", currentUser }) {
@@ -30,6 +31,7 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
     { id: "enquiries", label: "Enquiries", icon: FileText },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "society-budget",   label: "Society Budget",  icon: Wallet },
   ];
 
   const venueTree = useMemo(() => getEnabledVenueRoomsConfig(), []);

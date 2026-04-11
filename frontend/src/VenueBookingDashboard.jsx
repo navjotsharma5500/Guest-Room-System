@@ -20,6 +20,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfileModal from "./components/ProfileModal";
 import VenueExtensionModal from "./components/VenueBookings/VenueExtensionModal";
 import NotificationBell from "./components/NotificationBell";
+import SocietyBudgetPage from "./pages/SocietyBudgetPage";
 
 import { ToastProvider, useToast } from "./context/ToastContext";
 import { useAuth } from "./context/AuthContext.js";
@@ -576,6 +577,14 @@ export default function VenueBookingDashboard() {
                 theme={theme}
                 currentUser={currentUser}
                 onBack={() => handleNavigate("home")}
+              />
+            )}
+
+            {/* Society Budget */}
+            {activeSection === "society-budget" && (
+              <SocietyBudgetPage
+                theme={theme}
+                currentUser={currentUser}
               />
             )}
 
