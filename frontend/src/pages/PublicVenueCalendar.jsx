@@ -210,6 +210,31 @@ const fetchUpcoming = async () => {
   return Array.isArray(data?.events) ? data.events : [];
 };
 
+// ─── MOBILE TAB BAR ──────────────────────────────────────────────────────────
+function MobileTabBar({ activeTab, onTabChange, bookingCount }) {
+  return (
+    <div className="lg:hidden sticky top-14 z-20 bg-white border-b border-slate-200 flex">
+      {[
+        { id: "bookings", label: `Bookings${bookingCount > 0 ? ` (${bookingCount})` : ""}` },
+        { id: "calendar", label: "Calendar" },
+        { id: "venues",   label: "Venues" },
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 py-2.5 text-xs font-semibold transition-colors border-b-2 ${
+            activeTab === tab.id
+              ? "border-slate-800 text-slate-800"
+              : "border-transparent text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── MINI CALENDAR ────────────────────────────────────────────────────────────
 function MiniCalendar({ currentDate, selectedDateKey, onDateSelect, onMonthChange, eventsForDate }) {
   const year       = currentDate.getFullYear();
@@ -284,106 +309,100 @@ function BookingDetailModal({ event, todayStr, currentMinutes, onClose }) {
   const color  = getVenueColor(event.roomId);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+    <div
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
-      <motion.div
-        initial={{ scale: 0.95, y: 16 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 16 }}
+      <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg overflow-hidden"
       >
         {/* Color stripe */}
-        <div className="h-1.5" style={{ background: color }} />
+        <div className="h-1" style={{ background: color }} />
 
-        <div className="p-6">
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-2.5 sm:hidden">
+          <div className="w-8 h-1 rounded-full bg-slate-200" />
+        </div>
+
+        <div className="p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex-1 min-w-0">
               <span
-                className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full mb-2"
+                className="inline-block text-[11px] font-medium px-2 py-0.5 rounded mb-1.5"
                 style={{ background: cfg.bg, color: cfg.text }}
               >
                 {cfg.label}
               </span>
-              <h3 className="text-xl font-bold text-slate-800 leading-snug">{event.eventName}</h3>
-              <p className="text-sm font-semibold mt-1" style={{ color }}>{event.societyName}</p>
+              <h3 className="text-base font-semibold text-slate-800 leading-snug">{event.eventName}</h3>
+              <p className="text-xs font-medium mt-0.5" style={{ color }}>{event.societyName}</p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition flex-shrink-0">
-              <X size={18} />
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition flex-shrink-0">
+              <X size={16} />
             </button>
           </div>
 
-          {/* Detail cards */}
-          <div className="space-y-2.5">
-            {/* Start */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <CalendarDays size={16} className="text-slate-400 flex-shrink-0" />
+          {/* Detail rows — compact on mobile */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+              <CalendarDays size={14} className="text-slate-400 flex-shrink-0" />
               <div>
                 <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Start</p>
-                <p className="text-sm font-semibold text-slate-700">
+                <p className="text-xs font-medium text-slate-700">
                   {shortDate(event.startDate || event.eventDate)}
-                  {event.eventTime && <span className="text-slate-500 font-normal ml-1.5">at {formatTime(event.eventTime)}</span>}
+                  {event.eventTime && <span className="text-slate-500 font-normal ml-1">at {formatTime(event.eventTime)}</span>}
                 </p>
               </div>
             </div>
 
-            {/* End */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <Clock size={16} className="text-slate-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+              <Clock size={14} className="text-slate-400 flex-shrink-0" />
               <div>
                 <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">End</p>
-                <p className="text-sm font-semibold text-slate-700">
+                <p className="text-xs font-medium text-slate-700">
                   {shortDate(event.endDate || event.eventDate)}
-                  {event.checkOutTime && <span className="text-slate-500 font-normal ml-1.5">at {formatTime(event.checkOutTime)}</span>}
+                  {event.checkOutTime && <span className="text-slate-500 font-normal ml-1">at {formatTime(event.checkOutTime)}</span>}
                 </p>
               </div>
             </div>
 
-            {/* Venue */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <MapPin size={16} className="text-slate-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+              <MapPin size={14} className="text-slate-400 flex-shrink-0" />
               <div>
                 <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Venue</p>
-                <p className="text-sm font-semibold text-slate-700">
+                <p className="text-xs font-medium text-slate-700">
                   {event.eventHall?.roomNo || event.eventHall?.hall || "–"}
                 </p>
                 {event.eventHall?.roomNo && event.eventHall?.hall && event.eventHall.roomNo !== event.eventHall.hall && (
-                  <p className="text-xs text-slate-400">{event.eventHall.hall}</p>
+                  <p className="text-[11px] text-slate-400">{event.eventHall.hall}</p>
                 )}
               </div>
             </div>
 
-            {/* Society */}
             {event.societyName && (
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <Users size={16} className="text-slate-400 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                <Users size={14} className="text-slate-400 flex-shrink-0" />
                 <div>
                   <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Organised By</p>
-                  <p className="text-sm font-semibold text-slate-700">{event.societyName}</p>
+                  <p className="text-xs font-medium text-slate-700">{event.societyName}</p>
                 </div>
               </div>
             )}
 
-            {/* Description */}
             {event.description && (
-              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <FileText size={16} className="text-slate-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                <FileText size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider mb-1">Description</p>
-                  <p className="text-sm text-slate-600 leading-relaxed">{event.description}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">{event.description}</p>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
@@ -394,14 +413,10 @@ function BookingCard({ event, todayStr, currentMinutes, onClick }) {
   const color  = getVenueColor(event.roomId);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      whileHover={{ scale: 1.012, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}
+    <div
       onClick={() => onClick(event)}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm flex items-stretch cursor-pointer overflow-hidden hover:border-slate-200 transition-all"
+      style={{ minHeight: "80px" }}
+      className="bg-white rounded-xl border border-slate-200 flex items-stretch cursor-pointer overflow-hidden hover:border-slate-300 transition-colors"
     >
       {/* Color bar */}
       <div className="w-1 flex-shrink-0" style={{ background: color }} />
@@ -411,14 +426,14 @@ function BookingCard({ event, todayStr, currentMinutes, onClick }) {
         <div className="flex items-start justify-between gap-2">
           <h4 className="text-sm font-semibold text-slate-800 leading-snug">{event.eventName}</h4>
           <span
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+            className="text-[11px] font-medium px-2 py-0.5 rounded flex-shrink-0"
             style={{ background: cfg.bg, color: cfg.text }}
           >
             {cfg.label}
           </span>
         </div>
         {event.societyName && (
-          <p className="text-xs text-slate-400 mt-0.5 truncate">{event.societyName}</p>
+          <p className="text-xs text-slate-500 mt-0.5 truncate">{event.societyName}</p>
         )}
         <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
           <span className="flex items-center gap-1">
@@ -432,13 +447,13 @@ function BookingCard({ event, todayStr, currentMinutes, onClick }) {
           </span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 // ─── VENUE SIDEBAR TREE ───────────────────────────────────────────────────────
 function VenueTreeSidebar({ allEvents, selectedDateKey, selectedRoomId, onRoomSelect, todayStr }) {
-  const [openGroups, setOpenGroups] = useState({ auditoriums: true });
+  const [openGroups, setOpenGroups] = useState({});
 
   // Count bookings for a roomId on selectedDate
   const countForRoom = useCallback(
@@ -468,13 +483,13 @@ function VenueTreeSidebar({ allEvents, selectedDateKey, selectedRoomId, onRoomSe
       {/* "All Venues" option */}
       <button
         onClick={() => onRoomSelect(null)}
-        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
           selectedRoomId === null
             ? "bg-slate-800 text-white"
-            : "text-slate-600 hover:bg-slate-50"
+            : "text-slate-600 hover:bg-slate-100"
         }`}
       >
-        <Building2 size={15} />
+        <Building2 size={14} />
         <span className="flex-1 text-left">All Venues</span>
         {(() => {
           const total = allEvents.filter(
@@ -497,10 +512,10 @@ function VenueTreeSidebar({ allEvents, selectedDateKey, selectedRoomId, onRoomSe
             {/* Group header */}
             <button
               onClick={() => toggleGroup(group.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
             >
-              <span className="text-base leading-none">{group.icon}</span>
-              <span className="flex-1 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-sm leading-none">{group.icon}</span>
+              <span className="flex-1 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 {group.label}
               </span>
               {groupCount > 0 && (
@@ -512,59 +527,52 @@ function VenueTreeSidebar({ allEvents, selectedDateKey, selectedRoomId, onRoomSe
                 </span>
               )}
               <ChevronDown
-                size={14}
-                className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                size={13}
+                className="text-slate-400"
               />
             </button>
 
             {/* Rooms */}
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden pl-3"
-                >
-                  {group.rooms.map((room) => {
-                    const count    = countForRoom(room.id);
-                    const isActive = selectedRoomId === room.id;
+            {isOpen && (
+              <div className="pl-3">
+                {group.rooms.map((room) => {
+                  const count    = countForRoom(room.id);
+                  const isActive = selectedRoomId === room.id;
 
-                    return (
-                      <motion.button
-                        key={room.id}
-                        whileHover={{ x: 2 }}
-                        onClick={() => onRoomSelect(room.id)}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all mb-0.5 ${
-                          isActive
-                            ? "text-white font-semibold"
-                            : count > 0
-                            ? "text-slate-700 hover:bg-slate-50 font-medium"
-                            : "text-slate-400 hover:bg-slate-50"
-                        }`}
-                        style={isActive ? { background: group.color } : {}}
-                      >
-                        <div
-                          className="w-2 h-2 rounded-sm flex-shrink-0"
-                          style={{ background: isActive ? "rgba(255,255,255,0.7)" : group.color }}
-                        />
-                        <span className="flex-1 text-left text-xs truncate">{room.label}</span>
-                        {count > 0 && (
-                          <span
-                            className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${
-                              isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
-                            }`}
-                          >
-                            {count}
-                          </span>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  return (
+                    <button
+                      key={room.id}
+                      onClick={() => onRoomSelect(room.id)}
+                      className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] transition-colors mb-0.5 ${
+                        isActive
+                          ? "text-white font-medium"
+                          : count > 0
+                          ? "text-slate-600 hover:bg-slate-100 font-medium"
+                          : "text-slate-400 hover:bg-slate-100"
+                      }`}
+                      style={isActive ? { background: group.color, borderRadius: "6px" } : {}}
+                    >
+                      {/* Active left-border indicator (CC style) */}
+                      {isActive ? (
+                        <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: "rgba(255,255,255,0.7)" }} />
+                      ) : (
+                        <div className="w-1.5 self-stretch rounded-full flex-shrink-0 mr-0.5" style={{ background: count > 0 ? group.color : "#e2e8f0" }} />
+                      )}
+                      <span className="flex-1 text-left text-xs truncate">{room.label}</span>
+                      {count > 0 && (
+                        <span
+                          className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${
+                            isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
@@ -582,6 +590,7 @@ export default function PublicVenueCalendar() {
   const [selectedRoomId,  setSelectedRoomId] = useState(null); // null = all
   const [selectedEvent,   setSelectedEvent]  = useState(null);
   const [now,             setNow]            = useState(new Date());
+  const [mobileTab,       setMobileTab]      = useState("bookings");
 
   // Real-time clock
   useEffect(() => {
@@ -667,6 +676,7 @@ export default function PublicVenueCalendar() {
   const handleDateSelect = useCallback((dateKey) => {
     setSelectedDateKey(dateKey);
     setSelectedRoomId(null);
+    setMobileTab("bookings");
   }, []);
 
   return (
@@ -674,77 +684,86 @@ export default function PublicVenueCalendar() {
 
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={thaparLogo} alt="Thapar" className="h-8 w-auto" />
+        <div className="max-w-screen-xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <img src={thaparLogo} alt="Thapar" className="h-7 w-auto" />
             <div className="hidden sm:block">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 leading-none">Thapar Institute</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none">Thapar Institute</p>
               <p className="text-sm font-bold text-slate-800 leading-none mt-0.5">Venue Bookings</p>
             </div>
+            {/* Mobile: just show title */}
+            <span className="sm:hidden text-sm font-bold text-slate-800">Venue Bookings</span>
           </div>
-          <div className="flex items-center gap-2">
-            <motion.a
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
+          <div className="flex items-center gap-1.5">
+            <a
               href="https://campusconnect.thapar.edu/venue-enquiry"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-xl hover:bg-red-700 transition shadow-sm"
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors"
             >
-              <Plus size={14} />
+              <Plus size={13} />
               <span className="hidden sm:inline">Request Booking</span>
               <span className="sm:hidden">Book</span>
-            </motion.a>
+            </a>
             <a
               href="/event-calendar"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition border border-slate-200"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
             >
-              <CalendarDays size={14} />
-              <span className="hidden sm:inline">Event Calendar</span>
+              <CalendarDays size={13} />
+              Event Calendar
             </a>
             <a
               href="/"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition border border-slate-200"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
             >
-              <ArrowLeft size={14} />
+              <ArrowLeft size={13} />
               <span className="hidden sm:inline">Back</span>
             </a>
           </div>
         </div>
       </header>
 
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+      {/* ── MOBILE TAB BAR ───────────────────────────────────────────────────── */}
+      <MobileTabBar
+        activeTab={mobileTab}
+        onTabChange={setMobileTab}
+        bookingCount={displayedEvents.length}
+      />
+
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
 
         {/* ── DATE HEADLINE ────────────────────────────────────────────────── */}
-        <div className="mb-5 flex items-center gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">
-              {selectedDateKey === todayStr ? "Today – " : ""}
+        <div className="mb-4 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-slate-800 truncate">
+              {selectedDateKey === todayStr ? "Today — " : ""}
               {humanDate(selectedDateKey)}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               {totalOnDate === 0
                 ? "No bookings on this date"
                 : `${totalOnDate} booking${totalOnDate !== 1 ? "s" : ""} across all venues`}
-              {selectedRoomLabel && <span className="ml-1 text-slate-600 font-medium">· filtered to {selectedRoomLabel}</span>}
+              {selectedRoomLabel && (
+                <span className="ml-1 text-slate-600 font-medium truncate">· {selectedRoomLabel}</span>
+              )}
             </p>
           </div>
           {selectedRoomId && (
             <button
               onClick={() => setSelectedRoomId(null)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 transition"
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors flex-shrink-0"
             >
-              <X size={12} /> Clear filter
+              <X size={11} /> Clear
             </button>
           )}
         </div>
 
-        {/* ── 3-COLUMN GRID ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-5 items-start">
+        {/* ── DESKTOP: 3-COLUMN GRID ───────────────────────────────────────── */}
+        <div className="hidden lg:grid lg:grid-cols-[240px_1fr_240px] gap-4 items-start">
 
-          {/* LEFT: Calendar ─────────────────────────────────────────────── */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+          {/* LEFT: Calendar */}
+          <div className="space-y-3">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Select Date</p>
               <MiniCalendar
                 currentDate={currentDate}
@@ -760,9 +779,7 @@ export default function PublicVenueCalendar() {
                 eventsForDate={eventsForDate}
               />
             </div>
-
-            {/* Status key */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status Key</p>
               <div className="space-y-1.5">
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
@@ -775,28 +792,22 @@ export default function PublicVenueCalendar() {
             </div>
           </div>
 
-          {/* CENTER: Bookings list ────────────────────────────────────────── */}
-          <div className="space-y-3 min-h-[400px]">
+          {/* CENTER: Bookings */}
+          <div className="space-y-2 min-h-[400px]">
             {loading ? (
               [...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-20 animate-pulse" />
+                <div key={i} className="bg-white rounded-xl border border-slate-100 h-20 animate-pulse" />
               ))
             ) : displayedEvents.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl border border-slate-100 p-12 text-center"
-              >
-                <Building2 size={36} className="text-slate-200 mx-auto mb-3" />
+              <div className="bg-white rounded-xl border border-slate-100 p-12 text-center">
+                <Building2 size={32} className="text-slate-200 mx-auto mb-3" />
                 <p className="text-sm font-medium text-slate-400">
-                  {selectedRoomId
-                    ? "No bookings for this venue on selected date"
-                    : "No bookings on this date"}
+                  {selectedRoomId ? "No bookings for this venue on selected date" : "No bookings on this date"}
                 </p>
                 <p className="text-xs text-slate-300 mt-1">Try another date or venue</p>
-              </motion.div>
+              </div>
             ) : (
-              <AnimatePresence mode="popLayout">
+              <>
                 {displayedEvents.map((event) => (
                   <BookingCard
                     key={event.uid}
@@ -806,13 +817,13 @@ export default function PublicVenueCalendar() {
                     onClick={setSelectedEvent}
                   />
                 ))}
-              </AnimatePresence>
+              </>
             )}
           </div>
 
-          {/* RIGHT: Venue tree sidebar ────────────────────────────────────── */}
-          <div className="sticky top-20 space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+          {/* RIGHT: Venue sidebar */}
+          <div className="sticky top-20 space-y-3">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
                 Halls &amp; Venues
               </p>
@@ -824,9 +835,7 @@ export default function PublicVenueCalendar() {
                 todayStr={todayStr}
               />
             </div>
-
-            {/* Contact box */}
-            <div className="bg-slate-800 rounded-2xl p-4 text-white">
+            <div className="bg-slate-800 rounded-xl p-4 text-white">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contact</p>
               <p className="text-xs text-slate-300 leading-relaxed">For venue queries, contact DoSA Office:</p>
               <a href="mailto:shabnam.rani@thapar.edu" className="text-xs text-blue-400 hover:text-blue-300 mt-1 block">
@@ -837,21 +846,124 @@ export default function PublicVenueCalendar() {
                 href="https://campusconnect.thapar.edu/venue-enquiry"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 flex items-center justify-center gap-1.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition"
+                className="mt-3 flex items-center justify-center gap-1.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
               >
                 <Plus size={12} /> Request a Booking
               </a>
             </div>
           </div>
         </div>
+
+        {/* ── MOBILE: TAB PANELS ───────────────────────────────────────────── */}
+        <div className="lg:hidden">
+
+          {/* BOOKINGS TAB */}
+          {mobileTab === "bookings" && (
+            <div className="space-y-2">
+              {loading ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-slate-100 h-[72px] animate-pulse" />
+                ))
+              ) : displayedEvents.length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-100 p-10 text-center">
+                  <Building2 size={28} className="text-slate-200 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-slate-400">
+                    {selectedRoomId ? "No bookings for this venue" : "No bookings on this date"}
+                  </p>
+                  <button
+                    onClick={() => setMobileTab("calendar")}
+                    className="mt-3 text-xs text-slate-500 underline underline-offset-2"
+                  >
+                    Pick another date
+                  </button>
+                </div>
+              ) : (
+                displayedEvents.map((event) => (
+                  <BookingCard
+                    key={event.uid}
+                    event={event}
+                    todayStr={todayStr}
+                    currentMinutes={currentMinutes}
+                    onClick={setSelectedEvent}
+                  />
+                ))
+              )}
+            </div>
+          )}
+
+          {/* CALENDAR TAB */}
+          {mobileTab === "calendar" && (
+            <div className="space-y-3">
+              <div className="bg-white rounded-xl border border-slate-100 p-4">
+                <MiniCalendar
+                  currentDate={currentDate}
+                  selectedDateKey={selectedDateKey}
+                  onDateSelect={handleDateSelect}
+                  onMonthChange={(dir) =>
+                    setCurrentDate((prev) => {
+                      const next = new Date(prev);
+                      next.setMonth(prev.getMonth() + dir);
+                      return next;
+                    })
+                  }
+                  eventsForDate={eventsForDate}
+                />
+              </div>
+              {/* Inline status key on mobile calendar tab */}
+              <div className="flex items-center gap-4 px-1 flex-wrap">
+                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+                    <span className="text-[11px] text-slate-400">{cfg.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VENUES TAB */}
+          {mobileTab === "venues" && (
+            <div className="space-y-3">
+              <div className="bg-white rounded-xl border border-slate-100 p-4">
+                <VenueTreeSidebar
+                  allEvents={allEventsPool}
+                  selectedDateKey={selectedDateKey}
+                  selectedRoomId={selectedRoomId}
+                  onRoomSelect={(id) => {
+                    setSelectedRoomId(id);
+                    setMobileTab("bookings");
+                  }}
+                  todayStr={todayStr}
+                />
+              </div>
+              {/* Contact compact on mobile */}
+              <div className="bg-slate-800 rounded-xl p-4 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Contact DoSA</p>
+                <a href="mailto:shabnam.rani@thapar.edu" className="text-xs text-blue-400">
+                  shabnam.rani@thapar.edu
+                </a>
+                <p className="text-xs text-slate-500 mt-0.5">Mon – Fri · 9 AM – 5:30 PM</p>
+                <a
+                  href="https://campusconnect.thapar.edu/venue-enquiry"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-1.5 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg"
+                >
+                  <Plus size={12} /> Request a Booking
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-slate-200 bg-white mt-10 py-8">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={thaparLogo} alt="Thapar" className="h-7 w-auto" />
-            <p className="text-xs text-slate-400">Thapar Institute of Engineering &amp; Technology · DoSA Office</p>
+      <footer className="border-t border-slate-200 bg-white mt-8 py-6">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <img src={thaparLogo} alt="Thapar" className="h-6 w-auto" />
+            <p className="text-xs text-slate-400">Thapar Institute · DoSA Office</p>
           </div>
           <p className="text-xs text-slate-400">
             Developed by{" "}
@@ -869,16 +981,14 @@ export default function PublicVenueCalendar() {
       </footer>
 
       {/* ── BOOKING DETAIL MODAL ──────────────────────────────────────────── */}
-      <AnimatePresence>
-        {selectedEvent && (
-          <BookingDetailModal
-            event={selectedEvent}
-            todayStr={todayStr}
-            currentMinutes={currentMinutes}
-            onClose={() => setSelectedEvent(null)}
-          />
-        )}
-      </AnimatePresence>
+      {selectedEvent && (
+        <BookingDetailModal
+          event={selectedEvent}
+          todayStr={todayStr}
+          currentMinutes={currentMinutes}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </div>
   );
 }

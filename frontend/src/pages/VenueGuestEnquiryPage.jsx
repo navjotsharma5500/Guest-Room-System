@@ -304,7 +304,7 @@ export default function VenueGuestEnquiryPage() {
   };
 
   const handleCheckAvailabilityClick = () => {
-    window.open("https://campusconnect.thapar.edu/event-calendar", "_blank");
+    window.open("https://campusconnect.thapar.edu/venue-calendar", "_blank");
   };
 
   const validateForm = () => {

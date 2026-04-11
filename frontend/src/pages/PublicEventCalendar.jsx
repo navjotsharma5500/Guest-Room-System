@@ -489,26 +489,31 @@ export default function PublicEventCalendar() {
           </div>
 
           {/* Right: Actions buttons */}
-          <div className="hidden sm:flex items-center gap-3">
-            <a href="https://campusconnect.thapar.edu/venue-calendar"
-              className={`flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a href="https://campusconnect.thapar.edu/venue-enquiry"
+              className={`flex items-center gap-1 border rounded-lg transition-colors font-medium ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-400"
                   : "border-gray-200 text-gray-600 hover:border-purple-600 hover:text-purple-600"
               }`}
-              style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
+              style={{ 
+                padding: "6px 12px",
+                fontSize: "clamp(10px, 2.5vw, 13px)", // 🔥 dynamic font shrink
+                whiteSpace: "nowrap"
+              }}
             >
-              <CalendarIcon size={14} /> Venue Booking
+              <CalendarIcon size={14} /> Add Booking
             </a>
+
             <a href="/"
-              className={`flex items-center gap-2 border rounded-lg transition-colors text-sm font-medium ${
+              className={`flex items-center gap-1 sm:gap-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
                   : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
               }`}
-              style={{ padding: "7px 14px", textDecoration: "none", flexShrink: 0 }}
+              style={{ padding: "6px 10px", textDecoration: "none" }}
             >
-              <ArrowLeft size={14} /> Back to Portal
+              <ArrowLeft size={14} /> Back
             </a>
           </div>
         </div>
@@ -995,13 +1000,32 @@ export default function PublicEventCalendar() {
 
         {/* Bottom Section: Tabs and List */}
         <div className="space-y-6 w-full">
-          {/* Tabs */}
-          <div className="flex justify-center px-0">
+          {/* Tabs + Inline Venue Button */}
+          <div className="flex justify-center px-2">
             <div
-              className={`flex p-1 rounded-xl gap-2 ${
+              className={`flex p-1 rounded-xl gap-2 items-center ${
                 theme === "dark" ? "bg-gray-800" : "bg-gray-100"
               }`}
             >
+
+              {/* 🔴 Venue Calendar (INLINE like tab) */}
+              <a
+                href="https://campusconnect.thapar.edu/venue-calendar"
+                onClick={() => setActiveTab("venue")}
+                className={`px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  activeTab === "venue"
+                    ? theme === "dark"
+                      ? "bg-gray-700 text-white shadow-sm"
+                      : "bg-white text-gray-900 shadow-sm"
+                    : theme === "dark"
+                    ? "text-gray-400 hover:text-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Venue Booking
+              </a>
+
+              {/* Tabs */}
               {[
                 { id: "today", label: "Today Events" },
                 { id: "upcoming", label: "Upcoming Events" },
