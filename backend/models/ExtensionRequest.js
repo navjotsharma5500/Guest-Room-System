@@ -59,7 +59,7 @@ const extensionRequestSchema = new mongoose.Schema(
     },
     requiredApprovalLevel: {
       type: String,
-      enum: ["co_warden", "adosa"],
+      enum: ["co_warden", "adosa", "admin"],
       required: true,
     },
     rejectionReason: {
@@ -73,6 +73,10 @@ const extensionRequestSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    reminderSentAt: {
+      type: Date,
+      default: null
     },
   },
   { timestamps: true }

@@ -16,7 +16,8 @@ import {
   startAutoUnblockCronJob, 
   startAutoCheckoutCronJob, 
   startVenueAutoCompletionCronJob,
-  startExtensionAutoCancelCronJob
+  startExtensionAutoCancelCronJob,
+  startExtensionReminderCronJob
 } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
@@ -592,8 +593,7 @@ const startServer = async () => {
     startAutoUnblockCronJob(io);
     startAutoCheckoutCronJob(io);
     startVenueAutoCompletionCronJob(io);
-    startExtensionAutoCancelCronJob(io);
-    scheduleCleanupJob();
+    startExtensionAutoCancelCronJob(io);    startExtensionReminderCronJob(io);    scheduleCleanupJob();
 
     server.listen(PORT, () => {
       console.log(`ðŸ¨ Server running on port ${PORT}`);

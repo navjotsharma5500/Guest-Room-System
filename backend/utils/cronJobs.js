@@ -418,3 +418,119 @@ export const startExtensionAutoCancelCronJob = (io) => {
     }
   });
 };
+
+// ✅ NEW: Send reminder email for pending extension requests (1 hour before checkout)
+export const startExtensionReminderCronJob = (io) => {
+  console.log("🟢 Starting extension request reminder cron job...");
+
+  // Run every 15 minutes to catch requests within the 1-hour window
+  cron.schedule("*/15 * * * *", async () => {
+    const now = new Date();
+    console.log(`⏰ [${now.toISOString()}] Running extension request reminder job...`);
+
+    try {
+      const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
+      const User = (await import("../models/User.js")).default;
+      const { sendEmailAdvanced } = await import("../emails/sendEmail.js");
+      const extensionReminderTemplate = (await import("../emails/templates/extensionReminder.js")).default;
+      const { formatDateIST } = await import("../emails/utils/dateFormatter.js");
+
+      // Find all pending requests
+      const pendingRequests = await ExtensionRequest.find({ 
+        status: "pending",
+        reminderSentAt: { $exists: false } // Only send reminder once
+      }).populate("bookingId");
+
+      let remindersSent = 0;
+
+      for (const req of pendingRequests) {
+        if (!req.bookingId) continue; // Skip if booking deleted
+
+        const checkoutTime = new Date(req.bookingId.to);
+        const timeUntilCheckout = Math.round((checkoutTime - now) / (1000 * 60)); // minutes
+
+        // Send reminder if checkout is within 45-120 minutes (roughly 1 hour window)
+        if (timeUntilCheckout > 0 && timeUntilCheckout <= 120) {
+          console.log(`📧 Sending reminder for extension request ${req._id}: ${timeUntilCheckout} minutes until checkout`);
+
+          try {
+            // Determine approver emails and role name based on required approval level
+            let approverEmails = [];
+            let roleName = "";
+            let approvalLevel = "";
+
+            const days = Math.round(
+              (new Date(req.requestedCheckout) - new Date(req.oldCheckout)) / (1000 * 60 * 60 * 24)
+            );
+
+            if (req.requiredApprovalLevel === "co_warden") {
+              approverEmails = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
+              roleName = "Co-Warden";
+              approvalLevel = `Co-Warden Level (${days} day${days > 1 ? 's' : ''} extension)`;
+            } else if (req.requiredApprovalLevel === "adosa") {
+              approverEmails = ["adosa2@thapar.edu"];
+              roleName = "Dean of Student Affairs (ADOSA)";
+              approvalLevel = `ADOSA Level (${days} day${days > 1 ? 's' : ''} extension)`;
+            } else if (req.requiredApprovalLevel === "admin") {
+              approverEmails = ["dosa@thapar.edu"];
+              roleName = "Dean of Student Affairs (DoSA)";
+              approvalLevel = `DoSA Level (${days} day${days > 1 ? 's' : ''} extension)`;
+            }
+
+            const emailHtml = extensionReminderTemplate({
+              roleName,
+              guestName: req.bookingId.guest,
+              contact: req.bookingId.contact || "—",
+              hostel: req.hostel,
+              roomNo: req.bookingId.roomNo,
+              currentCheckout: req.oldCheckout,
+              requestedCheckout: req.requestedCheckout,
+              paymentType: req.extensionPaymentType || "Paid",
+              amount: req.extensionAmount || 0,
+              requestId: req._id.toString().slice(-8).toUpperCase(),
+              approvalLevel,
+              submittedAt: formatDateIST(req.createdAt),
+              timeUntilCheckout // in minutes
+            });
+
+            // Send to approver(s)
+            if (approverEmails.length > 0) {
+              await sendEmailAdvanced({
+                to: approverEmails,
+                subject: `⏰ URGENT: Extension Request Pending – Checkout in ${Math.round(timeUntilCheckout / 60)} Hour${Math.round(timeUntilCheckout / 60) > 1 ? 's' : ''}`,
+                html: emailHtml
+              });
+
+              // Mark reminder as sent
+              req.reminderSentAt = now;
+              await req.save();
+              remindersSent++;
+            }
+          } catch (err) {
+            console.error(`Failed to send reminder for request ${req._id}:`, err);
+          }
+        }
+        
+        // Auto-reject if checkout time has passed
+        if (timeUntilCheckout <= 0) {
+          console.log(`🚫 Auto-rejecting extension request ${req._id}: Checkout time passed`);
+          req.status = "rejected";
+          req.rejectionReason = "Extension request expired (checkout time has passed)";
+          await req.save();
+        }
+      }
+
+      if (remindersSent > 0) {
+        console.log(`✅ Sent ${remindersSent} extension request reminder email(s).`);
+        if (io) {
+          io.emit("extension-requests-updated", { count: remindersSent, action: "reminder_sent" });
+        }
+      }
+
+    } catch (error) {
+      console.error("❌ Extension reminder error:", error);
+    }
+  });
+
+  console.log("✅ Extension reminder cron job started - runs every 15 minutes");
+};

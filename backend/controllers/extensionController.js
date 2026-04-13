@@ -13,6 +13,7 @@ import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
 // ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
 const ADOSA_EMAILS = ["adosa2@thapar.edu"];
+const ADMIN_EMAILS = ["dosa@thapar.edu"];
 
 // ✅ NEW: Helper function to get hostel warden and caretaker emails
 const getHostelStaffEmails = async (hostel) => {
@@ -35,6 +36,44 @@ const getHostelStaffEmails = async (hostel) => {
     } catch (error) {
         console.error("Error fetching hostel staff emails:", error);
         return [];
+    }
+};
+
+// ✅ NEW: Helper function to get all stakeholder emails (warden, caretaker, guest room manager)
+const getStakeholderEmails = async (hostel) => {
+    try {
+        const stakeholders = {
+            wardenEmail: null,
+            caretakerEmail: null,
+            managerEmail: null
+        };
+        
+        // Find warden for this hostel
+        const warden = await User.findOne({ role: "warden", hostel: hostel });
+        if (warden && warden.email) {
+            stakeholders.wardenEmail = warden.email;
+        }
+        
+        // Find caretaker for this hostel
+        const caretaker = await User.findOne({ role: "caretaker", assignedHostel: hostel });
+        if (caretaker && caretaker.email) {
+            stakeholders.caretakerEmail = caretaker.email;
+        }
+        
+        // Find guest room manager (system-level)
+        const manager = await User.findOne({ role: "manager" });
+        if (manager && manager.email) {
+            stakeholders.managerEmail = manager.email;
+        }
+        
+        return stakeholders;
+    } catch (error) {
+        console.error("Error fetching stakeholder emails:", error);
+        return {
+            wardenEmail: null,
+            caretakerEmail: null,
+            managerEmail: null
+        };
     }
 };
 
@@ -81,9 +120,15 @@ export const createExtensionRequest = async (req, res) => {
         // booking.to is stored as midnight UTC or 18:30 UTC (midnight IST).
         const daysExtended = Math.round((toDateOnly(newCheckout) - toDateOnly(oldCheckout)) / 86400000);
 
-        let requiredApprovalLevel = "adosa";
+        // ✅ FIX: Three-tier approval system:
+        // - ≤ 2 days: Co-Warden
+        // - 2 < days ≤ 10: ADOSA  
+        // - > 10 days: Admin only
+        let requiredApprovalLevel = "admin";
         if (daysExtended <= 2) {
             requiredApprovalLevel = "co_warden";
+        } else if (daysExtended <= 10) {
+            requiredApprovalLevel = "adosa";
         }
 
         // ✅ FIX: Extract all payment fields so they are saved as top-level fields
@@ -123,8 +168,16 @@ export const createExtensionRequest = async (req, res) => {
             paymentData: paymentData || {},
         });
 
-        const approverEmails = requiredApprovalLevel === "co_warden" ? CO_WARDEN_EMAILS : ADOSA_EMAILS;
-        const roleName = requiredApprovalLevel === "co_warden" ? "Co-Warden" : "Dean of Student Affairs (ADOSA)";
+        const approverEmails = requiredApprovalLevel === "co_warden" 
+            ? CO_WARDEN_EMAILS 
+            : requiredApprovalLevel === "adosa" 
+            ? ADOSA_EMAILS 
+            : ADMIN_EMAILS;
+        const roleName = requiredApprovalLevel === "co_warden" 
+            ? "Co-Warden" 
+            : requiredApprovalLevel === "adosa" 
+            ? "Dean of Student Affairs (ADOSA)" 
+            : "Dean of Student Affairs (DoSA)";
         
         const emailHtml = extensionRequestTemplate({
             roleName: roleName,
@@ -195,12 +248,17 @@ export const approveExtensionRequest = async (req, res) => {
         const userRole = req.user.role;
         const days = Math.ceil((new Date(request.requestedCheckout) - new Date(request.oldCheckout)) / (1000 * 3600 * 24));
         
+        // ✅ FIX: Three-tier approval validation:
+        // - DoSA: Can approve all
+        // - ADOSA: Can approve 2 < days ≤ 10
+        // - Co-Warden: Can approve days ≤ 2
         if (userRole === "admin") {
-            // Allowed
+            // Allowed for all levels
         } else if (userRole === "adosa") {
-             if (days <= 2) return res.status(403).json({ success: false, message: "ADOSA can only approve > 2 days" });
+            if (days <= 2) return res.status(403).json({ success: false, message: "ADOSA can only approve 2 < days ≤ 10" });
+            if (days > 10) return res.status(403).json({ success: false, message: "Extensions > 10 days require DoSA approval" });
         } else if (userRole === "co_warden") {
-             if (days > 2) return res.status(403).json({ success: false, message: "Co-Warden can only approve <= 2 days" });
+            if (days > 2) return res.status(403).json({ success: false, message: "Co-Warden can only approve ≤ 2 days" });
         } else {
             return res.status(403).json({ success: false, message: "Permission denied" });
         }
@@ -263,10 +321,19 @@ export const approveExtensionRequest = async (req, res) => {
         try {
             await sendBookingEmails(booking, "extended");
             
-            // ✅ Get hostel staff emails (warden and caretaker)
-            const staffEmails = await getHostelStaffEmails(booking.hostel);
+            // ✅ Get all stakeholder emails (warden, caretaker, guest room manager)
+            const stakeholders = await getStakeholderEmails(booking.hostel);
             
-            // Send specific approval email to guest
+            // Build CC list - include warden, caretaker, and manager
+            const ccEmails = [];
+            if (stakeholders.wardenEmail) ccEmails.push(stakeholders.wardenEmail);
+            if (stakeholders.caretakerEmail) ccEmails.push(stakeholders.caretakerEmail);
+            if (stakeholders.managerEmail) ccEmails.push(stakeholders.managerEmail);
+            
+            // Remove duplicates
+            const uniqueCcEmails = [...new Set(ccEmails)];
+            
+            // Send specific approval email to guest with stakeholders in CC
             const approvalEmailHtml = extensionApprovedTemplate({
                 guestName: booking.guest,
                 hostel: booking.hostel,
@@ -275,40 +342,13 @@ export const approveExtensionRequest = async (req, res) => {
                 approvedAmount: request.approvedAmount
             });
             
-            // ✅ Send to guest
+            // ✅ Send to guest with all stakeholders CC'd
             await sendEmailAdvanced({
                 to: booking.email,
+                cc: uniqueCcEmails,
                 subject: "Extension Request Approved",
                 html: approvalEmailHtml
             });
-            
-            // ✅ Send to hostel warden and caretaker (if available)
-            if (staffEmails.length > 0) {
-                const staffNotificationHtml = `
-                    <div style="font-family: Arial, sans-serif; color: #333;">
-                        <h2 style="color: #27ae60;">Extension Request Approved</h2>
-                        <p>An extension request has been <strong>approved</strong> for:</p>
-                        <ul>
-                            <li><strong>Guest:</strong> ${booking.guest}</li>
-                            <li><strong>Room:</strong> ${booking.roomNo}</li>
-                            <li><strong>Original Checkout:</strong> ${new Date(oldToDate).toLocaleDateString('en-IN')}</li>
-                            <li><strong>New Checkout:</strong> ${new Date(finalCheckout).toLocaleDateString('en-IN')}</li>
-                            <li><strong>Approved Amount:</strong> ₹${request.approvedAmount || 0}</li>
-                        </ul>
-                        <p style="margin-top: 20px; color: #666;">Please ensure the room status is updated accordingly.</p>
-                    </div>
-                `;
-                
-                try {
-                    await sendEmailAdvanced({
-                        to: staffEmails,
-                        subject: `[FYI] Extension Approved - ${booking.hostel} Room ${booking.roomNo}`,
-                        html: staffNotificationHtml
-                    });
-                } catch (staffEmailError) {
-                    console.warn("Failed to send extension approval notification to hostel staff:", staffEmailError);
-                }
-            }
             
         } catch (emailError) {
             console.error("Failed to send extension approval email:", emailError);
@@ -334,13 +374,40 @@ export const rejectExtensionRequest = async (req, res) => {
              return res.status(400).json({ success: false, message: "Request is not pending" });
         }
         
+        // ✅ FIX: Three-tier rejection validation (same as approval):
+        // - DoSA: Can reject all
+        // - ADOSA: Can reject 2 < days ≤ 10
+        // - Co-Warden: Can reject days ≤ 2
+        const userRole = req.user.role;
+        const days = Math.ceil((new Date(request.requestedCheckout) - new Date(request.oldCheckout)) / (1000 * 3600 * 24));
+        
+        if (userRole === "admin") {
+            // Allowed for all levels
+        } else if (userRole === "adosa") {
+            if (days <= 2) return res.status(403).json({ success: false, message: "ADOSA can only reject 2 < days ≤ 10" });
+            if (days > 10) return res.status(403).json({ success: false, message: "Extensions > 10 days require DoSA rejection authority" });
+        } else if (userRole === "co_warden") {
+            if (days > 2) return res.status(403).json({ success: false, message: "Co-Warden can only reject ≤ 2 days" });
+        } else {
+            return res.status(403).json({ success: false, message: "Permission denied" });
+        }
+        
         request.status = "rejected";
         request.rejectionReason = reason;
         
         await request.save();
         
-        // ✅ Get hostel staff emails (warden and caretaker)
-        const staffEmails = await getHostelStaffEmails(request.hostel);
+        // ✅ Get all stakeholder emails (warden, caretaker, guest room manager)
+        const stakeholders = await getStakeholderEmails(request.hostel);
+        
+        // Build CC list - include warden, caretaker, and manager
+        const ccEmails = [];
+        if (stakeholders.wardenEmail) ccEmails.push(stakeholders.wardenEmail);
+        if (stakeholders.caretakerEmail) ccEmails.push(stakeholders.caretakerEmail);
+        if (stakeholders.managerEmail) ccEmails.push(stakeholders.managerEmail);
+        
+        // Remove duplicates
+        const uniqueCcEmails = [...new Set(ccEmails)];
         
         const emailHtml = extensionRejectedTemplate({
             guestName: request.bookingId.guest,
@@ -352,40 +419,13 @@ export const rejectExtensionRequest = async (req, res) => {
         });
 
         try {
-            // ✅ Send to guest
+            // ✅ Send to guest with all stakeholders CC'd
             await sendEmailAdvanced({
                 to: request.bookingId.email,
+                cc: uniqueCcEmails,
                 subject: "Extension Request Rejected",
                 html: emailHtml
             });
-            
-            // ✅ Send to hostel warden and caretaker (if available)
-            if (staffEmails.length > 0) {
-                const staffNotificationHtml = `
-                    <div style="font-family: Arial, sans-serif; color: #333;">
-                        <h2 style="color: #e74c3c;">Extension Request Rejected</h2>
-                        <p>An extension request has been <strong>rejected</strong> for:</p>
-                        <ul>
-                            <li><strong>Guest:</strong> ${request.bookingId.guest}</li>
-                            <li><strong>Room:</strong> ${request.bookingId.roomNo}</li>
-                            <li><strong>Original Checkout:</strong> ${new Date(request.oldCheckout).toLocaleDateString('en-IN')}</li>
-                            <li><strong>Requested Checkout:</strong> ${new Date(request.requestedCheckout).toLocaleDateString('en-IN')}</li>
-                            <li><strong>Rejection Reason:</strong> ${reason}</li>
-                        </ul>
-                        <p style="margin-top: 20px; color: #666;">The guest has been notified accordingly.</p>
-                    </div>
-                `;
-                
-                try {
-                    await sendEmailAdvanced({
-                        to: staffEmails,
-                        subject: `[FYI] Extension Rejected - ${request.hostel} Room ${request.bookingId.roomNo}`,
-                        html: staffNotificationHtml
-                    });
-                } catch (staffEmailError) {
-                    console.warn("Failed to send extension rejection notification to hostel staff:", staffEmailError);
-                }
-            }
             
         } catch (emailError) {
              console.error("Failed to send extension rejection email:", emailError);

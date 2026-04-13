@@ -63,7 +63,7 @@ export default function VacantRoomsModal({ theme, vacantRooms, onClose, onBookRo
                     theme === "dark" ? "text-gray-100" : "text-gray-800"
                   }`}
                 >
-                  {v.hostel} Ã¢â‚¬â€œ Room {v.room.roomNo}
+                  {v.hostel} Room {v.room.roomNo}
                 </p>
                 <p
                   className={`text-sm ${

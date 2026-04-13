@@ -399,7 +399,7 @@ function RequestCard({ request, isDark, canAct, onApprove, onReject, index }) {
             {request.days} Day{request.days !== 1 ? "s" : ""} Extension
           </span>
           <span className="text-white/70 text-xs ml-1">
-            — {request.requiredApprovalLevel === "co_warden" ? "Co-Warden" : "ADOSA"} Level
+            — {request.requiredApprovalLevel === "co_warden" ? "Co-Warden" : request.requiredApprovalLevel === "adosa" ? "ADOSA" : "DoSA"} Level
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -716,7 +716,7 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
 
   const canApproveRequest = (request) => {
     if (role === "admin") return true;
-    if (role === "adosa" && request.days > 2) return true;
+    if (role === "adosa" && request.days > 2 && request.days <= 10) return true;
     if (role === "co_warden" && request.days <= 2) return true;
     return false;
   };
