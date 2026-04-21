@@ -218,6 +218,16 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    const handleBookingApproved = () => {
+      console.log("📋 Booking approved - refreshing...");
+      fetchData(true);
+    };
+
+    const handleBookingRejected = () => {
+      console.log("📋 Booking rejected - refreshing...");
+      fetchData(true);
+    };
+
     const handleRoomAutoUnblocked = () => {
       console.log("📡 Rooms auto-unblocked - refreshing...");
       fetchData(true);
@@ -244,6 +254,8 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("enquiry-created", handleEnquiryCreated);
     socket.on("enquiry-updated", handleEnquiryUpdated);
     socket.on("guest-checked-out", handleGuestCheckedOut);
+    socket.on("booking-approved", handleBookingApproved);
+    socket.on("booking-rejected", handleBookingRejected);
     socket.on("room-auto-unblocked", handleRoomAutoUnblocked);
 
     // ✅ Fallback polling every 2 minutes (in case Socket.IO fails)
@@ -266,6 +278,8 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
+      socket.off("booking-approved", handleBookingApproved);
+      socket.off("booking-rejected", handleBookingRejected);
       socket.off("room-auto-unblocked", handleRoomAutoUnblocked);
       socket.off("room-blocked", handleRoomBlocked);
       socket.off("room-unblocked", handleRoomUnblocked);

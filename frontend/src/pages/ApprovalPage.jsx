@@ -647,7 +647,9 @@ export default function ApprovalPage({ onBack, theme = "light" }) {
           return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
         };
 
-         const mapped = data.requests.map(r => {
+         const mapped = data.requests
+           .filter((r) => r.bookingId)
+           .map(r => {
              // ✅ FIX: Date-only days — never inflated by IST/UTC gap
              const days = Math.round(
                (toDateOnly(r.requestedCheckout) - toDateOnly(r.oldCheckout)) / 86400000

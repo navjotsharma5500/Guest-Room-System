@@ -4,7 +4,7 @@ export const ROLE_ACCESS = {
   admin:        ["guestroom", "venue", "night", "selector"],
   adosa:        ["venue", "night", "selector", "guestroom"],
   assistant:    ["venue", "night", "selector"],
-  caretaker:    ["guestroom", "night_scan", "selector"],
+  caretaker:    ["guestroom"],
   warden:       ["guestroom"],
   manager:      ["guestroom"],
   co_warden:    ["guestroom"], // ✅ Guest Room ONLY (selector: false, venue: false, night: false)

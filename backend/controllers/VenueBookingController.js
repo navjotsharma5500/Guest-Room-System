@@ -16,6 +16,7 @@ import {
   sendBookingExtendedEmail,
   sendBookingCancelledEmail,
 } from '../emails/venueEmailService.js';
+import { asyncSendEmails } from '../utils/asyncEmail.js';
 
 // Isolation wrapper - prevents errors from affecting other systems
 const isolatedHandler = (handler) => async (req, res) => {
@@ -217,19 +218,16 @@ const createVenueBookingCore = async (req, res) => {
     console.error('⚠️ Socket emit failed (non-critical):', socketError.message);
   }
 
-  // Send booking confirmation emails
-  for (const booking of createdBookings) {
-    try {
-      await sendDirectBookingEmail(booking);
-    } catch (emailError) {
-      console.error('⚠️ Booking email failed (non-critical):', emailError.message);
-    }
-  }
-
-  res.status(201).json({
+  const response = res.status(201).json({
     message: 'Venue booking(s) created successfully',
     bookings: createdBookings,
   });
+
+  for (const booking of createdBookings) {
+    asyncSendEmails(() => sendDirectBookingEmail(booking));
+  }
+
+  return response;
 };
 
 // Get all venue bookings
@@ -297,13 +295,6 @@ const extendVenueBookingCore = async (req, res) => {
     return res.status(403).json({ message: 'Access denied to this room' });
   }
 
-  // Send extension email
-  try {
-    await sendBookingExtendedEmail(booking);
-  } catch (emailError) {
-    console.error('⚠️ Extension email failed (non-critical):', emailError.message);
-  }
-
   const overlappingBookings = await VenueBooking.find({
     _id: { $ne: id },
     hall: booking.hall,
@@ -354,7 +345,9 @@ const extendVenueBookingCore = async (req, res) => {
     console.error('⚠️ Socket emit failed (non-critical):', socketError.message);
   }
 
-  res.status(200).json(booking);
+  const response = res.status(200).json(booking);
+  asyncSendEmails(() => sendBookingExtendedEmail(booking));
+  return response;
 };
 
 // Cancel venue booking
@@ -389,17 +382,13 @@ const cancelVenueBookingCore = async (req, res) => {
     console.error('⚠️ Socket emit failed (non-critical):', socketError.message);
   }
 
-  // Send cancellation email
-  try {
-    await sendBookingCancelledEmail(booking);
-  } catch (emailError) {
-    console.error('⚠️ Cancellation email failed (non-critical):', emailError.message);
-  }
-
-  res.status(200).json({
+  const response = res.status(200).json({
     message: 'Venue booking cancelled successfully',
     booking,
   });
+
+  asyncSendEmails(() => sendBookingCancelledEmail(booking));
+  return response;
 };
 
 // Update venue booking status

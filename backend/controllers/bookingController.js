@@ -8,6 +8,10 @@ import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import Enquiry from "../models/Enquiry.js";
 import EmailLog from "../models/EmailLog.js";
 import Feedback from "../models/Feedback.js";
+import ExtensionRequest from "../models/ExtensionRequest.js";
+import { isRebookingWithin24hrs, setupRebookingApproval } from "../utils/rebookingUtils.js";
+import User from "../models/User.js";
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -574,10 +578,97 @@ export const createBooking = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
-    const booking = await Booking.create(bookingData);
+    // =========================
+    // DUPLICATE BOOKING GUARD
+    // =========================
+    const existingDuplicate = await Booking.findOne({
+      hostel: bookingData.hostel,
+      roomNo: bookingData.roomNo,
+      from: bookingData.from,
+      to: bookingData.to,
+      checkInTime: bookingData.checkInTime,
+      checkOutTime: bookingData.checkOutTime,
+      status: { $in: ["booked", "checked_in"] },
+      $or: [
+        {
+          email: bookingData.email,
+          contact: bookingData.contact,
+        },
+        {
+          guest: bookingData.guest,
+          contact: bookingData.contact,
+        }
+      ]
+    });
 
-    console.log("✅ Booking created, sending emails...");
-    sendBookingEmails(booking, "created");
+    if (existingDuplicate) {
+      console.log("⚠️ Duplicate booking prevented:", {
+        existingBookingId: existingDuplicate._id,
+        guest: existingDuplicate.guest,
+        hostel: existingDuplicate.hostel,
+        roomNo: existingDuplicate.roomNo,
+      });
+
+      return res.json({
+        success: true,
+        duplicatePrevented: true,
+        message: "Duplicate booking prevented",
+        booking: existingDuplicate,
+      });
+    }
+
+    // =========================
+    // REBOOKING DETECTION LOGIC
+    // =========================
+    const isRebooking = await isRebookingWithin24hrs(
+      bookingData.email,
+      bookingData.contact,
+      bookingData.hostel
+    );
+
+    console.log("🔍 Rebooking Check Result:", {
+      email: bookingData.email,
+      contact: bookingData.contact,
+      hostel: bookingData.hostel,
+      isRebooking: isRebooking
+    });
+
+    // Setup approval status based on rebooking detection
+    const setupBooking = new Booking(bookingData);
+    setupRebookingApproval(setupBooking, isRebooking);
+
+    // If rebooking requires review, send email to manager
+    if (setupBooking.approvalStatus === "under_review") {
+      console.log("⏰ UNDER REVIEW: Sending approval request email...");
+      
+      try {
+        const managerEmail = process.env.MANAGER_EMAIL || "navjot.sharma@thapar.edu";
+        
+        const rebookingEmailContent = {
+          to: managerEmail,
+          subject: "Guest Rebooking Approval Required",
+          html: `
+            <h2>Rebooking Approval Request</h2>
+            <p><strong>Guest Name:</strong> ${setupBooking.guest}</p>
+            <p><strong>Email:</strong> ${setupBooking.email}</p>
+            <p><strong>Contact:</strong> ${setupBooking.contact}</p>
+            <p><strong>Hostel:</strong> ${setupBooking.hostel}</p>
+            <p><strong>Room:</strong> ${setupBooking.roomNo}</p>
+            <p><strong>New Booking Time:</strong> ${setupBooking.from.toLocaleDateString()} to ${setupBooking.to.toLocaleDateString()}</p>
+            <p><strong>Review Deadline:</strong> ${setupBooking.reviewDeadline.toLocaleString()}</p>
+            <p>Please review and approve/reject this rebooking request.</p>
+          `
+        };
+
+        asyncSendEmails(() => safeSend(rebookingEmailContent));
+        console.log("✅ Rebooking approval email queued for:", managerEmail);
+      } catch (emailErr) {
+        console.error("⚠️ Failed to send rebooking email:", emailErr.message);
+        // Don't fail the booking creation if email fails
+      }
+    }
+
+    const booking = await setupBooking.save();
 
     console.log("================================================================================");
     console.log("✅ BOOKING CREATED:", booking._id);
@@ -603,7 +694,14 @@ export const createBooking = async (req, res) => {
       console.log('📋 Emitted booking-created event');
     }
 
-    res.json({ success: true, booking });
+    const response = res.status(201).json({ success: true, booking });
+
+    asyncSendEmails(() => {
+      console.log("📨 Background email dispatch started for booking:", booking._id);
+      return sendBookingEmails(booking, "created");
+    });
+
+    return response;
 
   } catch (err) {
     console.error("❌ CREATE BOOKING ERROR:", err.message);
@@ -653,6 +751,7 @@ export const markReported = async (req, res) => {
       actualCheckInTime,
       idVerified,
       remarks,
+      earlyCheckInPayment,
     } = req.body;
 
     const booking = await Booking.findById(id);
@@ -672,11 +771,78 @@ export const markReported = async (req, res) => {
     reportDate.setHours(0, 0, 0, 0);
     scheduledDate.setHours(0, 0, 0, 0);
 
+    const isEarlyCheckIn = reportDate < scheduledDate;
+
     console.log("📋… Check-in Date Comparison:", {
       reportDate: reportDate.toISOString(),
       scheduledDate: scheduledDate.toISOString(),
-      isEarlyCheckIn: reportDate < scheduledDate
+      isEarlyCheckIn
     });
+
+    if (isEarlyCheckIn) {
+      const paymentPayload = earlyCheckInPayment || {};
+      const paymentType = paymentPayload.paymentType || "Paid";
+      const earlyAmount = Number(paymentPayload.amount || 0);
+      const earlyRemarks = (paymentPayload.remarks || "").trim();
+      const earlyAttachments = Array.isArray(paymentPayload.attachments)
+        ? paymentPayload.attachments
+        : [];
+
+      if (!earlyCheckInPayment) {
+        return res.status(400).json({
+          success: false,
+          message: "Early check-in payment details are required",
+        });
+      }
+
+      if (paymentType === "Paid" && earlyAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Early check-in amount is required for paid check-in",
+        });
+      }
+
+      if (paymentType === "Free" && (!earlyRemarks || earlyAttachments.length === 0)) {
+        return res.status(400).json({
+          success: false,
+          message: "Remarks and attachment are required for free early check-in",
+        });
+      }
+
+      booking.earlyCheckIn = {
+        isEarly: true,
+        amount: paymentType === "Paid" ? earlyAmount : 0,
+        paymentType,
+        remarks: earlyRemarks,
+        attachments: earlyAttachments,
+      };
+
+      if (paymentType === "Paid") {
+        booking.totalAmount = Number(booking.totalAmount || 0) + earlyAmount;
+        booking.balanceAmount = Number(booking.balanceAmount || 0) + earlyAmount;
+        booking.amount = Number(booking.amount || booking.totalAmount || 0) + earlyAmount;
+        booking.amountToBePaid = Number(booking.balanceAmount || 0);
+      }
+
+      const earlyAudit = [
+        "[EARLY CHECK-IN]",
+        `Extra Amount: ₹${paymentType === "Paid" ? earlyAmount : 0}`,
+        `Type: ${paymentType}`,
+        `Remarks: ${earlyRemarks || "—"}`,
+      ].join("\n");
+
+      booking.remarks = booking.remarks
+        ? `${booking.remarks}\n${earlyAudit}`
+        : earlyAudit;
+    } else {
+      booking.earlyCheckIn = booking.earlyCheckIn || {
+        isEarly: false,
+        amount: 0,
+        paymentType: "Paid",
+        remarks: "",
+        attachments: [],
+      };
+    }
 
     // Update reporting fields
     booking.reportedStatus = "reported";
@@ -685,13 +851,6 @@ export const markReported = async (req, res) => {
     booking.actualCheckInTime = actualCheckInTime || booking.checkInTime || "00:00";
     booking.idVerified = Boolean(idVerified);
     booking.status = "checked_in";
-    
-    // ✅ CRITICAL: If early check-in, update the main 'from' date
-    if (reportDate < scheduledDate) {
-      console.log("🔓 Early check-in detected! Updating 'from' date...");
-      booking.from = new Date(actualCheckInDate);
-      console.log("✅ Updated booking.from to:", booking.from.toISOString());
-    }
     
     if (req.user && req.user._id) {
       booking.reportedBy = req.user._id;
@@ -709,7 +868,7 @@ export const markReported = async (req, res) => {
       originalFrom: scheduledDate.toISOString(),
       updatedFrom: booking.from.toISOString(),
       actualCheckInDate: booking.actualCheckInDate.toISOString(),
-      wasEarlyCheckIn: reportDate < scheduledDate
+      wasEarlyCheckIn: isEarlyCheckIn
     });
 
     // ✅ EMIT SOCKET.IO EVENT WITH FULL BOOKING DATA
@@ -731,11 +890,11 @@ export const markReported = async (req, res) => {
 
     res.json({
       success: true,
-      message: reportDate < scheduledDate 
-        ? "Guest checked in early - dates updated successfully" 
+      message: isEarlyCheckIn 
+        ? "Guest checked in early - payment captured successfully" 
         : "Guest marked as reported",
       booking,
-      earlyCheckIn: reportDate < scheduledDate
+      earlyCheckIn: isEarlyCheckIn
     });
 
   } catch (err) {
@@ -786,30 +945,52 @@ export const markNotReported = async (req, res) => {
   }
 };
 
+const toDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const calculateStayDays = (checkInDate, checkoutDate) => {
+  const start = toDateOnly(checkInDate);
+  const end = toDateOnly(checkoutDate);
+  if (!start || !end) return 1;
+  const diff = (end - start) / (1000 * 60 * 60 * 24);
+  return Math.max(1, diff);
+};
+
+const roundCurrency = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
 // ================================
 // CHECK OUT GUEST
 // ================================
 export const checkOutGuest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { checkOutComment, actualCheckOutTime, actualCheckoutDate, actualCheckoutTime } = req.body;
+    const {
+      checkOutComment,
+      actualCheckOutTime,
+      actualCheckoutDate,
+      actualCheckoutTime,
+      checkoutType: requestedCheckoutType,
+    } = req.body;
 
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // ✅ Allow checkout if payment is department responsibility
+    // ✅ Keep department-pay informational logging, but do not block unpaid checkout.
+    // The defaulter workflow is allowed to proceed after the caretaker confirms.
     const isDepartmentResponsibility = booking.paymentResponsibility === "DEPARTMENT";
-
-    // Check if there's any balance remaining (allow if department payment)
-    if (!isDepartmentResponsibility && (booking.balanceAmount > 0 || (booking.totalAmount - booking.paidAmount) > 0)) {
-      return res.status(400).json({
-        message: "Cannot checkout with pending payment. Use 'Department Pay Later' if department will pay."
-      });
-    }
-
-    // If department payment, mark as checked out with note
     if (isDepartmentResponsibility && booking.balanceAmount > 0) {
       console.log("✅ Checkout allowed - Department will pay later");
     }
@@ -822,36 +1003,65 @@ export const checkOutGuest = async (req, res) => {
       });
     }
 
-    // ✅ NEW: Check payment status before checkout (unless department pays)
-    if (booking.paymentType === "Paid" && booking.paymentResponsibility !== "DEPARTMENT") {
-      const balance = booking.totalAmount - booking.paidAmount - (booking.discount || 0);
-      
-      if (balance > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot checkout - Payment pending: ₹${balance}`,
-          pendingAmount: balance
-        });
+    const checkoutTimestamp = actualCheckOutTime ? new Date(actualCheckOutTime) : new Date();
+    const effectiveActualCheckoutDate = toDateOnly(actualCheckoutDate) || toDateOnly(checkoutTimestamp) || new Date();
+    const plannedCheckoutDate = toDateOnly(booking.to);
+    const effectiveActualCheckInDate = toDateOnly(booking.actualCheckInDate || booking.from) || toDateOnly(booking.from) || effectiveActualCheckoutDate;
+
+    let resolvedCheckoutType = requestedCheckoutType || "NORMAL";
+    if (plannedCheckoutDate && effectiveActualCheckoutDate < plannedCheckoutDate) {
+      resolvedCheckoutType = "EARLY";
+    } else if (requestedCheckoutType !== "AUTO") {
+      resolvedCheckoutType = "NORMAL";
+    }
+
+    const originalAmount = Number(booking.totalAmount || 0);
+    const paidAmount = Number(booking.paidAmount || 0);
+    const discount = Number(booking.discount || 0);
+    let adjustedAmount = originalAmount;
+
+    if (resolvedCheckoutType === "EARLY" && booking.paymentType === "Paid") {
+      const plannedDays = calculateStayDays(booking.from, booking.to);
+      const actualDays = calculateStayDays(effectiveActualCheckInDate, effectiveActualCheckoutDate);
+      const perDayRate = plannedDays > 0 ? originalAmount / plannedDays : 0;
+      const actualAmount = roundCurrency(perDayRate * actualDays);
+
+      if (paidAmount < actualAmount) {
+        booking.totalAmount = actualAmount;
+      } else {
+        booking.totalAmount = paidAmount;
       }
+
+      adjustedAmount = roundCurrency(booking.totalAmount || 0);
+      booking.totalAmount = adjustedAmount;
+      booking.balanceAmount = roundCurrency(Math.max(0, adjustedAmount - paidAmount - discount));
+      booking.amount = adjustedAmount;
+      booking.amountToBePaid = booking.balanceAmount;
+
+      const earlyCheckoutAudit = [
+        "[EARLY CHECKOUT]",
+        `Planned Days: ${plannedDays}`,
+        `Actual Days: ${actualDays}`,
+        `Original Amount: ₹${originalAmount}`,
+        `Adjusted Amount: ₹${actualAmount}`,
+        `Paid: ₹${paidAmount}`,
+        `Final: ₹${adjustedAmount}`,
+      ].join("\n");
+
+      booking.checkOutComment = checkOutComment
+        ? `${earlyCheckoutAudit}\n${checkOutComment}`
+        : earlyCheckoutAudit;
+    } else {
+      booking.checkOutComment = checkOutComment || "";
     }
 
     booking.status = "checked_out";
-    booking.checkedOutAt = actualCheckOutTime ? new Date(actualCheckOutTime) : new Date();
-    booking.checkOutComment = checkOutComment || "";
-
-    // ✅ FIXED: For manual early checkout, update the planned checkout date
-    if (actualCheckoutDate) {
-      booking.actualCheckoutDate = actualCheckoutDate;
-      booking.to = new Date(actualCheckoutDate); // ✅ Update planned date for manual checkout
-    }
+    booking.checkedOutAt = checkoutTimestamp;
+    booking.checkoutType = resolvedCheckoutType;
+    booking.actualCheckoutDate = checkoutTimestamp;
     if (actualCheckoutTime) {
       booking.actualCheckoutTime = actualCheckoutTime;
-      booking.checkOutTime = actualCheckoutTime; // ✅ Update planned time for manual checkout
-    }
-    if (!actualCheckoutDate) {
-      booking.actualCheckoutDate = booking.checkedOutAt;
-    }
-    if (!actualCheckoutTime) {
+    } else {
       booking.actualCheckoutTime = booking.checkedOutAt.toTimeString().slice(0, 5);
     }
 
@@ -870,7 +1080,7 @@ export const checkOutGuest = async (req, res) => {
     // ✅ SEND FEEDBACK EMAIL TO GUEST (After checkout)
     if (booking.email) {
        console.log("📨 Sending checkout feedback email to:", booking.email);
-       safeSend({
+       asyncSendEmails(() => safeSend({
          to: booking.email,
          subject: "Thank you for staying with us! - Feedback",
          html: guestCheckoutFeedback(booking),
@@ -878,7 +1088,7 @@ export const checkOutGuest = async (req, res) => {
            bookingId: booking._id,
            type: "guest-checkout-feedback"
          }
-       });
+       }));
     }
 
   } catch (err) {
@@ -1183,7 +1393,7 @@ export const approveExtension = async (req, res) => {
     // Approval emails
     try {
       const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
-      const managerEmails = ["navjot.sharma@thapar.edu"];
+      const managerEmails = ["admin_dev@thapar.edu"];
 
       const emailContent = `
         <p>Dear ${booking.guest},</p>
@@ -1258,7 +1468,7 @@ export const rejectExtension = async (req, res) => {
     if (booking) {
       try {
         const hostelDoc = await Hostel.findOne({ name: booking.hostel }).lean();
-        const managerEmails = ["navjot.sharma@thapar.edu"];
+        const managerEmails = ["admin_dev@thapar.edu"];
 
         const emailContent = `
           <p>Dear ${booking.guest},</p>
@@ -1415,7 +1625,7 @@ export const extendBooking = async (req, res) => {
       manager: process.env.MANAGER_EMAIL || null
     });
 
-    sendBookingEmails(booking, "extended");
+    asyncSendEmails(() => sendBookingEmails(booking, "extended"));
 
     // ==================================================
     // SOCKET EVENT
@@ -1540,7 +1750,20 @@ export const cancelBooking = async (req, res) => {
 
     await booking.save();
 
-    sendBookingEmails(booking, "cancelled");
+    await ExtensionRequest.updateMany(
+      {
+        bookingId: booking._id,
+        status: "pending",
+      },
+      {
+        $set: {
+          status: "rejected",
+          rejectionReason: "Auto-rejected: Booking was cancelled",
+        },
+      }
+    );
+
+    asyncSendEmails(() => sendBookingEmails(booking, "cancelled"));
 
     const io = req.app.get("io");
     if (io) {
@@ -1555,6 +1778,117 @@ export const cancelBooking = async (req, res) => {
     res.json({ success: true, message: "Booking cancelled and bills updated", booking });
   } catch (err) {
     console.error("❌ Cancel booking error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ================================
+// APPROVE REBOOKING
+// ================================
+export const approveRebooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    // Only approve if currently under review
+    if (booking.approvalStatus !== "under_review") {
+      return res.status(400).json({
+        success: false,
+        message: `Booking approval status is ${booking.approvalStatus}, cannot approve`
+      });
+    }
+
+    // Update approval fields
+    booking.approvalStatus = "auto_approved";
+    booking.reviewedBy = req.user?._id || null;
+    booking.reviewedAt = new Date();
+
+    await booking.save();
+
+    console.log("✅ Rebooking approved:", {
+      bookingId: booking._id,
+      approvedBy: req.user?.name,
+      approvedAt: booking.reviewedAt
+    });
+
+    if (req.user?._id) {
+      createLog("booking_approved", req.user._id, { bookingId: booking._id });
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('booking-approved', {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        timestamp: Date.now()
+      });
+    }
+
+    res.json({ success: true, message: "Rebooking approved", booking });
+  } catch (err) {
+    console.error("❌ Approve rebooking error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ================================
+// REJECT REBOOKING
+// ================================
+export const rejectRebooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    // Only reject if currently under review
+    if (booking.approvalStatus !== "under_review") {
+      return res.status(400).json({
+        success: false,
+        message: `Booking approval status is ${booking.approvalStatus}, cannot reject`
+      });
+    }
+
+    // Update approval and booking status
+    booking.approvalStatus = "rejected";
+    booking.status = "cancelled";
+    booking.reviewedBy = req.user?._id || null;
+    booking.reviewedAt = new Date();
+    booking.cancelDate = new Date();
+    booking.cancelRemarks = "Rebooking rejected by admin";
+
+    await booking.save();
+
+    console.log("❌ Rebooking rejected:", {
+      bookingId: booking._id,
+      rejectedBy: req.user?.name,
+      rejectedAt: booking.reviewedAt
+    });
+
+    if (req.user?._id) {
+      createLog("booking_rejected", req.user._id, { bookingId: booking._id });
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('dashboard-room').emit('booking-rejected', {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        timestamp: Date.now()
+      });
+    }
+
+    res.json({ success: true, message: "Rebooking rejected", booking });
+  } catch (err) {
+    console.error("❌ Reject rebooking error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -1907,6 +2241,7 @@ export const autoCheckoutOverdueGuests = async () => {
         booking.status = "checked_out";
         booking.reportedStatus = "reported"; // ✅ FIX: SAME as manual checkout
         booking.checkedOutAt = now;
+        booking.checkoutType = "AUTO";
 
         // ✅ Store actual checkout info (DO NOT touch planned dates)
         booking.actualCheckoutDate = now;

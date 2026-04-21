@@ -161,6 +161,8 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   };
 
   const handleExtend = async () => {
+    if (loading) return;
+
     if (!newTo) {
       setError("Please select a new checkout date");
       return;
@@ -619,7 +621,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                       : "bg-red-600 hover:bg-red-700"
                   }`}
                 >
-                  {loading ? "Extending..." : "Confirm Extension"}
+                  {loading ? "⏳ Processing... Please wait" : "Submit"}
                 </button>
               </div>
             </>

@@ -3,6 +3,10 @@ import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } from "lucide-react";
 import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
+import { useAuth } from "../context/AuthContext";
+import { BACKEND_URL } from "../utils/apiConfig";
+
+const API = BACKEND_URL;
 
 const RoomCard = memo(function RoomCard({
   hostel,
@@ -25,6 +29,8 @@ const RoomCard = memo(function RoomCard({
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
+  const { user } = useAuth();
+  const userEmail = user?.email || "";
 
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
@@ -33,15 +39,54 @@ const RoomCard = memo(function RoomCard({
   const isAllHostelsView = selectionMode !== undefined || consolidateModal !== undefined;
 
   /**
-   * Only keep valid bookings
+   * Keep all non-terminal bookings in the UI flow.
+   * under_review bookings still occupy the room, but they are rendered specially.
    */
   const activeBookings = useMemo(() => {
     return (room.bookings || []).filter(
-      (b) => !["cancelled", "no_show", "checked_out"].includes(b.status)
+      (b) => 
+        !["cancelled", "no_show", "checked_out"].includes(b.status)
     );
   }, [room.bookings]);
 
+  // ✅ NEW: Bookings for conflict detection (includes under_review)
+  // Under-review bookings SHOULD block new bookings in the same slot
+  const bookingsForConflictCheck = useMemo(() => {
+    return (room.bookings || []).filter(
+      (b) => !["cancelled", "no_show", "checked_out"].includes(b.status)
+      // Note: Includes under_review bookings so they block date conflicts
+    );
+  }, [room.bookings]);
+
+  // ✅ NEW: Separate detection for under-review bookings
+  const underReviewBooking = useMemo(() => {
+    return (room.bookings || []).find(
+      (b) => b.approvalStatus === "under_review"
+    );
+  }, [room.bookings]);
+
+  // ✅ UPDATED: Get approval status - priority is under_review first
+  const primaryBooking = useMemo(() => {
+    // Priority 1: If there's an under_review booking, use it for display
+    if (underReviewBooking) return underReviewBooking;
+    // Priority 2: Otherwise use first active booking
+    return activeBookings[0] || (room.bookings || [])[0] || null;
+  }, [underReviewBooking, activeBookings, room.bookings]);
+
+  const approvalStatus = primaryBooking?.approvalStatus || "auto_approved";
+  const canReviewUnderReviewBooking =
+    userEmail === "admin_dev@thapar.edu";
+
   const isBooked = activeBookings.length > 0;
+  
+  // ✅ NEW: For AllHostelsPortal - include under_review in occupied count
+  const isOccupiedForDisplay = isBooked || !!underReviewBooking;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("Room bookings:", room.bookings || []);
+    console.log("Primary booking:", primaryBooking);
+  }
+  
   const now = useMemo(() => new Date(), []);
 
   /* =========================
@@ -126,7 +171,9 @@ const RoomCard = memo(function RoomCard({
   const hasConflict = useMemo(() => {
     if (!prefillGuest?.from || !prefillGuest?.to) return false;
     
-    return activeBookings.some((b) => {
+    // ✅ Use bookingsForConflictCheck to include under_review bookings
+    // This prevents new bookings from overlapping with under_review slots
+    return bookingsForConflictCheck.some((b) => {
       try {
         const existingStart = combineDateAndTime(b.from, b.checkInTime || "00:00");
         const existingEnd = combineDateAndTime(b.to, b.checkOutTime || "23:59");
@@ -149,7 +196,7 @@ const RoomCard = memo(function RoomCard({
         prefillGuest.checkOutTime || "23:59"
       );
     });
-  }, [prefillGuest, activeBookings]);
+  }, [prefillGuest, bookingsForConflictCheck]);
 
   const availableForNewDates = prefillGuest && prefillGuest.from && prefillGuest.to
     ? !hasConflict
@@ -301,6 +348,72 @@ const RoomCard = memo(function RoomCard({
     setShowBookings(false);
   };
 
+  // ✅ NEW: Approve rebooking handler
+  const handleApprove = async (bookingId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API}/api/bookings/${bookingId}/approve`, {
+        method: "POST",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to approve booking");
+      }
+
+      console.log("✅ Booking approved successfully");
+      if (showToast) {
+        showToast("Booking approved successfully", "success");
+      }
+      
+      // Refresh the data
+      if (window.fetchLatestHostelData) {
+        window.fetchLatestHostelData();
+      }
+      window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
+    } catch (err) {
+      console.error("❌ Approve failed", err);
+      if (showToast) {
+        showToast(err.message || "Failed to approve booking", "error");
+      }
+    }
+  };
+
+  // ✅ NEW: Reject rebooking handler
+  const handleReject = async (bookingId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API}/api/bookings/${bookingId}/reject`, {
+        method: "POST",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to reject booking");
+      }
+
+      console.log("✅ Booking rejected successfully");
+      if (showToast) {
+        showToast("Booking rejected successfully", "success");
+      }
+      
+      // Refresh the data
+      if (window.fetchLatestHostelData) {
+        window.fetchLatestHostelData();
+      }
+      window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
+    } catch (err) {
+      console.error("❌ Reject failed", err);
+      if (showToast) {
+        showToast(err.message || "Failed to reject booking", "error");
+      }
+    }
+  };
+
   /* =========================
      STYLING
   ========================== */
@@ -313,6 +426,12 @@ const RoomCard = memo(function RoomCard({
         : "bg-gray-300 border-gray-400 opacity-60 cursor-not-allowed";
     }
 
+    if (primaryBooking?.approvalStatus === "under_review") {
+      return theme === "dark"
+        ? "bg-orange-900 border-orange-500"
+        : "bg-orange-100 border-orange-500";
+    }
+
     if (isAllHostelsView) {
       // ✅ ONLY show red if guest is ACTUALLY checked in/reported
       if (currentActive) {
@@ -321,13 +440,14 @@ const RoomCard = memo(function RoomCard({
       if (isSelected) {
         return "border-blue-400 bg-gradient-to-br from-blue-50 to-white ring-2 ring-blue-400";
       }
-      if (isBooked) {
+      // ✅ UPDATED: Use isOccupiedForDisplay to include under_review bookings
+      if (isOccupiedForDisplay) {
         return "border-green-300 bg-gradient-to-br from-green-50 to-white";
       }
       return "border-gray-200 bg-gradient-to-br from-white to-gray-50";
     }
 
-    // MainContent styles
+
     if (hasActive) {
       return theme === "dark"
         ? "bg-red-700 border-red-500"
@@ -390,10 +510,15 @@ const RoomCard = memo(function RoomCard({
           ) : (
             <div className="mt-2">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <CheckCircle2 className="w-3 h-3 text-green-700" />
-                <p className="text-xs text-green-700 font-medium">
-                  {isBooked ? (
-                    // ✅ Show correct status based on actual check-in
+                <CheckCircle2
+                  className={`w-3 h-3 ${approvalStatus === "under_review" ? "text-orange-700" : "text-green-700"}`}
+                />
+                <p
+                  className={`text-xs font-medium ${approvalStatus === "under_review" ? "text-orange-700" : "text-green-700"}`}
+                >
+                  {approvalStatus === "under_review" ? (
+                    "Under Review"
+                  ) : isBooked ? (
                     activeBookings.length > 1 
                       ? `${activeBookings.length} Bookings` 
                       : "Upcoming booking"
@@ -406,6 +531,29 @@ const RoomCard = memo(function RoomCard({
                 <p className="text-xs text-gray-500 italic">
                   Click to view all bookings
                 </p>
+              )}
+
+              {approvalStatus === "under_review" && canReviewUnderReviewBooking && primaryBooking && (
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApprove(primaryBooking._id || primaryBooking.id);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 rounded"
+                  >
+                    ✔ Approve
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReject(primaryBooking._id || primaryBooking.id);
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs py-1 rounded"
+                  >
+                    ❌ Reject
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -585,6 +733,13 @@ const RoomCard = memo(function RoomCard({
           </span>
         )}
 
+        {/* ✅ NEW: UNDER REVIEW Badge */}
+        {approvalStatus === "under_review" && !isAllHostelsView && (
+          <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded bg-orange-500 text-white font-semibold">
+            UNDER REVIEW
+          </span>
+        )}
+
         <div className="flex justify-between items-center">
           <h3
             className={`text-lg font-semibold flex items-center gap-1 ${
@@ -604,7 +759,9 @@ const RoomCard = memo(function RoomCard({
 
         <p className="text-sm mt-1">
           Status:{" "}
-          {hasActive ? (
+          {approvalStatus === "under_review" ? (
+            <span className="font-semibold text-orange-600">Under Review</span>
+          ) : hasActive ? (
             <span className="font-semibold text-red-600">Active (Checked-in)</span>
           ) : hasPastOnly ? (
             <span className="font-semibold text-gray-600">Past</span>
@@ -619,13 +776,38 @@ const RoomCard = memo(function RoomCard({
           <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
             {activeBookings.length === 1 ? (
               <>
-                <p>Booked by <span className="font-medium">{activeBookings[0].guest}</span></p>
-                <p className="mt-1">{formatDateTime(activeBookings[0].from, activeBookings[0].checkInTime)}</p>
-                <p>→ {formatDateTime(activeBookings[0].to, activeBookings[0].checkOutTime)}</p>
+                <p>Booked by <span className="font-medium">{primaryBooking?.guest || activeBookings[0].guest}</span></p>
+                <p className="mt-1">{formatDateTime((primaryBooking || activeBookings[0]).from, (primaryBooking || activeBookings[0]).checkInTime)}</p>
+                <p>→ {formatDateTime((primaryBooking || activeBookings[0]).to, (primaryBooking || activeBookings[0]).checkOutTime)}</p>
               </>
             ) : (
               <p className="italic">{activeBookings.length} upcoming bookings — click to view list</p>
             )}
+          </div>
+        )}
+
+        {/* ✅ NEW: Approve/Reject Buttons for UNDER REVIEW */}
+        {approvalStatus === "under_review" && !isAllHostelsView && canReviewUnderReviewBooking && primaryBooking && (
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleApprove(primaryBooking._id || primaryBooking.id);
+              }}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 rounded"
+            >
+              ✔ Approve
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReject(primaryBooking._id || primaryBooking.id);
+              }}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs py-1 rounded"
+            >
+              ❌ Reject
+            </button>
           </div>
         )}
       </motion.div>
@@ -749,3 +931,4 @@ const RoomCard = memo(function RoomCard({
 });
 
 export default RoomCard;
+

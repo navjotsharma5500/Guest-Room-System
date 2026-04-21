@@ -46,6 +46,7 @@ export default function ConsolidatedBookingModal({
   const [remarks, setRemarks] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (prefillGuest) {
@@ -78,7 +79,9 @@ export default function ConsolidatedBookingModal({
     showToast("❌ Failed to upload document", "error");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (loading) return;
+
     // ✅ Validation for Paid bookings
     if (paymentType === "Paid") {
       if (!amount || amount <= 0) {
@@ -102,20 +105,24 @@ export default function ConsolidatedBookingModal({
     const finalFrom = prefillGuest?.from || checkIn;
     const finalTo = prefillGuest?.to || checkOut;
 
-    // ✅ CRITICAL FIX: Pass structured data with correct attachment field
-    onSubmit(
-      {
-        from: finalFrom,
-        to: finalTo,
-        checkInTime: prefillGuest?.checkInTime || "00:00",
-        checkOutTime: prefillGuest?.checkOutTime || "23:59",
-      },
-      paymentType,         // "Paid" or "Free"
-      amount || 0,         // Total bill amount (only for Paid)
-      remarks,             // Remarks
-      uploadedFiles,       // ✅ These should go to approvalDocuments
-      "approvalDocuments"  // ✅ NEW: Explicitly specify field name
-    );
+    try {
+      setLoading(true);
+      await onSubmit(
+        {
+          from: finalFrom,
+          to: finalTo,
+          checkInTime: prefillGuest?.checkInTime || "00:00",
+          checkOutTime: prefillGuest?.checkOutTime || "23:59",
+        },
+        paymentType,
+        amount || 0,
+        remarks,
+        uploadedFiles,
+        "approvalDocuments"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -559,9 +566,14 @@ export default function ConsolidatedBookingModal({
               whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(220, 38, 38, 0.3)" }}
               whileTap={{ scale: 0.95 }}
               onClick={handleSubmit}
-              className="px-8 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl shadow-lg transition font-semibold"
+              disabled={loading}
+              className={`px-8 py-2.5 text-white rounded-xl shadow-lg transition font-semibold ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-red-600 to-red-700"
+              }`}
             >
-              Confirm Booking
+              {loading ? "⏳ Processing... Please wait" : "Submit"}
             </motion.button>
           </div>
         </motion.div>

@@ -321,6 +321,13 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       extensionAttachments: Array.isArray(b.extensionAttachments) ? b.extensionAttachments : [],
       cancelAttachments: Array.isArray(b.cancelAttachments) ? b.cancelAttachments : [],
       files: Array.isArray(b.files) ? b.files : [],
+      earlyCheckIn: b.earlyCheckIn || {
+        isEarly: false,
+        amount: 0,
+        paymentType: "Paid",
+        remarks: "",
+        attachments: [],
+      },
       hostel: b.hostel || activeRoomRef?.hostel || "",
       roomNo: b.roomNo || activeRoomRef?.roomNo || ""
     };
@@ -1244,6 +1251,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 
                 // Show button if there's a balance AND it's not department payment AND it's not free AND NOT CANCELLED
                 const shouldShowPaymentButton = !isDepartmentPayment && 
+                                               b.approvalStatus !== "under_review" &&
                                                b.paymentType !== "Free" && 
                                                actualBalance > 0 &&
                                                b.status !== "cancelled";
@@ -1270,6 +1278,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 
                 // Show button if there's a balance AND it's not already department payment AND not checked out AND it's not free AND NOT CANCELLED
                 const shouldShowDeptPayButton = !isDepartmentPayment && 
+                                               b.approvalStatus !== "under_review" &&
                                                b.status !== "checked_out" &&
                                                b.paymentType !== "Free" && 
                                                actualBalance > 0 &&
@@ -1372,15 +1381,17 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   </div>
                 )}
 
-                <button
-                  onClick={() => setPaymentModalOpen(true)}
-                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 
-                            rounded-lg hover:from-orange-700 hover:to-red-700 transition font-bold 
-                            shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                >
-                  <Receipt className="w-5 h-5" />
-                  Pay Now (Department)
-                </button>
+                {b.approvalStatus !== "under_review" && (
+                  <button
+                    onClick={() => setPaymentModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 
+                              rounded-lg hover:from-orange-700 hover:to-red-700 transition font-bold 
+                              shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                  >
+                    <Receipt className="w-5 h-5" />
+                    Pay Now (Department)
+                  </button>
+                )}
               </div>
             )}
 
@@ -1470,8 +1481,11 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         </AnimatePresence>
 
         {/* 6. CHECK-IN / CHECK-OUT ACTION */}
-        {/* ✅ FIXED: Hide button if guest is checked out */}
-        {b.status !== "checked_out" && b.status !== "cancelled" && b.status !== "no_show" && (
+        {/* ✅ FIXED: Hide button if guest is checked out OR if booking is under review */}
+        {b.status !== "checked_out" && 
+         b.status !== "cancelled" && 
+         b.status !== "no_show" && 
+         b.approvalStatus !== "under_review" && (
           <div className="px-6 py-4 border-t">
             <button
               onClick={() => setShowReportedModal(true)}
@@ -1800,3 +1814,4 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     </>
   );
 }
+

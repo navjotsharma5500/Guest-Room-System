@@ -14,6 +14,7 @@ import {
   LogOut
 } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
+import EarlyCheckInPaymentModal from "./EarlyCheckInPaymentModal";
 
 const API = BACKEND_URL;
 
@@ -47,6 +48,7 @@ export default function ReportedModal({
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
   const [alertModal, setAlertModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [showEarlyCheckInPaymentModal, setShowEarlyCheckInPaymentModal] = useState(false);
 
   useEffect(() => {
     if (open && !isAlreadyReported && !isNotReported && !isNoShow && actualCheckInDate) {
@@ -89,6 +91,26 @@ export default function ReportedModal({
     } catch {
       return timeStr;
     }
+  };
+
+  const isEarlyCheckInDate = (selectedCheckInDate) => {
+    if (!selectedCheckInDate || !booking?.from) return false;
+    const selected = new Date(selectedCheckInDate);
+    const scheduled = new Date(booking.from);
+    selected.setHours(0, 0, 0, 0);
+    scheduled.setHours(0, 0, 0, 0);
+    return selected < scheduled;
+  };
+
+  const getCheckoutType = (bookingToCheckout) => {
+    if (!bookingToCheckout?.to) return "NORMAL";
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const planned = new Date(bookingToCheckout.to);
+    const plannedDate = new Date(planned.getFullYear(), planned.getMonth(), planned.getDate());
+
+    return today < plannedDate ? "EARLY" : "NORMAL";
   };
 
   // ✅ CENTRALIZED CHECKOUT HANDLER - Checks payment before any checkout
@@ -155,6 +177,7 @@ export default function ReportedModal({
       const headers = { "Content-Type": "application/json" };
 
       const actualCheckoutDateTime = new Date();
+      const checkoutType = getCheckoutType(bookingToCheckout);
       const response = await fetch(
         `${API}/api/bookings/${bookingToCheckout._id}/checkout`,
         {
@@ -168,6 +191,7 @@ export default function ReportedModal({
             actualCheckOutTime: actualCheckoutDateTime.toISOString(),
             actualCheckoutDate: actualCheckoutDateTime.toISOString().split("T")[0],
             actualCheckoutTime: actualCheckoutDateTime.toTimeString().slice(0, 5),
+            checkoutType,
           }),
         }
       );
@@ -277,7 +301,7 @@ export default function ReportedModal({
     }
   };
 
-  const handleMarkReported = async () => {
+  const submitReported = async (earlyCheckInPayment = null) => {
     try {
       setLoading(true);
       setError("");
@@ -372,6 +396,7 @@ export default function ReportedModal({
           actualCheckInDate,
           actualCheckInTime,
           remarks: remarks.trim(),
+          earlyCheckInPayment,
         }),
       });
 
@@ -394,7 +419,7 @@ export default function ReportedModal({
       }
 
       if (result.earlyCheckIn) {
-        showAlert(`✅ Guest checked in early! Check-in date updated to ${formatDate(result.booking.from)}`, "success");
+        showAlert("✅ Guest checked in early and payment captured successfully!", "success");
       } else {
         showAlert("✅ Guest reported successfully!", "success");
       }
@@ -409,6 +434,15 @@ export default function ReportedModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMarkReported = async () => {
+    if (isEarlyCheckInDate(actualCheckInDate)) {
+      setShowEarlyCheckInPaymentModal(true);
+      return;
+    }
+
+    await submitReported();
   };
 
   // ============================================================================
@@ -705,7 +739,7 @@ export default function ReportedModal({
                       whileTap={{ scale: 0.98 }}
                     >
                       <LogOut className="w-5 h-5" />
-                      {loading ? "Processing..." : `Check Out ${currentOccupant.guest}`}
+                      {loading ? "Processing..." : getCheckoutType(currentOccupant) === "EARLY" ? `Early Checkout ${currentOccupant.guest}` : `Check Out ${currentOccupant.guest}`}
                     </motion.button>
                   </div>
                 </motion.div>
@@ -1377,7 +1411,7 @@ export default function ReportedModal({
                     whileTap={{ scale: 0.98 }}
                   >
                     <LogOut size={20} />
-                    {loading ? "Processing..." : "Check Out Guest"}
+                    {loading ? "Processing..." : getCheckoutType(booking) === "EARLY" ? "Early Checkout" : "Check Out Guest"}
                   </motion.button>
                 )}
 
@@ -1395,6 +1429,16 @@ export default function ReportedModal({
           </motion.div>
         </motion.div>
       )}
+
+      <EarlyCheckInPaymentModal
+        open={showEarlyCheckInPaymentModal}
+        booking={booking}
+        onClose={() => setShowEarlyCheckInPaymentModal(false)}
+        onSubmit={async (paymentPayload) => {
+          setShowEarlyCheckInPaymentModal(false);
+          await submitReported(paymentPayload);
+        }}
+      />
     </AnimatePresence>
   );
 }

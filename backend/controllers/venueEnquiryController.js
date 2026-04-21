@@ -21,6 +21,7 @@ import {
   sendEnquiryApprovedEmail,
   sendEnquiryRejectedEmail,
 } from '../emails/venueEmailService.js';
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 
 const adminAssistantOnly = (req, res) => {
   const userRole = req.user?.role || '';
@@ -181,10 +182,7 @@ export const createVenueEnquiry = async (req, res) => {
       console.error("⚠️ venue-enquiry-created socket emit failed:", socketErr.message);
     }
 
-    // Send enquiry submitted emails (non-blocking)
-    sendEnquirySubmittedEmail(enquiry).catch(emailError => {
-      console.error('⚠️ Enquiry submitted email failed (non-critical):', emailError.message);
-    });
+    asyncSendEmails(() => sendEnquirySubmittedEmail(enquiry));
 
     // ✅ SINGLE RESPONSE - Success case
     return res.status(201).json({
@@ -485,13 +483,6 @@ export const approveVenueEnquiry = async (req, res) => {
       isHallBooking: false,
     });
 
-    // Send approval email
-    try {
-      await sendEnquiryApprovedEmail(enquiry, booking);
-    } catch (emailError) {
-      console.error('⚠️ Approval email failed (non-critical):', emailError.message);
-    }
-
     enquiry.status = "booked";
     enquiry.reviewedBy = req.user?._id || null;
     enquiry.reviewedAt = new Date();
@@ -511,12 +502,15 @@ export const approveVenueEnquiry = async (req, res) => {
       console.error("⚠️ venue-enquiry-updated socket emit failed:", socketErr.message);
     }
 
-    return res.status(200).json({
+    const response = res.status(200).json({
       success: true,
       message: "Enquiry approved and room booked",
       enquiry,
       booking,
     });
+
+    asyncSendEmails(() => sendEnquiryApprovedEmail(enquiry, booking));
+    return response;
   } catch (error) {
     console.error("❌ approveVenueEnquiry error:", error);
     return res.status(500).json({ success: false, message: "Failed to approve enquiry" });
@@ -568,17 +562,10 @@ export const rejectVenueEnquiry = async (req, res) => {
       console.error("⚠️ venue-enquiry-updated socket emit failed:", socketErr.message);
     }
 
-    // Send rejection email
-    try {
-      console.log("📧 Attempting to send rejection email...");
-      await sendEnquiryRejectedEmail(enquiry);
-      console.log("✅ Rejection email sent (or logged as non-critical error)");
-    } catch (emailError) {
-      console.error('⚠️ Rejection email failed (non-critical):', emailError.message);
-    }
-
     console.log("✅ Enquiry rejected successfully");
-    return res.status(200).json({ success: true, message: "Enquiry rejected", enquiry });
+    const response = res.status(200).json({ success: true, message: "Enquiry rejected", enquiry });
+    asyncSendEmails(() => sendEnquiryRejectedEmail(enquiry));
+    return response;
   } catch (error) {
     console.error("❌ rejectVenueEnquiry error:", {
       message: error.message,

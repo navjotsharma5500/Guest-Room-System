@@ -37,6 +37,17 @@ const BookingSchema = new mongoose.Schema(
 
     actualCheckInDate: { type: Date },
     actualCheckInTime: { type: String },
+    earlyCheckIn: {
+      isEarly: { type: Boolean, default: false },
+      amount: { type: Number, default: 0 },
+      paymentType: {
+        type: String,
+        enum: ["Paid", "Free"],
+        default: "Paid",
+      },
+      remarks: { type: String, default: "" },
+      attachments: { type: [String], default: [] },
+    },
 
     actualCheckoutDate: { type: Date },
     actualCheckoutTime: { type: String },
@@ -146,6 +157,11 @@ const BookingSchema = new mongoose.Schema(
     // =========================
     checkedOutAt: { type: Date, default: null },
     checkOutComment: { type: String, default: "" },
+    checkoutType: {
+      type: String,
+      enum: ["NORMAL", "EARLY", "AUTO"],
+      default: "NORMAL",
+    },
 
     // =========================
     // EXTENSION
@@ -248,6 +264,36 @@ const BookingSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+
+    // =========================
+    // REBOOKING APPROVAL SYSTEM
+    // =========================
+    approvalStatus: {
+      type: String,
+      enum: ["auto_approved", "under_review", "rejected"],
+      default: "auto_approved",
+    },
+
+    isRebookingWithin24hrs: {
+      type: Boolean,
+      default: false,
+    },
+
+    reviewDeadline: {
+      type: Date,
+      default: null,
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    reviewedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

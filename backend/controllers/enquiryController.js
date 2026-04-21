@@ -8,6 +8,7 @@ import EmailLog from "../models/EmailLog.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 
 // ✅ Import event-driven email function
 import { sendBookingEmails } from "./bookingController.js";
@@ -92,7 +93,7 @@ export const createEnquiry = async (req, res) => {
     // ======================================================
 
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
-      safeSend({
+      asyncSendEmails(() => safeSend({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: "New Guest Enquiry Received",
         html: enquiryNotification(enquiry),
@@ -100,12 +101,12 @@ export const createEnquiry = async (req, res) => {
           type: "new-enquiry-admin",
           enquiryId: enquiry._id,
         },
-      });
+      }));
     } else {
       console.warn("⚠️ ADMIN_NOTIFICATION_EMAIL not set - skipping admin notification");
     }
 
-    safeSend({
+    asyncSendEmails(() => safeSend({
       to: enquiry.email,
       subject: "We have received your enquiry",
       html: guestEnquiryReceived(enquiry),
@@ -113,7 +114,7 @@ export const createEnquiry = async (req, res) => {
         type: "guest-enquiry-received",
         enquiryId: enquiry._id,
       },
-    });
+    }));
 
     console.log("📧 Enquiry emails dispatched (non-blocking)");
 
@@ -332,9 +333,6 @@ export const approveEnquiry = async (req, res) => {
       manager: process.env.MANAGER_EMAIL
     });
 
-    // ✅ NO ROLE PARAMETER - Event-driven only
-    sendBookingEmails(booking, "approved");
-
     if (req.user?._id) {
       createLog("enquiry_approved", req.user._id, { 
         enquiryId: enquiry._id,
@@ -354,12 +352,16 @@ export const approveEnquiry = async (req, res) => {
       console.log('📡 Emitted enquiry-approved event');
     }
 
-    res.json({ 
+    const response = res.json({ 
       success: true, 
       message: "Enquiry approved and booking created",
       booking,
       enquiry 
     });
+
+    asyncSendEmails(() => sendBookingEmails(booking, "approved"));
+
+    return response;
 
   } catch (err) {
     console.error("❌ APPROVE ENQUIRY ERROR:", err.message);
@@ -393,7 +395,7 @@ export const bookEnquiry = async (req, res) => {
       checkOutTime: enquiry.checkOutTime,
     });
 
-    safeSend({
+    asyncSendEmails(() => safeSend({
       to: enquiry.email,
       subject: "Your Room Booking is Confirmed",
       html: guestEnquiryReceived(enquiry),
@@ -401,7 +403,7 @@ export const bookEnquiry = async (req, res) => {
         type: "enquiry-booked",
         enquiryId: enquiry._id,
       },
-    });
+    }));
 
     res.json({ success: true, message: "Enquiry fully booked", enquiry });
 
@@ -436,7 +438,7 @@ export const rejectEnquiry = async (req, res) => {
 
     console.log("✅ Enquiry rejected:", enquiry._id);
 
-    safeSend({
+    asyncSendEmails(() => safeSend({
       to: enquiry.email,
       subject: "Guest Room Booking Request - Update",
       html: `
@@ -452,7 +454,7 @@ export const rejectEnquiry = async (req, res) => {
         type: "enquiry-rejected",
         enquiryId: enquiry._id,
       },
-    });
+    }));
 
     res.json({ success: true, message: "Enquiry rejected", enquiry });
 

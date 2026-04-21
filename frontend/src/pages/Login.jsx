@@ -37,34 +37,40 @@ export default function Login() {
     const userEmail = (userData?.email || "").toLowerCase();
     const permissions = userData?.permissions || {};
 
-    // 1️⃣ Hardcoded override
+    // 1️⃣ Keep existing adosa2 behavior unchanged
     if (userEmail === "adosa2@thapar.edu") return "/dashboard";
 
-    // 2️⃣ Guard → Scan page
+    // 2️⃣ adosa3 override
+    if (userEmail === "adosa3@thapar.edu") return "/venue-booking";
+
+    // 3️⃣ Caretaker override
+    if (userRole === "caretaker") return "/dashboard";
+
+    // 4️⃣ Guard → Scan page
     if (userRole === "guard") return "/night-pass/scan";
 
-    // 3️⃣ GuestRoom-only permission
+    // 5️⃣ GuestRoom-only permission
     if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
 
-    // 4️⃣ GuestRoom direct roles
+    // 6️⃣ GuestRoom direct roles
     if (["manager", "warden", "co_warden"].includes(userRole)) return "/dashboard";
 
-    // 5️⃣ Student → Society Night Pass portal
+    // 7️⃣ Student → Society Night Pass portal
     if (userRole === "student") return "/society-night-pass";
 
-    // 6️⃣ Night-only roles (Gen Sec / President) → Night Pass dashboard
+    // 8️⃣ Night-only roles (Gen Sec / President) → Night Pass dashboard
     if (["gen_sec", "president"].includes(userRole)) return "/night-pass";
 
-    // 7️⃣ DD Assistant → Venue Booking
+    // 9️⃣ DD Assistant → Venue Booking
     if (userRole === "dd_assistant") return "/venue-booking";
 
-    // 8️⃣ Admin / ADOSA / assistant / caretaker → Dashboard selector
-    if (["admin", "adosa", "assistant", "caretaker"].includes(userRole)) return "/admin/dashboard-selector";
+    // 🔟 Admin / ADOSA / assistant → Dashboard selector
+    if (["admin", "adosa", "assistant"].includes(userRole)) return "/admin/dashboard-selector";
 
-    // 9️⃣ Backend-provided redirect hint, if any
+    // 1️⃣1️⃣ Backend-provided redirect hint, if any
     if (userData?.redirectTo) return userData.redirectTo;
 
-    // ️🔟 Fallback to login/public selector
+    // 1️⃣2️⃣ Fallback to login/public selector
     return "/";
   };
 

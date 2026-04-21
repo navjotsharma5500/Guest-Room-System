@@ -286,11 +286,24 @@ export default function useBookingHandlers({
             const mongoBooking = results[index]?.booking;
             
             if (mongoBooking) {
+              const mongoId = mongoBooking._id?.toString();
+              room.bookings = room.bookings.filter((existingBooking) => {
+                const existingId =
+                  existingBooking?._id?.toString?.() ||
+                  existingBooking?.id?.toString?.();
+                return !mongoId || existingId !== mongoId;
+              });
+
               room.bookings.push({
                 id: mongoBooking._id,
                 _id: mongoBooking._id,
                 ...guestData,
-                status: "booked",
+                status: mongoBooking.status || "booked",
+                approvalStatus: mongoBooking.approvalStatus || "auto_approved",
+                isRebookingWithin24hrs: mongoBooking.isRebookingWithin24hrs || false,
+                reviewDeadline: mongoBooking.reviewDeadline || null,
+                reportedStatus: mongoBooking.reportedStatus || "pending",
+                checkedOutAt: mongoBooking.checkedOutAt || null,
               });
             }
           });
@@ -429,7 +442,18 @@ export default function useBookingHandlers({
           bookingToStore.guest = bookingToStore.name || bookingToStore.fullName || "Guest";
         }
 
+        const bookingId = bookingToStore._id?.toString?.() || bookingToStore.id?.toString?.();
         room.bookings = room.bookings.filter((b) => !b.id?.toString().startsWith("b_"));
+
+        if (bookingId) {
+          room.bookings = room.bookings.filter((existingBooking) => {
+            const existingId =
+              existingBooking?._id?.toString?.() ||
+              existingBooking?.id?.toString?.();
+            return existingId !== bookingId;
+          });
+        }
+
         room.bookings.push({ ...bookingToStore, id: bookingToStore._id || bookingToStore.id });
 
         persistHostelData(copy);

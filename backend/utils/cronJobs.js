@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import { asyncSendEmails } from "./asyncEmail.js";
 import { autoCancelNoShows, autoCheckoutOverdueGuests } from "../controllers/bookingController.js";
 import Hostel from "../models/Hostel.js";
 import User from "../models/User.js";
@@ -358,11 +359,11 @@ export const startExtensionAutoCancelCronJob = (io) => {
             
             try {
                 // ✅ Send to guest
-                await sendEmailAdvanced({
+                asyncSendEmails(() => sendEmailAdvanced({
                     to: req.bookingId.email,
                     subject: "Extension Request Rejected (Auto)",
                     html: emailHtml
-                });
+                }));
                 
                 // ✅ Send to hostel warden and caretaker
                 const warden = await User.findOne({ role: "warden", hostel: req.hostel });
@@ -389,17 +390,17 @@ export const startExtensionAutoCancelCronJob = (io) => {
                     `;
                     
                     try {
-                        await sendEmailAdvanced({
+                        asyncSendEmails(() => sendEmailAdvanced({
                             to: staffEmails,
                             subject: `[FYI] Extension Auto-Rejected - ${req.hostel} Room ${req.bookingId.roomNo}`,
                             html: staffNotificationHtml
-                        });
+                        }));
                     } catch (staffEmailError) {
-                        console.warn("Failed to send auto-rejection notification to hostel staff:", staffEmailError);
+                        console.warn("Failed to queue auto-rejection notification to hostel staff:", staffEmailError);
                     }
                 }
             } catch (err) {
-                console.error("Failed to send rejection email:", err);
+                console.error("Failed to queue rejection email:", err);
             }
             
             rejectedCount++;
@@ -495,11 +496,11 @@ export const startExtensionReminderCronJob = (io) => {
 
             // Send to approver(s)
             if (approverEmails.length > 0) {
-              await sendEmailAdvanced({
+              asyncSendEmails(() => sendEmailAdvanced({
                 to: approverEmails,
                 subject: `⏰ URGENT: Extension Request Pending – Checkout in ${Math.round(timeUntilCheckout / 60)} Hour${Math.round(timeUntilCheckout / 60) > 1 ? 's' : ''}`,
                 html: emailHtml
-              });
+              }));
 
               // Mark reminder as sent
               req.reminderSentAt = now;
@@ -533,4 +534,71 @@ export const startExtensionReminderCronJob = (io) => {
   });
 
   console.log("✅ Extension reminder cron job started - runs every 15 minutes");
+};
+
+// ============================================================================
+// AUTO-REJECT EXPIRED REBOOKING APPROVALS (Runs every 10 minutes)
+// ============================================================================
+export const startRebookingAutoRejectCronJob = (io) => {
+  console.log("🟢 Starting rebooking auto-reject cron job...");
+
+  // Run every 10 minutes
+  cron.schedule("*/10 * * * *", async () => {
+    const now = new Date();
+    console.log(`⏰ [${now.toISOString()}] Running rebooking auto-reject job...`);
+
+    try {
+      const Booking = (await import("../models/Booking.js")).default;
+
+      // Find bookings that are under review and have exceeded review deadline
+      const expiredBookings = await Booking.find({
+        approvalStatus: "under_review",
+        reviewDeadline: { $exists: true, $ne: null, $lt: now }
+      });
+
+      if (expiredBookings.length === 0) {
+        console.log("✅ No expired rebooking approvals found");
+        return;
+      }
+
+      console.log(`⏳ Found ${expiredBookings.length} expired rebooking approval(s)`);
+
+      let rejectedCount = 0;
+      for (const booking of expiredBookings) {
+        try {
+          console.log(`🚫 Auto-rejecting expired rebooking: ${booking._id}`);
+          
+          booking.approvalStatus = "rejected";
+          booking.status = "cancelled";
+          booking.cancelDate = new Date();
+          booking.cancelRemarks = "Rebooking approval expired - deadline exceeded";
+          
+          await booking.save();
+          rejectedCount++;
+
+          console.log(`✅ Auto-rejected booking ${booking._id}`);
+        } catch (err) {
+          console.error(`❌ Failed to auto-reject booking ${booking._id}:`, err.message);
+        }
+      }
+
+      if (rejectedCount > 0) {
+        console.log(`✅ Auto-rejected ${rejectedCount} expired rebooking approval(s)`);
+        
+        if (io) {
+          io.emit("rebooking-auto-rejected", {
+            type: "cron-auto-reject",
+            count: rejectedCount,
+            timestamp: now.toISOString()
+          });
+          console.log("📡 Broadcast rebooking auto-reject to all clients");
+        }
+      }
+
+    } catch (error) {
+      console.error("❌ Rebooking auto-reject cron error:", error);
+    }
+  });
+
+  console.log("✅ Rebooking auto-reject cron job started - runs every 10 minutes");
 };

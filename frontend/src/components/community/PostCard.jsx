@@ -10,7 +10,7 @@ import CommentSection from "./CommentSection";
 import AttachmentPreview from "./AttachmentPreview";
 
 const BACKEND = "";
-const ADMIN_EMAIL = "navjot.sharma@thapar.edu";
+const ADMIN_EMAIL = "admin_dev@thapar.edu";
 
 const TAG_COLORS = {
   Suggestion: { bg:"#e0f2fe", color:"#0369a1", border:"#bae6fd" },

@@ -1,6 +1,6 @@
 // src/pages/admin/DashboardSelector.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Calendar, Globe, Search, Sparkles, Lock,
@@ -894,17 +894,25 @@ const PublicFormsModal = ({ open, onClose }) => {
 // MAIN DASHBOARD SELECTOR
 // ════════════════════════════════════════════════════════════════════════════
 const DashboardSelector = () => {
+  const { currentUser } = useAuth();
+  const role = (currentUser?.role || currentUser?.user?.role || "").toLowerCase();
+  const email = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
   const [showPublicForms, setShowPublicForms] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showEcho, setShowEcho] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const role = (currentUser?.role || currentUser?.user?.role || "").toLowerCase();
-  const email = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
+
+  if (role === "caretaker") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (email === "adosa3@thapar.edu") {
+    return <Navigate to="/venue-booking" replace />;
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // DASHBOARD CARD CONFIGURATION (Hardcoded Visibility Logic)

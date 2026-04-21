@@ -219,6 +219,13 @@ export default function GuestRoomDashboard() {
     refresh(); // Call your existing refresh from useHostelDataPolling
   }, [refresh]);
 
+  useEffect(() => {
+    window.fetchLatestHostelData = handleRefresh;
+    return () => {
+      delete window.fetchLatestHostelData;
+    };
+  }, [handleRefresh]);
+
   // Early returns for loading states
   if (loading) {
     return (
@@ -305,7 +312,7 @@ export default function GuestRoomDashboard() {
     const rooms = hostelData[hostel]?.rooms || [];
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.bookings && r.bookings.length > 0
+      (r) => r.isBlocked || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };
@@ -315,7 +322,7 @@ export default function GuestRoomDashboard() {
     const rooms = Object.values(hostelData).flatMap((h) => h.rooms || []);
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.bookings && r.bookings.length > 0
+      (r) => r.isBlocked || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };

@@ -6,6 +6,7 @@ import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../controllers/bookingController.js";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 
 const router = express.Router();
 
@@ -33,7 +34,9 @@ import {
   requestExtension,
   approveExtension,
   rejectExtension,
-  getExtensionRequests
+  getExtensionRequests,
+  approveRebooking,
+  rejectRebooking
 } from "../controllers/bookingController.js";
 
 router.get("/list", protect, getAllBookingsFlat);
@@ -41,6 +44,11 @@ router.get("/history", protect, getBookingHistory);
 router.get("/extension-requests", protect, getExtensionRequests);
 router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), approveExtension);
 router.post("/extension-requests/reject", protect, authorizeRoles("admin", "adosa", "co_warden"), rejectExtension);
+
+// Rebooking approval routes
+router.post("/:id/approve", protect, authorizeRoles("admin"), approveRebooking);
+router.post("/:id/reject", protect, authorizeRoles("admin"), rejectRebooking);
+
 router.put("/:id/details", protect, updateBookingDetails);
 
 const handleCancel = async (req, res) => { 
@@ -99,6 +107,11 @@ const normalizeBooking = (b) => ({
   purpose: b.purpose || "",
   city: b.city || "",
   state: b.state || "",
+  approvalStatus: b.approvalStatus || "auto_approved",
+  isRebookingWithin24hrs: b.isRebookingWithin24hrs ?? false,
+  reviewDeadline: b.reviewDeadline || null,
+  reviewedBy: b.reviewedBy || null,
+  reviewedAt: b.reviewedAt || null,
 
   // 💳 Payment - COMPLETE STRUCTURE WITH TRANSACTION DETAILS
   status: b.status || "booked",
@@ -165,11 +178,19 @@ const normalizeBooking = (b) => ({
   reportedBy: b.reportedBy || null,
   actualCheckInDate: b.actualCheckInDate || null,
   actualCheckInTime: b.actualCheckInTime || null,
+  earlyCheckIn: b.earlyCheckIn || {
+    isEarly: false,
+    amount: 0,
+    paymentType: "Paid",
+    remarks: "",
+    attachments: [],
+  },
   idVerified: b.idVerified ?? false,
 
   // 🚪 Check Out
   checkedOutAt: b.checkedOutAt || null,
   checkOutComment: b.checkOutComment || "",
+  checkoutType: b.checkoutType || "NORMAL",
 
   // 📸 Profile
   profilePicture: b.profilePicture || "",
@@ -558,14 +579,20 @@ router.put("/:id/extend", protect, async (req, res) => {
       extensionAmount: booking.extensionAmount
     });
 
-    // ---------------- EMAIL TRIGGER (CRITICAL) ----------------
+    const response = res.json({
+      success: true,
+      message: "Booking extended successfully",
+      booking
+    });
+
+    // ---------------- EMAIL TRIGGER (NON-BLOCKING) ----------------
     console.log("📨 TRIGGERING EXTENSION EMAILS", {
       guest: booking.email,
       caretaker: booking.caretakerEmail,
       warden: booking.wardenEmail
     });
 
-    sendBookingEmails(booking, "extended");
+    asyncSendEmails(() => sendBookingEmails(booking, "extended"));
 
     // ---------------- SOCKET EVENT ----------------
     const io = req.app.get("io");
@@ -577,11 +604,7 @@ router.put("/:id/extend", protect, async (req, res) => {
       });
     }
 
-    return res.json({
-      success: true,
-      message: "Booking extended successfully",
-      booking
-    });
+    return response;
 
   } catch (error) {
     console.error("❌ EXTENSION ERROR:", error);
@@ -1091,12 +1114,12 @@ router.patch(
 </body>
 </html>`;
 
-          await sendEmail({
+          asyncSendEmails(() => sendEmail({
             to: departmentEmail,
             subject: `Payment Request: ${guestName} — Room ${booking.roomNo || ''} — ₹${balance.toLocaleString('en-IN')}`,
             html: emailHtml,
-          });
-          console.log("📧 Department payment email sent to:", departmentEmail);
+          }));
+          console.log("📧 Department payment email queued for:", departmentEmail);
         } catch (emailErr) {
           console.error("⚠️ Department email failed (non-blocking):", emailErr.message);
         }

@@ -24,21 +24,11 @@ export default function HostelGrid({
     show: { opacity: 1, y: 0 },
   };
 
-  // ✅ CRITICAL FIX: Helper function to filter only ACTIVE bookings
+  // Keep non-terminal bookings in the room UI flow, including under_review.
   const getActiveBookings = (bookings = []) => {
-    return bookings.filter(booking => {
-      // Only count bookings that are:
-      // 1. "booked" (not yet reported)
-      // 2. "reported" or "checked_in" (currently staying)
-      // 
-      // Do NOT count:
-      // - "cancelled" bookings
-      // - "checked_out" bookings
-      // - "no_show" bookings
-      // - "not_reported" bookings
-      const activeStatuses = ["booked", "reported", "checked_in"];
-      return activeStatuses.includes(booking.status);
-    });
+    return bookings.filter((booking) =>
+      !["cancelled", "checked_out", "no_show"].includes(booking.status)
+    );
   };
 
   // Helper function to extract initial/letter from parentheses (e.g., "Agita Hall (A)" -> "A")
@@ -64,8 +54,9 @@ export default function HostelGrid({
       {sortedHostels.map(([hostelName, hostel]) => {
         const rooms = hostel.rooms || [];
         
-        // ✅ FIXED: Count only rooms with ACTIVE bookings
+        // Count blocked rooms as occupied in the summary, same as booked/checked-in rooms.
         const occupied = rooms.filter((r) => {
+          if (r.isBlocked) return true;
           const activeBookings = getActiveBookings(r.bookings || []);
           return activeBookings.length > 0;
         }).length;
@@ -126,10 +117,9 @@ export default function HostelGrid({
             {/* Rooms Grid */}
             <div className="p-5 grid grid-cols-2 gap-4">
               {rooms.map((room, idx) => {
-                // ✅ FIXED: Pass only ACTIVE bookings to RoomCard
+                // Pass non-terminal bookings through so RoomCard can render under_review correctly.
                 const activeBookings = getActiveBookings(room.bookings || []);
                 
-                // Create a modified room object with only active bookings
                 const roomWithActiveBookings = {
                   ...room,
                   bookings: activeBookings,

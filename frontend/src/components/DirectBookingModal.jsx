@@ -51,6 +51,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   const [cityList, setCityList] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   /* --- MAIN FORM --- */
   const [form, setForm] = useState({
@@ -321,6 +322,8 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
   /* ------------------ FINAL SUBMIT FUNCTION ------------------ */
   const handleSubmit = async () => {
+    if (submitting) return;
+
     if (!validateDateRange()) {
       showToast(
         "⚠️ The selected date/time overlaps with an existing booking.",
@@ -388,6 +391,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     };
 
     try {
+      setSubmitting(true);
       console.log("â¬†ï¸ Uploading booking to MongoDB:", bookingPayload);
 
       const bookingHeaders = {
@@ -419,11 +423,16 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       } : bookingPayload;
 
       onSubmit(savedBooking);
-      showToast("✅ Booking saved successfully!", "success");
+      showToast(
+        saved?.duplicatePrevented ? "✅ Existing booking reused. Duplicate prevented." : "✅ Booking created successfully",
+        "success"
+      );
       onClose();
     } catch (err) {
       console.error("🔓 Direct booking error:", err);
       showToast("❌ Server error while saving booking", "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -1355,11 +1364,22 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
                 <button
                   onClick={handleSubmit}
-                  className="px-5 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  disabled={!canSubmit() || submitting}
+                  className={`px-5 py-2 text-white rounded transition-colors ${
+                    !canSubmit() || submitting
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
                 >
-                  Confirm Booking
+                  {submitting ? "⏳ Booking is being processed. Please wait..." : "Submit Booking"}
                 </button>
               </div>
+
+              {submitting && (
+                <p className="mt-3 text-sm text-blue-600 text-right">
+                  Processing booking... Please do not refresh
+                </p>
+              )}
             </>
           )}
         </motion.div>

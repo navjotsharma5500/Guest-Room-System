@@ -1,6 +1,7 @@
 // controllers/authController.js
 // ✅ FIXED: System Access is separate from Login success
 import User from "../models/User.js";
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -252,15 +253,9 @@ export const forgotPassword = async (req, res) => {
       <p>If you didn't request this, please ignore this email.</p>
     `;
 
-    try {
-      await sendEmail({ to: user.email, subject: "Password Reset Request", html: message });
-      res.status(200).json({ success: true, message: "Email sent" });
-    } catch {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save();
-      return res.status(500).json({ success: false, message: "Email could not be sent" });
-    }
+    const response = res.status(200).json({ success: true, message: "Email sent" });
+    asyncSendEmails(() => sendEmail({ to: user.email, subject: "Password Reset Request", html: message }));
+    return response;
   } catch {
     res.status(500).json({ success: false, message: "Server error" });
   }

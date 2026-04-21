@@ -9,6 +9,7 @@ import extensionRejectedTemplate from "../emails/templates/extensionRejected.js"
 import extensionApprovedTemplate from "../emails/templates/extensionApproved.js";
 import { sendBookingEmails } from "./bookingController.js";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
+import { asyncSendEmails } from "../utils/asyncEmail.js";
 
 const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
 // ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
@@ -190,17 +191,15 @@ export const createExtensionRequest = async (req, res) => {
             remarks: remarks
         });
 
-        try {
-            await sendEmailAdvanced({
-                to: approverEmails,
-                subject: "New Extension Approval Request",
-                html: emailHtml
-            });
-        } catch (emailError) {
-            console.error("Failed to send extension request email:", emailError);
-        }
+        const response = res.status(201).json({ success: true, message: "Extension request submitted successfully", extensionRequest });
 
-        res.status(201).json({ success: true, message: "Extension request submitted successfully", extensionRequest });
+        asyncSendEmails(() => sendEmailAdvanced({
+            to: approverEmails,
+            subject: "New Extension Approval Request",
+            html: emailHtml
+        }));
+
+        return response;
 
     } catch (error) {
         console.error("Create Extension Request Error:", error);
@@ -222,12 +221,24 @@ export const getAllExtensionRequests = async (req, res) => {
             }
         }
         
+        const bookingStatusFilter = status === "pending"
+            ? { status: { $nin: ["cancelled", "checked_out"] } }
+            : undefined;
+
         const requests = await ExtensionRequest.find(query)
-            .populate("bookingId", "guest roomNo contact email rollno department gender purpose")
+            .populate({
+                path: "bookingId",
+                select: "guest roomNo contact email rollno department gender purpose status",
+                match: bookingStatusFilter
+            })
             .populate("createdBy", "name email")
             .sort({ createdAt: -1 });
+
+        const filteredRequests = bookingStatusFilter
+            ? requests.filter((request) => request.bookingId !== null)
+            : requests;
             
-        res.json({ success: true, requests });
+        res.json({ success: true, requests: filteredRequests });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -267,7 +278,25 @@ export const approveExtensionRequest = async (req, res) => {
         request.approvedAmount = Number(approvedAmount) || 0;
         await request.save();
         
-        const booking = request.bookingId;
+        const booking = await Booking.findById(request.bookingId?._id || request.bookingId);
+        if (!booking) {
+            return res.status(404).json({ success: false, message: "Booking not found" });
+        }
+
+        if (booking.status === "cancelled") {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot approve extension. Booking is already cancelled."
+            });
+        }
+
+        if (booking.status === "checked_out") {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot approve extension. Booking already checked out."
+            });
+        }
+
         const oldToDate = booking.to;
         
         const finalCheckout = approvedCheckout
@@ -318,22 +347,18 @@ export const approveExtensionRequest = async (req, res) => {
         
         await booking.save();
         
-        try {
-            await sendBookingEmails(booking, "extended");
+        const response = res.json({ success: true, message: "Extension approved", request });
+
+        asyncSendEmails(async () => {
+            sendBookingEmails(booking, "extended");
             
-            // ✅ Get all stakeholder emails (warden, caretaker, guest room manager)
             const stakeholders = await getStakeholderEmails(booking.hostel);
-            
-            // Build CC list - include warden, caretaker, and manager
             const ccEmails = [];
             if (stakeholders.wardenEmail) ccEmails.push(stakeholders.wardenEmail);
             if (stakeholders.caretakerEmail) ccEmails.push(stakeholders.caretakerEmail);
             if (stakeholders.managerEmail) ccEmails.push(stakeholders.managerEmail);
-            
-            // Remove duplicates
             const uniqueCcEmails = [...new Set(ccEmails)];
             
-            // Send specific approval email to guest with stakeholders in CC
             const approvalEmailHtml = extensionApprovedTemplate({
                 guestName: booking.guest,
                 hostel: booking.hostel,
@@ -342,19 +367,15 @@ export const approveExtensionRequest = async (req, res) => {
                 approvedAmount: request.approvedAmount
             });
             
-            // ✅ Send to guest with all stakeholders CC'd
-            await sendEmailAdvanced({
+            return sendEmailAdvanced({
                 to: booking.email,
                 cc: uniqueCcEmails,
                 subject: "Extension Request Approved",
                 html: approvalEmailHtml
             });
-            
-        } catch (emailError) {
-            console.error("Failed to send extension approval email:", emailError);
-        }
-        
-        res.json({ success: true, message: "Extension approved", request });
+        });
+
+        return response;
 
     } catch (error) {
         console.error("Approve Extension Error:", error);
@@ -418,20 +439,16 @@ export const rejectExtensionRequest = async (req, res) => {
             reason: reason
         });
 
-        try {
-            // ✅ Send to guest with all stakeholders CC'd
-            await sendEmailAdvanced({
-                to: request.bookingId.email,
-                cc: uniqueCcEmails,
-                subject: "Extension Request Rejected",
-                html: emailHtml
-            });
-            
-        } catch (emailError) {
-             console.error("Failed to send extension rejection email:", emailError);
-        }
-        
-        res.json({ success: true, message: "Extension rejected", request });
+        const response = res.json({ success: true, message: "Extension rejected", request });
+
+        asyncSendEmails(() => sendEmailAdvanced({
+            to: request.bookingId.email,
+            cc: uniqueCcEmails,
+            subject: "Extension Request Rejected",
+            html: emailHtml
+        }));
+
+        return response;
     } catch (error) {
         console.error("Reject Extension Error:", error);
         res.status(500).json({ success: false, message: error.message });

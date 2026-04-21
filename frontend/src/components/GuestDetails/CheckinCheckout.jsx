@@ -20,10 +20,11 @@ export default function CheckinCheckout({
           Check-in / Check-out Actions
         </h3>
         
-        {/* Only show buttons if booking is NOT already checked out, cancelled, or no-show */}
+        {/* Only show buttons if booking is NOT already checked out, cancelled, no-show, OR under review */}
         {booking.status !== "checked_out" &&
          booking.status !== "cancelled" &&
-         booking.status !== "no_show" && (
+         booking.status !== "no_show" &&
+         booking.approvalStatus !== "under_review" && (  {/* ✅ NEW: Block when under review */}
           <div className="flex gap-4">
             <button 
               onClick={() => setShowCheckOutModal(true)}
