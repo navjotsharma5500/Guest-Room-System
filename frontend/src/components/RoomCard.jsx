@@ -31,6 +31,7 @@ const RoomCard = memo(function RoomCard({
   const [showBookings, setShowBookings] = useState(false);
   const { user } = useAuth();
   const userEmail = user?.email || "";
+  const userRole = (user?.role || "").toLowerCase();
 
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
@@ -75,7 +76,7 @@ const RoomCard = memo(function RoomCard({
 
   const approvalStatus = primaryBooking?.approvalStatus || "auto_approved";
   const canReviewUnderReviewBooking =
-    userEmail === "admin_dev@thapar.edu";
+    userRole === "admin";
 
   const isBooked = activeBookings.length > 0;
   

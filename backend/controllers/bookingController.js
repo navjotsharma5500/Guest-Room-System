@@ -637,31 +637,46 @@ export const createBooking = async (req, res) => {
     const setupBooking = new Booking(bookingData);
     setupRebookingApproval(setupBooking, isRebooking);
 
-    // If rebooking requires review, send email to manager
+    // If rebooking requires review, notify all admin-role users.
     if (setupBooking.approvalStatus === "under_review") {
       console.log("⏰ UNDER REVIEW: Sending approval request email...");
       
       try {
-        const managerEmail = process.env.MANAGER_EMAIL || "navjot.sharma@thapar.edu";
-        
-        const rebookingEmailContent = {
-          to: managerEmail,
-          subject: "Guest Rebooking Approval Required",
-          html: `
-            <h2>Rebooking Approval Request</h2>
-            <p><strong>Guest Name:</strong> ${setupBooking.guest}</p>
-            <p><strong>Email:</strong> ${setupBooking.email}</p>
-            <p><strong>Contact:</strong> ${setupBooking.contact}</p>
-            <p><strong>Hostel:</strong> ${setupBooking.hostel}</p>
-            <p><strong>Room:</strong> ${setupBooking.roomNo}</p>
-            <p><strong>New Booking Time:</strong> ${setupBooking.from.toLocaleDateString()} to ${setupBooking.to.toLocaleDateString()}</p>
-            <p><strong>Review Deadline:</strong> ${setupBooking.reviewDeadline.toLocaleString()}</p>
-            <p>Please review and approve/reject this rebooking request.</p>
-          `
-        };
+        const adminEmails = (
+          await User.find({ role: "admin", email: { $exists: true, $ne: "" } })
+            .select("email")
+            .lean()
+        )
+          .map((adminUser) => adminUser.email)
+          .filter(Boolean);
 
-        asyncSendEmails(() => safeSend(rebookingEmailContent));
-        console.log("✅ Rebooking approval email queued for:", managerEmail);
+        const reviewRecipients = adminEmails.length > 0
+          ? [...new Set(adminEmails)]
+          : (process.env.MANAGER_EMAIL ? [process.env.MANAGER_EMAIL] : []);
+
+        if (reviewRecipients.length === 0) {
+          console.warn("⚠️ No admin email recipients found for rebooking review");
+        } else {
+        
+          const rebookingEmailContent = {
+            to: reviewRecipients,
+            subject: "Guest Rebooking Approval Required",
+            html: `
+              <h2>Rebooking Approval Request</h2>
+              <p><strong>Guest Name:</strong> ${setupBooking.guest}</p>
+              <p><strong>Email:</strong> ${setupBooking.email}</p>
+              <p><strong>Contact:</strong> ${setupBooking.contact}</p>
+              <p><strong>Hostel:</strong> ${setupBooking.hostel}</p>
+              <p><strong>Room:</strong> ${setupBooking.roomNo}</p>
+              <p><strong>New Booking Time:</strong> ${setupBooking.from.toLocaleDateString()} to ${setupBooking.to.toLocaleDateString()}</p>
+              <p><strong>Review Deadline:</strong> ${setupBooking.reviewDeadline.toLocaleString()}</p>
+              <p>Please review and approve/reject this rebooking request.</p>
+            `
+          };
+
+          asyncSendEmails(() => safeSend(rebookingEmailContent));
+          console.log("✅ Rebooking approval email queued for admins:", reviewRecipients);
+        }
       } catch (emailErr) {
         console.error("⚠️ Failed to send rebooking email:", emailErr.message);
         // Don't fail the booking creation if email fails
