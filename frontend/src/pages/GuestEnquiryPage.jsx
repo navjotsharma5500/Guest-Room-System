@@ -936,7 +936,7 @@ export default function GuestEnquiryPage() {
       />
       
       <h1 className="text-4xl md:text-5xl font-bold text-red-700 mb-4 text-center">
-        Guest Room Booking Request
+        Hostel Guest Room Booking Request
       </h1>
       
       <p className="text-lg text-gray-700 mb-12 text-center max-w-2xl">
@@ -1093,7 +1093,7 @@ export default function GuestEnquiryPage() {
             <>
               <motion.img src={thaparLogo} alt="Thapar Logo" className="w-40 mb-4" />
               <h1 className="text-3xl font-bold text-red-700 mb-8 text-center">
-                Guest Room Booking Form
+                Hostel Guest Room Booking Form
               </h1>
               
               {!isAuthenticated ? (

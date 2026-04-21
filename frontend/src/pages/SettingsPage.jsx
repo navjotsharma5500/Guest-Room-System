@@ -12,10 +12,12 @@ import {
   Edit3,
   Trash2,
   Settings,
+  Building2,
 } from "lucide-react";
 import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
 import { BACKEND_URL } from "../utils/apiConfig";
+import useVenueConfig from "../hooks/useVenueConfig";
 
 export default function SettingsPage({
   theme,
@@ -27,6 +29,11 @@ export default function SettingsPage({
   setHostelData = () => {},
 }) {
   const [toast, setToast] = useState(null);
+  const [manageVenuesModal, setManageVenuesModal] = useState(false);
+  const [newTabName, setNewTabName] = useState("");
+  const [sectionDrafts, setSectionDrafts] = useState({});
+  const [roomDrafts, setRoomDrafts] = useState({});
+  const [venueActionKey, setVenueActionKey] = useState("");
 
   // AUTH USER
   const { currentUser } = useAuth();
@@ -45,6 +52,15 @@ export default function SettingsPage({
 
   const user = currentUser || localUser;
   const role = user?.role || "caretaker";
+  const canManageVenues = String(role || "").toLowerCase() === "admin";
+  const {
+    venueConfig,
+    loading: venueConfigLoading,
+    addTab,
+    addSection,
+    addRoom,
+    toggleItem,
+  } = useVenueConfig();
 
   // PERMISSIONS
   const canManageHostels = hasPermission(user, "settings.manageHostels");
@@ -441,6 +457,77 @@ export default function SettingsPage({
     }
   };
 
+  const isVenueActionLoading = (key) => loading || venueActionKey === key;
+
+  const handleAddVenueTab = async () => {
+    const label = newTabName.trim();
+    if (!label) {
+      showToast("Enter tab name", "warning");
+      return;
+    }
+
+    try {
+      setVenueActionKey("add-tab");
+      await addTab(label);
+      setNewTabName("");
+      showToast("Venue tab created", "success");
+    } catch (error) {
+      showToast(error.message || "Failed to create tab", "error");
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleAddVenueSection = async (mainTabId) => {
+    const label = String(sectionDrafts[mainTabId] || "").trim();
+    if (!label) {
+      showToast("Enter section name", "warning");
+      return;
+    }
+
+    try {
+      setVenueActionKey(`section-${mainTabId}`);
+      await addSection(mainTabId, label);
+      setSectionDrafts((prev) => ({ ...prev, [mainTabId]: "" }));
+      showToast("Venue section created", "success");
+    } catch (error) {
+      showToast(error.message || "Failed to create section", "error");
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleAddVenueRoom = async (sectionId) => {
+    const name = String(roomDrafts[sectionId] || "").trim();
+    if (!name) {
+      showToast("Enter room name", "warning");
+      return;
+    }
+
+    try {
+      setVenueActionKey(`room-${sectionId}`);
+      await addRoom(sectionId, name);
+      setRoomDrafts((prev) => ({ ...prev, [sectionId]: "" }));
+      showToast("Venue room created", "success");
+    } catch (error) {
+      showToast(error.message || "Failed to create room", "error");
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleToggleVenueItem = async (payload, actionKey) => {
+    try {
+      setVenueActionKey(actionKey);
+      await toggleItem(payload);
+      showToast("Venue updated", "success");
+    } catch (error) {
+      showToast(error.message || "Failed to update venue", "error");
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
   // --------------------------------------------------------------------
   // UI STARTS
   // --------------------------------------------------------------------
@@ -694,6 +781,39 @@ export default function SettingsPage({
                       <Edit3 size={16} /> Manage Hostels
                     </button>
                   </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {canManageVenues && (
+            <motion.div
+              whileHover={{ y: -4 }}
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+                theme === "dark"
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                  <Building2 className="text-red-600 w-5 h-5" />
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
+                    Manage Venues
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mb-3">
+                    Configure venue tabs, sections, rooms and availability.
+                  </p>
+
+                  <button
+                    onClick={() => setManageVenuesModal(true)}
+                    className="bg-white border border-red-300 text-red-700 px-3 sm:px-4 py-2 text-sm rounded-lg hover:bg-red-50 inline-flex gap-2 items-center justify-center sm:justify-start whitespace-nowrap"
+                  >
+                    <Edit3 size={16} /> Manage Venues
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -987,6 +1107,258 @@ export default function SettingsPage({
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {manageVenuesModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-3 sm:p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className={`w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl shadow-xl border ${
+                theme === "dark"
+                  ? "bg-gray-900 border-gray-700 text-gray-100"
+                  : "bg-white border-gray-200 text-gray-900"
+              }`}
+              initial={{ scale: 0.95, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 12 }}
+            >
+              <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b ${
+                theme === "dark" ? "border-gray-700" : "border-gray-200"
+              }`}>
+                <div>
+                  <h3 className="text-lg sm:text-2xl font-semibold text-red-700">
+                    Manage Venues
+                  </h3>
+                  <p className={`text-xs sm:text-sm mt-1 ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }`}>
+                    Tabs, sections and rooms are managed here.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setManageVenuesModal(false)}
+                  className={`p-2 rounded-lg ${
+                    theme === "dark" ? "hover:bg-gray-800" : "hover:bg-gray-100"
+                  }`}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-88px)] space-y-4">
+                <div className={`rounded-xl border p-4 ${
+                  theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-gray-50"
+                }`}>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      value={newTabName}
+                      onChange={(e) => setNewTabName(e.target.value)}
+                      placeholder="Enter Tab Name"
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-900 border-gray-700 text-gray-100"
+                          : "bg-white border-gray-300 text-gray-900"
+                      }`}
+                    />
+                    <button
+                      onClick={handleAddVenueTab}
+                      disabled={isVenueActionLoading("add-tab")}
+                      className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {isVenueActionLoading("add-tab") ? "Adding..." : "+ Add Tab"}
+                    </button>
+                  </div>
+                </div>
+
+                {venueConfigLoading && venueConfig.length === 0 ? (
+                  <div className="text-center py-10 text-sm text-gray-500">Loading venues...</div>
+                ) : venueConfig.length === 0 ? (
+                  <div className="text-center py-10 text-sm text-gray-500">No venue tabs found.</div>
+                ) : (
+                  venueConfig.map((tab) => (
+                    <div
+                      key={tab.id}
+                      className={`rounded-xl border ${
+                        theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <div className={`px-4 py-4 border-b ${
+                        theme === "dark" ? "border-gray-700" : "border-gray-200"
+                      }`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h4 className="text-base sm:text-lg font-semibold">{tab.label}</h4>
+                            <p className={`text-xs sm:text-sm ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-500"
+                            }`}>
+                              Main tab
+                            </p>
+                          </div>
+                          <label className="flex items-center gap-2 text-sm">
+                            <span>{tab.enabled !== false ? "Enabled" : "Disabled"}</span>
+                            <input
+                              type="checkbox"
+                              checked={tab.enabled !== false}
+                              disabled={isVenueActionLoading(`toggle-tab-${tab.id}`)}
+                              onChange={(e) =>
+                                handleToggleVenueItem(
+                                  { mainTabId: tab.id, enabled: e.target.checked },
+                                  `toggle-tab-${tab.id}`
+                                )
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                          <input
+                            type="text"
+                            value={sectionDrafts[tab.id] || ""}
+                            onChange={(e) =>
+                              setSectionDrafts((prev) => ({ ...prev, [tab.id]: e.target.value }))
+                            }
+                            placeholder="Enter Section Name"
+                            className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                              theme === "dark"
+                                ? "bg-gray-900 border-gray-700 text-gray-100"
+                                : "bg-white border-gray-300 text-gray-900"
+                            }`}
+                          />
+                          <button
+                            onClick={() => handleAddVenueSection(tab.id)}
+                            disabled={isVenueActionLoading(`section-${tab.id}`)}
+                            className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {isVenueActionLoading(`section-${tab.id}`) ? "Adding..." : "+ Add Section"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-4">
+                        {(tab.sections || []).length === 0 ? (
+                          <div className={`text-sm ${
+                            theme === "dark" ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            No sections added yet.
+                          </div>
+                        ) : (
+                          (tab.sections || []).map((section) => (
+                            <div
+                              key={section.id}
+                              className={`rounded-lg border ${
+                                theme === "dark" ? "border-gray-700 bg-gray-900/40" : "border-gray-200 bg-gray-50"
+                              }`}
+                            >
+                              <div className={`px-4 py-3 border-b ${
+                                theme === "dark" ? "border-gray-700" : "border-gray-200"
+                              }`}>
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <h5 className="font-medium">{section.label}</h5>
+                                    <p className={`text-xs ${
+                                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                    }`}>
+                                      Section
+                                    </p>
+                                  </div>
+                                  <label className="flex items-center gap-2 text-sm">
+                                    <span>{section.enabled !== false ? "Enabled" : "Disabled"}</span>
+                                    <input
+                                      type="checkbox"
+                                      checked={section.enabled !== false}
+                                      disabled={isVenueActionLoading(`toggle-section-${section.id}`)}
+                                      onChange={(e) =>
+                                        handleToggleVenueItem(
+                                          { sectionId: section.id, enabled: e.target.checked },
+                                          `toggle-section-${section.id}`
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                  <input
+                                    type="text"
+                                    value={roomDrafts[section.id] || ""}
+                                    onChange={(e) =>
+                                      setRoomDrafts((prev) => ({ ...prev, [section.id]: e.target.value }))
+                                    }
+                                    placeholder="Enter Room Name"
+                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                                      theme === "dark"
+                                        ? "bg-gray-900 border-gray-700 text-gray-100"
+                                        : "bg-white border-gray-300 text-gray-900"
+                                    }`}
+                                  />
+                                  <button
+                                    onClick={() => handleAddVenueRoom(section.id)}
+                                    disabled={isVenueActionLoading(`room-${section.id}`)}
+                                    className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                                  >
+                                    {isVenueActionLoading(`room-${section.id}`) ? "Adding..." : "+ Add Room"}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="p-4 space-y-2">
+                                {(section.rooms || []).length === 0 ? (
+                                  <div className={`text-sm ${
+                                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                  }`}>
+                                    No rooms added yet.
+                                  </div>
+                                ) : (
+                                  (section.rooms || []).map((room) => (
+                                    <div
+                                      key={room.id}
+                                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                                        theme === "dark" ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+                                      }`}
+                                    >
+                                      <div>
+                                        <div className="text-sm font-medium">{room.name}</div>
+                                        <div className={`text-xs ${
+                                          theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                        }`}>
+                                          Room
+                                        </div>
+                                      </div>
+                                      <label className="flex items-center gap-2 text-sm">
+                                        <span>{room.enabled !== false ? "Enabled" : "Disabled"}</span>
+                                        <input
+                                          type="checkbox"
+                                          checked={room.enabled !== false}
+                                          disabled={isVenueActionLoading(`toggle-room-${room.id}`)}
+                                          onChange={(e) =>
+                                            handleToggleVenueItem(
+                                              { roomId: room.id, enabled: e.target.checked },
+                                              `toggle-room-${room.id}`
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.div>
           </motion.div>

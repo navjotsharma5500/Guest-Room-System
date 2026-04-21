@@ -1,5 +1,4 @@
-export const venueRoomsConfig = [
-  // 1) AUDITORIUM / HALLS
+export const defaultVenueConfig = [
   {
     id: "auditoriums",
     label: "Auditorium / Halls",
@@ -18,8 +17,6 @@ export const venueRoomsConfig = [
       },
     ],
   },
-
-  // 2) ROOMS
   {
     id: "rooms",
     label: "Rooms",
@@ -77,25 +74,19 @@ export const venueRoomsConfig = [
         id: "e-block",
         label: "E-Block",
         enabled: true,
-        rooms: [
-          { id: "e-block", name: "E-Block", enabled: true },
-        ],
+        rooms: [{ id: "e-block", name: "E-Block", enabled: true }],
       },
       {
         id: "f-block",
         label: "F-Block",
         enabled: true,
-        rooms: [
-          { id: "f-block", name: "F-Block", enabled: true },
-        ],
+        rooms: [{ id: "f-block", name: "F-Block", enabled: true }],
       },
       {
         id: "g-block",
         label: "G-Block",
         enabled: true,
-        rooms: [
-          { id: "g-block", name: "G-Block", enabled: true },
-        ],
+        rooms: [{ id: "g-block", name: "G-Block", enabled: true }],
       },
       {
         id: "activity-rooms",
@@ -119,8 +110,6 @@ export const venueRoomsConfig = [
       },
     ],
   },
-
-  // 3) COS / CREATIVITY BLOCK
   {
     id: "creativity-block",
     label: "COS / Creativity Block",
@@ -150,8 +139,6 @@ export const venueRoomsConfig = [
       },
     ],
   },
-
-  // 4) OPEN & DESK AREA
   {
     id: "open-areas",
     label: "Open & Desk Area",
@@ -164,10 +151,10 @@ export const venueRoomsConfig = [
         rooms: [
           { id: "k-lawn-street-cafe", name: "K-Lawn (Street Cafe)", enabled: true },
           { id: "deans-lawn", name: "Dean's Lawn", enabled: true },
-          { id: "fete-area", name: "Fete Area", description: "(Near COS Gate Entry)", enabled: true },
-          { id: "h-chowk", name: "H-Chowk", description: "(Near Central Park)", enabled: true },
+          { id: "fete-area", name: "Fete Area", enabled: true },
+          { id: "h-chowk", name: "H-Chowk", enabled: true },
           { id: "lp-lawns", name: "LP Lawns", enabled: true },
-          { id: "csed", name: "CSED", description: "(hackathon Space)", enabled: true },
+          { id: "csed", name: "CSED", enabled: true },
           { id: "sbi-lawn", name: "SBI Lawn", enabled: true },
           { id: "oat", name: "OAT (Open Air Theatre)", enabled: true },
           { id: "street-cafe", name: "Street Cafe", enabled: true },
@@ -179,85 +166,5 @@ export const venueRoomsConfig = [
   },
 ];
 
-export const normalizeVenueConfig = (config = venueRoomsConfig) =>
-  (Array.isArray(config) ? config : venueRoomsConfig).map((main) => ({
-    ...main,
-    enabled: main.enabled !== false,
-    sections: (Array.isArray(main.sections) ? main.sections : []).map((section) => ({
-      ...section,
-      enabled: section.enabled !== false,
-      rooms: (Array.isArray(section.rooms) ? section.rooms : []).map((room) => ({
-        ...room,
-        enabled: room.enabled !== false,
-      })),
-    })),
-  }));
-
-const getEnabledRooms = (rooms = []) => rooms.filter((room) => room.enabled);
-
-const getEnabledSections = (sections = []) =>
-  sections
-    .filter((section) => section.enabled)
-    .map((section) => ({
-      ...section,
-      rooms: getEnabledRooms(section.rooms),
-    }));
-
-export const getEnabledVenueRoomsConfig = (config = venueRoomsConfig) =>
-  normalizeVenueConfig(config)
-    .filter((main) => main.enabled)
-    .map((main) => ({
-      ...main,
-      sections: getEnabledSections(main.sections),
-    }));
-
-export const getEnabledVenueSectionEntries = (
-  { includeEmpty = true } = {},
-  config = venueRoomsConfig
-) => {
-  const entries = [];
-  getEnabledVenueRoomsConfig(config).forEach((main) => {
-    main.sections.forEach((section) => {
-      if (!includeEmpty && (!Array.isArray(section.rooms) || section.rooms.length === 0)) {
-        return;
-      }
-      entries.push({
-        mainId: main.id,
-        mainLabel: main.label,
-        sectionId: section.id,
-        sectionLabel: section.label,
-        rooms: section.rooms,
-      });
-    });
-  });
-  return entries;
-};
-
-export const getEnabledVenueDataTemplate = (config = venueRoomsConfig) => {
-  const template = {};
-  getEnabledVenueSectionEntries({ includeEmpty: false }, config).forEach((entry) => {
-    template[entry.sectionLabel] = {
-      rooms: entry.rooms.map((room) => room.name),
-    };
-  });
-  return template;
-};
-
-export const getEnabledVenueFormOptions = (config = venueRoomsConfig) =>
-  getEnabledVenueSectionEntries({ includeEmpty: false }, config).map((entry) => ({
-    groupId: entry.sectionId,
-    groupLabel: `${entry.mainLabel} / ${entry.sectionLabel}`,
-    hall: entry.sectionLabel,
-    rooms: entry.rooms.map((room) => room.name),
-  }));
-
-export const getEnabledVenueSectionLabelById = (
-  sectionId = "",
-  config = venueRoomsConfig
-) => {
-  for (const main of normalizeVenueConfig(config)) {
-    const section = (main.sections || []).find((item) => item.id === sectionId);
-    if (section) return section.label;
-  }
-  return null;
-};
+export const cloneDefaultVenueConfig = () =>
+  JSON.parse(JSON.stringify(defaultVenueConfig));

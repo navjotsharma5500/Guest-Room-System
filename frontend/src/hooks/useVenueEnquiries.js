@@ -6,6 +6,8 @@ import axios from "axios";
 import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
+const isPendingEnquiry = (enquiry) =>
+  (enquiry?.status || "").toLowerCase() === "pending";
 
 export default function useVenueEnquiries() {
   const [enquiries, setEnquiries] = useState([]);
@@ -36,18 +38,11 @@ export default function useVenueEnquiries() {
       const data = res.data?.enquiries || res.data || [];
       console.log("✅ Enquiries fetched:", data.length);
 
-      setEnquiries(Array.isArray(data) ? data : []);
+      const enquiryList = Array.isArray(data) ? data : [];
+      const pendingCount = enquiryList.filter(isPendingEnquiry).length;
 
-      // Count unread enquiries (status !== "approved" and !== "rejected")
-      const unread = Array.isArray(data)
-        ? data.filter(
-            (e) =>
-              e.status && 
-              !["approved", "rejected"].includes(e.status.toLowerCase())
-          ).length
-        : 0;
-
-      setUnreadCount(unread);
+      setEnquiries(enquiryList);
+      setUnreadCount(pendingCount);
       setError(null);
     } catch (err) {
       console.error("❌ Error fetching enquiries:", err);
@@ -77,13 +72,7 @@ export default function useVenueEnquiries() {
           if (isDuplicate) return prev;
 
           const updated = [data.enquiry, ...prev];
-          
-          // Update unread count
-          const newUnread = updated.filter(
-            (e) =>
-              e.status && 
-              !["approved", "rejected"].includes(e.status.toLowerCase())
-          ).length;
+          const newUnread = updated.filter(isPendingEnquiry).length;
           
           setUnreadCount(newUnread);
           
@@ -107,8 +96,11 @@ export default function useVenueEnquiries() {
     };
   }, [fetchEnquiries]);
 
+  const pendingEnquiries = enquiries.filter(isPendingEnquiry);
+
   return {
     enquiries,
+    pendingEnquiries,
     unreadCount,
     loading,
     error,

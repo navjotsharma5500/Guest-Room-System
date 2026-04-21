@@ -27,7 +27,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       {
         id: "guest-booking",
         enabled: true,
-        title: "Guest Room Booking Form",
+        title: "Hostel Guest Room Booking Form",
         description: "Book hostel guest rooms (Requires Google Login)",
         features: ["Room Availability", "Booking Request", "Status Tracking"],
       },

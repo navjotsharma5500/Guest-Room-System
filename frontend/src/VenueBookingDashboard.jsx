@@ -8,6 +8,7 @@ import "./styles/VenueEventTheme.css";
 
 import useVenueDataPolling from "./hooks/useVenueDataPolling";
 import useVenueEnquiries from "./hooks/useVenueEnquiries";
+import useVenueConfig from "./hooks/useVenueConfig";
 
 import VenueSidebar from "./components/VenueBookings/VenueSidebar";
 import VenueMainContent from "./components/VenueBookings/VenueMainContent";
@@ -45,6 +46,10 @@ export default function VenueBookingDashboard() {
   const { currentUser, loading, logout } = useAuth();
   const role = currentUser?.role || "guest";
   const { showToast } = useToast();
+  const {
+    venueConfig,
+    enabledVenueConfig,
+  } = useVenueConfig();
 
   const { 
     venueData, 
@@ -53,11 +58,11 @@ export default function VenueBookingDashboard() {
     error: venueError,
     connected,
     refresh: refreshVenueData 
-  } = useVenueDataPolling();
+  } = useVenueDataPolling({}, enabledVenueConfig);
 
   // ✅ NEW: Fetch venue enquiries for NotificationBell
   const { 
-    enquiries, 
+    pendingEnquiries,
     unreadCount 
   } = useVenueEnquiries();
 
@@ -179,8 +184,15 @@ export default function VenueBookingDashboard() {
     setActiveSection(section);
   };
 
-  const selectedCategoryName = getEnabledVenueSectionLabelById(activeSection);
+  const selectedCategoryName = getEnabledVenueSectionLabelById(activeSection, venueConfig);
   const isCategoryPortal = !!selectedCategoryName;
+  const selectedSectionConfig = useMemo(() => {
+    for (const main of venueConfig || []) {
+      const section = (main.sections || []).find((item) => item.id === activeSection);
+      if (section) return section;
+    }
+    return null;
+  }, [activeSection, venueConfig]);
 
   // Filter venueData for DD Assistant
   const filteredVenueData = useMemo(() => {
@@ -404,13 +416,23 @@ export default function VenueBookingDashboard() {
               {/* Notification Bell */}
               <NotificationBell 
                 unreadCount={unreadCount}
-                enquiries={enquiries}
+                enquiries={pendingEnquiries}
                 onEnquiryClick={(enquiry) => {
-                  setActiveSection("enquiries");
+                  navigate("/venue-booking", {
+                    state: {
+                      activeSection: "enquiries",
+                      filter: "pending",
+                      selectedId: enquiry._id,
+                    },
+                  });
                 }}
                 onViewAll={() => {
-                  // ✅ Navigate to enquiries section when "View All" is clicked
-                  setActiveSection("enquiries");
+                  navigate("/venue-booking", {
+                    state: {
+                      activeSection: "enquiries",
+                      filter: "pending",
+                    },
+                  });
                 }}
                 theme={theme}
               />
@@ -490,6 +512,7 @@ export default function VenueBookingDashboard() {
                 activeSection={activeSection}
                 onNavigate={handleNavigate}
                 currentUser={currentUser}
+                venueConfig={venueConfig}
               />
             </motion.aside>
 
@@ -528,6 +551,7 @@ export default function VenueBookingDashboard() {
                       setMobileMenuOpen(false); // Close menu after navigation
                     }}
                     currentUser={currentUser}
+                    venueConfig={venueConfig}
                   />
                 </motion.aside>
               </>
@@ -603,6 +627,7 @@ export default function VenueBookingDashboard() {
                 theme={theme}
                 categoryId={activeSection}
                 categoryName={selectedCategoryName}
+                sectionConfig={selectedSectionConfig}
                 currentUser={currentUser}
                 onRefresh={handleRefresh}
                 setExtensionModal={setExtensionModal}

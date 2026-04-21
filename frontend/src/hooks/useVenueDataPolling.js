@@ -6,7 +6,6 @@ import { BACKEND_URL } from "../utils/apiConfig";
 import { getEnabledVenueDataTemplate } from "../config/venueRoomsConfig";
 
 const API = BACKEND_URL;
-const VENUE_STRUCTURE = getEnabledVenueDataTemplate();
 
 const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
@@ -28,7 +27,7 @@ const findRoom = (hall, roomNo) => {
 };
 
 // ✅ CHANGED: Default export instead of named export
-export default function useVenueDataPolling(initialData = {}) {
+export default function useVenueDataPolling(initialData = {}, venueConfig) {
   const [hallData, setHallData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
@@ -75,10 +74,11 @@ export default function useVenueDataPolling(initialData = {}) {
 
       /* -------------------- 2️⃣ Build venue structure -------------------- */
       const hallMap = {};
+      const venueStructure = getEnabledVenueDataTemplate(venueConfig);
 
       // Initialize enabled venues/rooms from config
-      Object.keys(VENUE_STRUCTURE).forEach((hallName) => {
-        const config = VENUE_STRUCTURE[hallName];
+      Object.keys(venueStructure).forEach((hallName) => {
+        const config = venueStructure[hallName];
         hallMap[hallName] = {
           name: hallName,
           rooms: config.rooms.map((roomNo) => ({
@@ -217,7 +217,7 @@ export default function useVenueDataPolling(initialData = {}) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [venueConfig]);
 
   /* -------------------- Socket.IO listeners -------------------- */
   useEffect(() => {

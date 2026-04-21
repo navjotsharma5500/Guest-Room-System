@@ -158,8 +158,6 @@ const NotificationBell = ({
             <div className="max-h-96 overflow-y-auto">
               {enquiries && enquiries.length > 0 ? (
                 enquiries
-                  // ✅ Filter to only show PENDING enquiries
-                  .filter(e => e.status && e.status.toLowerCase() === "pending")
                   .slice(0, 10)
                   .map((enquiry, idx) => (
                   <motion.div
@@ -202,19 +200,16 @@ const NotificationBell = ({
                   </motion.div>
                 ))
               ) : (
-                <div className={`p-8 text-center text-sm ${
-                  theme === "dark" ? "text-[#5f6368]" : "text-gray-500"
+                <div className={`p-4 text-center text-sm ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-gray-500"
                 }`}>
-                  <Bell className={`mx-auto mb-3 ${
-                    theme === "dark" ? "text-[#3c4043]" : "text-gray-300"
-                  }`} size={32} />
-                  <p>No new enquiries</p>
+                  No pending enquiries
                 </div>
               )}
             </div>
 
             {/* Footer - ✅ View All Enquiries button with onClick handler */}
-            {enquiries && enquiries.filter(e => e.status && e.status.toLowerCase() === "pending").length > 10 && (
+            {enquiries && enquiries.length > 10 && (
               <div 
                 onClick={() => {
                   console.log("📋 View All Enquiries clicked");

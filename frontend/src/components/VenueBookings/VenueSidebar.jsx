@@ -1,25 +1,37 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isDDAssistantRole, isDDOfficeRoom } from '../../utils/venueAccessPolicy';
+import { isDDAssistantRole, isDDOfficeRoom, isVenueFullAccessRole } from '../../utils/venueAccessPolicy';
 import {
   Home,
   Grid,
   Calendar,
   Building2,
-  CalendarCheck,
   FileText,
   ChevronDown,
   ChevronRight,
   BarChart3,
   LayoutDashboard,
+  Plus,
 } from "lucide-react";
 import Creator from "../Creator";
 import { Wallet } from "lucide-react"; 
-import { getEnabledVenueRoomsConfig } from "../../config/venueRoomsConfig";
 
-export default function VenueSidebar({ theme, onNavigate, activeSection = "home", currentUser }) {
+export default function VenueSidebar({
+  theme,
+  onNavigate,
+  activeSection = "home",
+  currentUser,
+  venueConfig = [],
+  onAddTab,
+  onAddSection,
+  onToggleItem,
+}) {
   const navigate = useNavigate();
   const currentUserRole = currentUser?.role || '';
+  const canManageConfig = Boolean(
+    isVenueFullAccessRole(currentUserRole) &&
+    (onAddTab || onAddSection || onToggleItem)
+  );
 
   // Roles that see "Switch Dashboard" button
   const SWITCH_DASHBOARD_ROLES = ['admin', 'adosa', 'assistant'];
@@ -34,7 +46,10 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
     { id: "society-budget",   label: "Society Budget",  icon: Wallet },
   ];
 
-  const venueTree = useMemo(() => getEnabledVenueRoomsConfig(), []);
+  const venueTree = useMemo(() => {
+    if (!Array.isArray(venueConfig)) return [];
+    return canManageConfig ? venueConfig : venueConfig.filter((main) => main.enabled !== false);
+  }, [canManageConfig, venueConfig]);
 
   // Filter venue tree based on user role
   const filteredVenueTree = useMemo(() => {
@@ -48,17 +63,20 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
       .map((main) => ({
         ...main,
         sections: main.sections
+          .filter((section) => canManageConfig || section.enabled !== false)
           .map((section) => ({
             ...section,
             // Filter the rooms inside the section
-            rooms: section.rooms.filter((room) => isDDOfficeRoom(room.name)),
+            rooms: section.rooms.filter(
+              (room) => room.enabled !== false && isDDOfficeRoom(room.name)
+            ),
           }))
           // Only keep sections that have at least one allowed room
           .filter((section) => section.rooms.length > 0),
       }))
       // Only keep main categories that have at least one allowed section
       .filter((main) => main.sections.length > 0);
-  }, [venueTree, currentUserRole]);
+  }, [canManageConfig, venueTree, currentUserRole]);
 
   const [openMainGroups, setOpenMainGroups] = useState({});
 
@@ -106,21 +124,57 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
         })}
 
         <div className={`mt-2 mb-2 px-4 text-xs uppercase tracking-wide ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
-          Venue Rooms
+          <div className="flex items-center justify-between gap-2">
+            <span>Venue Rooms</span>
+            {canManageConfig && (
+              <button
+                type="button"
+                onClick={() => onAddTab?.()}
+                className={theme === "dark" ? "text-[#8ab4f8]" : "text-[#1a73e8]"}
+                title="Add tab"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {filteredVenueTree.map((main) => {
           const isOpenMain = !!openMainGroups[main.id];
           return (
             <div key={main.id} className="mb-1">
-              <button
-                onClick={() => toggleMainGroup(main.id)}
-                className={getButtonClassName(false)}
-              >
-                <Building2 className="w-5 h-5" />
-                <span className="flex-1">{main.label}</span>
-                {isOpenMain ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
+              <div className={getButtonClassName(false)}>
+                <button
+                  onClick={() => toggleMainGroup(main.id)}
+                  className="flex flex-1 items-center gap-3 text-left"
+                >
+                  <Building2 className="w-5 h-5" />
+                  <span className={`flex-1 ${main.enabled === false ? "opacity-50" : ""}`}>{main.label}</span>
+                  {isOpenMain ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+                {canManageConfig && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onAddSection?.(main.id);
+                      }}
+                      className={theme === "dark" ? "text-[#8ab4f8]" : "text-[#1a73e8]"}
+                      title="Add section"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="checkbox"
+                      checked={main.enabled !== false}
+                      onChange={(event) =>
+                        onToggleItem?.({ mainTabId: main.id, enabled: event.target.checked })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
 
               {isOpenMain && (
                 <div className="pl-3">
@@ -129,8 +183,7 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
 
                     return (
                       <div key={section.id} className="mb-1">
-                        <button
-                          onClick={() => onNavigate(section.id)}
+                        <div
                           className={`
                             w-full text-left px-3 py-2 rounded-lg
                             flex items-center gap-2 text-sm transition-all duration-200
@@ -145,8 +198,22 @@ export default function VenueSidebar({ theme, onNavigate, activeSection = "home"
                             }
                           `}
                         >
-                          <span className="flex-1">{section.label}</span>
-                        </button>
+                          <button
+                            onClick={() => onNavigate(section.id)}
+                            className={`flex flex-1 text-left ${section.enabled === false ? "opacity-50" : ""}`}
+                          >
+                            <span className="flex-1">{section.label}</span>
+                          </button>
+                          {canManageConfig && (
+                            <input
+                              type="checkbox"
+                              checked={section.enabled !== false}
+                              onChange={(event) =>
+                                onToggleItem?.({ sectionId: section.id, enabled: event.target.checked })
+                              }
+                            />
+                          )}
+                        </div>
                       </div>
                     );
                   })}

@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import NotificationBell from "../components/NotificationBell";
 import {
@@ -70,6 +71,7 @@ const formatShortDate = (d) => {
 };
 
 export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
+  const location = useLocation();
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,6 +159,20 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   useEffect(() => {
     loadEnquiries();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.filter === "pending") {
+      setFilter("pending");
+      setCurrentPage(1);
+    }
+
+    if (location.state?.selectedId) {
+      const found = enquiries.find((e) => e._id === location.state.selectedId);
+      if (found) {
+        setSelected(found);
+      }
+    }
+  }, [location.state, enquiries]);
 
   // Listen for new venue enquiries
   useEffect(() => {

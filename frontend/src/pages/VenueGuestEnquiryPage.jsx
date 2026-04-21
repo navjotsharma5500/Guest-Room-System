@@ -2,7 +2,7 @@
 // Public Venue Enquiry Form - Based on GuestEnquiryPage pattern
 // ============================================================================
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
 import { Mail, CheckCircle2, Upload, X, FileText, Calendar, Clock, Users, Building2, AlertCircle } from "lucide-react";
@@ -22,6 +22,7 @@ import { VENUE_DEPARTMENTS } from "../config/venueDepartments"; // Re-import thi
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import PublicPageWidgets from "../components/PublicPageWidgets";
+import useVenueConfig from "../hooks/useVenueConfig";
 
 const API = BACKEND_URL;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
@@ -45,8 +46,6 @@ const INITIAL_FORM_STATE = {
   checkOutTime: "",
   files: [],
 };
-
-const VENUE_OPTIONS = getEnabledVenueFormOptions();
 
 const IMAGEKIT_CONFIG = {
   PUBLIC_KEY: IMAGEKIT_PUBLIC_KEY,
@@ -88,6 +87,7 @@ const authenticator = async () => {
 };
 
 export default function VenueGuestEnquiryPage() {
+  const { enabledVenueConfig } = useVenueConfig();
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -105,6 +105,10 @@ export default function VenueGuestEnquiryPage() {
   const [attachmentError, setAttachmentError] = useState("");
   
   const toastContext = useToast();
+  const venueOptions = useMemo(
+    () => getEnabledVenueFormOptions(enabledVenueConfig),
+    [enabledVenueConfig]
+  );
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
       toastContext.showToast(message, type);
@@ -683,7 +687,7 @@ export default function VenueGuestEnquiryPage() {
                         required
                       >
                         <option value="">Select Venue Room</option>
-                        {VENUE_OPTIONS.map((group) => (
+                        {venueOptions.map((group) => (
                           <optgroup key={group.groupId} label={group.groupLabel}>
                             {group.rooms.map((room) => (
                               <option key={`${group.hall}-${room}`} value={`${group.hall}||${room}`}>
@@ -1131,4 +1135,3 @@ export default function VenueGuestEnquiryPage() {
     </GoogleOAuthProvider>
   );
 }
-

@@ -783,7 +783,7 @@ const PublicFormsModal = ({ open, onClose }) => {
 
   const forms = [
     {
-      title: "Guest Room Booking Form",
+      title: "Hostel Guest Room Booking Form",
       description: "Book guest rooms for visitors",
       url: "http://campusconnect.thapar.edu/guest-enquiry",
       icon: Building2,

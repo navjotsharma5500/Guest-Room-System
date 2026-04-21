@@ -196,6 +196,28 @@ const normalizeBooking = (b) => ({
   profilePicture: b.profilePicture || "",
 });
 
+const buildHostelRoomSkeleton = async () => {
+  const hostelDocs = await Hostel.find({}).lean();
+
+  return hostelDocs.reduce((acc, hostel) => {
+    acc[hostel.name] = {
+      name: hostel.name,
+      rooms: (hostel.rooms || []).map((room) => ({
+        roomNo: room.roomNo,
+        roomType: room.roomType || "Guest Room",
+        isBlocked: room.isBlocked || false,
+        blockedTill: room.blockedTill || null,
+        blockRemarks: room.blockRemarks || "",
+        blockAttachments: Array.isArray(room.blockAttachments) ? room.blockAttachments : [],
+        blockedAt: room.blockedAt || null,
+        blockedBy: room.blockedBy || null,
+        bookings: [],
+      })),
+    };
+    return acc;
+  }, {});
+};
+
 /* =============================================================
    BASIC ROUTES
 ============================================================= */
@@ -284,7 +306,7 @@ router.get("/all", protect, async (req, res) => {
 
     console.log(`📊 Found ${all.length} ACTIVE bookings (excluding checked_out, cancelled, no_show)`);
 
-    const hostels = {};
+    const hostels = await buildHostelRoomSkeleton();
 
     all.forEach((b) => {
       // Additional safety check: skip if reportedStatus indicates inactive
@@ -293,16 +315,24 @@ router.get("/all", protect, async (req, res) => {
         return; // Skip this booking
       }
 
-      if (!hostels[b.hostel]) {
-        hostels[b.hostel] = { name: b.hostel, rooms: [] };
-      }
+      if (!hostels[b.hostel]) return;
 
       let room = hostels[b.hostel].rooms.find(
         (r) => r.roomNo === b.roomNo
       );
 
       if (!room) {
-        room = { roomNo: b.roomNo, bookings: [] };
+        room = {
+          roomNo: b.roomNo,
+          roomType: "Guest Room",
+          isBlocked: false,
+          blockedTill: null,
+          blockRemarks: "",
+          blockAttachments: [],
+          blockedAt: null,
+          blockedBy: null,
+          bookings: [],
+        };
         hostels[b.hostel].rooms.push(room);
       }
 
@@ -329,19 +359,27 @@ router.get("/all-for-download", protect, async (req, res) => {
   try {
     const all = await Booking.find({}).lean();
 
-    const hostels = {};
+    const hostels = await buildHostelRoomSkeleton();
 
     all.forEach((b) => {
-      if (!hostels[b.hostel]) {
-        hostels[b.hostel] = { name: b.hostel, rooms: [] };
-      }
+      if (!hostels[b.hostel]) return;
 
       let room = hostels[b.hostel].rooms.find(
         (r) => r.roomNo === b.roomNo
       );
 
       if (!room) {
-        room = { roomNo: b.roomNo, bookings: [] };
+        room = {
+          roomNo: b.roomNo,
+          roomType: "Guest Room",
+          isBlocked: false,
+          blockedTill: null,
+          blockRemarks: "",
+          blockAttachments: [],
+          blockedAt: null,
+          blockedBy: null,
+          bookings: [],
+        };
         hostels[b.hostel].rooms.push(room);
       }
 
