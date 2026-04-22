@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { 
-  X, Calendar, Clock, User, Mail, Phone, Building, FileText, 
-  XCircle, Edit2, CheckCircle, MapPin, Users as UsersIcon,
+  X, Calendar, Clock, Mail, Phone, Building,
+  XCircle, Edit2, MapPin, Users as UsersIcon,
   MessageSquare, Paperclip, ArrowRight
 } from "lucide-react";
 import AttachmentGrid from "../AttachmentGrid";
@@ -15,6 +15,7 @@ export default function VenueBookingDetailsModal({
   onClose,
   onExtend,
   onCancel,
+  onRebook,
 }) {
   useEscapeKey(onClose);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -524,17 +525,31 @@ export default function VenueBookingDetailsModal({
             Close
           </motion.button>
 
-          {(booking.status === "booked" || booking.status === "checked_in") && (
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(220, 38, 38, 0.3)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleCancel}
-              className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-            >
-              <XCircle className="w-5 h-5" />
-              Cancel Booking
-            </motion.button>
-          )}
+          <div className="flex items-center gap-3">
+            {onRebook && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onRebook}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+              >
+                <ArrowRight className="w-5 h-5" />
+                Rebook
+              </motion.button>
+            )}
+
+            {(booking.status === "booked" || booking.status === "checked_in") && (
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(220, 38, 38, 0.3)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleCancel}
+                className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+              >
+                <XCircle className="w-5 h-5" />
+                Cancel Booking
+              </motion.button>
+            )}
+          </div>
         </div>
       </motion.div>
     </motion.div>

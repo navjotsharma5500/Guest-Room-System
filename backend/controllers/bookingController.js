@@ -660,18 +660,64 @@ export const createBooking = async (req, res) => {
         
           const rebookingEmailContent = {
             to: reviewRecipients,
-            subject: "Guest Rebooking Approval Required",
-            html: `
-              <h2>Rebooking Approval Request</h2>
-              <p><strong>Guest Name:</strong> ${setupBooking.guest}</p>
-              <p><strong>Email:</strong> ${setupBooking.email}</p>
-              <p><strong>Contact:</strong> ${setupBooking.contact}</p>
-              <p><strong>Hostel:</strong> ${setupBooking.hostel}</p>
-              <p><strong>Room:</strong> ${setupBooking.roomNo}</p>
-              <p><strong>New Booking Time:</strong> ${setupBooking.from.toLocaleDateString()} to ${setupBooking.to.toLocaleDateString()}</p>
-              <p><strong>Review Deadline:</strong> ${setupBooking.reviewDeadline.toLocaleString()}</p>
-              <p>Please review and approve/reject this rebooking request.</p>
-            `
+            subject: `Rebooking Approval Required - ${setupBooking.guest}`,
+            html: masterTemplate({
+              title: "Rebooking Approval Request",
+              skipDefaultButton: true,
+              content: `
+                <p style="margin:0 0 14px;color:#475569;font-size:14px;line-height:1.6;">
+                  Dear Admin,
+                </p>
+
+                <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
+                  A same-guest rebooking has been created within 24 hours of checkout and requires admin review before the caretaker can continue the normal reporting flow.
+                </p>
+
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:18px 0;text-align:left;">
+                  <div style="font-size:15px;font-weight:700;color:#0f4c81;margin-bottom:12px;">
+                    Guest Details
+                  </div>
+                  <p style="margin:6px 0;"><strong>Guest Name:</strong> ${setupBooking.guest || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Email:</strong> ${setupBooking.email || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Contact:</strong> ${setupBooking.contact || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Department:</strong> ${setupBooking.department || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Roll No.:</strong> ${setupBooking.rollno || "-"}</p>
+                </div>
+
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:18px 0;text-align:left;">
+                  <div style="font-size:15px;font-weight:700;color:#0f4c81;margin-bottom:12px;">
+                    Booking Summary
+                  </div>
+                  <p style="margin:6px 0;"><strong>Hostel:</strong> ${setupBooking.hostel || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Room:</strong> ${setupBooking.roomNo || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Check-in:</strong> ${setupBooking.from?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkInTime || ""}</p>
+                  <p style="margin:6px 0;"><strong>Check-out:</strong> ${setupBooking.to?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkOutTime || ""}</p>
+                  <p style="margin:6px 0;"><strong>Purpose:</strong> ${setupBooking.purpose || "-"}</p>
+                </div>
+
+                <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:18px;margin:18px 0;text-align:left;">
+                  <div style="font-size:15px;font-weight:700;color:#c2410c;margin-bottom:12px;">
+                    Action Required
+                  </div>
+                  <p style="margin:6px 0;"><strong>Status:</strong> Under Review</p>
+                  <p style="margin:6px 0;"><strong>Review Deadline:</strong> ${setupBooking.reviewDeadline?.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) || "-"}</p>
+                  <p style="margin:10px 0 0;color:#475569;">
+                    Please open the Guest Room dashboard and approve or reject this rebooking request from the room card.
+                  </p>
+                </div>
+
+                <div style="text-align:center;margin-top:24px;">
+                  <a href="https://campusconnect.thapar.edu/dashboard"
+                     style="display:inline-block;background:#1b74c9;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:30px;font-size:14px;font-weight:600;">
+                    Open Guest Room Dashboard
+                  </a>
+                </div>
+
+                <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+                  This is an automated notification from the Guest Room Management System.
+                </p>
+              `,
+            }),
           };
 
           asyncSendEmails(() => safeSend(rebookingEmailContent));

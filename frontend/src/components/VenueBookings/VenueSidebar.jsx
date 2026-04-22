@@ -40,6 +40,7 @@ export default function VenueSidebar({
   const NAV_ITEMS = [ 
     { id: "home", label: "Dashboard", icon: Home },
     { id: "manage-bookings", label: "Common Bookings", icon: Grid },
+    { id: "all-bookings", label: "All Bookings", icon: FileText, route: "/venue-all-bookings" },
     { id: "enquiries", label: "Enquiries", icon: FileText },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -114,7 +115,13 @@ export default function VenueSidebar({
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                if (item.route) {
+                  navigate(item.route);
+                } else {
+                  onNavigate(item.id);
+                }
+              }}
               className={getButtonClassName(isActive)}
             >
               <Icon className="w-5 h-5" />

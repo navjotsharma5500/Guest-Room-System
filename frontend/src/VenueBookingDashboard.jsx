@@ -13,6 +13,7 @@ import useVenueConfig from "./hooks/useVenueConfig";
 import VenueSidebar from "./components/VenueBookings/VenueSidebar";
 import VenueMainContent from "./components/VenueBookings/VenueMainContent";
 import VenueBookingsPortal from "./pages/VenueBookingsPortal";
+import VenueAllBookingsPage from "./pages/VenueAllBookingsPage";
 import VenueCalendarPage from "./pages/VenueCalendarPage";
 import VenueAssistantEnquiryPage from "./pages/VenueAssistantEnquiryPage";
 import VenueCategoryPortal from "./pages/VenueCategoryPortal";
@@ -177,11 +178,13 @@ export default function VenueBookingDashboard() {
 
   const [calendarFocusDate, setCalendarFocusDate] = useState(null);
 
-  const handleNavigate = (section, payload = {}) => {
-    if (section === "calendar" && payload?.date) {
-      setCalendarFocusDate(payload.date);
+  const handleNavigate = (section) => {
+    if (section === "all-bookings") {
+      navigate("/venue-all-bookings");
+      return;
     }
-    setActiveSection(section);
+
+    navigate("/venue-booking", { state: { activeSection: section } });
   };
 
   const selectedCategoryName = getEnabledVenueSectionLabelById(activeSection, venueConfig);
@@ -216,6 +219,16 @@ export default function VenueBookingDashboard() {
     });
     return filtered;
   }, [venueData, role]);
+
+  if (location.pathname === "/venue-all-bookings") {
+    return (
+      <VenueAllBookingsPage
+        theme={theme}
+        venueData={filteredVenueData}
+        setExtensionModal={setExtensionModal}
+      />
+    );
+  }
 
   // Access control
   if (!loading && currentUser && !hasVenueDashboardAccess(role)) {
@@ -579,8 +592,6 @@ export default function VenueBookingDashboard() {
                 theme={theme}
                 currentUser={currentUser}
                 onRefresh={handleRefresh}
-                setExtensionModal={setExtensionModal}
-                onBackHome={() => handleNavigate("home")}
               />
             )}
 

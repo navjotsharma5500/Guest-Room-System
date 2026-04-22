@@ -927,9 +927,9 @@ export default function ThaparPublicDashboard() {
               <div style={{ display:"flex", flexDirection:"column", gap:12, fontSize:13.5, color:"#4b5563" }}>
                 <div>
                   <p style={{ color:"#6b7280", marginBottom:3 }}>Contact us for any assistance:</p>
-                  <a href="mailto:student.help@thapar.edu"
+                  <a href="mailto:Queries_studentaffairs@thapar.edu"
                     style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                    student.help@thapar.edu
+                    Queries_studentaffairs@thapar.edu
                   </a>
                 </div>
                 <div>
@@ -1043,8 +1043,8 @@ export default function ThaparPublicDashboard() {
                           fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
               <div>
                 <p style={{ fontSize:13, color:"#6b7280", marginBottom:6 }}>Contact us for any assistance:</p>
-                <a href="mailto:student.help@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                  student.help@thapar.edu
+                <a href="mailto:Queries_studentaffairs@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+                  Queries_studentaffairs@thapar.edu
                 </a>
               </div>
               <div>

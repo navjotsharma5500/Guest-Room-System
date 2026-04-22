@@ -1,89 +1,131 @@
-// src/components/VenueBookings/VenueBookingModal.jsx
-// UPDATED: Daily Time Slot Model
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Calendar, Clock, User, Mail, Phone, Building, FileText, CheckCircle, AlertCircle, Trash2, CheckCircle2, Loader } from "lucide-react";
+import {
+  X,
+  Upload,
+  Calendar,
+  Clock,
+  User,
+  Mail,
+  Phone,
+  Building,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  CheckCircle2,
+  Loader,
+  MapPin,
+} from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
-import { 
+import {
   BACKEND_URL,
-  IMAGEKIT_PUBLIC_KEY, 
-  IMAGEKIT_URL_ENDPOINT, 
-  IMAGEKIT_AUTH_ENDPOINT 
+  IMAGEKIT_PUBLIC_KEY,
+  IMAGEKIT_URL_ENDPOINT,
+  IMAGEKIT_AUTH_ENDPOINT,
 } from "../../utils/apiConfig";
 import AttachmentGrid from "../AttachmentGrid";
 import { VENUE_DEPARTMENTS } from "../../config/venueDepartments";
-import { formatTimeWithAMPM, isDailySlotOverlapping, timeToMinutes } from "../../utils/dateUtils";
+import { getEnabledVenueFormOptions } from "../../config/venueRoomsConfig";
+import useVenueConfig from "../../hooks/useVenueConfig";
+import {
+  isDailySlotOverlapping,
+  timeToMinutes,
+} from "../../utils/dateUtils";
 
 const API = BACKEND_URL;
 
 const authenticator = async () => {
-  try {
-    const response = await fetch(IMAGEKIT_AUTH_ENDPOINT, { 
-      method: "GET",
-      credentials: "include"
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Auth request failed ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return {
-      signature: data.signature,
-      expire: data.expire,
-      token: data.token,
-      publicKey: data.publicKey,
-    };
-  } catch (err) {
-    console.error("❌ ImageKit authenticator error:", err);
-    throw err;
+  const response = await fetch(IMAGEKIT_AUTH_ENDPOINT, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Auth request failed ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    signature: data.signature,
+    expire: data.expire,
+    token: data.token,
+    publicKey: data.publicKey,
+  };
+};
+
+const getInitialFormData = ({ prefill, checkIn, checkOut, mode }) => ({
+  name: prefill?.name || "",
+  societyName: prefill?.societyName || "",
+  eventName: prefill?.eventName || "",
+  department: prefill?.department || "",
+  contact: prefill?.contact || "",
+  email: prefill?.email || "",
+  societyEmail: prefill?.societyEmail || "",
+  presidentEmail: prefill?.presidentEmail || "",
+  bookingStartDate:
+    mode === "rebook"
+      ? ""
+      : checkIn || prefill?.checkInDate || prefill?.bookingStartDate || "",
+  bookingEndDate:
+    mode === "rebook"
+      ? ""
+      : checkOut || prefill?.checkOutDate || prefill?.bookingEndDate || "",
+  dailyStartTime:
+    mode === "rebook"
+      ? "10:00"
+      : prefill?.checkInTime || prefill?.dailyStartTime || "10:00",
+  dailyEndTime:
+    mode === "rebook"
+      ? "16:00"
+      : prefill?.checkOutTime || prefill?.dailyEndTime || "16:00",
+  purpose: prefill?.purpose || "",
+  description: prefill?.description || "",
+  attachments: [],
+});
+
+const getStepTitle = (step) => {
+  switch (step) {
+    case 0:
+      return "Select Venue";
+    case 1:
+      return "Guest Information";
+    case 2:
+      return "Booking Details";
+    case 3:
+      return "Attachments";
+    default:
+      return "Review";
   }
 };
 
 export default function VenueBookingModal({
   theme,
-  selectedRooms,
+  selectedRooms = [],
   checkIn,
   checkOut,
   prefill,
+  mode = "create",
   onClose,
   onSubmit,
+  onSelectedRoomsChange,
 }) {
   useEscapeKey(onClose);
   const { showToast } = useToast();
+  const { enabledVenueConfig } = useVenueConfig();
 
-  const [formData, setFormData] = useState({
-    name: prefill?.name || "",
-    societyName: prefill?.societyName || "",
-    eventName: prefill?.eventName || "",
-    department: prefill?.department || "",
-    contact: prefill?.contact || "",
-    email: prefill?.email || "",
-    societyEmail: prefill?.societyEmail || "",
-    presidentEmail: prefill?.presidentEmail || "",
-    bookingStartDate: checkIn || prefill?.checkInDate || prefill?.bookingStartDate || "",
-    bookingEndDate: checkOut || prefill?.checkOutDate || prefill?.bookingEndDate || "",
-    dailyStartTime: prefill?.checkInTime || prefill?.dailyStartTime || "10:00",
-    dailyEndTime: prefill?.checkOutTime || prefill?.dailyEndTime || "16:00",
-    purpose: prefill?.purpose || "",
-    description: prefill?.description || "",
-    attachments: Array.isArray(prefill?.attachments) ? prefill.attachments : [],
-  });
+  const isRebookMode = mode === "rebook";
+  const initialStep = isRebookMode ? 0 : 1;
+  const finalStep = isRebookMode ? 4 : 4;
 
+  const [formData, setFormData] = useState(
+    getInitialFormData({ prefill, checkIn, checkOut, mode })
+  );
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [step, setStep] = useState(1);
-  const [societySuggestions, setSocietySuggestions] = useState([]);
-  const [showSocietySuggestions, setShowSocietySuggestions] = useState(false);
-  const [eventSuggestions, setEventSuggestions] = useState([]);
-  const [showEventSuggestions, setShowEventSuggestions] = useState(false);
-  const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
-  const [showDepartmentSuggestions, setShowDepartmentSuggestions] = useState(false);
-
-  // Real-time availability checking
+  const [step, setStep] = useState(initialStep);
   const [existingBookings, setExistingBookings] = useState([]);
   const [availability, setAvailability] = useState({
     isLoading: false,
@@ -92,116 +134,59 @@ export default function VenueBookingModal({
     isValid: true,
   });
 
-  useEffect(() => {
-    if (!prefill) return;
-    setFormData((prev) => ({
-      ...prev,
-      name: prefill.name || prev.name,
-      societyName: prefill.societyName || prev.societyName,
-      eventName: prefill.eventName || prev.eventName,
-      department: prefill.department || prev.department,
-      contact: prefill.contact || prev.contact,
-      email: prefill.email || prev.email,
-      societyEmail: prefill.societyEmail || prev.societyEmail,
-      presidentEmail: prefill.presidentEmail || prev.presidentEmail,
-      bookingStartDate: prefill.checkInDate || prefill.bookingStartDate || prev.bookingStartDate,
-      bookingEndDate: prefill.checkOutDate || prefill.bookingEndDate || prev.bookingEndDate,
-      dailyStartTime: prefill.checkInTime || prefill.dailyStartTime || prev.dailyStartTime,
-      dailyEndTime: prefill.checkOutTime || prefill.dailyEndTime || prev.dailyEndTime,
-      purpose: prefill.purpose || prev.purpose,
-      description: prefill.description || prev.description,
-      attachments: Array.isArray(prefill.attachments) ? prefill.attachments : prev.attachments,
-    }));
-  }, [prefill]);
-
-  useEffect(() => {
-    const query = formData.societyName.trim();
-    if (!query) {
-      setSocietySuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `${API}/api/venue/enquiry/society-suggestions?query=${encodeURIComponent(query)}&limit=15`,
-          { method: "GET", credentials: "include" }
-        );
-        if (!response.ok) return;
-
-        const data = await response.json();
-        setSocietySuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []);
-      } catch (error) {
-        console.error("Failed to fetch society suggestions:", error);
-      }
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [formData.societyName]);
-
-  useEffect(() => {
-    const query = formData.eventName.trim();
-    if (!query) {
-      setEventSuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `${API}/api/venue/enquiry/event-suggestions?query=${encodeURIComponent(query)}&limit=15`,
-          { method: "GET", credentials: "include" }
-        );
-        if (!response.ok) return;
-
-        const data = await response.json();
-        setEventSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []);
-      } catch (error) {
-        console.error("Failed to fetch event suggestions:", error);
-      }
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [formData.eventName]);
-
-  useEffect(() => {
-    const query = formData.department.trim().toLowerCase();
-    if (!query) {
-      setDepartmentSuggestions(VENUE_DEPARTMENTS);
-      return;
-    }
-
-    const filtered = VENUE_DEPARTMENTS.filter(dept =>
-      dept.toLowerCase().includes(query)
+  const venueOptions = useMemo(() => {
+    return getEnabledVenueFormOptions(enabledVenueConfig).flatMap((group) =>
+      (group.rooms || []).map((roomName) => ({
+        value: `${group.hall}|||${roomName}`,
+        label: `${roomName} (${group.groupLabel})`,
+        hall: group.hall,
+        roomNo: roomName,
+      }))
     );
-    setDepartmentSuggestions(filtered);
-  }, [formData.department]);
+  }, [enabledVenueConfig]);
 
-  // Fetch existing bookings for selected rooms
+  const selectedVenueValue = useMemo(() => {
+    if (!selectedRooms.length) return "";
+    const room = selectedRooms[0];
+    return `${room.hall}|||${room.roomNo}`;
+  }, [selectedRooms]);
+
   useEffect(() => {
-    if (!selectedRooms || selectedRooms.length === 0) {
+    setFormData(getInitialFormData({ prefill, checkIn, checkOut, mode }));
+    setStep(initialStep);
+    setErrors({});
+    setUploadError("");
+  }, [prefill, checkIn, checkOut, mode, initialStep]);
+
+  useEffect(() => {
+    if (!selectedRooms.length) {
       setExistingBookings([]);
       return;
     }
 
     const fetchBookings = async () => {
       try {
-        const roomIds = selectedRooms.map(room => room.id || room._id).filter(Boolean);
-        if (roomIds.length === 0) {
-          setExistingBookings([]);
-          return;
+        const response = await fetch(`${API}/api/venue-bookings`, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch existing venue bookings");
         }
 
-        const response = await fetch(
-          `${API}/api/venue/bookings?roomIds=${roomIds.join(",")}`,
-          { method: "GET", credentials: "include" }
+        const bookings = await response.json();
+        const filteredBookings = (Array.isArray(bookings) ? bookings : []).filter(
+          (booking) =>
+            selectedRooms.some(
+              (room) =>
+                room.hall === booking.hall && room.roomNo === booking.roomNo
+            )
         );
-        
-        if (response.ok) {
-          const data = await response.json();
-          const bookings = Array.isArray(data?.bookings) ? data.bookings : [];
-          setExistingBookings(bookings);
-        }
+        setExistingBookings(filteredBookings);
       } catch (error) {
         console.error("Failed to fetch existing bookings:", error);
         setExistingBookings([]);
@@ -211,21 +196,10 @@ export default function VenueBookingModal({
     fetchBookings();
   }, [selectedRooms]);
 
-  // Check availability when date/time fields change
   useEffect(() => {
-    checkAvailability();
-  }, [
-    formData.bookingStartDate,
-    formData.bookingEndDate,
-    formData.dailyStartTime,
-    formData.dailyEndTime,
-    existingBookings
-  ]);
+    const { bookingStartDate, bookingEndDate, dailyStartTime, dailyEndTime } =
+      formData;
 
-  const checkAvailability = async () => {
-    const { bookingStartDate, bookingEndDate, dailyStartTime, dailyEndTime } = formData;
-
-    // If any field is empty, reset availability
     if (!bookingStartDate || !bookingEndDate || !dailyStartTime || !dailyEndTime) {
       setAvailability({
         isLoading: false,
@@ -236,25 +210,11 @@ export default function VenueBookingModal({
       return;
     }
 
-    // VALIDATION 1: Check if end date/time is after start date/time
-    const startDateTime = new Date(`${bookingStartDate}T${dailyStartTime}`);
-    const endDateTime = new Date(`${bookingEndDate}T${dailyEndTime}`);
+    const checkAvailability = async () => {
+      const startDateTime = new Date(`${bookingStartDate}T${dailyStartTime}`);
+      const endDateTime = new Date(`${bookingEndDate}T${dailyEndTime}`);
 
-    if (endDateTime <= startDateTime) {
-      setAvailability({
-        isLoading: false,
-        hasOverlap: true,
-        overlapMessage: "❌ End time must be after start time",
-        isValid: false,
-      });
-      return;
-    }
-
-    // VALIDATION 2: If same day, check time order
-    if (bookingStartDate === bookingEndDate) {
-      const startTimeMin = timeToMinutes(dailyStartTime);
-      const endTimeMin = timeToMinutes(dailyEndTime);
-      if (endTimeMin <= startTimeMin) {
+      if (endDateTime <= startDateTime) {
         setAvailability({
           isLoading: false,
           hasOverlap: true,
@@ -263,57 +223,71 @@ export default function VenueBookingModal({
         });
         return;
       }
-    }
 
-    setAvailability((prev) => ({ ...prev, isLoading: true }));
-
-    try {
-      // Simulate API delay for smooth UX
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Check for overlaps with existing bookings
-      let hasOverlap = false;
-      let conflictingBooking = null;
-
-      for (const booking of existingBookings) {
-        if (
-          booking.status === "booked" ||
-          booking.status === "checked_in" ||
-          booking.status === "approved"
-        ) {
-          const overlap = isDailySlotOverlapping(
-            bookingStartDate,
-            bookingEndDate,
-            dailyStartTime,
-            dailyEndTime,
-            booking.checkInDate || booking.bookingStartDate,
-            booking.checkOutDate || booking.bookingEndDate,
-            booking.checkInTime || booking.dailyStartTime,
-            booking.checkOutTime || booking.dailyEndTime
-          );
-
-          if (overlap) {
-            hasOverlap = true;
-            conflictingBooking = booking;
-            break;
-          }
+      if (bookingStartDate === bookingEndDate) {
+        const startTimeMin = timeToMinutes(dailyStartTime);
+        const endTimeMin = timeToMinutes(dailyEndTime);
+        if (endTimeMin <= startTimeMin) {
+          setAvailability({
+            isLoading: false,
+            hasOverlap: true,
+            overlapMessage: "❌ End time must be after start time",
+            isValid: false,
+          });
+          return;
         }
       }
 
-      if (hasOverlap && conflictingBooking) {
-        const conflictStart = new Date(conflictingBooking.checkInDate || conflictingBooking.bookingStartDate);
-        const conflictEnd = new Date(conflictingBooking.checkOutDate || conflictingBooking.bookingEndDate);
+      setAvailability((prev) => ({ ...prev, isLoading: true }));
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      let conflictingBooking = null;
+      for (const booking of existingBookings) {
+        if (!["booked", "checked_in", "approved"].includes(booking.status)) {
+          continue;
+        }
+
+        const overlap = isDailySlotOverlapping(
+          bookingStartDate,
+          bookingEndDate,
+          dailyStartTime,
+          dailyEndTime,
+          booking.checkInDate || booking.bookingStartDate,
+          booking.checkOutDate || booking.bookingEndDate,
+          booking.checkInTime || booking.dailyStartTime,
+          booking.checkOutTime || booking.dailyEndTime
+        );
+
+        if (overlap) {
+          conflictingBooking = booking;
+          break;
+        }
+      }
+
+      if (conflictingBooking) {
+        const conflictStart = new Date(
+          conflictingBooking.checkInDate || conflictingBooking.bookingStartDate
+        );
+        const conflictEnd = new Date(
+          conflictingBooking.checkOutDate || conflictingBooking.bookingEndDate
+        );
         const dateFormat = { month: "short", day: "numeric" };
-        const conflictStartTime = conflictingBooking.checkInTime || conflictingBooking.dailyStartTime;
-        const conflictEndTime = conflictingBooking.checkOutTime || conflictingBooking.dailyEndTime;
 
         setAvailability({
           isLoading: false,
           hasOverlap: true,
-          overlapMessage: `❌ Time overlap detected: This venue is already booked from ${conflictStart.toLocaleDateString(
+          overlapMessage: `❌ Time overlap detected: ${conflictingBooking.hall} - ${conflictingBooking.roomNo} is booked from ${conflictStart.toLocaleDateString(
             "en-IN",
             dateFormat
-          )} to ${conflictEnd.toLocaleDateString("en-IN", dateFormat)} during ${conflictStartTime}–${conflictEndTime}.`,
+          )} to ${conflictEnd.toLocaleDateString(
+            "en-IN",
+            dateFormat
+          )} during ${
+            conflictingBooking.checkInTime || conflictingBooking.dailyStartTime
+          }–${
+            conflictingBooking.checkOutTime || conflictingBooking.dailyEndTime
+          }.`,
           isValid: false,
         });
       } else {
@@ -324,26 +298,33 @@ export default function VenueBookingModal({
           isValid: true,
         });
       }
-    } catch (error) {
-      console.error("Error checking availability:", error);
-      setAvailability({
-        isLoading: false,
-        hasOverlap: false,
-        overlapMessage: "",
-        isValid: true,
-      });
+    };
+
+    checkAvailability();
+  }, [formData, existingBookings]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === "societyName") {
-      setShowSocietySuggestions(true);
+  const handleVenueSelection = (event) => {
+    const value = event.target.value;
+    if (!value) {
+      onSelectedRoomsChange?.([]);
+      if (errors.selectedRooms) {
+        setErrors((prev) => ({ ...prev, selectedRooms: "" }));
+      }
+      return;
     }
-    
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    const [hall, roomNo] = value.split("|||");
+    onSelectedRoomsChange?.([{ hall, roomNo }]);
+    if (errors.selectedRooms) {
+      setErrors((prev) => ({ ...prev, selectedRooms: "" }));
     }
   };
 
@@ -353,16 +334,12 @@ export default function VenueBookingModal({
   };
 
   const handleUploadSuccess = (res) => {
-    console.log("✅ ImageKit upload success:", res);
-    
     setFormData((prev) => ({
       ...prev,
       attachments: [...prev.attachments, res.url],
     }));
-    
     setUploading(false);
     showToast("✅ File uploaded successfully", "success");
-    
     if (errors.attachments) {
       setErrors((prev) => ({ ...prev, attachments: "" }));
     }
@@ -378,56 +355,65 @@ export default function VenueBookingModal({
   const removeAttachment = (index) => {
     setFormData((prev) => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index),
+      attachments: prev.attachments.filter((_, itemIndex) => itemIndex !== index),
     }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
+    if (isRebookMode && step >= 0 && selectedRooms.length === 0) {
+      newErrors.selectedRooms = "Venue is required";
+    }
+
     if (step >= 1) {
       if (!formData.name.trim()) newErrors.name = "Name is required";
       if (!formData.eventName.trim()) newErrors.eventName = "Event name is required";
-      if (!formData.department) newErrors.department = "Department is required";
-      
-      if (formData.contact.trim() && !/^\d{10}$/.test(formData.contact)) {
-        newErrors.contact = "Contact must be exactly 10 digits";
-      }
-      
+      if (!formData.department.trim()) newErrors.department = "Department is required";
       if (!formData.email.trim()) {
         newErrors.email = "Email is required";
       } else if (!formData.email.endsWith("@thapar.edu")) {
         newErrors.email = "Email must be @thapar.edu";
       }
+      if (formData.contact.trim() && !/^\d{10}$/.test(formData.contact)) {
+        newErrors.contact = "Contact must be exactly 10 digits";
+      }
     }
 
     if (step >= 2) {
-      if (!formData.bookingStartDate) newErrors.bookingStartDate = "Start date is required";
-      if (!formData.bookingEndDate) newErrors.bookingEndDate = "End date is required";
-      if (!formData.dailyStartTime) newErrors.dailyStartTime = "Daily start time is required";
-      if (!formData.dailyEndTime) newErrors.dailyEndTime = "Daily end time is required";
-
-      if (formData.bookingStartDate && formData.bookingEndDate) {
-        const startDate = new Date(formData.bookingStartDate);
-        const endDate = new Date(formData.bookingEndDate);
-        
-        if (endDate < startDate) {
-          newErrors.bookingEndDate = "End date must be >= start date";
-        }
+      if (!formData.bookingStartDate) {
+        newErrors.bookingStartDate = "Start date is required";
+      }
+      if (!formData.bookingEndDate) {
+        newErrors.bookingEndDate = "End date is required";
+      }
+      if (!formData.dailyStartTime) {
+        newErrors.dailyStartTime = "Daily start time is required";
+      }
+      if (!formData.dailyEndTime) {
+        newErrors.dailyEndTime = "Daily end time is required";
       }
 
-      const startTimeMin = timeToMinutes(formData.dailyStartTime);
-      const endTimeMin = timeToMinutes(formData.dailyEndTime);
-      
-      if (startTimeMin >= endTimeMin) {
+      if (
+        formData.bookingStartDate &&
+        formData.bookingEndDate &&
+        new Date(formData.bookingEndDate) < new Date(formData.bookingStartDate)
+      ) {
+        newErrors.bookingEndDate = "End date must be >= start date";
+      }
+
+      if (
+        formData.dailyStartTime &&
+        formData.dailyEndTime &&
+        timeToMinutes(formData.dailyEndTime) <=
+          timeToMinutes(formData.dailyStartTime)
+      ) {
         newErrors.dailyEndTime = "End time must be > start time";
       }
     }
 
-    if (step >= 3) {
-      if (formData.attachments.length === 0) {
-        newErrors.attachments = "At least one attachment is required";
-      }
+    if (step >= 3 && formData.attachments.length === 0) {
+      newErrors.attachments = "At least one attachment is required";
     }
 
     setErrors(newErrors);
@@ -435,31 +421,37 @@ export default function VenueBookingModal({
   };
 
   const canProceedToNext = () => {
+    if (step === 0) {
+      return selectedRooms.length > 0;
+    }
+
     if (step === 1) {
       return (
-        formData.name.trim() &&
-        formData.eventName.trim() &&
-        formData.department &&
+        Boolean(formData.name.trim()) &&
+        Boolean(formData.eventName.trim()) &&
+        Boolean(formData.department.trim()) &&
         (!formData.contact.trim() || /^\d{10}$/.test(formData.contact)) &&
         formData.email.endsWith("@thapar.edu")
       );
     }
+
     if (step === 2) {
-      if (!formData.bookingStartDate || !formData.bookingEndDate || !formData.dailyStartTime || !formData.dailyEndTime) {
+      if (
+        !formData.bookingStartDate ||
+        !formData.bookingEndDate ||
+        !formData.dailyStartTime ||
+        !formData.dailyEndTime
+      ) {
         return false;
       }
-      
-      const startDate = new Date(formData.bookingStartDate);
-      const endDate = new Date(formData.bookingEndDate);
-      const startTimeMin = timeToMinutes(formData.dailyStartTime);
-      const endTimeMin = timeToMinutes(formData.dailyEndTime);
-      
-      // Check date/time validity and availability
-      return endDate >= startDate && startTimeMin < endTimeMin && availability.isValid;
+
+      return availability.isValid;
     }
+
     if (step === 3) {
       return formData.attachments.length > 0;
     }
+
     return false;
   };
 
@@ -476,20 +468,23 @@ export default function VenueBookingModal({
 
     if (canProceedToNext()) {
       setStep((prev) => prev + 1);
-    } else {
-      showToast("⚠️ Please fill all required fields correctly", "warning");
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!validateForm()) {
       showToast("⚠️ Please fill all required fields correctly", "warning");
       return;
     }
 
-    const dataToSubmit = {
+    if (selectedRooms.length === 0) {
+      showToast("⚠️ Please select a venue", "warning");
+      return;
+    }
+
+    const payload = {
       ...formData,
       checkInDate: formData.bookingStartDate,
       checkOutDate: formData.bookingEndDate,
@@ -497,25 +492,30 @@ export default function VenueBookingModal({
       checkOutTime: formData.dailyEndTime,
     };
 
-    await onSubmit(dataToSubmit);
+    await onSubmit(payload);
   };
 
   const formatDateRange = () => {
-    if (!formData.bookingStartDate || !formData.bookingEndDate) return "";
-    
-    const options = { month: 'short', day: 'numeric' };
+    if (!formData.bookingStartDate || !formData.bookingEndDate) return "—";
+
+    const options = { month: "short", day: "numeric" };
     const startDate = new Date(formData.bookingStartDate);
     const endDate = new Date(formData.bookingEndDate);
-    
-    const dayCount = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    
-    return `${startDate.toLocaleDateString('en-IN', options)} – ${endDate.toLocaleDateString('en-IN', options)} (${dayCount}d)`;
+    const dayCount =
+      Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+    return `${startDate.toLocaleDateString(
+      "en-IN",
+      options
+    )} – ${endDate.toLocaleDateString("en-IN", options)} (${dayCount}d)`;
   };
 
   const getDailySlotSummary = () => {
-    if (!formData.dailyStartTime || !formData.dailyEndTime) return "";
+    if (!formData.dailyStartTime || !formData.dailyEndTime) return "—";
     return `${formData.dailyStartTime}–${formData.dailyEndTime}`;
   };
+
+  const venueSummary = selectedRooms.map((room) => `${room.hall} — ${room.roomNo}`);
 
   return (
     <IKContext
@@ -524,7 +524,7 @@ export default function VenueBookingModal({
       authenticator={authenticator}
     >
       <motion.div
-        className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-50 p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -533,303 +533,891 @@ export default function VenueBookingModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          onClick={(e) => e.stopPropagation()}
-          className={`
-            relative w-full max-w-2xl max-h-[90vh] overflow-hidden
-            rounded-lg shadow-2xl
-            ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}
-          `}
+          onClick={(event) => event.stopPropagation()}
+          className={`relative w-full max-w-3xl overflow-hidden rounded-lg shadow-2xl ${
+            theme === "dark" ? "bg-[#292a2d]" : "bg-white"
+          }`}
         >
-          <div className={`
-            px-6 py-4 border-b flex items-center justify-between
-            ${theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"}
-          `}>
+          <div
+            className={`flex items-center justify-between border-b px-6 py-4 ${
+              theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"
+            }`}
+          >
             <div>
-              <h2 className={`text-xl font-normal ${
-                theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
-              }`}>
-                {step === 1 ? "Guest Information" : step === 2 ? "Booking Details" : step === 3 ? "Attachments" : "Review"}
+              <h2
+                className={`text-xl font-normal ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}
+              >
+                {isRebookMode ? "Rebook Venue" : "Create Venue Booking"}
               </h2>
-              <p className={`text-sm mt-1 ${
-                theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
-              }`}>
-                Step {step} of 4
+              <p
+                className={`mt-1 text-sm ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                }`}
+              >
+                {getStepTitle(step)} • Step {step + (isRebookMode ? 1 : 0)} of{" "}
+                {isRebookMode ? 5 : 4}
               </p>
             </div>
             <button
               onClick={onClose}
-              className={`
-                p-2 rounded-full transition-colors
-                ${theme === "dark" 
-                  ? "hover:bg-[#3c4043] text-[#9aa0a6]" 
-                  : "hover:bg-[#f1f3f4] text-[#5f6368]"
-                }
-              `}
+              className={`rounded-full p-2 transition-colors ${
+                theme === "dark"
+                  ? "text-[#9aa0a6] hover:bg-[#3c4043]"
+                  : "text-[#5f6368] hover:bg-[#f1f3f4]"
+              }`}
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="max-h-[calc(90vh-200px)] overflow-y-auto p-8">
             <AnimatePresence mode="wait">
+              {step === 0 && isRebookMode && (
+                <motion.div
+                  key="step0"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h3
+                      className={`flex items-center gap-2 text-xl font-semibold ${
+                        theme === "dark" ? "text-gray-100" : "text-gray-800"
+                      }`}
+                    >
+                      <MapPin className="h-6 w-6 text-red-600" />
+                      Select Venue For Rebooking
+                    </h3>
+                    <p
+                      className={`mt-2 text-sm ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      Choose a fresh venue for this rebooking. Previous venue,
+                      dates, and attachments are intentionally not reused.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      className={`mb-2 block text-sm font-semibold ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Venue <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedVenueValue}
+                      onChange={handleVenueSelection}
+                      className={`w-full rounded border px-4 py-3 text-sm ${
+                        errors.selectedRooms
+                          ? "border-red-500"
+                          : theme === "dark"
+                          ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                          : "border-[#dadce0] bg-white text-[#202124]"
+                      }`}
+                    >
+                      <option value="">Select venue</option>
+                      {venueOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.selectedRooms && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {errors.selectedRooms}
+                      </p>
+                    )}
+                  </div>
+
+                  {selectedRooms.length > 0 && (
+                    <div
+                      className={`rounded-2xl border-2 p-5 ${
+                        theme === "dark"
+                          ? "border-blue-700 bg-blue-900/20"
+                          : "border-blue-200 bg-blue-50"
+                      }`}
+                    >
+                      <p
+                        className={`mb-3 flex items-center gap-2 text-sm font-semibold ${
+                          theme === "dark" ? "text-blue-400" : "text-blue-700"
+                        }`}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Selected Venue
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {venueSummary.map((label) => (
+                          <span
+                            key={label}
+                            className={`rounded-full px-4 py-2 text-sm font-medium ${
+                              theme === "dark"
+                                ? "bg-blue-800 text-blue-100"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
               {step === 1 && (
-                <motion.div key="step1" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-6">
-                  <div className="mb-6">
-                    <h3 className={`text-xl font-semibold flex items-center gap-2 ${
-                      theme === "dark" ? "text-gray-100" : "text-gray-800"
-                    }`}>
-                      <User className="w-6 h-6 text-red-600" />
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h3
+                      className={`flex items-center gap-2 text-xl font-semibold ${
+                        theme === "dark" ? "text-gray-100" : "text-gray-800"
+                      }`}
+                    >
+                      <User className="h-6 w-6 text-red-600" />
                       Basic Information
                     </h3>
                   </div>
 
-                  <div className={`p-5 rounded-2xl border-2 ${
-                    theme === "dark"
-                      ? "bg-blue-900/20 border-blue-700"
-                      : "bg-blue-50 border-blue-200"
-                  }`}>
-                    <p className={`text-sm font-semibold mb-3 flex items-center gap-2 ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-700"
-                    }`}>
-                      <CheckCircle className="w-4 h-4" />
-                      Selected Halls/Rooms ({selectedRooms.length}):
+                  <div
+                    className={`rounded-2xl border-2 p-5 ${
+                      theme === "dark"
+                        ? "border-blue-700 bg-blue-900/20"
+                        : "border-blue-200 bg-blue-50"
+                    }`}
+                  >
+                    <p
+                      className={`mb-3 flex items-center gap-2 text-sm font-semibold ${
+                        theme === "dark" ? "text-blue-400" : "text-blue-700"
+                      }`}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Selected Halls/Rooms ({selectedRooms.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {selectedRooms.map((room, idx) => (
-                        <motion.span key={idx} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: idx * 0.05 }} className={`px-4 py-2 rounded-full text-sm font-medium shadow-md ${
-                          theme === "dark"
-                            ? "bg-blue-800 text-blue-100"
-                            : "bg-blue-100 text-blue-800"
-                        }`}>
-                          {room.hall} — {room.roomNo}
-                        </motion.span>
+                      {venueSummary.map((label) => (
+                        <span
+                          key={label}
+                          className={`rounded-full px-4 py-2 text-sm font-medium ${
+                            theme === "dark"
+                              ? "bg-blue-800 text-blue-100"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {label}
+                        </span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <User className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <User className="mr-2 inline h-4 w-4 text-red-600" />
                         Name <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" name="name" value={formData.name} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm transition-all ${errors.name ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0] text-[#202124]"}`} placeholder="Your name" />
-                      {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.name
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Your name"
+                      />
+                      {errors.name && (
+                        <p className="mt-1 text-xs text-red-500">{errors.name}</p>
+                      )}
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <Mail className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Mail className="mr-2 inline h-4 w-4 text-red-600" />
                         Email <span className="text-red-500">*</span>
                       </label>
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.email ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} placeholder="example@thapar.edu" />
-                      {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.email
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="example@thapar.edu"
+                      />
+                      {errors.email && (
+                        <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+                      )}
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <Building className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Building className="mr-2 inline h-4 w-4 text-red-600" />
                         Event Name <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" name="eventName" value={formData.eventName} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.eventName ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} placeholder="Event name" />
-                      {errors.eventName && <p className="text-red-500 text-xs mt-1">{errors.eventName}</p>}
+                      <input
+                        type="text"
+                        name="eventName"
+                        value={formData.eventName}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.eventName
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Event name"
+                      />
+                      {errors.eventName && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {errors.eventName}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <Building className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Building className="mr-2 inline h-4 w-4 text-red-600" />
                         Department <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" name="department" value={formData.department} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.department ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} placeholder="Department" />
-                      {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
+                      <input
+                        list="venue-departments"
+                        type="text"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.department
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Department"
+                      />
+                      <datalist id="venue-departments">
+                        {VENUE_DEPARTMENTS.map((department) => (
+                          <option key={department} value={department} />
+                        ))}
+                      </datalist>
+                      {errors.department && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {errors.department}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <Phone className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Phone className="mr-2 inline h-4 w-4 text-red-600" />
                         Contact
                       </label>
-                      <input type="tel" name="contact" value={formData.contact} onChange={handleChange} maxLength={10} className={`w-full px-4 py-3 rounded border text-sm ${errors.contact ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} placeholder="10 digit number" />
-                      {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
+                      <input
+                        type="tel"
+                        name="contact"
+                        value={formData.contact}
+                        onChange={handleChange}
+                        maxLength={10}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.contact
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="10 digit number"
+                      />
+                      {errors.contact && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {errors.contact}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        <Mail className="w-4 h-4 inline mr-2 text-red-600" />
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Building className="mr-2 inline h-4 w-4 text-red-600" />
                         Society Name
                       </label>
-                      <input type="text" name="societyName" value={formData.societyName} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} placeholder="Society name" />
+                      <input
+                        type="text"
+                        name="societyName"
+                        value={formData.societyName}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Society name"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FileText className="mr-2 inline h-4 w-4 text-red-600" />
+                        Purpose
+                      </label>
+                      <input
+                        type="text"
+                        name="purpose"
+                        value={formData.purpose}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Purpose of booking"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <FileText className="mr-2 inline h-4 w-4 text-red-600" />
+                        Description
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows={4}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                        placeholder="Event description"
+                      />
                     </div>
                   </div>
                 </motion.div>
               )}
 
               {step === 2 && (
-                <motion.div key="step2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-8">
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  className="space-y-8"
+                >
                   <div>
-                    <h3 className={`text-lg font-semibold flex items-center gap-2 mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
-                      <Calendar className="w-5 h-5 text-blue-600" />
-                      📅 BOOKING DATES
-                    </h3>
-                    <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Select the date range for your booking
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          Start Date <span className="text-red-500">*</span>
-                        </label>
-                        <input type="date" name="bookingStartDate" value={formData.bookingStartDate} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.bookingStartDate ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} />
-                        {errors.bookingStartDate && <p className="text-red-500 text-xs mt-1">{errors.bookingStartDate}</p>}
-                      </div>
-                      <div>
-                        <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          End Date <span className="text-red-500">*</span>
-                        </label>
-                        <input type="date" name="bookingEndDate" value={formData.bookingEndDate} onChange={handleChange} min={formData.bookingStartDate} className={`w-full px-4 py-3 rounded border text-sm ${errors.bookingEndDate ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} />
-                        {errors.bookingEndDate && <p className="text-red-500 text-xs mt-1">{errors.bookingEndDate}</p>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`p-6 rounded-xl border ${theme === "dark" ? "bg-purple-900/30 border-purple-700" : "bg-purple-50 border-purple-200"}`}>
-                    <h3 className={`text-lg font-semibold flex items-center gap-2 mb-4 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
-                      <Clock className="w-5 h-5" />
-                      ⏰ DAILY TIME SLOT
-                    </h3>
-                    <p className={`text-sm mb-4 ${theme === "dark" ? "text-purple-200" : "text-purple-600"}`}>
-                      These times repeat every day of your booking
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          Daily Start Time <span className="text-red-500">*</span>
-                        </label>
-                        <input type="time" name="dailyStartTime" value={formData.dailyStartTime} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.dailyStartTime ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} />
-                        {errors.dailyStartTime && <p className="text-red-500 text-xs mt-1">{errors.dailyStartTime}</p>}
-                      </div>
-                      <div>
-                        <label className={`block text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          Daily End Time <span className="text-red-500">*</span>
-                        </label>
-                        <input type="time" name="dailyEndTime" value={formData.dailyEndTime} onChange={handleChange} className={`w-full px-4 py-3 rounded border text-sm ${errors.dailyEndTime ? "border-red-500" : theme === "dark" ? "bg-[#3c4043] border-[#5f6368] text-[#e8eaed]" : "bg-white border-[#dadce0]"}`} />
-                        {errors.dailyEndTime && <p className="text-red-500 text-xs mt-1">{errors.dailyEndTime}</p>}
-                      </div>
-                    </div>
-                    <p className={`text-xs mt-4 ${theme === "dark" ? "text-purple-300" : "text-purple-600"}`}>
-                      💡 This time slot will be applied daily for the selected date range
-                    </p>
-                  </div>
-
-                  {/* Real-time Availability Status */}
-                  {formData.bookingStartDate && formData.bookingEndDate && formData.dailyStartTime && formData.dailyEndTime && (
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
-                        availability.isLoading
-                          ? theme === "dark"
-                            ? "bg-blue-900/20 border-blue-600"
-                            : "bg-blue-50 border-blue-300"
-                          : availability.hasOverlap
-                          ? theme === "dark"
-                            ? "bg-red-900/20 border-red-600"
-                            : "bg-red-50 border-red-300"
-                          : theme === "dark"
-                          ? "bg-green-900/20 border-green-600"
-                          : "bg-green-50 border-green-300"
+                    <h3
+                      className={`mb-4 flex items-center gap-2 text-lg font-semibold ${
+                        theme === "dark" ? "text-gray-100" : "text-gray-800"
                       }`}
                     >
-                      {availability.isLoading ? (
-                        <>
-                          <Loader className={`w-5 h-5 animate-spin ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-blue-300" : "text-blue-700"}`}>
-                            Checking availability...
-                          </span>
-                        </>
-                      ) : availability.hasOverlap ? (
-                        <>
-                          <AlertCircle className={`w-5 h-5 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
-                            {availability.overlapMessage}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className={`w-5 h-5 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                          <span className={`text-sm font-semibold ${theme === "dark" ? "text-green-300" : "text-green-700"}`}>
-                            ✅ Booking Summary: Daily {getDailySlotSummary()} · {formatDateRange()}
-                          </span>
-                        </>
-                      )}
-                    </motion.div>
-                  )}
+                      <Calendar className="h-5 w-5 text-blue-600" />
+                      Booking Dates
+                    </h3>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div>
+                        <label
+                          className={`mb-2 block text-sm font-semibold ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Start Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="bookingStartDate"
+                          value={formData.bookingStartDate}
+                          onChange={handleChange}
+                          className={`w-full rounded border px-4 py-3 text-sm ${
+                            errors.bookingStartDate
+                              ? "border-red-500"
+                              : theme === "dark"
+                              ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                              : "border-[#dadce0] bg-white text-[#202124]"
+                          }`}
+                        />
+                        {errors.bookingStartDate && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {errors.bookingStartDate}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          className={`mb-2 block text-sm font-semibold ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          End Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="bookingEndDate"
+                          min={formData.bookingStartDate}
+                          value={formData.bookingEndDate}
+                          onChange={handleChange}
+                          className={`w-full rounded border px-4 py-3 text-sm ${
+                            errors.bookingEndDate
+                              ? "border-red-500"
+                              : theme === "dark"
+                              ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                              : "border-[#dadce0] bg-white text-[#202124]"
+                          }`}
+                        />
+                        {errors.bookingEndDate && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {errors.bookingEndDate}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-xl border p-6 ${
+                      theme === "dark"
+                        ? "border-purple-700 bg-purple-900/30"
+                        : "border-purple-200 bg-purple-50"
+                    }`}
+                  >
+                    <h3
+                      className={`mb-4 flex items-center gap-2 text-lg font-semibold ${
+                        theme === "dark" ? "text-purple-300" : "text-purple-700"
+                      }`}
+                    >
+                      <Clock className="h-5 w-5" />
+                      Daily Time Slot
+                    </h3>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div>
+                        <label
+                          className={`mb-2 block text-sm font-semibold ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Daily Start Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          name="dailyStartTime"
+                          value={formData.dailyStartTime}
+                          onChange={handleChange}
+                          className={`w-full rounded border px-4 py-3 text-sm ${
+                            errors.dailyStartTime
+                              ? "border-red-500"
+                              : theme === "dark"
+                              ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                              : "border-[#dadce0] bg-white text-[#202124]"
+                          }`}
+                        />
+                        {errors.dailyStartTime && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {errors.dailyStartTime}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label
+                          className={`mb-2 block text-sm font-semibold ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Daily End Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          name="dailyEndTime"
+                          value={formData.dailyEndTime}
+                          onChange={handleChange}
+                          className={`w-full rounded border px-4 py-3 text-sm ${
+                            errors.dailyEndTime
+                              ? "border-red-500"
+                              : theme === "dark"
+                              ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                              : "border-[#dadce0] bg-white text-[#202124]"
+                          }`}
+                        />
+                        {errors.dailyEndTime && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {errors.dailyEndTime}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.bookingStartDate &&
+                    formData.bookingEndDate &&
+                    formData.dailyStartTime &&
+                    formData.dailyEndTime && (
+                      <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className={`flex items-center gap-3 rounded-lg border-2 p-4 ${
+                          availability.isLoading
+                            ? theme === "dark"
+                              ? "border-blue-600 bg-blue-900/20"
+                              : "border-blue-300 bg-blue-50"
+                            : availability.hasOverlap
+                            ? theme === "dark"
+                              ? "border-red-600 bg-red-900/20"
+                              : "border-red-300 bg-red-50"
+                            : theme === "dark"
+                            ? "border-green-600 bg-green-900/20"
+                            : "border-green-300 bg-green-50"
+                        }`}
+                      >
+                        {availability.isLoading ? (
+                          <>
+                            <Loader
+                              className={`h-5 w-5 animate-spin ${
+                                theme === "dark"
+                                  ? "text-blue-400"
+                                  : "text-blue-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-sm font-semibold ${
+                                theme === "dark"
+                                  ? "text-blue-300"
+                                  : "text-blue-700"
+                              }`}
+                            >
+                              Checking availability...
+                            </span>
+                          </>
+                        ) : availability.hasOverlap ? (
+                          <>
+                            <AlertCircle
+                              className={`h-5 w-5 ${
+                                theme === "dark"
+                                  ? "text-red-400"
+                                  : "text-red-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-sm font-semibold ${
+                                theme === "dark"
+                                  ? "text-red-300"
+                                  : "text-red-700"
+                              }`}
+                            >
+                              {availability.overlapMessage}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2
+                              className={`h-5 w-5 ${
+                                theme === "dark"
+                                  ? "text-green-400"
+                                  : "text-green-600"
+                              }`}
+                            />
+                            <span
+                              className={`text-sm font-semibold ${
+                                theme === "dark"
+                                  ? "text-green-300"
+                                  : "text-green-700"
+                              }`}
+                            >
+                              Booking Summary: Daily {getDailySlotSummary()} ·{" "}
+                              {formatDateRange()}
+                            </span>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
                 </motion.div>
               )}
 
               {step === 3 && (
-                <motion.div key="step3" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-6">
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  className="space-y-6"
+                >
                   <div>
-                    <h3 className={`text-lg font-semibold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
-                      <Upload className="w-5 h-5 inline mr-2 text-red-600" />
+                    <h3
+                      className={`mb-4 text-lg font-semibold ${
+                        theme === "dark" ? "text-gray-100" : "text-gray-800"
+                      }`}
+                    >
+                      <Upload className="mr-2 inline h-5 w-5 text-red-600" />
                       Upload Attachments
                     </h3>
-                    <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Please upload supporting documents (minimum 1 required)
+                    <p
+                      className={`text-sm ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      Rebooking requires fresh document upload. Previous attachments
+                      are not reused.
                     </p>
                   </div>
 
-                  <IKUpload onUploadStart={handleUploadStart} onSuccess={handleUploadSuccess} onError={handleUploadError} folder="/venuebooking" useUniqueFileName={true} isPrivateFile={false} />
+                  <IKUpload
+                    onUploadStart={handleUploadStart}
+                    onSuccess={handleUploadSuccess}
+                    onError={handleUploadError}
+                    folder="/venuebooking"
+                    useUniqueFileName={true}
+                    isPrivateFile={false}
+                  />
 
-                  {uploading && <p className={`text-sm ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>⏳ Uploading...</p>}
-                  {uploadError && <p className="text-red-500 text-sm">{uploadError}</p>}
+                  {uploading && (
+                    <p
+                      className={`text-sm ${
+                        theme === "dark" ? "text-blue-400" : "text-blue-600"
+                      }`}
+                    >
+                      Uploading...
+                    </p>
+                  )}
+                  {uploadError && (
+                    <p className="text-sm text-red-500">{uploadError}</p>
+                  )}
 
                   {formData.attachments.length > 0 && (
                     <div>
-                      <h4 className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      <h4
+                        className={`mb-3 text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
                         Uploaded Files ({formData.attachments.length})
                       </h4>
-                      <AttachmentGrid attachments={formData.attachments} onRemove={removeAttachment} theme={theme} />
+                      <AttachmentGrid
+                        files={formData.attachments}
+                        onRemove={removeAttachment}
+                        theme={theme}
+                      />
                     </div>
                   )}
 
-                  {errors.attachments && <p className="text-red-500 text-sm">{errors.attachments}</p>}
+                  {errors.attachments && (
+                    <p className="text-sm text-red-500">{errors.attachments}</p>
+                  )}
                 </motion.div>
               )}
 
               {step === 4 && (
-                <motion.div key="step4" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-6">
-                  <h3 className={`text-lg font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  className="space-y-6"
+                >
+                  <h3
+                    className={`text-lg font-semibold ${
+                      theme === "dark" ? "text-gray-100" : "text-gray-800"
+                    }`}
+                  >
                     Review Your Booking
                   </h3>
 
-                  <div className={`p-6 rounded-lg ${theme === "dark" ? "bg-[#3c4043]" : "bg-[#f1f3f4]"}`}>
+                  <div
+                    className={`rounded-lg p-6 ${
+                      theme === "dark" ? "bg-[#3c4043]" : "bg-[#f1f3f4]"
+                    }`}
+                  >
                     <div className="space-y-4">
                       <div>
-                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>Name</p>
-                        <p className={`text-base ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>{formData.name}</p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Venue
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {venueSummary.join(", ") || "—"}
+                        </p>
                       </div>
                       <div>
-                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>Booking Dates</p>
-                        <p className={`text-base ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>{formatDateRange()}</p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Name
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {formData.name || "—"}
+                        </p>
                       </div>
                       <div>
-                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>Daily Time Slot</p>
-                        <p className={`text-base ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>{getDailySlotSummary()}</p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Booking Dates
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {formatDateRange()}
+                        </p>
                       </div>
                       <div>
-                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>Event</p>
-                        <p className={`text-base ${theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"}`}>{formData.eventName}</p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Daily Time Slot
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {getDailySlotSummary()}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Event
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {formData.eventName || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Purpose
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {formData.purpose || "—"}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <form onSubmit={handleSubmit} className="flex gap-3">
-                    <button type="button" onClick={() => setStep(3)} className={`flex-1 py-3 rounded font-medium ${theme === "dark" ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]" : "bg-[#f1f3f4] text-[#202124] hover:bg-[#dadce0]"}`}>
+                    <button
+                      type="button"
+                      onClick={() => setStep(3)}
+                      className={`flex-1 rounded py-3 font-medium ${
+                        theme === "dark"
+                          ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
+                          : "bg-[#f1f3f4] text-[#202124] hover:bg-[#dadce0]"
+                      }`}
+                    >
                       Back
                     </button>
-                    <button type="submit" className={`flex-1 py-3 rounded font-medium text-white ${theme === "dark" ? "bg-[#8ab4f8] hover:bg-[#aecbfa]" : "bg-[#1a73e8] hover:bg-[#1765cc]"}`}>
-                      Complete Booking
+                    <button
+                      type="submit"
+                      className={`flex-1 rounded py-3 font-medium text-white ${
+                        theme === "dark"
+                          ? "bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]"
+                          : "bg-[#1a73e8] hover:bg-[#1765cc]"
+                      }`}
+                    >
+                      {isRebookMode ? "Complete Rebooking" : "Complete Booking"}
                     </button>
                   </form>
                 </motion.div>
@@ -837,26 +1425,36 @@ export default function VenueBookingModal({
             </AnimatePresence>
           </div>
 
-          <div className="px-8 py-4 border-t flex gap-3 bg-opacity-50 backdrop-blur-sm">
-            {step > 1 && (
-              <button onClick={() => setStep(step - 1)} className={`flex-1 py-2.5 rounded font-medium transition-colors ${theme === "dark" ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]" : "bg-[#f1f3f4] text-[#202124]"}`}>
+          <div
+            className={`flex gap-3 border-t px-8 py-4 ${
+              theme === "dark" ? "border-[#3c4043]" : "border-[#dadce0]"
+            }`}
+          >
+            {step > initialStep && step < finalStep && (
+              <button
+                onClick={() => setStep((prev) => prev - 1)}
+                className={`flex-1 rounded py-2.5 font-medium ${
+                  theme === "dark"
+                    ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
+                    : "bg-[#f1f3f4] text-[#202124]"
+                }`}
+              >
                 Back
               </button>
             )}
-            {step < 4 && (
+            {step < finalStep && (
               <button
                 onClick={handleNext}
                 disabled={step === 2 && !availability.isValid}
-                className={`flex-1 py-2.5 rounded font-medium text-white transition-colors ${
+                className={`flex-1 rounded py-2.5 font-medium text-white ${
                   step === 2 && !availability.isValid
                     ? theme === "dark"
-                      ? "bg-[#5f6368] text-[#9aa0a6] cursor-not-allowed opacity-60"
-                      : "bg-[#dadce0] text-[#9aa0a6] cursor-not-allowed opacity-60"
+                      ? "cursor-not-allowed bg-[#5f6368] text-[#9aa0a6] opacity-60"
+                      : "cursor-not-allowed bg-[#dadce0] text-[#9aa0a6] opacity-60"
                     : theme === "dark"
-                    ? "bg-[#8ab4f8] hover:bg-[#aecbfa]"
+                    ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
                     : "bg-[#1a73e8] hover:bg-[#1765cc]"
                 }`}
-                title={step === 2 && !availability.isValid ? "Please select an available time slot" : ""}
               >
                 Next
               </button>

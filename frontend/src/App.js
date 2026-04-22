@@ -271,6 +271,15 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/venue-all-bookings"
+            element={
+              currentUser && (VENUE_BOOKING_ROLES.includes(role) || isDDAssistant)
+                ? <VenueBookingDashboard />
+                : <Navigate to="/" replace />
+            }
+          />
+
           {/* ================================================================
               PUBLIC ROUTES (no auth required)
               ================================================================ */}
@@ -305,5 +314,4 @@ export default function App() {
     </GoogleOAuthProvider>
   );
 }
-
 

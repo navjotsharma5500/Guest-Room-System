@@ -5,7 +5,7 @@ import { ExternalLink } from "lucide-react";
 // âš™ï¸ CONFIGURATION - Change your profile link here
 const CREATOR_CONFIG = {
   name: "Navjot Sharma",
-  profileUrl: "https://github.com/navjotsharma5500",
+  profileUrl: "https://www.linkedin.com/in/navjot-sharma-0bb7143b1",
   // You can add more fields if needed in future:
   // linkedIn: "https://linkedin.com/in/yourprofile",
   // portfolio: "https://yourwebsite.com",
@@ -29,7 +29,7 @@ export default function Creator({ variant = "default", className = "" }) {
     <button
       onClick={handleClick}
       className={`${variantClass} ${className} cursor-pointer group inline-flex items-center gap-1.5`}
-      title={`Visit ${CREATOR_CONFIG.name}'s GitHub Profile`}
+      title={`Visit ${CREATOR_CONFIG.name}'s LinkedIn Profile`}
     >
       <span>
         Created by{" "}
