@@ -40,6 +40,9 @@ import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import ApprovalPage from "./pages/ApprovalPage";
 import SettingsPage from "./pages/SettingsPage";
+import PoliciesPage from "./pages/PoliciesPage";
+import TermsPage    from "./pages/TermsPage";
+import LicensePage  from "./pages/LicensePage";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
@@ -291,6 +294,9 @@ export default function App() {
           <Route path="/about-us"             element={<AboutUsPage />} />
           <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />
           <Route path="/venue-calendar"       element={<PublicVenueCalendar />} />
+          <Route path="/license"              element={<LicensePage />}  />
+          <Route path="/policies"             element={<PoliciesPage />} />
+          <Route path="/terms"                element={<TermsPage />} />
 
           {/* ================================================================
               QR CODE GENERATOR (admin only)

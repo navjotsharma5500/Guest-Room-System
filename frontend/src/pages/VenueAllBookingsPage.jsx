@@ -59,12 +59,14 @@ const buildRebookPrefill = (booking) => {
 };
 
 export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensionModal }) {
+  const ITEMS_PER_PAGE = 10;
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [bookingDetailsModal, setBookingDetailsModal] = useState(null);
@@ -144,6 +146,23 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
       );
     });
   }, [search, sortedBookings]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, bookings]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredBookings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [currentPage, filteredBookings]);
 
   const openDetails = useCallback((booking) => {
     setBookingDetailsModal({
@@ -273,7 +292,7 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredBookings.map((booking, index) => (
+          {paginatedBookings.map((booking, index) => (
             <motion.div
               key={booking._id}
               initial={{ opacity: 0, y: 12 }}
@@ -352,6 +371,68 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
               </div>
             </motion.div>
           ))}
+
+          {filteredBookings.length > ITEMS_PER_PAGE && (
+            <div
+              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-5 py-4 ${
+                theme === "dark"
+                  ? "border-[#3c4043] bg-[#292a2d]"
+                  : "border-[#dadce0] bg-white"
+              }`}
+            >
+              <p
+                className={`text-sm ${
+                  theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                }`}
+              >
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredBookings.length)} of{" "}
+                {filteredBookings.length} bookings
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    currentPage === 1
+                      ? theme === "dark"
+                        ? "cursor-not-allowed bg-[#3c4043] text-[#5f6368]"
+                        : "cursor-not-allowed bg-[#f1f3f4] text-[#9aa0a6]"
+                      : theme === "dark"
+                      ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
+                      : "bg-[#f1f3f4] text-[#202124] hover:bg-[#e8eaed]"
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <span
+                  className={`text-sm ${
+                    theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                  }`}
+                >
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    currentPage === totalPages
+                      ? theme === "dark"
+                        ? "cursor-not-allowed bg-[#3c4043] text-[#5f6368]"
+                        : "cursor-not-allowed bg-[#f1f3f4] text-[#9aa0a6]"
+                      : theme === "dark"
+                      ? "bg-[#8ab4f8] text-[#202124] hover:bg-[#aecbfa]"
+                      : "bg-[#1a73e8] text-white hover:bg-[#1765cc]"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

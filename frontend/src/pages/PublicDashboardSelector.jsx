@@ -992,7 +992,7 @@ export default function ThaparPublicDashboard() {
       ═══════════════════════════════════════════════ */}
       <button
         onClick={() => setShowCustomizer(true)}
-        style={{ position:"fixed", bottom:24, left:24, zIndex:350,
+        style={{ position:"fixed", bottom:40, left:24, zIndex:350,
                  display:"flex", alignItems:"center", gap:8,
                  background:"rgba(255,255,255,.92)", backdropFilter:"blur(8px)",
                  border:"1px solid #d1d5db", borderRadius:12,
@@ -1005,6 +1005,42 @@ export default function ThaparPublicDashboard() {
         <SlidersHorizontal size={15} color="#6b7280"/>
         Customize My View
       </button>
+
+      {/* ══ FIXED: LEGAL FOOTER BAR ══════════════════
+          © 2026 TIET | License | Policies | Terms
+      ═══════════════════════════════════════════════ */}
+      <div style={{
+        position:"fixed", bottom:0, left:0, right:0, zIndex:340,
+        background:"rgba(255,255,255,.94)", backdropFilter:"blur(10px)",
+        borderTop:"1px solid #e5e7eb",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        padding:"7px 24px",
+        boxShadow:"0 -1px 12px rgba(0,0,0,.06)",
+      }}>
+        <span style={{ fontSize:12, color:"#9ca3af", marginRight:10 }}>© 2026 TIET</span>
+        {[
+          { label:"License",  path:"/license"  },
+          { label:"Policies", path:"/policies" },
+          { label:"Terms",    path:"/terms"    },
+        ].map(({ label, path }) => (
+          <span key={path} style={{ display:"flex", alignItems:"center" }}>
+            <span style={{ color:"#d1d5db", margin:"0 8px", fontSize:11 }}>|</span>
+            <button
+              onClick={() => navigate(path)}
+              style={{
+                background:"none", border:"none", cursor:"pointer",
+                fontSize:12, fontWeight:500, color:"#6b7280",
+                fontFamily:"inherit", padding:"2px 0",
+                transition:"color .15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.color="#c62828"}
+              onMouseLeave={e => e.currentTarget.style.color="#6b7280"}
+            >
+              {label}
+            </button>
+          </span>
+        ))}
+      </div>
 
       {/* ══ FIXED: ECHO AI CHATBOT ═══════════════════
           — EchoOrb bot face (floating mode)
