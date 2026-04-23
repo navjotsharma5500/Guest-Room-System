@@ -118,6 +118,7 @@ export default function VenueBookingModal({
   const isRebookMode = mode === "rebook";
   const initialStep = isRebookMode ? 0 : 1;
   const finalStep = isRebookMode ? 4 : 4;
+  const prefillKey = prefill?._id || prefill?.id || "";
 
   const [formData, setFormData] = useState(
     getInitialFormData({ prefill, checkIn, checkOut, mode })
@@ -156,7 +157,7 @@ export default function VenueBookingModal({
     setStep(initialStep);
     setErrors({});
     setUploadError("");
-  }, [prefill, checkIn, checkOut, mode, initialStep]);
+  }, [prefillKey, checkIn, checkOut, mode, initialStep]);
 
   useEffect(() => {
     if (!selectedRooms.length) {

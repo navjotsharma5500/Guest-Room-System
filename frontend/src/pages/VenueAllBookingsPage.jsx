@@ -43,16 +43,20 @@ const getStatusBadge = (status = "booked") => {
   );
 };
 
-const buildRebookPrefill = (booking = {}) => ({
-  name: booking.name || "",
-  societyName: booking.societyName || "",
-  eventName: booking.eventName || "",
-  department: booking.department || "",
-  contact: booking.contact || "",
-  email: booking.email || "",
-  purpose: booking.purpose || "",
-  description: booking.description || "",
-});
+const buildRebookPrefill = (booking) => {
+  const source = booking || {};
+  return {
+    _id: source._id || "",
+    name: source.name || "",
+    societyName: source.societyName || "",
+    eventName: source.eventName || "",
+    department: source.department || "",
+    contact: source.contact || "",
+    email: source.email || "",
+    purpose: source.purpose || "",
+    description: source.description || "",
+  };
+};
 
 export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensionModal }) {
   const navigate = useNavigate();
@@ -117,6 +121,11 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
           new Date(right.createdAt || 0) - new Date(left.createdAt || 0)
       ),
     [bookings]
+  );
+
+  const rebookPrefill = useMemo(
+    () => buildRebookPrefill(rebookSourceBooking),
+    [rebookSourceBooking]
   );
 
   const filteredBookings = useMemo(() => {
@@ -370,7 +379,7 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
             theme={theme}
             mode="rebook"
             selectedRooms={selectedRooms}
-            prefill={buildRebookPrefill(rebookSourceBooking)}
+            prefill={rebookPrefill}
             onSelectedRoomsChange={setSelectedRooms}
             onClose={closeRebookModal}
             onSubmit={async (payload) => {
