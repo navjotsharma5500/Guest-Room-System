@@ -977,10 +977,7 @@ export default function ThaparPublicDashboard() {
                         justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
             <span style={{ fontSize:12, color:"#6b7280" }}>Managed by DOSA Office</span>
             <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#6b7280" }}>
-              Crafted by
-              <span style={{ display:"flex", alignItems:"center", gap:3, color:"#374151", marginLeft:4 }}>
-                <Github size={12}/> Navjot Sharma
-              </span>
+              Crafted by <span style={{ color:"#374151", marginLeft:4 }}>DoSA Office</span>
             </div>
           </div>
         </footer>
@@ -1127,8 +1124,8 @@ export default function ThaparPublicDashboard() {
                 Thapar Institute of Engineering and Technology, Patiala.</p>
               <div style={{ background:"#f9fafb", borderRadius:10, padding:14 }}>
                 <p style={{ fontWeight:600, color:"#111", marginBottom:8, fontSize:13.5 }}>Development Team</p>
-                <p style={{ fontSize:12.5, color:"#6b7280" }}>Developed by <strong>Navjot Sharma</strong></p>
-                <p style={{ fontSize:12.5, color:"#6b7280" }}>Crafted by <strong>Surya</strong> &amp; <strong>Akshat</strong></p>
+                <p style={{ fontSize:12.5, color:"#6b7280" }}>Created by <strong>DoSA Office</strong></p>
+                <p style={{ fontSize:12.5, color:"#6b7280" }}>Crafted by <strong>DoSA Office</strong></p>
                 <p style={{ fontSize:12, color:"#9ca3af", marginTop:8 }}>Version 1.0 · Campus Connect &amp; DoSA Office</p>
               </div>
             </div>

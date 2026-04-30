@@ -4,7 +4,6 @@ import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle }
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
-import Creator from "./Creator";
 import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 
 export default function Sidebar({
@@ -377,14 +376,7 @@ export default function Sidebar({
       <div className="px-4 py-3 border-t border-slate-200 text-center mt-auto">
         <div className="flex flex-col items-center gap-1">
           <p className="text-[10px] text-slate-500 font-medium">
-            <a 
-              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-blue-700 transition-colors"
-            >
-              Created and Maintained by <span className="text-slate-700">DoSA Office</span>
-            </a>
+            Created and Maintained by <span className="text-slate-700">DoSA Office</span>
           </p>
         </div>
       </div>

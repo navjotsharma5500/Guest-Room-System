@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
 import thaparLogo from "../assets/thapar_logo.png";
-import CreatorProfileRectangular from "../components/CreatorProfile";
 import { io } from "socket.io-client";
 
 const API = BACKEND_URL;
@@ -140,7 +139,6 @@ export default function PublicEventCalendar() {
   const [activeTab, setActiveTab] = useState("today");
 
   // New States
-  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const [societies, setSocieties] = useState([]);
   const [showAboutModal, setShowAboutModal] = useState(false);
 
@@ -390,12 +388,6 @@ export default function PublicEventCalendar() {
           : "bg-gradient-to-br from-blue-50 via-white to-purple-50"
       }`}
     >
-      {/* Creator Profile Modal */}
-      <CreatorProfileRectangular
-        open={showCreatorProfile}
-        onClose={() => setShowCreatorProfile(false)}
-      />
-
       {/* About Modal */}
       <AnimatePresence>
         {showAboutModal && (
@@ -1227,7 +1219,7 @@ export default function PublicEventCalendar() {
                 className="text-xs sm:text-sm text-blue-500 hover:underline break-all">
                 itmh@thapar.edu
               </a>
-              <p className="text-xs sm:text-sm mt-2">Developed by Navjot Sharma</p>
+              <p className="text-xs sm:text-sm mt-2">Crafted by DoSA Office</p>
             </div>
           </div>
 
@@ -1319,17 +1311,10 @@ export default function PublicEventCalendar() {
                 Powered by Thapar Institute of Engineering &amp; Technology
               </p>
               <p className="text-xs font-medium">
-                <a
-                  href="https://www.linkedin.com/in/navjot-sharma-8360631a7/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-400 transition-colors"
-                >
-                  Created and Maintained by{" "}
-                  <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
-                    DoSA Office
-                  </span>
-                </a>
+                Created and Maintained by{" "}
+                <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
+                  DoSA Office
+                </span>
               </p>
             </div>
           </div>

@@ -66,6 +66,10 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [venueFilter, setVenueFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [societyFilter, setSocietyFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedRooms, setSelectedRooms] = useState([]);
@@ -130,26 +134,65 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
     [rebookSourceBooking]
   );
 
+  const venueOptions = useMemo(
+    () =>
+      [...new Set(
+        bookings
+          .map((booking) => [booking.hall, booking.roomNo].filter(Boolean).join(" • "))
+          .filter(Boolean)
+      )].sort((left, right) => left.localeCompare(right)),
+    [bookings]
+  );
+
+  const departmentOptions = useMemo(
+    () =>
+      [...new Set(bookings.map((booking) => booking.department).filter(Boolean))].sort(
+        (left, right) => left.localeCompare(right)
+      ),
+    [bookings]
+  );
+
+  const societyOptions = useMemo(
+    () =>
+      [...new Set(bookings.map((booking) => booking.societyName).filter(Boolean))].sort(
+        (left, right) => left.localeCompare(right)
+      ),
+    [bookings]
+  );
+
   const filteredBookings = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return sortedBookings;
-
     return sortedBookings.filter((booking) => {
-      return (
+      const venueLabel = [booking.hall, booking.roomNo].filter(Boolean).join(" • ");
+      const bookingDates = [
+        booking.checkInDate,
+        booking.checkOutDate,
+        booking.createdAt ? new Date(booking.createdAt).toISOString().slice(0, 10) : "",
+      ].filter(Boolean);
+
+      const matchesSearch =
+        !q ||
         booking.name?.toLowerCase().includes(q) ||
         booking.eventName?.toLowerCase().includes(q) ||
         booking.email?.toLowerCase().includes(q) ||
         booking.contact?.includes(q) ||
         booking.societyName?.toLowerCase().includes(q) ||
+        booking.department?.toLowerCase().includes(q) ||
         booking.hall?.toLowerCase().includes(q) ||
-        booking.roomNo?.toLowerCase().includes(q)
-      );
+        booking.roomNo?.toLowerCase().includes(q);
+
+      const matchesVenue = !venueFilter || venueLabel === venueFilter;
+      const matchesDepartment = !departmentFilter || booking.department === departmentFilter;
+      const matchesSociety = !societyFilter || booking.societyName === societyFilter;
+      const matchesDate = !dateFilter || bookingDates.includes(dateFilter);
+
+      return matchesSearch && matchesVenue && matchesDepartment && matchesSociety && matchesDate;
     });
-  }, [search, sortedBookings]);
+  }, [search, sortedBookings, venueFilter, departmentFilter, societyFilter, dateFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, bookings]);
+  }, [search, bookings, venueFilter, departmentFilter, dateFilter, societyFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / ITEMS_PER_PAGE));
 
@@ -227,27 +270,109 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
             </button>
           </div>
         </div>
-      </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-5">
+          <div className="relative lg:col-span-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              placeholder="Search event, name, email, contact, venue..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`w-full rounded-lg border py-2 pl-10 pr-4 text-sm outline-none ${
+                theme === "dark"
+                  ? "border-[#3c4043] bg-[#202124] text-[#e8eaed]"
+                  : "border-[#dadce0] bg-white text-[#202124]"
+              }`}
+            />
+          </div>
 
-      <div
-        className={`mb-4 rounded-xl border px-5 py-4 ${
-          theme === "dark"
-            ? "border-[#3c4043] bg-[#292a2d]"
-            : "border-[#dadce0] bg-white"
-        }`}
-      >
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            placeholder="Search name, email, contact, venue..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full rounded-lg border py-2 pl-10 pr-4 text-sm outline-none ${
+          <select
+            value={venueFilter}
+            onChange={(e) => setVenueFilter(e.target.value)}
+            className={`rounded-lg border px-3 py-2 text-sm outline-none ${
               theme === "dark"
                 ? "border-[#3c4043] bg-[#202124] text-[#e8eaed]"
                 : "border-[#dadce0] bg-white text-[#202124]"
             }`}
-          />
+          >
+            <option value="">All Venues</option>
+            {venueOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className={`rounded-lg border px-3 py-2 text-sm outline-none ${
+              theme === "dark"
+                ? "border-[#3c4043] bg-[#202124] text-[#e8eaed]"
+                : "border-[#dadce0] bg-white text-[#202124]"
+            }`}
+          >
+            <option value="">All Departments</option>
+            {departmentOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className={`rounded-lg border px-3 py-2 text-sm outline-none ${
+                theme === "dark"
+                  ? "border-[#3c4043] bg-[#202124] text-[#e8eaed]"
+                  : "border-[#dadce0] bg-white text-[#202124]"
+              }`}
+            />
+            <select
+              value={societyFilter}
+              onChange={(e) => setSocietyFilter(e.target.value)}
+              className={`rounded-lg border px-3 py-2 text-sm outline-none ${
+                theme === "dark"
+                  ? "border-[#3c4043] bg-[#202124] text-[#e8eaed]"
+                  : "border-[#dadce0] bg-white text-[#202124]"
+              }`}
+            >
+              <option value="">All Societies</option>
+              {societyOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p
+            className={`text-xs ${
+              theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+            }`}
+          >
+            Filter by venue, department, date, or society name.
+          </p>
+          <button
+            onClick={() => {
+              setSearch("");
+              setVenueFilter("");
+              setDepartmentFilter("");
+              setDateFilter("");
+              setSocietyFilter("");
+            }}
+            className={`rounded-lg px-3 py-2 text-xs font-medium ${
+              theme === "dark"
+                ? "bg-[#3c4043] text-[#e8eaed] hover:bg-[#5f6368]"
+                : "bg-[#f1f3f4] text-[#202124] hover:bg-[#e8eaed]"
+            }`}
+          >
+            Clear Filters
+          </button>
         </div>
       </div>
 

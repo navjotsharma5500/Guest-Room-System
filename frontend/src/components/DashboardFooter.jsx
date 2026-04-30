@@ -1,10 +1,7 @@
-import React, { useState } from "react";
-import CreatorProfile from "./CreatorProfile";
+import React from "react";
 
 const DashboardFooter = ({ config, mode = "fixed", className = "" }) => {
-  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
-
-  const developerText = config?.developerText || "Developed by Navjot Sharma";
+  const developerText = config?.developerText || "Created by DoSA Office";
   const poweredByText =
     config?.poweredByText || "Powered by Thapar Institute of Engineering & Technology";
   const maintainedByText = config?.maintainedByText || "Created and Maintained by DoSA Office";
@@ -14,7 +11,6 @@ const DashboardFooter = ({ config, mode = "fixed", className = "" }) => {
   const isFlow = mode === "flow";
 
   return (
-    <>
       <div
         className={`${
           isFlow
@@ -22,14 +18,13 @@ const DashboardFooter = ({ config, mode = "fixed", className = "" }) => {
             : "fixed bottom-6 left-0 w-full px-6 flex flex-col md:flex-row items-center justify-between pointer-events-none z-40"
         } ${className}`}
       >
-        <button
-          onClick={() => setShowCreatorProfile(true)}
-          className={`order-2 md:order-1 text-xs text-slate-500 hover:text-slate-700 transition-colors ${
+        <div
+          className={`order-2 md:order-1 text-xs text-slate-500 ${
             isFlow ? "mt-2 md:mt-0 md:mr-auto" : "pointer-events-auto mt-4 md:mt-0"
           }`}
         >
           {developerText}
-        </button>
+        </div>
 
         <div
           className={`order-1 md:order-2 text-center ${
@@ -48,9 +43,6 @@ const DashboardFooter = ({ config, mode = "fixed", className = "" }) => {
           </div>
         </div>
       </div>
-
-      <CreatorProfile open={showCreatorProfile} onClose={() => setShowCreatorProfile(false)} />
-    </>
   );
 };
 

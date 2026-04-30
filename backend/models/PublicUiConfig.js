@@ -18,7 +18,7 @@ const publicUiConfigSchema = new mongoose.Schema(
       developerText: {
         type: String,
         trim: true,
-        default: "Developed by Navjot Sharma",
+        default: "Created by DoSA Office",
       },
       poweredByText: {
         type: String,

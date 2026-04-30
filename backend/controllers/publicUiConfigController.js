@@ -11,7 +11,7 @@ const ALLOWED_CARD_IDS = [
 
 const DEFAULT_PUBLIC_UI_CONFIG = {
   widgets: {
-    developerText: "Developed by Navjot Sharma",
+    developerText: "Created by DoSA Office",
     poweredByText: "Powered by Thapar Institute of Engineering & Technology",
     maintainedByText: "Created and Maintained by DoSA Office",
     systemStatusText: "System Online",

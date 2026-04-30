@@ -195,7 +195,7 @@ export default function LegalLayout({ heroTitle, heroSub, eyebrow, pills = [], c
             justifyContent: "space-between", flexWrap: "wrap", gap: 8,
           }}>
             <span style={{ fontSize: 12, color: "#6b7280" }}>Managed by DOSA Office</span>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>Crafted by Navjot Sharma &nbsp;·&nbsp; Unauthorized usage strictly prohibited</span>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>Crafted by DoSA Office &nbsp;·&nbsp; Unauthorized usage strictly prohibited</span>
           </div>
         </footer>
 

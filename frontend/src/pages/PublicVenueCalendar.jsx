@@ -965,18 +965,7 @@ export default function PublicVenueCalendar() {
             <img src={thaparLogo} alt="Thapar" className="h-6 w-auto" />
             <p className="text-xs text-slate-400">Thapar Institute · DoSA Office</p>
           </div>
-          <p className="text-xs text-slate-400">
-            Developed by{" "}
-            <a
-              href="https://www.linkedin.com/in/navjot-sharma-8360631a7/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-600 hover:underline"
-            >
-              Navjot Sharma
-            </a>
-            {" "}· DoSA Office
-          </p>
+          <p className="text-xs text-slate-400">Crafted by DoSA Office</p>
         </div>
       </footer>
 

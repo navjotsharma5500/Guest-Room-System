@@ -1,43 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Github, Star, GitFork, Code, ExternalLink, Linkedin } from "lucide-react";
-import { useState, useEffect } from "react";
+import { X, Mail, User, Building2 } from "lucide-react";
 
 export default function CreatorProfileRectangular({ open, onClose }) {
-  const [githubStats, setGithubStats] = useState({
-    repos: 0,
-    followers: 0,
-    following: 0,
-    loading: true
-  });
-
-  useEffect(() => {
-    if (open) {
-      fetchGithubStats();
-    }
-  }, [open]);
-
-  const fetchGithubStats = async () => {
-    try {
-      const response = await fetch('https://api.github.com/users/navjotsharma5500');
-      const data = await response.json();
-      
-      setGithubStats({
-        repos: data.public_repos || 0,
-        followers: data.followers || 0,
-        following: data.following || 0,
-        loading: false
-      });
-    } catch (error) {
-      console.error('Failed to fetch GitHub stats:', error);
-      setGithubStats({
-        repos: 0,
-        followers: 0,
-        following: 0,
-        loading: false
-      });
-    }
-  };
-
   if (!open) return null;
 
   return (
@@ -89,7 +53,7 @@ export default function CreatorProfileRectangular({ open, onClose }) {
                 <div className="w-36 h-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white">
                   <img
                     src="https://ik.imagekit.io/7khjnlfow/email-assets/ChatGPT Image Mar 13, 2026, 02_52_10 AM.png"
-                    alt="Navjot Sharma"
+                    alt="DoSA Office"
                     className="w-full h-full object-cover"
                     style={{ objectPosition: '50% 20%' }}
                   />
@@ -109,115 +73,38 @@ export default function CreatorProfileRectangular({ open, onClose }) {
               className="text-center mb-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-1">
-                Mr. Navjot Sharma
+                DoSA Office
               </h3>
               <p className="text-blue-600 font-semibold mb-1">Associate IT</p>
               <p className="text-slate-500 text-sm">All Hostels</p>
-            </motion.div>
-
-            {/* GitHub Section */}
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.35 }}
-              className="mb-6"
-            >
-              {/* GitHub Profile Link */}
-              <a
-                href="https://github.com/navjotsharma5500"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-3 transition-all group mb-4 shadow-lg hover:shadow-xl"
-              >
-                <div className="flex items-center gap-3">
-                  <Github className="w-5 h-5" />
-                  <div className="text-left">
-                    <p className="text-xs text-slate-400">GitHub Profile</p>
-                    <p className="font-semibold">@navjotsharma5500</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </a>
-
-              {/* GitHub Stats */}
-              {githubStats.loading ? (
-                <div className="flex items-center justify-center py-6 bg-slate-50 rounded-xl">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center"
-                  >
-                    <Code className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-purple-900 mb-1">{githubStats.repos}</p>
-                    <p className="text-xs text-purple-600 font-medium">Repos</p>
-                  </motion.div>
-                  
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.45 }}
-                    className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center"
-                  >
-                    <Star className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-blue-900 mb-1">{githubStats.followers}</p>
-                    <p className="text-xs text-blue-600 font-medium">Followers</p>
-                  </motion.div>
-                  
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center"
-                  >
-                    <GitFork className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-green-900 mb-1">{githubStats.following}</p>
-                    <p className="text-xs text-green-600 font-medium">Following</p>
-                  </motion.div>
-                </div>
-              )}
             </motion.div>
 
             {/* Contact Information */}
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.4 }}
               className="space-y-3 mb-6"
             >
-              {/* Email */}
-              <a
-                href="mailto:navjot.sharma@thapar.edu"
-                className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-xl p-4 transition-colors group"
-              >
+              <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                   <Mail className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="text-left flex-1">
                   <p className="text-xs text-slate-500 font-medium">Email</p>
-                  <p className="text-sm text-slate-900 font-semibold">navjot.sharma@thapar.edu</p>
+                  <p className="text-sm text-slate-900 font-semibold">DoSA Office</p>
                 </div>
-              </a>
+              </div>
 
-              {/* LinkedIn */}
-              <a
-                href="https://www.linkedin.com/in/navjot-sharma-0bb7143b1"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-xl p-4 transition-colors group"
-              >
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <Linkedin className="w-5 h-5 text-blue-600" />
+              <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="text-left flex-1">
-                  <p className="text-xs text-slate-500 font-medium">LinkedIn</p>
-                  <p className="text-sm text-slate-900 font-semibold">Connect on LinkedIn</p>
+                  <p className="text-xs text-slate-500 font-medium">Department</p>
+                  <p className="text-sm text-slate-900 font-semibold">DoSA Office</p>
                 </div>
-              </a>
+              </div>
 
               {/* Role */}
               <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4">
@@ -235,7 +122,7 @@ export default function CreatorProfileRectangular({ open, onClose }) {
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.45 }}
               className="pt-4 border-t border-slate-200 text-center"
             >
               <p className="text-xs text-slate-400">

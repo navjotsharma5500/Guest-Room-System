@@ -344,15 +344,8 @@ export default function Login() {
             <p className="text-white/60 text-xs font-light">
                 Created and Maintained by <span className="font-medium text-white/80">DoSA Office</span>
             </p>
-            <div className="mt-1">
-                <a 
-                    href="https://www.linkedin.com/in/navjot-sharma-8360631a7/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-white/40 text-[10px] hover:text-white/80 transition-colors"
-                >
-                    Developed by Navjot Sharma
-                </a>
+            <div className="mt-1 text-white/40 text-[10px]">
+                Crafted by DoSA Office
             </div>
         </div>
       </motion.div>
