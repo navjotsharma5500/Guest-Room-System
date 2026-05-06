@@ -352,7 +352,7 @@ function NavItem({ item, onAction }) {
 /* ═══════════════════════════════════════════════════
    SERVICE CARD
 ═══════════════════════════════════════════════════ */
-function Card({ card, onAction, cardStyle, accentColor, libraryToastShows }) {
+function Card({ card, onAction, cardStyle, accentColor }) {
   const { Icon } = card;
   const [hov, setHov] = useState(false);
 
@@ -371,14 +371,8 @@ function Card({ card, onAction, cardStyle, accentColor, libraryToastShows }) {
 
         // 🎯 Library Night Pass control
         if (card.id === "library-pass") {
-
-          if (libraryToastShows) {
-            onAction("library-toast");
-            return;
-          } else {
-            window.open("https://permissions.thapar.edu/", "_blank");
-            return;
-          }
+          window.open("https://permissions.thapar.edu/", "_blank");
+          return;
         }
 
         // default behavior
@@ -711,13 +705,6 @@ export default function ThaparPublicDashboard() {
   const [chat,    setChat]    = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
-  // ── LIBRARY NIGHT PASS CONTROL ──
-  const LIBRARY_START_DATE = new Date("2026-05-07");
-
-  // auto switch based on date
-  const libraryToastShows = true;  // show toast
-  // const libraryToastShows = false; // open site
-
   // ── prefs (mirrors original pattern) ──
   const [prefs, setPrefs] = useState(() => readLocalPrefs() || makeDefaultPrefs());
 
@@ -775,9 +762,6 @@ export default function ThaparPublicDashboard() {
     else if (a==="q2")        setModal("q2");
     else if (a==="about")     navigate("/about-us");
     else if (a==="community") navigate("/community-feedback");
-    else if (a === "library-toast") {
-      setToast("Library Night Pass facility will commence from 7th May 2026 for the upcoming examination period.");
-    }
   };
 
   // ── page background from theme ──
@@ -868,8 +852,7 @@ export default function ThaparPublicDashboard() {
                 transition={{ duration:.35, delay:i*.06 }}>
                 <Card card={c} onAction={act}
                   cardStyle={prefs.cardStyle}
-                  accentColor={prefs.accentColor}
-                  libraryToastShows={libraryToastShows}/>
+                  accentColor={prefs.accentColor}/>
               </motion.div>
             ))}
           </div>
