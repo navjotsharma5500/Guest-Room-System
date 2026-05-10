@@ -51,6 +51,37 @@ const BookingSchema = new mongoose.Schema(
 
     actualCheckoutDate: { type: Date },
     actualCheckoutTime: { type: String },
+    continuousStay: {
+      isContinuous: { type: Boolean, default: false },
+      startDate: { type: Date, default: null },
+      totalDays: { type: Number, default: 0 },
+      parentBookingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Booking",
+        default: null,
+      },
+    },
+    directExtension: {
+      used: { type: Boolean, default: false },
+      oldCheckout: { type: Date, default: null },
+      newCheckout: { type: Date, default: null },
+      remarks: { type: String, default: "" },
+      attachments: { type: [String], default: [] },
+      paymentType: {
+        type: String,
+        enum: ["Paid", "Free", ""],
+        default: "",
+      },
+      amount: { type: Number, default: 0 },
+      paymentRemarks: { type: String, default: "" },
+      paymentAttachments: { type: [String], default: [] },
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      createdAt: { type: Date, default: null },
+    },
 
     // =========================
     // GUEST COUNTS
@@ -207,13 +238,28 @@ const BookingSchema = new mongoose.Schema(
 
     // ✅ CRITICAL: Extension history for accurate billing periods
     extensionHistory: [{
+      type: {
+        type: String,
+        enum: ["APPROVED_EXTENSION", "DIRECT_EXTENSION"],
+        default: "APPROVED_EXTENSION",
+      },
       extendedAt: { type: Date, default: Date.now },
       extendedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      createdAt: { type: Date, default: Date.now },
       oldTo: { type: Date },           // Previous checkout date
       newTo: { type: Date },           // New checkout date after extension
       oldCheckout: { type: Date },     // Backward compatibility alias for oldTo
       newCheckout: { type: Date },     // Backward compatibility alias for newTo
       remarks: { type: String, default: "" },
+      attachments: { type: [String], default: [] },
+      paymentType: {
+        type: String,
+        enum: ["Paid", "Free", ""],
+        default: "",
+      },
+      paymentRemarks: { type: String, default: "" },
+      paymentAttachments: { type: [String], default: [] },
       approvedAmount: { type: Number, default: 0 },
       amount: { type: Number, default: 0 }
     }],

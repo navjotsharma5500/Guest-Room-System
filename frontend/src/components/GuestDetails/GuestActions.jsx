@@ -15,6 +15,7 @@ export default function GuestActions({
   onDownloadPDF,
   onPayAmount,
   onExtendBooking,
+  onDirectExtendBooking,
   onCancelBooking,
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
@@ -23,6 +24,21 @@ export default function GuestActions({
   // Check if booking exists and isn't cancelled/checked out
   const canExtend = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
   const canCancel = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
+  const bookingStayDays = (() => {
+    if (!booking?.from || !booking?.to) return 0;
+    const start = new Date(booking.from);
+    const end = new Date(booking.to);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+  })();
+  const canDirectExtend =
+    canExtend &&
+    bookingStayDays < 3 &&
+    booking?.approvalStatus === "auto_approved" &&
+    booking?.directExtension?.used !== true &&
+    !booking?.hasPendingExtensionRequest &&
+    !["no_show"].includes(booking?.status);
 
   // ✅ Only Admin and Manager can use Payment Waiver
   const canWaive = (userRole === "admin" || userRole === "manager") && booking?.status !== "cancelled";
@@ -196,12 +212,23 @@ export default function GuestActions({
                   </>
                 )}
 
-                {/* Extend Booking */}
+                {/* Extension Request */}
                 {canExtend && (
                   <ActionButton
                     icon={<Calendar className="w-4 h-4" />}
-                    label="Extend Booking"
+                    label="Extension Request"
                     onClick={onExtendBooking}
+                    theme={theme}
+                    highlight
+                  />
+                )}
+
+                {/* Direct Extension */}
+                {canDirectExtend && onDirectExtendBooking && (
+                  <ActionButton
+                    icon={<Calendar className="w-4 h-4" />}
+                    label="Direct Extension"
+                    onClick={onDirectExtendBooking}
                     theme={theme}
                     highlight
                   />

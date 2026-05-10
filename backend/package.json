@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "devdb": "dotenv -e .env -e .env.dev --override -- nodemon index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.0",

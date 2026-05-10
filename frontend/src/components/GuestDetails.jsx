@@ -328,6 +328,26 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
         remarks: "",
         attachments: [],
       },
+      continuousStay: b.continuousStay || {
+        isContinuous: false,
+        startDate: b.actualCheckInDate || b.from || null,
+        totalDays: 0,
+        parentBookingId: null,
+      },
+      directExtension: b.directExtension || {
+        used: false,
+        oldCheckout: null,
+        newCheckout: null,
+        remarks: "",
+        attachments: [],
+        paymentType: "",
+        amount: 0,
+        paymentRemarks: "",
+        paymentAttachments: [],
+        createdBy: null,
+        createdAt: null,
+      },
+      hasPendingExtensionRequest: Boolean(b.hasPendingExtensionRequest),
       hostel: b.hostel || activeRoomRef?.hostel || "",
       roomNo: b.roomNo || activeRoomRef?.roomNo || ""
     };
@@ -985,6 +1005,15 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   hostel: b.hostel,
                   roomNo: b.roomNo,
                   booking: b,
+                  mode: "request",
+                });
+              }}
+              onDirectExtendBooking={() => {
+                setExtensionModal({
+                  hostel: b.hostel,
+                  roomNo: b.roomNo,
+                  booking: b,
+                  mode: "direct",
                 });
               }}
               onCancelBooking={() => setShowCancelModal(true)} 

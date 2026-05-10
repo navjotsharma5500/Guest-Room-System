@@ -185,7 +185,8 @@ export default function GuestRoomDashboard() {
         open: true,
         hostel,
         roomNo,
-        booking
+        booking,
+        mode: "request",
       });
     };
 
@@ -521,6 +522,7 @@ export default function GuestRoomDashboard() {
     }
 
     const { hostel, roomNo, booking } = extensionData;
+    const isDirectExtension = extensionData.mode === "direct";
 
     // Validate hostel exists
     const currentHostel = hostelData[hostel];
@@ -603,26 +605,39 @@ export default function GuestRoomDashboard() {
     
     // ✅ CALL BACKEND API WITH PAYMENT DATA
     try {
-      console.log("⬆️ Submitting extension request to MongoDB:", mongoId);
+      console.log(`⬆️ Submitting ${isDirectExtension ? "direct extension" : "extension request"} to MongoDB:`, mongoId);
 
       const headers = { "Content-Type": "application/json" };
 
-      const payload = {
-        bookingId: mongoId,
-        requestedCheckout: newToDate,
-        remarks: remarks || "",
-        extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
-        paymentData: paymentData
-      };
+      const payload = isDirectExtension
+        ? {
+            newTo: newToDate,
+            remarks: remarks || "",
+            attachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
+            paymentType: paymentData?.extensionPaymentType || "Paid",
+            amount: paymentData?.extensionAmount || 0,
+            paymentRemarks: paymentData?.extensionPaymentRemarks || "",
+            paymentAttachments: paymentData?.extensionPaymentAttachments || [],
+          }
+        : {
+            bookingId: mongoId,
+            requestedCheckout: newToDate,
+            remarks: remarks || "",
+            extensionAttachments: Array.isArray(extensionAttachments) ? extensionAttachments : [],
+            paymentData: paymentData,
+          };
 
       console.log("📤 Sending payload:", JSON.stringify(payload, null, 2));
 
-      const response = await fetch(`${API}/api/extensions`, {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        isDirectExtension ? `${API}/api/bookings/${mongoId}/direct-extension` : `${API}/api/extensions`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify(payload),
+        }
+      );
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -630,16 +645,37 @@ export default function GuestRoomDashboard() {
       }
       
       const result = await response.json();
-      console.log("✅ Extension request submitted:", result);
+      console.log(`✅ ${isDirectExtension ? "Direct extension" : "Extension request"} submitted:`, result);
 
-      // ✅ CLOSE MODAL
       setExtensionModal(null);
-      
-      showToast("✅ Extension request submitted for approval!", "success");
+      showToast(
+        isDirectExtension
+          ? "✅ Direct extension completed successfully!"
+          : "✅ Extension request submitted for approval!",
+        "success"
+      );
 
-      // No need to refresh immediately as nothing changed in booking list yet
-      // But maybe we want to refresh if we show pending requests somewhere?
-      // For now, just close modal.
+      if (isDirectExtension) {
+        if (result?.booking) {
+          setActiveRoomRef((prev) => {
+            if (!prev?.booking) return prev;
+            const prevId = prev.booking._id || prev.booking.id;
+            const nextId = result.booking._id || result.booking.id;
+            if (String(prevId) !== String(nextId)) return prev;
+            return {
+              ...prev,
+              booking: {
+                ...prev.booking,
+                ...result.booking,
+              },
+            };
+          });
+        }
+        setTimeout(() => refresh(), 100);
+        return true;
+      }
+
+      return true;
 
     } catch (error) {
       console.error("================================================================================");
@@ -647,6 +683,7 @@ export default function GuestRoomDashboard() {
       console.error("Stack:", error.stack);
       console.error("================================================================================");
       showToast(`❌ Failed to submit request: ${error.message}`, "error");
+      return false;
     }
   };
 

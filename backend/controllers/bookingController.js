@@ -1,5 +1,7 @@
 // bookingController.js
 import Booking from "../models/Booking.js";
+import Bill from "../models/Bill.js";
+import mongoose from "mongoose";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { Parser } from "json2csv";
 import Hostel from "../models/Hostel.js";
@@ -9,7 +11,12 @@ import Enquiry from "../models/Enquiry.js";
 import EmailLog from "../models/EmailLog.js";
 import Feedback from "../models/Feedback.js";
 import ExtensionRequest from "../models/ExtensionRequest.js";
-import { isRebookingWithin24hrs, setupRebookingApproval } from "../utils/rebookingUtils.js";
+import {
+  calculateStayDays as calculateContinuousStayDays,
+  CONTINUOUS_STAY_LIMIT_DAYS,
+  evaluateContinuousStay,
+  setupRebookingApproval
+} from "../utils/rebookingUtils.js";
 import User from "../models/User.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
 
@@ -100,6 +107,22 @@ const refreshBookingEmails = async (booking) => {
 // ======================================================
 const safeSend = (emailPayload) => {
   return baseSafeSend(emailPayload, EmailLog);
+};
+
+const roundCurrency = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+const generateBillNumber = async (prefix = "BILL") => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  const count = await Bill.countDocuments({
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
+  });
+  const sequence = String(count + 1).padStart(4, "0");
+  return `${prefix}-${year}${month}${day}-${sequence}`;
 };
 
 // ======================================================
@@ -519,10 +542,10 @@ export const createBooking = async (req, res) => {
 
     const bookingData = {
       guest: payload.guest || payload.guestName || "",
-      email: payload.email || payload.guestEmail || "",
+      email: String(payload.email || payload.guestEmail || "").trim().toLowerCase(),
       societyEmail: payload.societyEmail || "",
       presidentEmail: payload.presidentEmail || "",
-      contact: payload.contact || payload.guestPhone || "",
+      contact: String(payload.contact || payload.guestPhone || "").trim(),
       idType: payload.idType || "",
       rollno: payload.rollno || "",
       department: payload.department || "",
@@ -618,24 +641,29 @@ export const createBooking = async (req, res) => {
     }
 
     // =========================
-    // REBOOKING DETECTION LOGIC
+    // CONTINUOUS STAY / REBOOKING DETECTION LOGIC
     // =========================
-    const isRebooking = await isRebookingWithin24hrs(
-      bookingData.email,
-      bookingData.contact,
-      bookingData.hostel
-    );
-
-    console.log("🔍 Rebooking Check Result:", {
+    const rebookingEvaluation = await evaluateContinuousStay({
       email: bookingData.email,
       contact: bookingData.contact,
       hostel: bookingData.hostel,
-      isRebooking: isRebooking
+      newFrom: bookingData.from,
+      newTo: bookingData.to,
     });
 
-    // Setup approval status based on rebooking detection
+    console.log("🔍 Continuous stay evaluation:", {
+      email: bookingData.email,
+      contact: bookingData.contact,
+      hostel: bookingData.hostel,
+      within24Hours: rebookingEvaluation.within24Hours,
+      requiresApproval: rebookingEvaluation.requiresApproval,
+      totalDays: rebookingEvaluation.continuousStay?.totalDays,
+      startDate: rebookingEvaluation.continuousStay?.startDate,
+      parentBookingId: rebookingEvaluation.continuousStay?.parentBookingId,
+    });
+
     const setupBooking = new Booking(bookingData);
-    setupRebookingApproval(setupBooking, isRebooking);
+    setupRebookingApproval(setupBooking, rebookingEvaluation);
 
     // If rebooking requires review, notify all admin-role users.
     if (setupBooking.approvalStatus === "under_review") {
@@ -670,7 +698,7 @@ export const createBooking = async (req, res) => {
                 </p>
 
                 <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
-                  A same-guest rebooking has been created within 24 hours of checkout and requires admin review before the caretaker can continue the normal reporting flow.
+                  A same-guest booking chain has crossed the caretaker's 3-day authority window and requires admin review before the caretaker can continue the normal reporting flow.
                 </p>
 
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:18px 0;text-align:left;">
@@ -692,6 +720,8 @@ export const createBooking = async (req, res) => {
                   <p style="margin:6px 0;"><strong>Room:</strong> ${setupBooking.roomNo || "-"}</p>
                   <p style="margin:6px 0;"><strong>Check-in:</strong> ${setupBooking.from?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkInTime || ""}</p>
                   <p style="margin:6px 0;"><strong>Check-out:</strong> ${setupBooking.to?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkOutTime || ""}</p>
+                  <p style="margin:6px 0;"><strong>Continuous Stay Start:</strong> ${setupBooking.continuousStay?.startDate?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Total Continuous Stay:</strong> ${setupBooking.continuousStay?.totalDays || 0} day(s)</p>
                   <p style="margin:6px 0;"><strong>Purpose:</strong> ${setupBooking.purpose || "-"}</p>
                 </div>
 
@@ -1027,8 +1057,6 @@ const calculateStayDays = (checkInDate, checkoutDate) => {
   const diff = (end - start) / (1000 * 60 * 60 * 24);
   return Math.max(1, diff);
 };
-
-const roundCurrency = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
 // ================================
 // CHECK OUT GUEST
@@ -1375,6 +1403,248 @@ export const requestExtension = async (req, res) => {
 };
 
 // ======================================================
+// DIRECT EXTENSION (CARETAKER AUTHORITY <= 3 DAYS)
+// ======================================================
+export const directExtendBooking = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { id } = req.params;
+    const {
+      newTo,
+      remarks,
+      attachments,
+      paymentType,
+      amount,
+      paymentRemarks,
+      paymentAttachments,
+    } = req.body;
+
+    console.log("DIRECT EXTENSION START");
+    console.log("DIRECT EXTENSION BOOKING ID:", id);
+    console.log("DIRECT EXTENSION PAYLOAD:", {
+      newTo,
+      remarks,
+      attachmentsCount: Array.isArray(attachments) ? attachments.length : 0,
+      paymentType,
+      amount,
+      paymentRemarks,
+      paymentAttachmentsCount: Array.isArray(paymentAttachments) ? paymentAttachments.length : 0,
+      userRole: req.user?.role,
+      userId: req.user?._id,
+    });
+
+    if (!["caretaker", "admin", "warden", "co_warden", "adosa"].includes(req.user?.role)) {
+      return res.status(403).json({ success: false, message: "You are not allowed to use direct extension" });
+    }
+
+    const normalizedAttachments = Array.isArray(attachments) ? attachments : [];
+    const normalizedPaymentAttachments = Array.isArray(paymentAttachments) ? paymentAttachments : [];
+    const normalizedPaymentType = paymentType || "Paid";
+    const normalizedAmount = roundCurrency(amount);
+
+    if (!newTo) {
+      return res.status(400).json({ success: false, message: "New checkout date is required" });
+    }
+
+    if (!(remarks || "").trim()) {
+      return res.status(400).json({ success: false, message: "Remarks are required for direct extension" });
+    }
+
+    if (normalizedAttachments.length === 0) {
+      return res.status(400).json({ success: false, message: "At least one attachment is required for direct extension" });
+    }
+
+    if (normalizedPaymentType === "Paid" && normalizedAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Amount is required for paid direct extension" });
+    }
+
+    if (
+      normalizedPaymentType === "Free" &&
+      (!(paymentRemarks || "").trim() || normalizedPaymentAttachments.length === 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Free direct extension requires payment remarks and payment attachments",
+      });
+    }
+
+    session.startTransaction();
+
+    const booking = await Booking.findById(id).session(session);
+    if (!booking) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    if (!["booked", "checked_in"].includes(booking.status)) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: "Only active bookings can be directly extended" });
+    }
+
+    if (booking.approvalStatus && booking.approvalStatus !== "auto_approved") {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: "Direct extension is not allowed while booking approval is pending" });
+    }
+
+    if (booking.directExtension?.used) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: "Direct extension has already been used for this booking" });
+    }
+
+    const oldCheckout = new Date(booking.to);
+    const requestedCheckout = parseDateOnlyToUtcDate(newTo);
+    console.log("OLD CHECKOUT:", oldCheckout);
+    console.log("NEW CHECKOUT:", requestedCheckout);
+    if (requestedCheckout <= oldCheckout) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: "New checkout must be after the current checkout date" });
+    }
+
+    const currentTotalDays = calculateContinuousStayDays(booking.from, booking.to);
+
+    if (currentTotalDays >= CONTINUOUS_STAY_LIMIT_DAYS) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Caretaker extension authority has already reached the 3-day limit",
+      });
+    }
+
+    const directExtensionStartDate = booking.from;
+    const newTotalDays = calculateContinuousStayDays(directExtensionStartDate, requestedCheckout);
+
+    if (newTotalDays > CONTINUOUS_STAY_LIMIT_DAYS) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: `Direct extension exceeds caretaker authority. Maximum allowed continuous stay is ${CONTINUOUS_STAY_LIMIT_DAYS} days.`,
+      });
+    }
+
+    booking.to = requestedCheckout;
+    booking.extensionDate = requestedCheckout;
+    booking.extendRemarks = remarks.trim();
+    booking.extensionAttachments = [
+      ...(Array.isArray(booking.extensionAttachments) ? booking.extensionAttachments : []),
+      ...normalizedAttachments,
+    ];
+    booking.extensionPaymentType = normalizedPaymentType;
+    booking.extensionAmount = normalizedPaymentType === "Paid" ? normalizedAmount : 0;
+    booking.extensionPaymentRemarks = paymentRemarks || "";
+    booking.extensionPaymentAttachments = normalizedPaymentAttachments;
+    booking.continuousStay = {
+      isContinuous: Boolean(booking.continuousStay?.isContinuous),
+      startDate: booking.continuousStay?.startDate || booking.from,
+      totalDays: newTotalDays,
+      parentBookingId: booking.continuousStay?.parentBookingId || null,
+    };
+    booking.directExtension = {
+      used: true,
+      oldCheckout,
+      newCheckout: requestedCheckout,
+      remarks: remarks.trim(),
+      attachments: normalizedAttachments,
+      paymentType: normalizedPaymentType,
+      amount: normalizedPaymentType === "Paid" ? normalizedAmount : 0,
+      paymentRemarks: paymentRemarks || "",
+      paymentAttachments: normalizedPaymentAttachments,
+      createdBy: req.user?._id || null,
+      createdAt: new Date(),
+    };
+
+    if (!booking.extensionHistory) booking.extensionHistory = [];
+    booking.extensionHistory.push({
+      type: "DIRECT_EXTENSION",
+      oldTo: oldCheckout,
+      newTo: requestedCheckout,
+      oldCheckout,
+      newCheckout: requestedCheckout,
+      remarks: remarks.trim(),
+      attachments: normalizedAttachments,
+      paymentType: normalizedPaymentType,
+      amount: normalizedPaymentType === "Paid" ? normalizedAmount : 0,
+      approvedAmount: normalizedPaymentType === "Paid" ? normalizedAmount : 0,
+      paymentRemarks: paymentRemarks || "",
+      paymentAttachments: normalizedPaymentAttachments,
+      createdBy: req.user?._id || null,
+      createdAt: new Date(),
+      extendedBy: req.user?._id || null,
+      extendedAt: new Date(),
+    });
+
+    if (normalizedPaymentType === "Paid") {
+      booking.totalAmount = roundCurrency(Number(booking.totalAmount || 0) + normalizedAmount);
+      booking.amount = booking.totalAmount;
+      booking.amountToBePaid = roundCurrency(Number(booking.balanceAmount || 0) + normalizedAmount);
+      booking.balanceAmount = roundCurrency(Number(booking.balanceAmount || 0) + normalizedAmount);
+      booking.paymentStatus = booking.paidAmount > 0 ? "PARTIALLY_PAID" : "UNPAID";
+    }
+
+    const billNumber = await generateBillNumber("DEXT");
+    await Bill.create(
+      [{
+        bookingId: booking._id,
+        guestName: booking.guest,
+        guestEmail: booking.email,
+        guestContact: booking.contact,
+        department: booking.department,
+        rollno: booking.rollno,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        from: oldCheckout,
+        to: requestedCheckout,
+        billNumber,
+        billType: "DIRECT_EXTENSION",
+        totalAmount: normalizedPaymentType === "Paid" ? normalizedAmount : 0,
+        amountPaid: 0,
+        paymentType: normalizedPaymentType === "Paid" ? "PARTIAL" : "WAIVER",
+        paymentMethod: normalizedPaymentType,
+        balanceBeforePayment: roundCurrency(Number(booking.balanceAmount || 0) - (normalizedPaymentType === "Paid" ? normalizedAmount : 0)),
+        balanceAfterPayment: roundCurrency(Number(booking.balanceAmount || 0)),
+        paymentProof: normalizedPaymentAttachments,
+        remarks: paymentRemarks || remarks || "Direct extension",
+        createdBy: req.user?._id || null,
+      }],
+      { session }
+    );
+
+    await booking.save({ session });
+    await session.commitTransaction();
+    console.log("UPDATED BOOKING:", booking.to);
+    console.log("DIRECT EXTENSION SAVED");
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-extended", {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        newTo: booking.to,
+        extensionType: "DIRECT_EXTENSION",
+        timestamp: Date.now(),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Direct extension completed successfully",
+      booking,
+      remainingCaretakerDays: Math.max(0, CONTINUOUS_STAY_LIMIT_DAYS - newTotalDays),
+    });
+
+    const emailBooking = await refreshBookingEmails(booking);
+    asyncSendEmails(() => sendBookingEmails(emailBooking, "extended"));
+  } catch (err) {
+    await session.abortTransaction().catch(() => {});
+    console.error("❌ Direct extension error:", err);
+    res.status(500).json({ success: false, message: err.message || "Failed to process direct extension" });
+  } finally {
+    await session.endSession();
+  }
+};
+
+// ======================================================
 // ✅ EXTEND BOOKING (Controller) — FINAL APPROVAL
 // ======================================================
 export const approveExtension = async (req, res) => {
@@ -1428,20 +1698,65 @@ export const approveExtension = async (req, res) => {
       booking.extensionAmount = 0;
     }
 
+    const extensionChainStart =
+      booking.continuousStay?.startDate ||
+      booking.actualCheckInDate ||
+      booking.from;
+    booking.continuousStay = {
+      isContinuous: Boolean(booking.continuousStay?.isContinuous),
+      startDate: extensionChainStart,
+      totalDays: calculateContinuousStayDays(extensionChainStart, booking.to),
+      parentBookingId: booking.continuousStay?.parentBookingId || null,
+    };
+
     // Push extension history entry
     if (!booking.extensionHistory) booking.extensionHistory = [];
     booking.extensionHistory.push({
+      type: "APPROVED_EXTENSION",
       oldCheckout: request.currentCheckOutDate,
       newCheckout: booking.to,
+      oldTo: request.currentCheckOutDate,
+      newTo: booking.to,
       days: request.days,
       approvedBy: req.user._id,
       approvedAt: new Date(),
       paymentType: request.paymentType,
       amount: finalAmount,
+      approvedAmount: finalAmount,
       remarks: request.remarks,
+      attachments: Array.isArray(request.extensionAttachments) ? request.extensionAttachments : [],
+      createdBy: req.user._id,
+      createdAt: new Date(),
     });
 
     await booking.save();
+
+    if (request.paymentType === "Paid" && finalAmount > 0) {
+      const billNumber = await generateBillNumber("EXTP");
+      await Bill.create({
+        bookingId: booking._id,
+        guestName: booking.guest,
+        guestEmail: booking.email,
+        guestContact: booking.contact,
+        department: booking.department,
+        rollno: booking.rollno,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        from: request.currentCheckOutDate,
+        to: booking.to,
+        billNumber,
+        billType: "EXTENSION_PAYMENT",
+        totalAmount: finalAmount,
+        amountPaid: 0,
+        paymentType: "PARTIAL",
+        paymentMethod: "Extension Approval",
+        balanceBeforePayment: roundCurrency((booking.balanceAmount || 0) - finalAmount),
+        balanceAfterPayment: roundCurrency(booking.balanceAmount || 0),
+        paymentProof: Array.isArray(request.extensionPaymentAttachments) ? request.extensionPaymentAttachments : [],
+        remarks: request.remarks || "Approved extension payment",
+        createdBy: req.user._id,
+      });
+    }
 
     // Mark request approved
     request.status = "APPROVED";

@@ -1,117 +1,225 @@
-// utils/rebookingUtils.js
 import Booking from "../models/Booking.js";
 
-/**
- * Detects if a guest is rebooking within 24 hours of their last checkout
- * 
- * @param {String} email - Guest email
- * @param {String} contact - Guest contact number
- * @param {String} hostel - Hostel name
- * @returns {Promise<Boolean>} true if rebooking within 24hrs, false otherwise
- */
-export const isRebookingWithin24hrs = async (email, contact, hostel) => {
-  try {
-    // Find latest COMPLETED booking where:
-    // * hostel matches
-    // * status = "checked_out" (ONLY completed stays)
-    // * AND (email matches OR contact matches)
-    
-    console.log("🔍 Checking rebooking conditions:", {
-      email,
-      contact,
-      hostel
-    });
+const DAY_MS = 24 * 60 * 60 * 1000;
+const CONTINUOUS_STAY_LIMIT_DAYS = 3;
+const CONTINUOUS_STAY_WINDOW_HOURS = 24;
 
-    const latestBooking = await Booking.findOne({
-      hostel: hostel,
-      status: "checked_out",  // ✅ ONLY completed checkouts
-      $or: [
-        { email: email },
-        { contact: contact }
-      ]
-    })
-    .sort({ checkedOutAt: -1 })
-    .lean();
+const normalizeEmail = (value = "") => String(value || "").trim().toLowerCase();
+const normalizeContact = (value = "") => String(value || "").trim();
 
-    if (!latestBooking) {
-      console.log("✅ No previous checked_out booking found - allow new booking");
-      return false;
-    }
-
-    console.log("📋 Last booking found:", {
-      bookingId: latestBooking._id,
-      guest: latestBooking.guest,
-      hostel: latestBooking.hostel,
-      status: latestBooking.status,
-      checkedOutAt: latestBooking.checkedOutAt,
-      checkOut: latestBooking.checkOut
-    });
-
-    // ✅ CRITICAL: Extract checkout time with proper priority
-    let checkoutTime = null;
-
-    if (latestBooking.checkedOutAt) {
-      // Priority 1: Use actual checkout timestamp
-      checkoutTime = new Date(latestBooking.checkedOutAt);
-      console.log("✅ Using checkedOutAt field:", checkoutTime.toISOString());
-    } else if (latestBooking.checkOut) {
-      // Priority 2: Fallback to checkOut field
-      checkoutTime = new Date(latestBooking.checkOut);
-      console.log("✅ Using checkOut field (fallback):", checkoutTime.toISOString());
-    } else {
-      // No valid checkout time found
-      console.log("⚠️ No valid checkout time found - allow booking");
-      return false;
-    }
-
-    // Calculate time difference in hours
-    const now = new Date();
-    const timeDiffMs = now - checkoutTime;
-    const diffInHours = timeDiffMs / (1000 * 60 * 60);
-
-    console.log("⏱️ Time calculation:", {
-      now: now.toISOString(),
-      checkoutTime: checkoutTime.toISOString(),
-      diffInHours: diffInHours.toFixed(2),
-      within24hrs: diffInHours <= 24
-    });
-
-    // ✅ Return true ONLY if within 24 hours
-    if (diffInHours <= 24) {
-      console.log(`🚨 REBOOKING DETECTED: Guest rebooking within ${diffInHours.toFixed(2)} hours - REQUIRE APPROVAL`);
-      return true;
-    }
-
-    console.log(`✅ Previous checkout was ${diffInHours.toFixed(2)} hours ago - ALLOW NORMAL BOOKING`);
-    return false;
-
-  } catch (error) {
-    console.error("❌ Error checking rebooking status:", error);
-    return false;
-  }
+const toDateOnly = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };
 
-/**
- * Sets up the rebooking approval for a booking
- * 
- * @param {Object} booking - The booking document
- * @returns {Object} Updated booking object with approval fields set
- */
-export const setupRebookingApproval = (booking, isRebookingValid) => {
-  if (isRebookingValid) {
+const addDays = (date, days) => {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+};
+
+export const calculateStayDays = (checkInDate, checkoutDate) => {
+  const start = toDateOnly(checkInDate);
+  const end = toDateOnly(checkoutDate);
+  if (!start || !end) return 1;
+  const diff = Math.round((end - start) / DAY_MS);
+  return Math.max(1, diff);
+};
+
+const getComparableCheckoutTimestamp = (booking) => {
+  const timestamp =
+    booking?.checkedOutAt ||
+    booking?.actualCheckoutDate ||
+    booking?.to;
+
+  if (!timestamp) return null;
+
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+export const findLatestRelatedBooking = async ({
+  email,
+  contact,
+  hostel,
+  excludeBookingId = null,
+}) => {
+  const orConditions = [];
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedContact = normalizeContact(contact);
+
+  if (normalizedEmail) {
+    orConditions.push({ email: normalizedEmail });
+    orConditions.push({ email });
+  }
+  if (normalizedContact) {
+    orConditions.push({ contact: normalizedContact });
+    orConditions.push({ contact });
+  }
+  if (orConditions.length === 0) return null;
+
+  const query = {
+    hostel,
+    status: { $in: ["booked", "checked_in", "checked_out"] },
+    $or: orConditions,
+  };
+
+  if (excludeBookingId) {
+    query._id = { $ne: excludeBookingId };
+  }
+
+  return Booking.findOne(query)
+    .sort({ checkedOutAt: -1, actualCheckoutDate: -1, to: -1, createdAt: -1 })
+    .lean();
+};
+
+export const evaluateContinuousStay = async ({
+  email,
+  contact,
+  hostel,
+  newFrom,
+  newTo,
+  excludeBookingId = null,
+}) => {
+  const latestBooking = await findLatestRelatedBooking({
+    email,
+    contact,
+    hostel,
+    excludeBookingId,
+  });
+
+  const freshStartDate = toDateOnly(newFrom);
+  const freshTotalDays = calculateStayDays(newFrom, newTo);
+
+  if (!latestBooking) {
+    return {
+      latestBooking: null,
+      within24Hours: false,
+      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      continuousStay: {
+        isContinuous: false,
+        startDate: freshStartDate,
+        totalDays: freshTotalDays,
+        parentBookingId: null,
+      },
+    };
+  }
+
+  const latestCheckoutTimestamp = getComparableCheckoutTimestamp(latestBooking);
+  const newCheckInTimestamp = new Date(newFrom);
+
+  if (!latestCheckoutTimestamp || Number.isNaN(newCheckInTimestamp.getTime())) {
+    return {
+      latestBooking,
+      within24Hours: false,
+      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      continuousStay: {
+        isContinuous: false,
+        startDate: freshStartDate,
+        totalDays: freshTotalDays,
+        parentBookingId: null,
+      },
+    };
+  }
+
+  const diffHours = (newCheckInTimestamp - latestCheckoutTimestamp) / (1000 * 60 * 60);
+  const within24Hours = diffHours >= 0 && diffHours <= CONTINUOUS_STAY_WINDOW_HOURS;
+
+  if (!within24Hours) {
+    return {
+      latestBooking,
+      within24Hours: false,
+      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      continuousStay: {
+        isContinuous: false,
+        startDate: freshStartDate,
+        totalDays: freshTotalDays,
+        parentBookingId: null,
+      },
+    };
+  }
+
+  const chainStartDate = toDateOnly(
+    latestBooking?.continuousStay?.startDate ||
+      latestBooking?.actualCheckInDate ||
+      latestBooking?.from
+  ) || freshStartDate;
+
+  const totalDays = calculateStayDays(chainStartDate, newTo);
+  const previousDirectExtensionUsed = Boolean(latestBooking?.directExtension?.used);
+
+  return {
+    latestBooking,
+    within24Hours,
+    requiresApproval:
+      previousDirectExtensionUsed || totalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+    requiresApprovalReason: previousDirectExtensionUsed
+      ? "previous_direct_extension_used"
+      : totalDays > CONTINUOUS_STAY_LIMIT_DAYS
+        ? "continuous_stay_exceeded"
+        : null,
+    continuousStay: {
+      isContinuous: true,
+      startDate: chainStartDate,
+      totalDays,
+      parentBookingId:
+        latestBooking?.continuousStay?.parentBookingId ||
+        latestBooking?._id ||
+        null,
+    },
+  };
+};
+
+export const setupRebookingApproval = (booking, evaluation) => {
+  const continuousStay = evaluation?.continuousStay || {
+    isContinuous: false,
+    startDate: toDateOnly(booking.from),
+    totalDays: calculateStayDays(booking.from, booking.to),
+    parentBookingId: null,
+  };
+
+  booking.continuousStay = continuousStay;
+  booking.isRebookingWithin24hrs = Boolean(evaluation?.within24Hours);
+
+  if (evaluation?.requiresApproval) {
     booking.approvalStatus = "under_review";
-    booking.isRebookingWithin24hrs = true;
-    // Set review deadline to 4 hours from now
-    const now = new Date();
-    booking.reviewDeadline = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    booking.reviewDeadline = new Date(Date.now() + 4 * 60 * 60 * 1000);
   } else {
     booking.approvalStatus = "auto_approved";
-    booking.isRebookingWithin24hrs = false;
+    booking.reviewDeadline = null;
   }
+
   return booking;
 };
 
+export const getRemainingCaretakerDays = (bookingLike) => {
+  const totalDays = Number(bookingLike?.continuousStay?.totalDays || 0);
+  const normalizedTotal = totalDays > 0 ? totalDays : calculateStayDays(bookingLike?.from, bookingLike?.to);
+  return Math.max(0, CONTINUOUS_STAY_LIMIT_DAYS - normalizedTotal);
+};
+
+export const getMaxCaretakerCheckoutDate = (bookingLike) => {
+  const startDate = toDateOnly(
+    bookingLike?.continuousStay?.startDate ||
+      bookingLike?.actualCheckInDate ||
+      bookingLike?.from
+  );
+  if (!startDate) return null;
+  return addDays(startDate, CONTINUOUS_STAY_LIMIT_DAYS);
+};
+
+export {
+  CONTINUOUS_STAY_LIMIT_DAYS,
+  CONTINUOUS_STAY_WINDOW_HOURS,
+};
+
 export default {
-  isRebookingWithin24hrs,
-  setupRebookingApproval
+  calculateStayDays,
+  evaluateContinuousStay,
+  findLatestRelatedBooking,
+  getMaxCaretakerCheckoutDate,
+  getRemainingCaretakerDays,
+  setupRebookingApproval,
 };

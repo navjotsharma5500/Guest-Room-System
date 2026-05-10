@@ -301,6 +301,26 @@ export default function useBookingHandlers({
                 status: mongoBooking.status || "booked",
                 approvalStatus: mongoBooking.approvalStatus || "auto_approved",
                 isRebookingWithin24hrs: mongoBooking.isRebookingWithin24hrs || false,
+                continuousStay: mongoBooking.continuousStay || {
+                  isContinuous: false,
+                  startDate: mongoBooking.actualCheckInDate || mongoBooking.from || null,
+                  totalDays: 0,
+                  parentBookingId: null,
+                },
+                directExtension: mongoBooking.directExtension || {
+                  used: false,
+                  oldCheckout: null,
+                  newCheckout: null,
+                  remarks: "",
+                  attachments: [],
+                  paymentType: "",
+                  amount: 0,
+                  paymentRemarks: "",
+                  paymentAttachments: [],
+                  createdBy: null,
+                  createdAt: null,
+                },
+                hasPendingExtensionRequest: Boolean(mongoBooking.hasPendingExtensionRequest),
                 reviewDeadline: mongoBooking.reviewDeadline || null,
                 reportedStatus: mongoBooking.reportedStatus || "pending",
                 checkedOutAt: mongoBooking.checkedOutAt || null,
@@ -568,6 +588,7 @@ export default function useBookingHandlers({
       }
 
       const { hostel, roomNo, booking } = extensionData;
+      const isDirectExtension = extensionData.mode === "direct";
       const mongoId = booking._id || booking.id;
 
       if (!mongoId || mongoId.toString().startsWith("b_")) {
@@ -618,7 +639,7 @@ export default function useBookingHandlers({
           paymentAttachments: paymentData.extensionPaymentAttachments || []
         };
 
-        const response = await fetch(`${API}/api/bookings/${mongoId}/request-extension`, {
+        const response = await fetch(`${API}/api/bookings/${mongoId}/${isDirectExtension ? "direct-extension" : "request-extension"}`, {
           method: "POST",
           headers: headers,
           body: JSON.stringify(payload),
@@ -630,13 +651,20 @@ export default function useBookingHandlers({
           throw new Error(responseData.message || "Failed to submit extension request");
         }
 
-        showToast("✅ Extension request submitted for approval", "success");
+        showToast(
+          isDirectExtension
+            ? "✅ Direct extension completed successfully"
+            : "✅ Extension request submitted for approval",
+          "success"
+        );
         setExtensionModal(null);
 
         // ✅ Emit event for real-time notification on approval page
-        window.dispatchEvent(new CustomEvent("extensionRequested", { 
-          detail: { bookingId: mongoId, requestId: responseData.request?._id } 
-        }));
+        if (!isDirectExtension) {
+          window.dispatchEvent(new CustomEvent("extensionRequested", { 
+            detail: { bookingId: mongoId, requestId: responseData.request?._id } 
+          }));
+        }
 
         return true;
 

@@ -1,5 +1,5 @@
 //ExtensionModal.jsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
@@ -56,6 +56,26 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   const [extensionAmount, setExtensionAmount] = useState("");
   const [extensionPaymentRemarks, setExtensionPaymentRemarks] = useState("");
   const [paymentFiles, setPaymentFiles] = useState([]);
+  const isDirectExtension = modal?.mode === "direct";
+
+  const bookingStayDays = useMemo(() => {
+    if (!modal?.booking?.from || !modal?.booking?.to) return 0;
+    const start = new Date(modal.booking.from);
+    const end = new Date(modal.booking.to);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+  }, [modal?.booking?.from, modal?.booking?.to]);
+
+  const remainingCaretakerDays = Math.max(0, 3 - bookingStayDays);
+
+  const maxCaretakerDate = useMemo(() => {
+    if (!isDirectExtension) return "";
+    if (!modal?.booking?.from) return "";
+    const date = new Date(modal.booking.from);
+    date.setDate(date.getDate() + 3);
+    return date.toISOString().split("T")[0];
+  }, [isDirectExtension, modal?.booking?.from]);
 
   const getMinDate = () => {
     if (!modal.booking?.to) return "";
@@ -140,6 +160,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   // ✅ Validation for Step 2 (Payment)
   const canProceedToPayment = () => {
     if (!newTo) return false;
+    if (isDirectExtension && maxCaretakerDate && newTo > maxCaretakerDate) return false;
     if (files.length === 0) return false;
     return true;
   };
@@ -165,6 +186,10 @@ function ExtensionModal({ modal, onClose, onExtend }) {
 
     if (!newTo) {
       setError("Please select a new checkout date");
+      return;
+    }
+    if (isDirectExtension && maxCaretakerDate && newTo > maxCaretakerDate) {
+      setError(`You can extend only ${remainingCaretakerDays} more day(s) under caretaker authority`);
       return;
     }
     if (files.length === 0) {
@@ -196,6 +221,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
           hostel: modal.hostel,
           roomNo: modal.roomNo,
           booking: modal.booking,
+          mode: modal.mode,
         },
         newTo,
         remarks,
@@ -256,7 +282,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
           animate={{ scale: 1 }}
         >
           <h2 className="text-lg font-semibold text-red-700 mb-3">
-            Extend Booking {step === 2 && "- Payment Details"}
+            {isDirectExtension ? "Direct Extension" : "Extension Request"} {step === 2 && "- Payment Details"}
           </h2>
 
           {step === 1 && (
@@ -268,8 +294,14 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                 <p className="text-sm text-gray-600 mb-3">
                   <strong>Guest:</strong> {modal.booking?.guest || "Guest"}
                 </p>
+                {isDirectExtension && (
+                  <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
+                    You can extend only {remainingCaretakerDays} more day(s) under caretaker authority.
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mb-3">
                   Select a date after {formatDate(modal.booking?.to)}
+                  {isDirectExtension && maxCaretakerDate ? ` and on or before ${formatDate(maxCaretakerDate)}` : ""}
                 </p>
               </div>
 
@@ -281,6 +313,7 @@ function ExtensionModal({ modal, onClose, onExtend }) {
                     className="border rounded px-3 py-2 w-full"
                     value={newTo}
                     min={minDate}
+                    max={isDirectExtension ? maxCaretakerDate : undefined}
                     onChange={(e) => {
                       setNewTo(e.target.value);
                       setError("");

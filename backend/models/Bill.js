@@ -30,7 +30,7 @@ const billSchema = new mongoose.Schema(
     // Bill type: standard payment or waiver
     billType: {
       type: String,
-      enum: ["PAYMENT", "WAIVER"],
+      enum: ["PAYMENT", "DIRECT_EXTENSION", "EXTENSION_PAYMENT", "REBOOKING_PAYMENT", "WAIVER"],
       default: "PAYMENT"
     },
 

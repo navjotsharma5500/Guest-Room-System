@@ -3,6 +3,7 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js"; 
 import Booking from "../models/Booking.js";
+import ExtensionRequest from "../models/ExtensionRequest.js";
 import { sendBookingEmails } from "../controllers/bookingController.js";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
@@ -32,6 +33,7 @@ import {
   updateBookingDetails,
   getAllBookingsFlat,
   requestExtension,
+  directExtendBooking,
   approveExtension,
   rejectExtension,
   getExtensionRequests,
@@ -70,6 +72,7 @@ router.put("/:id/cancel", protect, handleCancel);   // GuestDetails uses PUT
 router.post("/:id/cancel", protect, handleCancel);  // useBookingHandlers uses POST 
 
 router.post("/:id/request-extension", protect, requestExtension);
+router.post("/:id/direct-extension", protect, directExtendBooking);
 router.get("/download/csv", protect, downloadBookingsCSV);  
 router.put("/:id/reported", protect, markReported);
 router.put("/:id/not-reported", protect, markNotReported);
@@ -109,6 +112,26 @@ const normalizeBooking = (b) => ({
   state: b.state || "",
   approvalStatus: b.approvalStatus || "auto_approved",
   isRebookingWithin24hrs: b.isRebookingWithin24hrs ?? false,
+  continuousStay: b.continuousStay || {
+    isContinuous: false,
+    startDate: b.actualCheckInDate || b.from || null,
+    totalDays: 0,
+    parentBookingId: null,
+  },
+  directExtension: b.directExtension || {
+    used: false,
+    oldCheckout: null,
+    newCheckout: null,
+    remarks: "",
+    attachments: [],
+    paymentType: "",
+    amount: 0,
+    paymentRemarks: "",
+    paymentAttachments: [],
+    createdBy: null,
+    createdAt: null,
+  },
+  hasPendingExtensionRequest: Boolean(b.hasPendingExtensionRequest),
   reviewDeadline: b.reviewDeadline || null,
   reviewedBy: b.reviewedBy || null,
   reviewedAt: b.reviewedAt || null,
@@ -453,10 +476,16 @@ router.get("/:id", protect, async (req, res) => {
       });
     }
 
+    const hasPendingExtensionRequest = await ExtensionRequest.exists({
+      bookingId: booking._id,
+      status: "pending",
+    });
+
     res.json({
       success: true,
       booking: {
         ...booking,
+        hasPendingExtensionRequest: Boolean(hasPendingExtensionRequest),
         rollno: booking.rollno || "",
         department: booking.department || "",
         gender: booking.gender || "",
