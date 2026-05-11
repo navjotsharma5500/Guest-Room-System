@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
 import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
+import thaparLogo from "../assets/thapar_logo.png";
 
 export default function Sidebar({
   activeHostel,
@@ -21,7 +22,7 @@ export default function Sidebar({
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const logoPublicPath = "/thapar_logo.png";
+  const logoPublicPath = "https://ik.imagekit.io/7khjnlfow/email-assets/thapar_logo.png?updatedAt=1776888126772";
   const isEnquiry = activeTab === "Enquiry";
 
   // ✅ ROLE EXTRACTION
@@ -131,6 +132,10 @@ export default function Sidebar({
         <img
           src={logoPublicPath}
           alt="Logo"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = thaparLogo;
+          }}
           className={`object-contain rounded-xl shadow-sm mb-2 ${
             isMobile ? 'w-32 h-16' : 'w-40 h-20'
           }`}
