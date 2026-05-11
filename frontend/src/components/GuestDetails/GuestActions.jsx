@@ -17,6 +17,7 @@ export default function GuestActions({
   onExtendBooking,
   onDirectExtendBooking,
   onCancelBooking,
+  onRejoinBooking,
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
@@ -39,6 +40,15 @@ export default function GuestActions({
     booking?.directExtension?.used !== true &&
     !booking?.hasPendingExtensionRequest &&
     !["no_show"].includes(booking?.status);
+  const canRejoin = (() => {
+    if (!booking || booking.status !== "cancelled") return false;
+    const cancelDateValue = booking.cancelDate || booking.updatedAt;
+    if (!cancelDateValue) return false;
+    const cancelDate = new Date(cancelDateValue);
+    if (Number.isNaN(cancelDate.getTime())) return false;
+    const threeDaysLater = new Date(cancelDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+    return new Date() <= threeDaysLater;
+  })();
 
   // ✅ Only Admin and Manager can use Payment Waiver
   const canWaive = (userRole === "admin" || userRole === "manager") && booking?.status !== "cancelled";
@@ -229,6 +239,17 @@ export default function GuestActions({
                     icon={<Calendar className="w-4 h-4" />}
                     label="Direct Extension"
                     onClick={onDirectExtendBooking}
+                    theme={theme}
+                    highlight
+                  />
+                )}
+
+                {/* Rejoin Cancelled Booking */}
+                {canRejoin && onRejoinBooking && (
+                  <ActionButton
+                    icon={<Calendar className="w-4 h-4" />}
+                    label="Rejoin"
+                    onClick={onRejoinBooking}
                     theme={theme}
                     highlight
                   />

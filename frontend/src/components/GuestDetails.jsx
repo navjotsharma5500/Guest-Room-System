@@ -498,6 +498,30 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       showToast(err.message || "Failed to cancel booking", "error"); 
     } 
   };
+
+  const handleRejoinBooking = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(`${API}/api/bookings/${b._id || b.id}/rejoin`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+
+      const data = await response.json();
+      if (!data.success || !data.booking) {
+        throw new Error(data.message || "Failed to rejoin booking");
+      }
+
+      setBooking(normalizeBooking(data.booking));
+      showToast("✅ Booking rejoined successfully. You can report the guest again.", "success");
+    } catch (err) {
+      showToast(err.message || "Failed to rejoin booking", "error");
+    }
+  };
   
   // ============================================================================
   // ✅ ADVANCED GUEST PROFILE PDF GENERATOR
@@ -1015,6 +1039,10 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                   booking: b,
                   mode: "direct",
                 });
+              }}
+              onRejoinBooking={() => {
+                setShowActionsDropdown(false);
+                handleRejoinBooking();
               }}
               onCancelBooking={() => setShowCancelModal(true)} 
               onPaymentWaiver={() => setShowPaymentWaiverModal(true)}

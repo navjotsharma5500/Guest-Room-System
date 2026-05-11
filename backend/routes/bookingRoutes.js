@@ -34,6 +34,7 @@ import {
   getAllBookingsFlat,
   requestExtension,
   directExtendBooking,
+  rejoinBooking,
   approveExtension,
   rejectExtension,
   getExtensionRequests,
@@ -73,6 +74,7 @@ router.post("/:id/cancel", protect, handleCancel);  // useBookingHandlers uses P
 
 router.post("/:id/request-extension", protect, requestExtension);
 router.post("/:id/direct-extension", protect, directExtendBooking);
+router.post("/:id/rejoin", protect, rejoinBooking);
 router.get("/download/csv", protect, downloadBookingsCSV);  
 router.put("/:id/reported", protect, markReported);
 router.put("/:id/not-reported", protect, markNotReported);
@@ -193,7 +195,7 @@ const normalizeBooking = (b) => ({
     : [],
 
   // 🚫 Cancellation
-  cancelDate: b.status === "cancelled" ? b.updatedAt : null,
+  cancelDate: b.cancelDate || (b.status === "cancelled" ? b.updatedAt : null),
 
   // 🚶 Reporting (Caretaker)
   reportedStatus: b.reportedStatus || "pending",

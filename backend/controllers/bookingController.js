@@ -2158,6 +2158,89 @@ export const cancelBooking = async (req, res) => {
   }
 };
 
+// ======================================================
+// REJOIN CANCELLED BOOKING
+// ======================================================
+export const rejoinBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    if (booking.status !== "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Only cancelled bookings can be rejoined",
+      });
+    }
+
+    const cancelSourceDate = booking.cancelDate || booking.updatedAt;
+    if (!cancelSourceDate) {
+      return res.status(400).json({
+        success: false,
+        message: "This booking is not eligible for rejoin",
+      });
+    }
+
+    const rejoinDeadline = new Date(new Date(cancelSourceDate).getTime() + (3 * 24 * 60 * 60 * 1000));
+    if (new Date() > rejoinDeadline) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejoin is allowed only within 3 days of cancellation",
+      });
+    }
+
+    const previousStatus = booking.status;
+    const previousReportedStatus = booking.reportedStatus;
+
+    booking.status = "booked";
+    booking.reportedStatus = "pending";
+    booking.cancelDate = null;
+    booking.cancelRemarks = "";
+    booking.cancelAttachments = [];
+
+    const rejoinLogLine =
+      `[REJOIN] Booking restored from cancelled to booked on ${new Date().toISOString()} by ` +
+      `${req.user?.name || req.user?.email || "System"}`
+      + ` (previous status: ${previousStatus}, previous reported status: ${previousReportedStatus})`;
+
+    booking.comments = booking.comments
+      ? `${booking.comments}\n${rejoinLogLine}`
+      : rejoinLogLine;
+
+    await booking.save();
+
+    if (req.user?._id) {
+      createLog("booking_rejoined", req.user._id, {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+      });
+    }
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-rejoined", {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        timestamp: Date.now(),
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Booking rejoined successfully",
+      booking,
+    });
+  } catch (err) {
+    console.error("❌ Rejoin booking error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ================================
 // APPROVE REBOOKING
 // ================================
