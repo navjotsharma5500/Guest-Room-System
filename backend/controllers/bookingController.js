@@ -2192,6 +2192,22 @@ export const rejoinBooking = async (req, res) => {
       });
     }
 
+    const overlappingBooking = await Booking.findOne({
+      _id: { $ne: booking._id },
+      hostel: booking.hostel,
+      roomNo: booking.roomNo,
+      status: { $in: ["booked", "checked_in"] },
+      from: { $lt: booking.to },
+      to: { $gt: booking.from },
+    }).select("_id guest status from to");
+
+    if (overlappingBooking) {
+      return res.status(409).json({
+        success: false,
+        message: "There is another booking in the same guest room for this stay period",
+      });
+    }
+
     const previousStatus = booking.status;
     const previousReportedStatus = booking.reportedStatus;
 
