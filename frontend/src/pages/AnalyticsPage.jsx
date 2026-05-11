@@ -1,12 +1,12 @@
 // src/pages/AnalyticsPage.jsx - COMPLETE ENHANCED VERSION
 // Replace your entire AnalyticsPage.jsx file with this code
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell,
   LineChart, Line, Legend, ResponsiveContainer, Area, AreaChart
 } from "recharts";
-import { parseISO, getMonth, getQuarter, getYear, format } from "date-fns";
+import { parseISO, getQuarter, getYear, format, startOfMonth, startOfQuarter, startOfYear, isWithinInterval, startOfDay } from "date-fns";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Creator from "../components/Creator";
@@ -96,6 +96,40 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
     </div>
   </motion.div>
 );
+
+const getAnalyticsRangeWindow = (range) => {
+  const now = new Date();
+
+  if (range === "Monthly") {
+    return {
+      start: startOfMonth(now),
+      end: now,
+      subtitle: `Current month (${format(now, "MMMM yyyy")})`,
+    };
+  }
+
+  if (range === "Quarterly") {
+    return {
+      start: startOfQuarter(now),
+      end: now,
+      subtitle: `Current quarter (Q${getQuarter(now)} ${getYear(now)})`,
+    };
+  }
+
+  if (range === "Annual") {
+    return {
+      start: startOfYear(now),
+      end: now,
+      subtitle: `Current year (${getYear(now)})`,
+    };
+  }
+
+  return {
+    start: null,
+    end: null,
+    subtitle: "All time",
+  };
+};
 
 export default function AnalyticsPage({ setActiveTab }) {
   const { showToast } = useToast();
@@ -196,6 +230,25 @@ export default function AnalyticsPage({ setActiveTab }) {
     }
   }, [role, setActiveTab]);
 
+  const rangeWindow = useMemo(() => getAnalyticsRangeWindow(range), [range]);
+
+  const filteredBookings = useMemo(() => {
+    if (!rangeWindow.start || !rangeWindow.end) {
+      return allBookings;
+    }
+
+    return allBookings.filter((booking) => {
+      if (!(booking.from instanceof Date) || Number.isNaN(booking.from.getTime())) {
+        return false;
+      }
+
+      return isWithinInterval(startOfDay(booking.from), {
+        start: startOfDay(rangeWindow.start),
+        end: startOfDay(rangeWindow.end),
+      });
+    });
+  }, [allBookings, rangeWindow]);
+
   if (role === "caretaker" || role === "warden") {
     return (
       <main className="flex-1 p-8 text-center text-gray-500">
@@ -207,25 +260,25 @@ export default function AnalyticsPage({ setActiveTab }) {
   // ======================== CALCULATIONS ========================
 
   // Total Statistics
-  const totalBookings = allBookings.length;
-  const bookedCount = allBookings.filter(b => b.status === "booked").length;
-  const reportedCount = allBookings.filter(b => b.reportedStatus === "reported" || b.status === "checked_in").length;
-  const checkedOutCount = allBookings.filter(b => b.status === "checked_out").length;
-  const cancelledCount = allBookings.filter(b => b.status === "cancelled").length;
-  const noShowCount = allBookings.filter(b => b.status === "no_show").length;
+  const totalBookings = filteredBookings.length;
+  const bookedCount = filteredBookings.filter(b => b.status === "booked").length;
+  const reportedCount = filteredBookings.filter(b => b.reportedStatus === "reported" || b.status === "checked_in").length;
+  const checkedOutCount = filteredBookings.filter(b => b.status === "checked_out").length;
+  const cancelledCount = filteredBookings.filter(b => b.status === "cancelled").length;
+  const noShowCount = filteredBookings.filter(b => b.status === "no_show").length;
 
   // Payment Statistics
-  const freeBookings = allBookings.filter(b => b.paymentType === "Free");
-  const paidBookings = allBookings.filter(b => b.paymentType === "Paid");
+  const freeBookings = filteredBookings.filter(b => b.paymentType === "Free");
+  const paidBookings = filteredBookings.filter(b => b.paymentType === "Paid");
   
-  const totalRevenue = allBookings.reduce((sum, b) => {
+  const totalRevenue = filteredBookings.reduce((sum, b) => {
     if (b.paymentType === "Paid") {
       return sum + (Number(b.paidAmount) || 0);
     }
     return sum;
   }, 0);
 
-  const totalBilled = allBookings.reduce((sum, b) => {
+  const totalBilled = filteredBookings.reduce((sum, b) => {
     if (b.paymentType === "Paid") {
       // ✅ If cancelled, billed amount = paid + discount (so pending is 0)
       if (b.status === "cancelled") {
@@ -236,28 +289,28 @@ export default function AnalyticsPage({ setActiveTab }) {
     return sum;
   }, 0);
 
-  const totalDiscount = allBookings.reduce((sum, b) => {
+  const totalDiscount = filteredBookings.reduce((sum, b) => {
     return sum + (Number(b.discount) || 0);
   }, 0);
 
   const pendingAmount = totalBilled - totalRevenue - totalDiscount;
 
-  const cancelledAmount = allBookings.reduce((sum, b) => {
+  const cancelledAmount = filteredBookings.reduce((sum, b) => {
     if (b.status === "cancelled") {
       return sum + (Number(b.totalAmount) || 0);
     }
     return sum;
   }, 0);
 
-  const fullyPaidCount = allBookings.filter(b => 
+  const fullyPaidCount = filteredBookings.filter(b => 
     b.paymentType === "Paid" && b.paymentStatus === "PAID"
   ).length;
 
-  const partiallyPaidCount = allBookings.filter(b => 
+  const partiallyPaidCount = filteredBookings.filter(b => 
     b.paymentType === "Paid" && b.paymentStatus === "PARTIALLY_PAID"
   ).length;
 
-  const unpaidCount = allBookings.filter(b => 
+  const unpaidCount = filteredBookings.filter(b => 
     b.paymentType === "Paid" && b.paymentStatus === "UNPAID" && b.status !== "cancelled"
   ).length;
 
@@ -280,7 +333,7 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // Hostel-wise Distribution
   const hostelCounts = {};
-  allBookings.forEach(b => {
+  filteredBookings.forEach(b => {
     hostelCounts[b.hostel] = (hostelCounts[b.hostel] || 0) + 1;
   });
 
@@ -291,7 +344,7 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // Revenue by Hostel
   const hostelRevenue = {};
-  allBookings.forEach(b => {
+  filteredBookings.forEach(b => {
     if (b.paymentType === "Paid") {
       hostelRevenue[b.hostel] = (hostelRevenue[b.hostel] || 0) + (Number(b.paidAmount) || 0);
     }
@@ -304,23 +357,23 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // Trend Data
   const trendMap = {};
-  allBookings.forEach(b => {
+  filteredBookings.forEach(b => {
     const date = b.from;
     let key = "Overall";
     
     try {
       switch (range) {
         case "Monthly":
-          key = format(date, "MMM yyyy");
+          key = format(date, "dd MMM");
           break;
         case "Quarterly":
-          key = `Q${getQuarter(date)} ${getYear(date)}`;
+          key = format(date, "MMM yyyy");
           break;
         case "Annual":
-          key = `${getYear(date)}`;
+          key = format(date, "MMM yyyy");
           break;
         default:
-          key = "All Time";
+          key = `${getYear(date)}`;
       }
       trendMap[key] = (trendMap[key] || 0) + 1;
     } catch (err) {
@@ -334,7 +387,7 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // Revenue Trend
   const revenueTrendMap = {};
-  allBookings.forEach(b => {
+  filteredBookings.forEach(b => {
     if (b.paymentType === "Paid" && b.paidAmount) {
       const date = b.from;
       let key = "Overall";
@@ -342,16 +395,16 @@ export default function AnalyticsPage({ setActiveTab }) {
       try {
         switch (range) {
           case "Monthly":
-            key = format(date, "MMM yyyy");
+            key = format(date, "dd MMM");
             break;
           case "Quarterly":
-            key = `Q${getQuarter(date)} ${getYear(date)}`;
+            key = format(date, "MMM yyyy");
             break;
           case "Annual":
-            key = `${getYear(date)}`;
+            key = format(date, "MMM yyyy");
             break;
           default:
-            key = "All Time";
+            key = `${getYear(date)}`;
         }
         revenueTrendMap[key] = (revenueTrendMap[key] || 0) + Number(b.paidAmount);
       } catch (err) {
@@ -366,7 +419,7 @@ export default function AnalyticsPage({ setActiveTab }) {
 
   // CSV Download
   const handleDownloadCSV = () => {
-    if (allBookings.length === 0) {
+    if (filteredBookings.length === 0) {
       showToast("No booking data available.", "info");
       return;
     }
@@ -377,7 +430,7 @@ export default function AnalyticsPage({ setActiveTab }) {
       "Balance", "Discount", "Payment Status"
     ];
 
-    const rows = allBookings.map(b => [
+    const rows = filteredBookings.map(b => [
       b.guest || "—",
       b.email || "—",
       b.contact || "—",
@@ -406,7 +459,7 @@ export default function AnalyticsPage({ setActiveTab }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `analytics_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `analytics_${range.toLowerCase()}_${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -468,7 +521,7 @@ export default function AnalyticsPage({ setActiveTab }) {
         )}
 
         {/* No Data State */}
-        {!loading && allBookings.length === 0 && (
+        {!loading && filteredBookings.length === 0 && (
           <div className="bg-white rounded-lg md:rounded-2xl p-6 md:p-12 text-center shadow-lg border border-gray-200">
             <div className="text-gray-400 mb-4">
               <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,7 +529,7 @@ export default function AnalyticsPage({ setActiveTab }) {
               </svg>
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-700 mb-2">No Booking Data</h3>
-            <p className="text-sm md:text-base text-gray-500 mb-4">No bookings to display analytics for.</p>
+            <p className="text-sm md:text-base text-gray-500 mb-4">No bookings to display analytics for the selected range.</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white text-sm md:text-base rounded-lg md:rounded-xl hover:bg-red-700 transition"
@@ -487,14 +540,14 @@ export default function AnalyticsPage({ setActiveTab }) {
         )}
 
         {/* Show content only when not loading and has data */}
-        {!loading && allBookings.length > 0 && (
+        {!loading && filteredBookings.length > 0 && (
           <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
           <StatCard
             title="Total Bookings"
             value={totalBookings}
-            subtitle="All time"
+            subtitle={rangeWindow.subtitle}
             icon={UsersIcon}
             color="info"
           />

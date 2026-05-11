@@ -114,7 +114,8 @@ export async function sendEmailAdvanced({
   html, 
   text, 
   priority = 'normal',
-  replyTo = null 
+  replyTo = null,
+  attachments = []
 }) {
   console.log("📧 [sendEmailAdvanced] ENTERED", {
     from,
@@ -166,6 +167,10 @@ export async function sendEmailAdvanced({
         mailOptions.replyTo = replyTo;
       }
 
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        mailOptions.attachments = attachments;
+      }
+
       await transporter.sendMail(mailOptions);
 
       // Record successful send
@@ -205,7 +210,7 @@ export async function sendEmailAdvanced({
 // ========================================
 // 📧 SEND EMAIL FUNCTION
 // ========================================
-export async function sendEmail({ to, subject, html, text, priority = 'normal' }) {
+export async function sendEmail({ to, subject, html, text, priority = 'normal', attachments = [] }) {
   console.log("📧 [sendEmail] ENTERED", {
     to,
     subject,
@@ -230,14 +235,20 @@ export async function sendEmail({ to, subject, html, text, priority = 'normal' }
   // Retry loop
   for (let attempt = 1; attempt <= EMAIL_LIMITS.MAX_RETRIES; attempt++) {
     try {
-      await transporter.sendMail({
+      const mailOptions = {
         from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
         to,
         subject,
         text: text || "Please view this email in an HTML-compatible email client.",
         html,
         priority: priority === "high" ? "high" : undefined,
-      });
+      };
+
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        mailOptions.attachments = attachments;
+      }
+
+      await transporter.sendMail(mailOptions);
 
       console.log("📨 [sendEmail] About to call transporter.sendMail()", {
         from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,

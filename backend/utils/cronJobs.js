@@ -3,6 +3,7 @@ import { asyncSendEmails } from "./asyncEmail.js";
 import { autoCancelNoShows, autoCheckoutOverdueGuests } from "../controllers/bookingController.js";
 import Hostel from "../models/Hostel.js";
 import User from "../models/User.js";
+import { sendScheduledAnalyticsReport } from "./analyticsEmailReports.js";
 
 export const startNoShowCronJob = (io) => {
   console.log("🟢 Starting no-show auto-cancel cron job...");
@@ -601,4 +602,42 @@ export const startRebookingAutoRejectCronJob = (io) => {
   });
 
   console.log("✅ Rebooking auto-reject cron job started - runs every 10 minutes");
+};
+
+// ============================================================================
+// SCHEDULED ANALYTICS EMAILS TO ADMIN ROLE
+// ============================================================================
+export const startAnalyticsEmailCronJobs = () => {
+  console.log("🟢 Starting scheduled analytics email cron jobs...");
+
+  const timezone = "Asia/Kolkata";
+
+  const registerReportJob = (label, schedule, periodKey) => {
+    cron.schedule(
+      schedule,
+      async () => {
+        const now = new Date();
+        console.log(`⏰ [${now.toISOString()}] Running ${label.toLowerCase()} analytics email job...`);
+
+        try {
+          const result = await sendScheduledAnalyticsReport(periodKey);
+          console.log(`✅ ${label} analytics email job completed:`, result);
+        } catch (error) {
+          console.error(`❌ ${label} analytics email job failed:`, error);
+        }
+      },
+      { timezone }
+    );
+  };
+
+  registerReportJob("Weekly", "0 8 * * 1", "weekly");
+  registerReportJob("Monthly", "0 8 1 * *", "monthly");
+  registerReportJob("Quarterly", "0 8 1 1,4,7,10 *", "quarterly");
+  registerReportJob("Annual", "0 8 1 1 *", "annual");
+
+  console.log("✅ Scheduled analytics email cron jobs started");
+  console.log("   • Weekly: Monday 08:00 IST");
+  console.log("   • Monthly: 1st day 08:00 IST");
+  console.log("   • Quarterly: Jan/Apr/Jul/Oct 1st 08:00 IST");
+  console.log("   • Annual: Jan 1st 08:00 IST");
 };

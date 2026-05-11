@@ -21,7 +21,7 @@ export default function Sidebar({
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const logoPublicPath = "/Logo.jpg";
+  const logoPublicPath = "/thapar_logo.png";
   const isEnquiry = activeTab === "Enquiry";
 
   // ✅ ROLE EXTRACTION

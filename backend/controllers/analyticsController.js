@@ -4,6 +4,10 @@
 // GA4 Property ID: G-Z8GK8ESCM1 → numeric property ID from GA console
 
 import fetch from 'node-fetch';
+import {
+  buildScheduledAnalyticsReportPackage,
+  sendScheduledAnalyticsReport,
+} from '../utils/analyticsEmailReports.js';
 
 const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID; // e.g. "properties/123456789"
 const GA4_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY; // full JSON string
@@ -266,5 +270,102 @@ export const getGA4Analytics = async (req, res) => {
   } catch (err) {
     console.error('GA4 Analytics error:', err.message);
     return res.status(500).json({ configured: false, message: err.message });
+  }
+};
+
+const VALID_REPORT_PERIODS = new Set(['weekly', 'monthly', 'quarterly', 'annual']);
+const VALID_REPORT_TYPES = new Set(['guest_room', 'venue_booking']);
+
+const getRequestedPeriod = (req) => {
+  const period = String(req.params.period || req.query.period || '').trim().toLowerCase();
+  if (!VALID_REPORT_PERIODS.has(period)) {
+    const error = new Error('Invalid report period. Use weekly, monthly, quarterly, or annual.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return period;
+};
+
+const getRequestedReportType = (req) => {
+  const reportType = String(req.params.reportType || req.query.reportType || '').trim().toLowerCase();
+  if (!VALID_REPORT_TYPES.has(reportType)) {
+    const error = new Error('Invalid report type. Use guest_room or venue_booking.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return reportType;
+};
+
+export const previewScheduledAnalyticsEmail = async (req, res) => {
+  try {
+    const period = getRequestedPeriod(req);
+    const reportType = getRequestedReportType(req);
+    const reportPackage = await buildScheduledAnalyticsReportPackage(period, reportType);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(reportPackage.html);
+  } catch (err) {
+    console.error('Analytics email preview error:', err.message);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+};
+
+export const downloadScheduledAnalyticsWorkbook = async (req, res) => {
+  try {
+    const period = getRequestedPeriod(req);
+    const reportType = getRequestedReportType(req);
+    const reportPackage = await buildScheduledAnalyticsReportPackage(period, reportType);
+    const workbookName = reportPackage.workbookName || `${reportType}-${period}-analytics.xlsx`;
+
+    res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.attachment(workbookName);
+
+    return res.status(200).send(reportPackage.workbookBuffer);
+  } catch (err) {
+    console.error('Analytics workbook download error:', err.message);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+};
+
+export const downloadScheduledAnalyticsPdf = async (req, res) => {
+  try {
+    const period = getRequestedPeriod(req);
+    const reportType = getRequestedReportType(req);
+    const reportPackage = await buildScheduledAnalyticsReportPackage(period, reportType);
+    const pdfName = reportPackage.pdfName || `${reportType}-${period}-analytics.pdf`;
+
+    res.type('application/pdf');
+    res.attachment(pdfName);
+
+    return res.status(200).send(reportPackage.pdfBuffer);
+  } catch (err) {
+    console.error('Analytics PDF download error:', err.message);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+};
+
+export const sendScheduledAnalyticsTestEmail = async (req, res) => {
+  try {
+    const period = getRequestedPeriod(req);
+    const reportType = getRequestedReportType(req);
+    const targetEmail = String(req.user?.email || '').trim().toLowerCase();
+
+    if (!targetEmail) {
+      return res.status(400).json({ message: 'No admin email found for test send.' });
+    }
+
+    const result = await sendScheduledAnalyticsReport(period, {
+      overrideRecipients: [targetEmail],
+      reportTypes: [reportType],
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Test ${period} ${reportType} analytics email sent to ${targetEmail}`,
+      result,
+    });
+  } catch (err) {
+    console.error('Analytics test email send error:', err.message);
+    return res.status(err.statusCode || 500).json({ message: err.message });
   }
 };

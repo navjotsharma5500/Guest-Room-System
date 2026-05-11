@@ -18,7 +18,8 @@ import {
   startVenueAutoCompletionCronJob,
   startExtensionAutoCancelCronJob,
   startExtensionReminderCronJob,
-  startRebookingAutoRejectCronJob
+  startRebookingAutoRejectCronJob,
+  startAnalyticsEmailCronJobs
 } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
 
@@ -599,6 +600,7 @@ const startServer = async () => {
     startExtensionAutoCancelCronJob(io);    
     startExtensionReminderCronJob(io);
     startRebookingAutoRejectCronJob(io);
+    startAnalyticsEmailCronJobs();
     scheduleCleanupJob();
 
     server.listen(PORT, () => {
