@@ -19,6 +19,7 @@ import {
 } from "../utils/rebookingUtils.js";
 import User from "../models/User.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
+import { getRequiredExtensionApprovalLevel, getSystemSettings } from "../utils/systemSettings.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -464,12 +465,14 @@ export const sendBookingEmails = (booking, statusType) => {
 // ======================================================
 export const createBooking = async (req, res) => {
   try {
+    const settings = await getSystemSettings();
     console.log("================================================================================");
     console.log("🔓 CREATE BOOKING REQUEST");
     console.log("📋 Body:", JSON.stringify(req.body, null, 2));
     console.log("================================================================================");
 
     const payload = req.body;
+    const userRole = String(req.user?.role || "").toLowerCase();
 
     if (!payload.guest && !payload.guestName) throw new Error("Guest name required");
     if (!payload.email && !payload.guestEmail) throw new Error("Email required");
@@ -601,6 +604,12 @@ export const createBooking = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
+    const bookingStayDays = calculateContinuousStayDays(payload.from, payload.to);
+    const managerLimit = Number(settings?.bookingDays?.managerMaxDirectBookingDays || 3);
+    const caretakerLimit = Number(settings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
+    const applicableDirectLimit =
+      ["admin", "manager", "adosa"].includes(userRole) ? managerLimit : caretakerLimit;
+
     // =========================
     // DUPLICATE BOOKING GUARD
     // =========================
@@ -649,6 +658,7 @@ export const createBooking = async (req, res) => {
       hostel: bookingData.hostel,
       newFrom: bookingData.from,
       newTo: bookingData.to,
+      limitDays: caretakerLimit,
     });
 
     console.log("🔍 Continuous stay evaluation:", {
@@ -664,6 +674,11 @@ export const createBooking = async (req, res) => {
 
     const setupBooking = new Booking(bookingData);
     setupRebookingApproval(setupBooking, rebookingEvaluation);
+
+    if (bookingStayDays > applicableDirectLimit) {
+      setupBooking.approvalStatus = "under_review";
+      setupBooking.reviewDeadline = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    }
 
     // If rebooking requires review, notify all admin-role users.
     if (setupBooking.approvalStatus === "under_review") {
@@ -698,7 +713,7 @@ export const createBooking = async (req, res) => {
                 </p>
 
                 <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
-                  A same-guest booking chain has crossed the caretaker's 3-day authority window and requires admin review before the caretaker can continue the normal reporting flow.
+                  A same-guest booking chain has crossed the caretaker's ${caretakerLimit}-day authority window and requires admin review before the caretaker can continue the normal reporting flow.
                 </p>
 
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:18px 0;text-align:left;">
@@ -1268,6 +1283,7 @@ export const updatePaymentDetails = async (req, res) => {
 // ======================================================
 export const requestExtension = async (req, res) => {
   try {
+    const settings = await getSystemSettings();
     const {
       bookingId: bodyBookingId,
       newTo,
@@ -1298,9 +1314,35 @@ export const requestExtension = async (req, res) => {
     const diffDays = Math.round(
       (toDateOnly(newCheckOut) - toDateOnly(currentCheckOut)) / 86400000
     );
+    const totalStayDays = calculateContinuousStayDays(booking.from, newCheckOut);
+    const maxExtensionRequestDays = Number(settings?.extensionRules?.maxExtensionRequestDays || 30);
 
-    // ✅ Routing decision
-    const requiredApprovalLevel = diffDays <= 2 ? "co_warden" : "adosa";
+    if (diffDays <= 0) {
+      return res.status(400).json({ success: false, message: "New checkout date must be after current checkout date" });
+    }
+
+    if (diffDays > maxExtensionRequestDays) {
+      return res.status(400).json({
+        success: false,
+        message: `Extension request cannot exceed ${maxExtensionRequestDays} day(s)`,
+      });
+    }
+
+    const requiredApprovalLevel = getRequiredExtensionApprovalLevel(totalStayDays, settings);
+
+    if (requiredApprovalLevel === "direct") {
+      return res.status(400).json({
+        success: false,
+        message: "This extension falls within caretaker direct authority. Use Direct Extension instead.",
+      });
+    }
+
+    if (requiredApprovalLevel === "not_allowed") {
+      return res.status(400).json({
+        success: false,
+        message: `Extension request exceeds the maximum allowed total stay of ${settings?.extensionRules?.adminLevelDays || 30} day(s)`,
+      });
+    }
 
     const ExtensionRequest = (await import("../models/ExtensionRequest.js")).default;
     const request = new ExtensionRequest({
@@ -1317,6 +1359,7 @@ export const requestExtension = async (req, res) => {
       extensionPaymentRemarks: paymentRemarks || "",
       extensionPaymentAttachments: Array.isArray(paymentAttachments) ? paymentAttachments : [],
       extensionAttachments: Array.isArray(attachments) ? attachments : [],
+      days: diffDays,
     });
 
     await request.save();
@@ -1344,7 +1387,7 @@ export const requestExtension = async (req, res) => {
             <h2 style="color: white; margin: 0; font-size: 20px;">📋 Extension Request Requires Your Approval</h2>
             <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">
               ${diffDays} day${diffDays !== 1 ? "s" : ""} extension —
-              ${requiredApprovalLevel === "co_warden" ? "≤ 2 days (Co-Warden level)" : "> 2 days (ADOSA level)"}
+              ${requiredApprovalLevel === "co_warden" ? "Co-Warden level" : requiredApprovalLevel === "adosa" ? "ADoSA level" : "Admin level"}
             </p>
           </div>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
@@ -1377,8 +1420,7 @@ export const requestExtension = async (req, res) => {
           meta: { bookingId: booking._id, type: "extension-request-co-warden" },
         });
         console.log(`📧 Extension notification → co_warden (${diffDays} day(s))`);
-      } else {
-        // > 2 days → adosa1 + adosa2 only (NOT adosa3)
+      } else if (requiredApprovalLevel === "adosa") {
         safeSend({
           to: ["adosa1@thapar.edu", "adosa2@thapar.edu"],
           subject: `🔔 Extension Request: ${booking.guest} — ${diffDays} Day(s) [ADOSA Approval Required]`,
@@ -1386,6 +1428,22 @@ export const requestExtension = async (req, res) => {
           meta: { bookingId: booking._id, type: "extension-request-adosa" },
         });
         console.log(`📧 Extension notification → adosa (${diffDays} day(s))`);
+      } else {
+        const adminEmails = (
+          await User.find({ role: "admin", email: { $exists: true, $ne: "" } })
+            .select("email")
+            .lean()
+        )
+          .map((adminUser) => adminUser.email)
+          .filter(Boolean);
+
+        safeSend({
+          to: adminEmails,
+          subject: `🔔 Extension Request: ${booking.guest} — ${diffDays} Day(s) [Admin Approval Required]`,
+          html: masterTemplate({ title: "Extension Request — Admin Action Required", content: emailContent }),
+          meta: { bookingId: booking._id, type: "extension-request-admin" },
+        });
+        console.log(`📧 Extension notification → admin (${diffDays} day(s))`);
       }
     } catch (emailErr) {
       console.error("❌ Extension request email error (non-critical):", emailErr);
@@ -1409,6 +1467,7 @@ export const directExtendBooking = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
+    const settings = await getSystemSettings();
     const { id } = req.params;
     const {
       newTo,
@@ -1494,6 +1553,7 @@ export const directExtendBooking = async (req, res) => {
 
     const oldCheckout = new Date(booking.to);
     const requestedCheckout = parseDateOnlyToUtcDate(newTo);
+    const caretakerLimit = Number(settings?.bookingDays?.caretakerMaxDirectBookingDays || CONTINUOUS_STAY_LIMIT_DAYS);
     console.log("OLD CHECKOUT:", oldCheckout);
     console.log("NEW CHECKOUT:", requestedCheckout);
     if (requestedCheckout <= oldCheckout) {
@@ -1503,22 +1563,22 @@ export const directExtendBooking = async (req, res) => {
 
     const currentTotalDays = calculateContinuousStayDays(booking.from, booking.to);
 
-    if (currentTotalDays >= CONTINUOUS_STAY_LIMIT_DAYS) {
+    if (currentTotalDays >= caretakerLimit) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        message: "Caretaker extension authority has already reached the 3-day limit",
+        message: `Caretaker extension authority has already reached the ${caretakerLimit}-day limit`,
       });
     }
 
     const directExtensionStartDate = booking.from;
     const newTotalDays = calculateContinuousStayDays(directExtensionStartDate, requestedCheckout);
 
-    if (newTotalDays > CONTINUOUS_STAY_LIMIT_DAYS) {
+    if (newTotalDays > caretakerLimit) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        message: `Direct extension exceeds caretaker authority. Maximum allowed continuous stay is ${CONTINUOUS_STAY_LIMIT_DAYS} days.`,
+        message: `Direct extension exceeds caretaker authority. Maximum allowed continuous stay is ${caretakerLimit} days.`,
       });
     }
 
@@ -1630,7 +1690,7 @@ export const directExtendBooking = async (req, res) => {
       success: true,
       message: "Direct extension completed successfully",
       booking,
-      remainingCaretakerDays: Math.max(0, CONTINUOUS_STAY_LIMIT_DAYS - newTotalDays),
+      remainingCaretakerDays: Math.max(0, caretakerLimit - newTotalDays),
     });
 
     const emailBooking = await refreshBookingEmails(booking);

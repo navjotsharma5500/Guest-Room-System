@@ -17,6 +17,8 @@ import EchoModal from "../../components/EchoModal";
 import { useAuth } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../utils/apiConfig";
 import { parseISO, format, getQuarter, getYear, subDays, isAfter } from "date-fns";
+import useSystemSettings from "../../hooks/useSystemSettings";
+import { resolveDashboardAccess } from "../../utils/dashboardAccess";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
@@ -905,79 +907,62 @@ const DashboardSelector = () => {
   const navigate = useNavigate();
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
+  const { settings } = useSystemSettings();
+  const dashboardAccess = resolveDashboardAccess(currentUser || {}, settings);
 
-  if (role === "caretaker") {
-    return <Navigate to="/dashboard" replace />;
+  if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {
+    const onlyDashboard = (settings?.dashboardRegistry || []).find(
+      (dashboard) => dashboard.key === dashboardAccess.dashboards[0]
+    );
+    if (onlyDashboard?.path) {
+      return <Navigate to={onlyDashboard.path} replace />;
+    }
   }
 
-  if (email === "adosa3@thapar.edu") {
-    return <Navigate to="/venue-booking" replace />;
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // DASHBOARD CARD CONFIGURATION (Hardcoded Visibility Logic)
-  // ════════════════════════════════════════════════════════════════════════════
-  
-  // Helper to check visibility
-  const canSeeCard = (cardId) => {
-    // 1. Admin sees ALL dashboards
-    if (role === 'admin') {
-      return ["guest-room", "venue-booking"].includes(cardId);
-    }
-
-    // 2. Adosa Logic
-    if (role === 'adosa') {
-      // adosa2 -> Guest Room ONLY (though they should bypass this page via redirect)
-      if (email === "adosa2@thapar.edu") {
-        return ["guest-room"].includes(cardId);
-      }
-      // adosa3 (and others) -> Venue + Night (NO Guest Room)
-      return ["venue-booking"].includes(cardId);
-    }
-
-    // 3. Assistant -> Selector -> Venue + Night
-    if (role === 'assistant') {
-      return ["venue-booking"].includes(cardId);
-    }
-
-    // 4. Caretaker -> Selector -> Guest + Night
-    if (role === 'caretaker') {
-      return ["guest-room"].includes(cardId);
-    }
-
-    // 5. Default Fallback (should not happen for selector roles, but safe to hide)
-    return false;
-  };
-
-  const allDashboards = [
-    {
-      id: "guest-room",
+  const DASHBOARD_UI = {
+    guestRoom: {
       title: "Guest Room Dashboard",
-      description: "Manage hostel rooms, bookings, and guest information",
       icon: Building2,
       gradient: "from-blue-600 via-blue-500 to-cyan-500",
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600",
-      available: true,
       features: ["Room Management", "Guest Tracking", "Booking System"],
-      onClick: () => navigate("/dashboard"),
     },
-    {
-      id: "venue-booking",
+    venue: {
       title: "Venue Booking Dashboard",
-      description: "Manage institute venues, events, and hall bookings",
       icon: Calendar,
       gradient: "from-purple-600 via-purple-500 to-pink-500",
       iconBg: "bg-purple-100",
       iconColor: "text-purple-600",
-      available: true,
       features: ["Venue Management", "Event Calendar", "Enquiry System"],
-      onClick: () => navigate("/venue-booking"),
     },
-  ];
+    night: {
+      title: "Night Pass Dashboard",
+      icon: LayoutDashboard,
+      gradient: "from-slate-600 via-slate-500 to-indigo-500",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-600",
+      features: ["Night Permissions", "Scan Access", "Role Operations"],
+    },
+  };
 
-  // Filter dashboards based on hardcoded logic
-  const dashboards = allDashboards.filter(d => canSeeCard(d.id));
+  const dashboards = (settings?.dashboardRegistry || [])
+    .filter((dashboard) => dashboard.active && dashboardAccess.dashboards.includes(dashboard.key))
+    .map((dashboard) => {
+      const ui = DASHBOARD_UI[dashboard.key] || DASHBOARD_UI.guestRoom;
+      return {
+        id: dashboard.key,
+        title: dashboard.label || ui.title,
+        description: dashboard.description || ui.title,
+        icon: ui.icon,
+        gradient: ui.gradient,
+        iconBg: ui.iconBg,
+        iconColor: ui.iconColor,
+        available: true,
+        features: ui.features,
+        onClick: () => navigate(dashboard.path),
+      };
+    });
 
   const containerVariants = {
     hidden: { opacity: 0 },

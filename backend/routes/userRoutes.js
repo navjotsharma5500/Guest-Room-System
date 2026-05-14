@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createUser,
   getUsers,
   updateUser,
   deleteUser,
@@ -12,6 +13,7 @@ const router = express.Router();
 
 // Get all users (admin only)
 router.get("/", protect, authorizeRoles("admin"), getUsers);
+router.post("/", protect, authorizeRoles("admin"), createUser);
 
 // Change password (logged-in user)
 router.put("/change-password", protect, changePasswordForCurrentUser);

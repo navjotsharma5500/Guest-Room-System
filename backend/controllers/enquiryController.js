@@ -9,6 +9,7 @@ import { createLog } from "../middleware/logMiddleware.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
+import { getSystemSettings } from "../utils/systemSettings.js";
 
 // ✅ Import event-driven email function
 import { sendBookingEmails } from "./bookingController.js";
@@ -25,6 +26,7 @@ const safeSend = (emailPayload) => {
 // ======================================================
 export const createEnquiry = async (req, res) => {
   try {
+    const settings = await getSystemSettings();
     console.log("📩 ========== ENQUIRY CREATE STARTED ==========");
     console.log("📦 RAW req.body:", JSON.stringify(req.body, null, 2));
 
@@ -78,6 +80,23 @@ export const createEnquiry = async (req, res) => {
       files: fileUrls,
       status: "pending",
     };
+
+    const enquiryStayDays = Math.max(
+      1,
+      Math.round(
+        (new Date(enquiryData.to).setHours(0, 0, 0, 0) -
+          new Date(enquiryData.from).setHours(0, 0, 0, 0)) /
+          (1000 * 60 * 60 * 24)
+      )
+    );
+    const maxGuestRequestDays = Number(settings?.bookingDays?.guestMaxRequestDays || 5);
+
+    if (enquiryStayDays > maxGuestRequestDays) {
+      return res.status(400).json({
+        success: false,
+        message: `Guest enquiry cannot exceed ${maxGuestRequestDays} day(s)`,
+      });
+    }
 
     console.log("📋 ENQUIRY DATA TO SAVE:", enquiryData);
 

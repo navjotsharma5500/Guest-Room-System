@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
 
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 
   password: { type: String, required: true },
 
@@ -19,14 +19,21 @@ const userSchema = new mongoose.Schema({
   rollNo: { type: String, default: null, uppercase: true, trim: true }, // for students/society heads
   societies: [{ type: String }], // for president/gen_sec roles
   profilePicture: { type: String, default: null },
+  isActive: { type: Boolean, default: true },
 
   // ✅ Scalable Permissions System
   permissions: {
     guestRoom: { type: Boolean, default: false },
     venue: { type: Boolean, default: false },
     night: { type: Boolean, default: false }
+  },
+
+  dashboardAccess: {
+    dashboards: [{ type: String }],
+    defaultDashboard: { type: String, default: null },
+    skipSelectorWhenSingle: { type: Boolean, default: true },
   }
-});
+}, { timestamps: true });
 
 // Hash password
 userSchema.pre("save", async function (next) {

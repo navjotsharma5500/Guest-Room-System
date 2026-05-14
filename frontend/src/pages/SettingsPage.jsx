@@ -18,6 +18,7 @@ import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
 import { BACKEND_URL } from "../utils/apiConfig";
 import useVenueConfig from "../hooks/useVenueConfig";
+import SystemControlsPage from "./SystemControlsPage";
 
 export default function SettingsPage({
   theme,
@@ -30,6 +31,7 @@ export default function SettingsPage({
 }) {
   const [toast, setToast] = useState(null);
   const [manageVenuesModal, setManageVenuesModal] = useState(false);
+  const [systemControlsOpen, setSystemControlsOpen] = useState(false);
   const [newTabName, setNewTabName] = useState("");
   const [sectionDrafts, setSectionDrafts] = useState({});
   const [roomDrafts, setRoomDrafts] = useState({});
@@ -557,6 +559,36 @@ export default function SettingsPage({
 
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {String(role || "").toLowerCase() === "admin" && (
+            <motion.div
+              whileHover={{ y: -4 }}
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+                theme === "dark"
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-red-50 p-2">
+                    <Settings className="text-red-600 w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-red-700">System Controls</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Booking days, extension rules, email routing, users, and dashboard access
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSystemControlsOpen(true)}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Open
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* ===================== THEME ===================== */}
           <motion.div
@@ -1108,6 +1140,26 @@ export default function SettingsPage({
                   Close
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {systemControlsOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="max-h-[95vh] w-full max-w-7xl overflow-y-auto"
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+            >
+              <SystemControlsPage theme={theme} onClose={() => setSystemControlsOpen(false)} />
             </motion.div>
           </motion.div>
         )}

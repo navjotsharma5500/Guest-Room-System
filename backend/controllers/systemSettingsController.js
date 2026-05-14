@@ -1,0 +1,69 @@
+import { createLog } from "../middleware/logMiddleware.js";
+import {
+  getSystemSettings,
+  updateSystemSettings,
+  validateSystemSettingsPayload,
+} from "../utils/systemSettings.js";
+
+export const getSettings = async (_req, res) => {
+  try {
+    const settings = await getSystemSettings({ fresh: true });
+    res.json({ success: true, settings });
+  } catch (error) {
+    console.error("❌ Failed to load system settings:", error);
+    res.status(500).json({ success: false, message: "Failed to load system settings" });
+  }
+};
+
+export const getPublicSettings = async (_req, res) => {
+  try {
+    const settings = await getSystemSettings({ fresh: true });
+    res.json({
+      success: true,
+      settings: {
+        bookingDays: settings.bookingDays,
+        extensionRules: settings.extensionRules,
+        dashboardRegistry: settings.dashboardRegistry || [],
+      },
+    });
+  } catch (error) {
+    console.error("❌ Failed to load public system settings:", error);
+    res.status(500).json({ success: false, message: "Failed to load system settings" });
+  }
+};
+
+export const updateSettings = async (req, res) => {
+  try {
+    validateSystemSettingsPayload(req.body || {});
+    const settings = await updateSystemSettings(req.body || {}, req.user?._id || null);
+    createLog("system_settings_updated", req.user?._id, {});
+    res.json({ success: true, settings });
+  } catch (error) {
+    console.error("❌ Failed to update system settings:", error);
+    res.status(400).json({ success: false, message: error.message || "Failed to update system settings" });
+  }
+};
+
+export const getDashboards = async (_req, res) => {
+  try {
+    const settings = await getSystemSettings({ fresh: true });
+    res.json({ success: true, dashboards: settings.dashboardRegistry || [] });
+  } catch (error) {
+    console.error("❌ Failed to load dashboard registry:", error);
+    res.status(500).json({ success: false, message: "Failed to load dashboard registry" });
+  }
+};
+
+export const updateDashboards = async (req, res) => {
+  try {
+    const settings = await updateSystemSettings(
+      { dashboardRegistry: req.body?.dashboardRegistry || [] },
+      req.user?._id || null
+    );
+    createLog("dashboard_registry_updated", req.user?._id, {});
+    res.json({ success: true, dashboards: settings.dashboardRegistry || [] });
+  } catch (error) {
+    console.error("❌ Failed to update dashboard registry:", error);
+    res.status(400).json({ success: false, message: error.message || "Failed to update dashboard registry" });
+  }
+};

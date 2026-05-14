@@ -6,6 +6,8 @@ import AttachmentGrid from "./AttachmentGrid";
 import { isDateTimeRangeOverlapping, combineDateAndTime, formatTimeWithAMPM } from "../utils/dateUtils";
 import { IndianStates } from "../utils/indianStates";
 import { IKContext, IKUpload } from "imagekitio-react";
+import { useAuth } from "../context/AuthContext";
+import useSystemSettings from "../hooks/useSystemSettings";
 import { 
   BACKEND_URL, 
   IMAGEKIT_PUBLIC_KEY, 
@@ -34,12 +36,19 @@ const authenticator = async () => {
 
 export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   const { hostel, room, prefill } = modal || {};
+  const { currentUser } = useAuth();
+  const { settings: systemSettings } = useSystemSettings();
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
       toastContext.showToast(message, type);
     }
   };
+  const currentRole = String(currentUser?.role || "").toLowerCase();
+  const directBookingLimit =
+    ["admin", "manager", "adosa"].includes(currentRole)
+      ? Number(systemSettings?.bookingDays?.managerMaxDirectBookingDays || 3)
+      : Number(systemSettings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
 
   /* ------------------ STATES ------------------ */
   const [step, setStep] = useState(1);
@@ -101,7 +110,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     return diffDays;
   };
 
-  // ✅ Validate booking dates (no past dates, max 3 days)
+  // ✅ Validate booking dates (no past dates, dynamic max limit)
   const validateBookingDates = (fromDate, toDate) => {
     const errors = {};
     const today = getTodayMidnight();
@@ -132,10 +141,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return errors;
     }
 
-    // Validation 2: Maximum 3 days booking
+    // Validation 2: Maximum booking duration from system settings
     const daysDiff = getDaysDifference(fromDate, toDate);
-    if (daysDiff > 3) {
-      errors.dates = `❌ Maximum booking duration is 3 days. You selected ${daysDiff} days.`;
+    if (daysDiff > directBookingLimit) {
+      errors.dates = `❌ Maximum booking duration is ${directBookingLimit} days. You selected ${daysDiff} days.`;
       return errors;
     }
 
@@ -554,6 +563,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-700 font-medium">
                     Total Booking Days: {totalBookingDays} {totalBookingDays === 1 ? "day" : "days"}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Direct booking limit for your role: {directBookingLimit} day(s)
                   </p>
                 </div>
               )}

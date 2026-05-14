@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
 import { IKContext, IKUpload } from "imagekitio-react";
 import AttachmentGrid from "./AttachmentGrid";
+import useSystemSettings from "../hooks/useSystemSettings";
 import { 
   BACKEND_URL, 
   IMAGEKIT_PUBLIC_KEY, 
@@ -36,6 +37,7 @@ export default function ExtensionModalWrapper(props) {
 }
 
 function ExtensionModal({ modal, onClose, onExtend }) {
+  const { settings: systemSettings } = useSystemSettings();
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
@@ -67,15 +69,17 @@ function ExtensionModal({ modal, onClose, onExtend }) {
     return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
   }, [modal?.booking?.from, modal?.booking?.to]);
 
-  const remainingCaretakerDays = Math.max(0, 3 - bookingStayDays);
+  const caretakerDirectLimit = Number(systemSettings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
+  const maxExtensionRequestDays = Number(systemSettings?.extensionRules?.maxExtensionRequestDays || 30);
+  const remainingCaretakerDays = Math.max(0, caretakerDirectLimit - bookingStayDays);
 
   const maxCaretakerDate = useMemo(() => {
     if (!isDirectExtension) return "";
     if (!modal?.booking?.from) return "";
     const date = new Date(modal.booking.from);
-    date.setDate(date.getDate() + 3);
+    date.setDate(date.getDate() + caretakerDirectLimit);
     return date.toISOString().split("T")[0];
-  }, [isDirectExtension, modal?.booking?.from]);
+  }, [caretakerDirectLimit, isDirectExtension, modal?.booking?.from]);
 
   const getMinDate = () => {
     if (!modal.booking?.to) return "";
@@ -161,6 +165,12 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   const canProceedToPayment = () => {
     if (!newTo) return false;
     if (isDirectExtension && maxCaretakerDate && newTo > maxCaretakerDate) return false;
+    if (!isDirectExtension && modal?.booking?.to) {
+      const currentCheckout = new Date(modal.booking.to);
+      const requestedCheckout = new Date(newTo);
+      const diffDays = Math.round((requestedCheckout - currentCheckout) / (1000 * 60 * 60 * 24));
+      if (diffDays > maxExtensionRequestDays) return false;
+    }
     if (files.length === 0) return false;
     return true;
   };
@@ -169,6 +179,12 @@ function ExtensionModal({ modal, onClose, onExtend }) {
   const canSubmit = () => {
     if (!newTo) return false;
     if (files.length === 0) return false;
+    if (!isDirectExtension && modal?.booking?.to) {
+      const currentCheckout = new Date(modal.booking.to);
+      const requestedCheckout = new Date(newTo);
+      const diffDays = Math.round((requestedCheckout - currentCheckout) / (1000 * 60 * 60 * 24));
+      if (diffDays > maxExtensionRequestDays) return false;
+    }
     
     if (extensionPaymentType === "Paid") {
       if (!extensionAmount || Number(extensionAmount) <= 0) return false;
@@ -191,6 +207,15 @@ function ExtensionModal({ modal, onClose, onExtend }) {
     if (isDirectExtension && maxCaretakerDate && newTo > maxCaretakerDate) {
       setError(`You can extend only ${remainingCaretakerDays} more day(s) under caretaker authority`);
       return;
+    }
+    if (!isDirectExtension && modal?.booking?.to) {
+      const currentCheckout = new Date(modal.booking.to);
+      const requestedCheckout = new Date(newTo);
+      const diffDays = Math.round((requestedCheckout - currentCheckout) / (1000 * 60 * 60 * 24));
+      if (diffDays > maxExtensionRequestDays) {
+        setError(`Extension request cannot exceed ${maxExtensionRequestDays} day(s)`);
+        return;
+      }
     }
     if (files.length === 0) {
       setError("At least one extension attachment is required");

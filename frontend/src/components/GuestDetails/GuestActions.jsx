@@ -3,6 +3,7 @@ import React from "react";
 import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
+import useSystemSettings from "../../hooks/useSystemSettings";
 
 export default function GuestActions({
   showActionsDropdown,
@@ -21,6 +22,7 @@ export default function GuestActions({
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
+  const { settings: systemSettings } = useSystemSettings();
   const { showToast } = useToast();
   // Check if booking exists and isn't cancelled/checked out
   const canExtend = booking && booking.status !== "cancelled" && booking.status !== "checked_out";
@@ -33,9 +35,10 @@ export default function GuestActions({
     end.setHours(0, 0, 0, 0);
     return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
   })();
+  const caretakerDirectLimit = Number(systemSettings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
   const canDirectExtend =
     canExtend &&
-    bookingStayDays < 3 &&
+    bookingStayDays < caretakerDirectLimit &&
     booking?.approvalStatus === "auto_approved" &&
     booking?.directExtension?.used !== true &&
     !booking?.hasPendingExtensionRequest &&

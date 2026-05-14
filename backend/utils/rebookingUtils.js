@@ -1,8 +1,9 @@
 import Booking from "../models/Booking.js";
+import { getSystemSettings } from "./systemSettings.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CONTINUOUS_STAY_LIMIT_DAYS = 3;
 const CONTINUOUS_STAY_WINDOW_HOURS = 24;
+const DEFAULT_CONTINUOUS_STAY_LIMIT_DAYS = 3;
 
 const normalizeEmail = (value = "") => String(value || "").trim().toLowerCase();
 const normalizeContact = (value = "") => String(value || "").trim();
@@ -82,7 +83,12 @@ export const evaluateContinuousStay = async ({
   newFrom,
   newTo,
   excludeBookingId = null,
+  limitDays = null,
 }) => {
+  const resolvedLimitDays =
+    Number(limitDays) ||
+    Number((await getSystemSettings())?.bookingDays?.caretakerMaxDirectBookingDays) ||
+    DEFAULT_CONTINUOUS_STAY_LIMIT_DAYS;
   const latestBooking = await findLatestRelatedBooking({
     email,
     contact,
@@ -97,7 +103,7 @@ export const evaluateContinuousStay = async ({
     return {
       latestBooking: null,
       within24Hours: false,
-      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      requiresApproval: freshTotalDays > resolvedLimitDays,
       continuousStay: {
         isContinuous: false,
         startDate: freshStartDate,
@@ -114,7 +120,7 @@ export const evaluateContinuousStay = async ({
     return {
       latestBooking,
       within24Hours: false,
-      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      requiresApproval: freshTotalDays > resolvedLimitDays,
       continuousStay: {
         isContinuous: false,
         startDate: freshStartDate,
@@ -131,7 +137,7 @@ export const evaluateContinuousStay = async ({
     return {
       latestBooking,
       within24Hours: false,
-      requiresApproval: freshTotalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      requiresApproval: freshTotalDays > resolvedLimitDays,
       continuousStay: {
         isContinuous: false,
         startDate: freshStartDate,
@@ -154,10 +160,10 @@ export const evaluateContinuousStay = async ({
     latestBooking,
     within24Hours,
     requiresApproval:
-      previousDirectExtensionUsed || totalDays > CONTINUOUS_STAY_LIMIT_DAYS,
+      previousDirectExtensionUsed || totalDays > resolvedLimitDays,
     requiresApprovalReason: previousDirectExtensionUsed
       ? "previous_direct_extension_used"
-      : totalDays > CONTINUOUS_STAY_LIMIT_DAYS
+      : totalDays > resolvedLimitDays
         ? "continuous_stay_exceeded"
         : null,
     continuousStay: {
@@ -194,24 +200,32 @@ export const setupRebookingApproval = (booking, evaluation) => {
   return booking;
 };
 
-export const getRemainingCaretakerDays = (bookingLike) => {
+export const getRemainingCaretakerDays = async (bookingLike, limitDays = null) => {
+  const resolvedLimitDays =
+    Number(limitDays) ||
+    Number((await getSystemSettings())?.bookingDays?.caretakerMaxDirectBookingDays) ||
+    DEFAULT_CONTINUOUS_STAY_LIMIT_DAYS;
   const totalDays = Number(bookingLike?.continuousStay?.totalDays || 0);
   const normalizedTotal = totalDays > 0 ? totalDays : calculateStayDays(bookingLike?.from, bookingLike?.to);
-  return Math.max(0, CONTINUOUS_STAY_LIMIT_DAYS - normalizedTotal);
+  return Math.max(0, resolvedLimitDays - normalizedTotal);
 };
 
-export const getMaxCaretakerCheckoutDate = (bookingLike) => {
+export const getMaxCaretakerCheckoutDate = async (bookingLike, limitDays = null) => {
+  const resolvedLimitDays =
+    Number(limitDays) ||
+    Number((await getSystemSettings())?.bookingDays?.caretakerMaxDirectBookingDays) ||
+    DEFAULT_CONTINUOUS_STAY_LIMIT_DAYS;
   const startDate = toDateOnly(
     bookingLike?.continuousStay?.startDate ||
       bookingLike?.actualCheckInDate ||
       bookingLike?.from
   );
   if (!startDate) return null;
-  return addDays(startDate, CONTINUOUS_STAY_LIMIT_DAYS);
+  return addDays(startDate, resolvedLimitDays);
 };
 
 export {
-  CONTINUOUS_STAY_LIMIT_DAYS,
+  DEFAULT_CONTINUOUS_STAY_LIMIT_DAYS as CONTINUOUS_STAY_LIMIT_DAYS,
   CONTINUOUS_STAY_WINDOW_HOURS,
 };
 

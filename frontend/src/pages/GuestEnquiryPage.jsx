@@ -21,6 +21,7 @@ import {
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import PublicPageWidgets from "../components/PublicPageWidgets";
+import useSystemSettings from "../hooks/useSystemSettings";
 
 // ==================== CONSTANTS ====================
 const API = BACKEND_URL;
@@ -137,12 +138,12 @@ const formatShortDate = (d) => {
   }).replace(/\s+/g, "-");
 };
 
-const validateDates = (from, to) => {
+const validateDates = (from, to, maxDays = 5) => {
   if (!from || !to) return "";
   const start = new Date(from);
   const end = new Date(to);
   const diff = (end - start) / (1000 * 60 * 60 * 24);
-  return diff > 5 ? "Please select a date within 5 days" : "";
+  return diff > maxDays ? `Please select a date within ${maxDays} days` : "";
 };
 
 const isValidUrl = (url) => {
@@ -180,6 +181,7 @@ function GuestForm({
   form, setForm, onSubmit, emailError, setEmailError,
   dateError, setDateError, uploading, setUploading,
   uploadError, setUploadError, onIKSuccess, onIKError, isAuthenticated,
+  maxGuestRequestDays,
 }) {
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
@@ -365,7 +367,7 @@ function GuestForm({
               value={form.from}
               onChange={(e) => {
                 const newFrom = e.target.value;
-                setDateError(validateDates(newFrom, form.to));
+                setDateError(validateDates(newFrom, form.to, maxGuestRequestDays));
                 setForm({ ...form, from: newFrom });
               }}
               required
@@ -384,7 +386,7 @@ function GuestForm({
               value={form.to}
               onChange={(e) => {
                 const newTo = e.target.value;
-                setDateError(validateDates(form.from, newTo));
+                setDateError(validateDates(form.from, newTo, maxGuestRequestDays));
                 setForm({ ...form, to: newTo });
               }}
               required
@@ -639,6 +641,8 @@ function GuestForm({
 
 // ==================== MAIN COMPONENT ====================
 export default function GuestEnquiryPage() {
+  const { settings: systemSettings } = useSystemSettings();
+  const maxGuestRequestDays = Number(systemSettings?.bookingDays?.guestMaxRequestDays || 5);
   const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ Added auth state
@@ -1129,6 +1133,7 @@ export default function GuestEnquiryPage() {
                   onIKSuccess={handleIKSuccess}
                   onIKError={handleIKError}
                   isAuthenticated={isAuthenticated}
+                  maxGuestRequestDays={maxGuestRequestDays}
                 />
               )}
             </>

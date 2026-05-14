@@ -61,8 +61,11 @@ import "./styles/VenueBookingGlassmorphism.css";
 // CONTEXT
 // ============================================================================
 import { useAuth } from "./context/AuthContext";
-import { isDDAssistantRole } from "./utils/venueAccessPolicy";
-import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
+import useSystemSettings from "./hooks/useSystemSettings";
+import {
+  getDashboardPath,
+  resolveDashboardAccess,
+} from "./utils/dashboardAccess";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GLOBAL SWITCH: Set to false to hide Dashboard Selector from all non-admin roles
@@ -71,32 +74,11 @@ import { ROLE_ACCESS, hasAccess } from "./utils/roleAccess";
 const DASHBOARD_SELECTOR_ENABLED = true;
 
 // ============================================================================
-// ROLE SETS
-// ============================================================================
-
-// Roles allowed to access Guest Room dashboard
-const GUEST_ROOM_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "guestroom"));
-
-// Roles allowed to access Venue Booking dashboard
-const VENUE_BOOKING_ROLES = Object.keys(ROLE_ACCESS).filter(r => hasAccess(r, "venue") || hasAccess(r, "venue_limited"));
-
-// Roles allowed to access Dashboard Selector page
-const canSeeSelector = (role, isDDAssistant, userEmail = "") => {
-  // Admin always sees the selector
-  if (role === "admin") return true;
-  // Force adosa3 and assistant directly to venue booking
-  if (userEmail === "adosa3@thapar.edu") return false;
-  if (role === "assistant") return false;
-  // If disabled globally, no one else sees it
-  if (!DASHBOARD_SELECTOR_ENABLED) return false;
-  return hasAccess(role, "selector") || isDDAssistant;
-};
-
-// ============================================================================
 // MAIN APP
 // ============================================================================
 export default function App() {
   const { currentUser, loading } = useAuth();
+  const { settings } = useSystemSettings();
 
   if (loading) {
     return (
@@ -111,49 +93,42 @@ export default function App() {
 
   const rawRole = currentUser?.role || currentUser?.user?.role;
   const role = rawRole ? rawRole.toLowerCase() : null;
-  const isDDAssistant = isDDAssistantRole(role);
+  const dashboardAccess = currentUser
+    ? resolveDashboardAccess(currentUser, settings)
+    : { dashboards: [], defaultDashboard: null, skipSelectorWhenSingle: true };
+  const canAccessGuestRoom = dashboardAccess.dashboards.includes("guestRoom");
+  const canAccessVenue = dashboardAccess.dashboards.includes("venue");
+  const canAccessNight = dashboardAccess.dashboards.includes("night") || role === "guard";
+  const canSeeSelector =
+    role === "admin" ||
+    (DASHBOARD_SELECTOR_ENABLED &&
+      dashboardAccess.dashboards.length > 1 &&
+      !(
+        dashboardAccess.dashboards.length === 1 &&
+        dashboardAccess.skipSelectorWhenSingle
+      ));
 
   // Determine where to send user after login
   const getLoginRedirect = () => {
     if (!role) return "/";
-    const userEmail = (currentUser?.email || currentUser?.user?.email || "").toLowerCase();
-    const permissions = currentUser?.permissions || currentUser?.user?.permissions || {};
-
-    // ⚡ HARDCODED OVERRIDE FOR adosa2@thapar.edu
-    if (userEmail === "adosa2@thapar.edu") {
-      return "/dashboard";
+    if (currentUser?.redirectTo) {
+      return currentUser.redirectTo;
     }
-    // ⚡ HARDCODED OVERRIDE FOR adosa3@thapar.edu (Venue Booking only)
-    if (userEmail === "adosa3@thapar.edu") {
-      return "/venue-booking";
-    }
+    if (role === "student") return "/";
+    if (["gen_sec", "president"].includes(role)) return "/night-pass";
+    if (role === "guard") return canAccessNight ? (getDashboardPath(settings, "night") || "/night-pass/scan") : "/night-pass/scan";
 
-    // Assistant role should land on Venue Booking dashboard
-    if (role === "assistant") {
-      return "/venue-booking";
+    if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {
+      return getDashboardPath(settings, dashboardAccess.dashboards[0]);
     }
 
-    // 1️⃣ If user has ONLY GuestRoom permission → go to GuestRoom directly
-    if (
-      permissions.guestRoom &&
-      !permissions.venue &&
-      !permissions.night
-    ) {
-      return "/dashboard";
-    }
-
-    // 2️⃣ Direct GuestRoom roles
-    if (["manager", "warden", "co_warden"].includes(role)) {
-      return "/dashboard";
-    }
-
-    // 3️⃣ Selector roles (admin, adosa, assistant etc.)
-    if (canSeeSelector(role, isDDAssistant, userEmail)) {
+    if (canSeeSelector) {
       return "/admin/dashboard-selector";
     }
 
-    // 4️⃣ Fallback permission checks
-    if (VENUE_BOOKING_ROLES.includes(role)) return "/venue-booking";
+    if (dashboardAccess.defaultDashboard) {
+      return getDashboardPath(settings, dashboardAccess.defaultDashboard);
+    }
 
     return "/"; // Stay on login if no access
   };
@@ -189,7 +164,7 @@ export default function App() {
           <Route
             path="/admin/dashboard-selector"
             element={
-              currentUser && canSeeSelector(role, isDDAssistant, (currentUser?.email || currentUser?.user?.email || "").toLowerCase())
+              currentUser && canSeeSelector
                 ? <DashboardSelectorGlass />
                 : <Navigate to="/" replace />
             }
@@ -228,7 +203,7 @@ export default function App() {
           <Route
             path="/dashboard"
             element={
-              currentUser && GUEST_ROOM_ROLES.includes(role)
+              currentUser && canAccessGuestRoom
                 ? <GuestRoomDashboard />
                 : <Navigate to="/" replace />
             }
@@ -237,7 +212,7 @@ export default function App() {
           <Route
             path="/approvals"
             element={
-              currentUser && GUEST_ROOM_ROLES.includes(role)
+              currentUser && canAccessGuestRoom
                 ? <ApprovalPage />
                 : <Navigate to="/" replace />
             }
@@ -268,7 +243,7 @@ export default function App() {
           <Route
             path="/venue-booking"
             element={
-              currentUser && (VENUE_BOOKING_ROLES.includes(role) || isDDAssistant)
+              currentUser && canAccessVenue
                 ? <VenueBookingDashboard />
                 : <Navigate to="/" replace />
             }
@@ -277,7 +252,7 @@ export default function App() {
           <Route
             path="/venue-all-bookings"
             element={
-              currentUser && (VENUE_BOOKING_ROLES.includes(role) || isDDAssistant)
+              currentUser && canAccessVenue
                 ? <VenueBookingDashboard />
                 : <Navigate to="/" replace />
             }
@@ -320,4 +295,3 @@ export default function App() {
     </GoogleOAuthProvider>
   );
 }
-

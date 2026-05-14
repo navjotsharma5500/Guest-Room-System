@@ -10,11 +10,7 @@ import extensionApprovedTemplate from "../emails/templates/extensionApproved.js"
 import { sendBookingEmails } from "./bookingController.js";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
-
-const CO_WARDEN_EMAILS = ["cowarden@thapar.edu", "cowarden2@thapar.edu"];
-// ✅ UPDATE: Extensions > 2 days go to adosa2@thapar.edu
-const ADOSA_EMAILS = ["adosa2@thapar.edu"];
-const ADMIN_EMAILS = ["dosa@thapar.edu"];
+import { getRequiredExtensionApprovalLevel, getSystemSettings } from "../utils/systemSettings.js";
 
 // ✅ NEW: Helper function to get hostel warden and caretaker emails
 const getHostelStaffEmails = async (hostel) => {
@@ -80,6 +76,7 @@ const getStakeholderEmails = async (hostel) => {
 
 export const createExtensionRequest = async (req, res) => {
     try {
+        const settings = await getSystemSettings();
         const {
             bookingId,
             requestedCheckout,
@@ -121,15 +118,30 @@ export const createExtensionRequest = async (req, res) => {
         // booking.to is stored as midnight UTC or 18:30 UTC (midnight IST).
         const daysExtended = Math.round((toDateOnly(newCheckout) - toDateOnly(oldCheckout)) / 86400000);
 
-        // ✅ FIX: Three-tier approval system:
-        // - ≤ 2 days: Co-Warden
-        // - 2 < days ≤ 10: ADOSA  
-        // - > 10 days: Admin only
-        let requiredApprovalLevel = "admin";
-        if (daysExtended <= 2) {
-            requiredApprovalLevel = "co_warden";
-        } else if (daysExtended <= 10) {
-            requiredApprovalLevel = "adosa";
+        const totalStayDays = Math.max(1, Math.round((toDateOnly(newCheckout) - toDateOnly(booking.from)) / 86400000));
+        const maxExtensionRequestDays = Number(settings?.extensionRules?.maxExtensionRequestDays || 30);
+
+        if (daysExtended > maxExtensionRequestDays) {
+            return res.status(400).json({
+                success: false,
+                message: `Extension request cannot exceed ${maxExtensionRequestDays} day(s)`
+            });
+        }
+
+        const requiredApprovalLevel = getRequiredExtensionApprovalLevel(totalStayDays, settings);
+
+        if (requiredApprovalLevel === "direct") {
+            return res.status(400).json({
+                success: false,
+                message: "This stay is within caretaker authority. Use Direct Extension instead.",
+            });
+        }
+
+        if (requiredApprovalLevel === "not_allowed") {
+            return res.status(400).json({
+                success: false,
+                message: `Extension request exceeds the maximum allowed total stay of ${settings?.extensionRules?.adminLevelDays || 30} day(s)`,
+            });
         }
 
         // ✅ FIX: Extract all payment fields so they are saved as top-level fields
@@ -169,11 +181,13 @@ export const createExtensionRequest = async (req, res) => {
             paymentData: paymentData || {},
         });
 
-        const approverEmails = requiredApprovalLevel === "co_warden" 
-            ? CO_WARDEN_EMAILS 
-            : requiredApprovalLevel === "adosa" 
-            ? ADOSA_EMAILS 
-            : ADMIN_EMAILS;
+        const approverEmails = (
+            await User.find({
+                role: requiredApprovalLevel,
+                email: { $exists: true, $ne: "" },
+                $or: [{ isActive: { $exists: false } }, { isActive: true }]
+            }).select("email").lean()
+        ).map((user) => user.email).filter(Boolean);
         const roleName = requiredApprovalLevel === "co_warden" 
             ? "Co-Warden" 
             : requiredApprovalLevel === "adosa" 
@@ -246,6 +260,7 @@ export const getAllExtensionRequests = async (req, res) => {
 
 export const approveExtensionRequest = async (req, res) => {
     try {
+        const settings = await getSystemSettings();
         const { id } = req.params;
         const { approvedCheckout, approvedAmount } = req.body;
         
@@ -257,21 +272,19 @@ export const approveExtensionRequest = async (req, res) => {
         }
         
         const userRole = req.user.role;
-        const days = Math.ceil((new Date(request.requestedCheckout) - new Date(request.oldCheckout)) / (1000 * 3600 * 24));
-        
-        // ✅ FIX: Three-tier approval validation:
-        // - DoSA: Can approve all
-        // - ADOSA: Can approve 2 < days ≤ 10
-        // - Co-Warden: Can approve days ≤ 2
-        if (userRole === "admin") {
-            // Allowed for all levels
-        } else if (userRole === "adosa") {
-            if (days <= 2) return res.status(403).json({ success: false, message: "ADOSA can only approve 2 < days ≤ 10" });
-            if (days > 10) return res.status(403).json({ success: false, message: "Extensions > 10 days require DoSA approval" });
-        } else if (userRole === "co_warden") {
-            if (days > 2) return res.status(403).json({ success: false, message: "Co-Warden can only approve ≤ 2 days" });
-        } else {
+        const totalStayDays = Math.max(1, Math.round((new Date(request.requestedCheckout) - new Date(request.bookingId?.from || request.oldCheckout)) / (1000 * 3600 * 24)));
+        const requiredLevel = getRequiredExtensionApprovalLevel(totalStayDays, settings);
+
+        if (!["admin", "adosa", "co_warden"].includes(userRole)) {
             return res.status(403).json({ success: false, message: "Permission denied" });
+        }
+
+        if (requiredLevel === "not_allowed") {
+            return res.status(400).json({ success: false, message: "This request exceeds configured extension approval limits" });
+        }
+
+        if (userRole !== "admin" && userRole !== requiredLevel) {
+            return res.status(403).json({ success: false, message: `This request requires ${requiredLevel} approval` });
         }
         
         request.status = "approved";
@@ -385,6 +398,7 @@ export const approveExtensionRequest = async (req, res) => {
 
 export const rejectExtensionRequest = async (req, res) => {
     try {
+        const settings = await getSystemSettings();
         const { id } = req.params;
         const { reason } = req.body;
         
@@ -395,22 +409,16 @@ export const rejectExtensionRequest = async (req, res) => {
              return res.status(400).json({ success: false, message: "Request is not pending" });
         }
         
-        // ✅ FIX: Three-tier rejection validation (same as approval):
-        // - DoSA: Can reject all
-        // - ADOSA: Can reject 2 < days ≤ 10
-        // - Co-Warden: Can reject days ≤ 2
         const userRole = req.user.role;
-        const days = Math.ceil((new Date(request.requestedCheckout) - new Date(request.oldCheckout)) / (1000 * 3600 * 24));
-        
-        if (userRole === "admin") {
-            // Allowed for all levels
-        } else if (userRole === "adosa") {
-            if (days <= 2) return res.status(403).json({ success: false, message: "ADOSA can only reject 2 < days ≤ 10" });
-            if (days > 10) return res.status(403).json({ success: false, message: "Extensions > 10 days require DoSA rejection authority" });
-        } else if (userRole === "co_warden") {
-            if (days > 2) return res.status(403).json({ success: false, message: "Co-Warden can only reject ≤ 2 days" });
-        } else {
+        const totalStayDays = Math.max(1, Math.round((new Date(request.requestedCheckout) - new Date(request.bookingId?.from || request.oldCheckout)) / (1000 * 3600 * 24)));
+        const requiredLevel = getRequiredExtensionApprovalLevel(totalStayDays, settings);
+
+        if (!["admin", "adosa", "co_warden"].includes(userRole)) {
             return res.status(403).json({ success: false, message: "Permission denied" });
+        }
+
+        if (userRole !== "admin" && userRole !== requiredLevel) {
+            return res.status(403).json({ success: false, message: `This request requires ${requiredLevel} approval` });
         }
         
         request.status = "rejected";

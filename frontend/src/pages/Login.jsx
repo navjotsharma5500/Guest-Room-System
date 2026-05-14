@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
-import { User, Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { DEFAULT_SYSTEM_SETTINGS } from "../hooks/useSystemSettings";
+import { getDashboardPath, resolveDashboardAccess } from "../utils/dashboardAccess";
 
 // Images
 import logo from "../assets/thapar_logo.png";
@@ -33,44 +35,21 @@ export default function Login() {
 
   // IMPORTANT: This must stay in sync with getLoginRedirect() in App.js
   const resolveRedirectPath = (userData) => {
+    if (userData?.redirectTo) return userData.redirectTo;
     const userRole = (userData?.role || "").toLowerCase();
-    const userEmail = (userData?.email || "").toLowerCase();
-    const permissions = userData?.permissions || {};
 
-    // 1️⃣ Keep existing adosa2 behavior unchanged
-    if (userEmail === "adosa2@thapar.edu") return "/dashboard";
-
-    // 2️⃣ adosa3 override
-    if (userEmail === "adosa3@thapar.edu") return "/venue-booking";
-
-    // 3️⃣ Caretaker override
-    if (userRole === "caretaker") return "/dashboard";
-
-    // 4️⃣ Guard → Scan page
+    if (userRole === "student") return "/society-night-pass";
+    if (["gen_sec", "president"].includes(userRole)) return "/night-pass";
     if (userRole === "guard") return "/night-pass/scan";
 
-    // 5️⃣ GuestRoom-only permission
-    if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
-
-    // 6️⃣ GuestRoom direct roles
-    if (["manager", "warden", "co_warden"].includes(userRole)) return "/dashboard";
-
-    // 7️⃣ Student → Society Night Pass portal
-    if (userRole === "student") return "/society-night-pass";
-
-    // 8️⃣ Night-only roles (Gen Sec / President) → Night Pass dashboard
-    if (["gen_sec", "president"].includes(userRole)) return "/night-pass";
-
-    // 9️⃣ DD Assistant → Venue Booking
-    if (userRole === "dd_assistant") return "/venue-booking";
-
-    // 🔟 Admin / ADOSA / assistant → Dashboard selector
-    if (["admin", "adosa", "assistant"].includes(userRole)) return "/admin/dashboard-selector";
-
-    // 1️⃣1️⃣ Backend-provided redirect hint, if any
-    if (userData?.redirectTo) return userData.redirectTo;
-
-    // 1️⃣2️⃣ Fallback to login/public selector
+    const dashboardAccess = resolveDashboardAccess(userData, DEFAULT_SYSTEM_SETTINGS);
+    if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {
+      return getDashboardPath(DEFAULT_SYSTEM_SETTINGS, dashboardAccess.dashboards[0]);
+    }
+    if (dashboardAccess.dashboards.length > 1) return "/admin/dashboard-selector";
+    if (dashboardAccess.defaultDashboard) {
+      return getDashboardPath(DEFAULT_SYSTEM_SETTINGS, dashboardAccess.defaultDashboard);
+    }
     return "/";
   };
 

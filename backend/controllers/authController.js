@@ -7,23 +7,16 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { createLog } from "../middleware/logMiddleware.js";
 import { sendEmail } from "../emails/sendEmail.js";
+import { getLoginRedirectForUser, resolveUserDashboardAccess } from "../utils/dashboardAccess.js";
+import { getSystemSettings } from "../utils/systemSettings.js";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: compute login redirect based on role
 // ─────────────────────────────────────────────────────────────────────────────
-const getLoginRedirect = (role, user = null) => {
-  const r = (role || "").toLowerCase();
-  const email = (user?.email || "").toLowerCase();
-  const permissions = user?.permissions || {};
-  if (email === "adosa2@thapar.edu") return "/dashboard";
-  if (r === "guard") return "/dashboard";
-  if (permissions.guestRoom && !permissions.venue && !permissions.night) return "/dashboard";
-  if (["manager", "warden", "co_warden"].includes(r)) return "/dashboard";
-  if (r === "student" || ["president", "gen_sec"].includes(r)) return "/";
-  if (["admin", "adosa", "assistant", "caretaker"].includes(r)) return "/admin/dashboard-selector";
-  if (r === "dd_assistant") return "/venue-booking";
-  return "/";
+const getLoginRedirect = async (role, user = null) => {
+  const settings = await getSystemSettings();
+  return getLoginRedirectForUser({ ...(user || {}), role }, settings);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,6 +27,10 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email: req.body.email });
     if (!user)
       return res.status(404).json({ success: false, message: "User not found" });
+
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: "User account is inactive" });
+    }
 
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (!isMatch)
@@ -55,7 +52,9 @@ export const loginUser = async (req, res) => {
     delete userObj.password;
 
     // ✅ Include redirect hint for frontend
-    userObj.redirectTo = getLoginRedirect(user.role, userObj);
+    const settings = await getSystemSettings();
+    userObj.dashboardAccess = await resolveUserDashboardAccess(userObj, settings);
+    userObj.redirectTo = await getLoginRedirect(user.role, userObj);
 
     return res.json({ success: true, token, user: userObj });
   } catch (error) {
@@ -109,7 +108,9 @@ export const googleLogin = async (req, res) => {
     const userObj = user.toObject();
     delete userObj.password;
 
-    userObj.redirectTo = getLoginRedirect(user.role, userObj);
+    const settings = await getSystemSettings();
+    userObj.dashboardAccess = await resolveUserDashboardAccess(userObj, settings);
+    userObj.redirectTo = await getLoginRedirect(user.role, userObj);
 
     return res.json({ success: true, token: jwtToken, user: userObj });
   } catch (error) {
@@ -208,6 +209,9 @@ export const getMe = async (req, res) => {
 
     const userObj = user.toObject();
     delete userObj.password;
+    const settings = await getSystemSettings();
+    userObj.dashboardAccess = await resolveUserDashboardAccess(userObj, settings);
+    userObj.redirectTo = await getLoginRedirect(user.role, userObj);
 
     return res.status(200).json({ success: true, user: userObj });
   } catch (error) {
