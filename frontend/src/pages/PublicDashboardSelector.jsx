@@ -788,12 +788,12 @@ export default function ThaparPublicDashboard() {
         {/* ══ NAVBAR ══════════════════════════════════ */}
         <header style={{ position:"sticky", top:0, zIndex:300, background:"#fff",
                          borderBottom:"1px solid #e5e7eb", boxShadow:"0 1px 4px rgba(0,0,0,.06)" }}>
-          <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 24px", height:70,
+          <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 24px", minHeight:96,
                         display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
             {/* logo */}
             <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
               <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                alt="Thapar" style={{ height:42, width:"auto", objectFit:"contain" }}/>
+                alt="Thapar" style={{ height:"clamp(56px, 6vw, 72px)", width:"auto", objectFit:"contain" }}/>
               <div>
                 <p style={{ fontSize:12.5, fontWeight:600, color:"#111", lineHeight:1.2, margin:0 }}>
                   Thapar Institute of Engineering and Technology

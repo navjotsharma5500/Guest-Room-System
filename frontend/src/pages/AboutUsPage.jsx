@@ -246,9 +246,9 @@ export default function AboutUsPage() {
           TOP NAVBAR (logo + back)
       ══════════════════════════════════════ */}
       <header style={{ position: "sticky", top: 0, zIndex: 300, background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 68, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", minHeight: 96, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" alt="Thapar" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+            <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" alt="Thapar" style={{ height: "clamp(56px, 6vw, 72px)", width: "auto", objectFit: "contain" }} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#111", lineHeight: 1.2 }}>THAPAR INSTITUTE OF</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#111", lineHeight: 1.2 }}>ENGINEERING &amp; TECHNOLOGY</div>

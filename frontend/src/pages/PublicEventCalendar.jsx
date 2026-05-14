@@ -14,7 +14,6 @@ import {
   Code
 } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
-import thaparLogo from "../assets/thapar_logo.png";
 import { io } from "socket.io-client";
 
 const API = BACKEND_URL;
@@ -454,19 +453,19 @@ export default function PublicEventCalendar() {
         }`}
         style={{ boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
       >
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-          style={{ height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div className="w-full max-w-[1280px] mx-auto px-6"
+          style={{ minHeight: 96, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
 
           {/* Left: Logo + Institute name */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-            <img src={thaparLogo} alt="Thapar Logo"
-              style={{ height: 40, width: "auto", objectFit: "contain" }} />
-            <div className="hidden sm:block">
-              <p className={`text-xs font-bold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                THAPAR INSTITUTE OF
+            <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" alt="Thapar Logo"
+              style={{ height: "clamp(56px, 6vw, 72px)", width: "auto", objectFit: "contain" }} />
+            <div>
+              <p className={`text-[12.5px] font-semibold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                Thapar Institute of Engineering and Technology
               </p>
-              <p className={`text-xs font-bold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                ENGINEERING &amp; TECHNOLOGY
+              <p className={`text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
+                Event Calendar
               </p>
             </div>
           </div>
@@ -482,6 +481,22 @@ export default function PublicEventCalendar() {
 
           {/* Right: Actions buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <a href="/event-calendar/all-events"
+              className={`flex items-center gap-1 border rounded-lg transition-colors font-medium ${
+                theme === "dark"
+                  ? "border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400"
+                  : "border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600"
+              }`}
+              style={{ 
+                padding: "6px 12px",
+                fontSize: "clamp(10px, 2.5vw, 13px)",
+                whiteSpace: "nowrap",
+                textDecoration: "none"
+              }}
+            >
+              <CalendarIcon size={14} /> All Events
+            </a>
+
             <a href="https://campusconnect.thapar.edu/venue-enquiry"
               className={`flex items-center gap-1 border rounded-lg transition-colors font-medium ${
                 theme === "dark"

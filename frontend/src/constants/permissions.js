@@ -4,7 +4,6 @@ export const PERMISSIONS = {
   // Core Dashboards
   DASHBOARD_GUEST: "dashboard.guestRoom",
   DASHBOARD_VENUE: "dashboard.venueBooking",
-  DASHBOARD_NIGHT: "dashboard.nightPermissions",
   DASHBOARD_SELECTOR: "dashboard.selector",
 
   // Venue
@@ -23,11 +22,6 @@ export const PERMISSIONS = {
   // Society Budget
   SOCIETY_BUDGET_VIEW:   "societyBudget.view",
   SOCIETY_BUDGET_MANAGE: "societyBudget.manage",
-  
-  // Night
-  NIGHT_SCAN: "night.scan",
-  NIGHT_ROLE: "night.role",
-  NIGHT_ADMIN: "night.admin",
 
   // Analytics
   ANALYTICS_VIEW: "analytics.view",

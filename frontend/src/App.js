@@ -35,6 +35,7 @@ import VenueBookingDashboard from "./VenueBookingDashboard";
 import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
+import PublicAllEventsPage from "./pages/PublicAllEventsPage";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
@@ -262,9 +263,10 @@ export default function App() {
               PUBLIC ROUTES (no auth required)
               ================================================================ */}
           <Route path="/guest-enquiry"        element={<GuestEnquiryPage />} />
-          <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
-          <Route path="/event-calendar"       element={<PublicEventCalendar />} />
-          <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+            <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
+            <Route path="/event-calendar"       element={<PublicEventCalendar />} />
+            <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
+            <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<AboutUsPage />} />
           <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />

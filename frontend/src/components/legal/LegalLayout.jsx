@@ -33,7 +33,7 @@ export default function LegalLayout({ heroTitle, heroSub, eyebrow, pills = [], c
         }}>
           <div style={{
             maxWidth: 1280, margin: "0 auto", padding: "0 24px",
-            height: 70, display: "flex", alignItems: "center",
+            minHeight: 96, display: "flex", alignItems: "center",
             justifyContent: "space-between", gap: 16,
           }}>
             {/* Logo */}
@@ -45,7 +45,7 @@ export default function LegalLayout({ heroTitle, heroSub, eyebrow, pills = [], c
                 cursor: "pointer", padding: 0,
               }}
             >
-              <img src={LOGO} alt="Thapar" style={{ height: 42, width: "auto", objectFit: "contain" }} />
+              <img src={LOGO} alt="Thapar" style={{ height: "clamp(56px, 6vw, 72px)", width: "auto", objectFit: "contain" }} />
               <div style={{ textAlign: "left" }}>
                 <p style={{ fontSize: 12.5, fontWeight: 600, color: "#111", lineHeight: 1.2, margin: 0 }}>
                   Thapar Institute of Engineering and Technology

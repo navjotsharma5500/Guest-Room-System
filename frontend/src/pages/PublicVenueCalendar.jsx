@@ -684,15 +684,21 @@ export default function PublicVenueCalendar() {
 
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-        <div className="max-w-screen-xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <img src={thaparLogo} alt="Thapar" className="h-7 w-auto" />
-            <div className="hidden sm:block">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none">Thapar Institute</p>
-              <p className="text-sm font-bold text-slate-800 leading-none mt-0.5">Venue Bookings</p>
+        <div className="max-w-[1280px] mx-auto px-6 min-h-24 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 shrink-0">
+            <img
+              src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
+              alt="Thapar"
+              className="h-[clamp(56px,6vw,72px)] w-auto object-contain"
+            />
+            <div>
+              <p className="text-[12.5px] font-semibold text-slate-900 leading-[1.2] m-0">
+                Thapar Institute of Engineering and Technology
+              </p>
+              <p className="text-[11px] font-medium text-red-700 m-0">
+                Venue Bookings
+              </p>
             </div>
-            {/* Mobile: just show title */}
-            <span className="sm:hidden text-sm font-bold text-slate-800">Venue Bookings</span>
           </div>
           <div className="flex items-center gap-1.5">
             <a

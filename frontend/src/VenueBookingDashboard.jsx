@@ -387,7 +387,7 @@ export default function VenueBookingDashboard() {
                 <img 
                   src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" 
                   alt="Thapar Logo" 
-                  className="h-8 w-auto object-contain"
+                  className="h-14 sm:h-[72px] w-auto object-contain"
                 />
                 <span className="hidden sm:inline">Thapar Institute of Engineering & Technology</span>
                 <span className="sm:hidden">Venue Dashboard</span>

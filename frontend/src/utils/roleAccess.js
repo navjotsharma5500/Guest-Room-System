@@ -1,18 +1,14 @@
 // src/utils/roleAccess.js
 
 export const ROLE_ACCESS = {
-  admin:        ["guestroom", "venue", "night", "selector"],
-  adosa:        ["venue", "night", "selector", "guestroom"],
-  assistant:    ["venue", "night", "selector"],
+  admin:        ["guestroom", "venue", "selector"],
+  adosa:        ["venue", "selector", "guestroom"],
+  assistant:    ["venue", "selector"],
   caretaker:    ["guestroom"],
   warden:       ["guestroom"],
   manager:      ["guestroom"],
   co_warden:    ["guestroom"], // ✅ Guest Room ONLY (selector: false, venue: false, night: false)
   dd_assistant: ["venue_limited"],
-  president:    ["night"],
-  gen_sec:      ["night"],
-  guard:        ["night_scan_only"],
-  student:      ["night_student"],
 };
 
 export const hasAccess = (role, resource) => {

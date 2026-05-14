@@ -21,6 +21,24 @@ if (!fs.existsSync(BILLS_DIR)) {
   fs.mkdirSync(BILLS_DIR, { recursive: true });
 }
 
+const hostelScopedBillQuery = (user, baseQuery = {}) => {
+  const role = String(user?.role || "").toLowerCase();
+  const hostel = user?.assignedHostel || user?.hostel;
+
+  if (role === "caretaker" || role === "warden") {
+    if (!hostel) {
+      return { ...baseQuery, _id: { $exists: false } };
+    }
+
+    return {
+      ...baseQuery,
+      hostel,
+    };
+  }
+
+  return baseQuery;
+};
+
 // ============================================
 // 🔥 SINGLE SOURCE OF TRUTH – PAYMENT STATUS
 // ============================================
@@ -732,13 +750,14 @@ export const processWaiver = async (req, res) => {
 export const getWaivedBills = async (req, res) => {
   try {
     const user = req.user;
+    const role = String(user?.role || "").toLowerCase();
 
-    // Role check: Allow Admin, Manager, Co-Warden, and ADOSA (read-only)
-    if (!['admin', 'manager', 'co_warden', 'adosa'].includes(user.role)) {
+    // Role check: admin roles see all; caretaker/warden see only their hostel.
+    if (!['admin', 'manager', 'co_warden', 'adosa', 'caretaker', 'warden'].includes(role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const waivedBills = await Bill.find({ billType: "WAIVER" })
+    const waivedBills = await Bill.find(hostelScopedBillQuery(user, { billType: "WAIVER" }))
       .sort({ createdAt: -1 })
       .populate('waivedBy', 'name email role')
       .populate('createdBy', 'name email role')
@@ -757,12 +776,13 @@ export const getWaivedBills = async (req, res) => {
 export const getCancelledBills = async (req, res) => {
   try {
     const user = req.user;
+    const role = String(user?.role || "").toLowerCase();
 
-    if (!['admin', 'manager', 'adosa', 'assistant', 'warden', 'caretaker', 'co_warden'].includes(user.role)) {
+    if (!['admin', 'manager', 'adosa', 'assistant', 'warden', 'caretaker', 'co_warden'].includes(role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const cancelledBills = await Bill.find({ paymentType: "CANCELLED" })
+    const cancelledBills = await Bill.find(hostelScopedBillQuery(user, { paymentType: "CANCELLED" }))
       .sort({ createdAt: -1 })
       .populate('createdBy', 'name email role')
       .lean();

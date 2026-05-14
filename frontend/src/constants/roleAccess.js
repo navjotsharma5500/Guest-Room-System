@@ -100,27 +100,6 @@ export const ROLE_ACCESS = {
     P.FILTER_VIEW
   ],
 
-  guard: [
-    P.DASHBOARD_NIGHT,
-    P.NIGHT_SCAN,
-  ],
-
-  gen_sec: [
-    P.DASHBOARD_NIGHT,
-    P.NIGHT_ROLE,
-  ],
-
-  president: [
-    P.DASHBOARD_NIGHT,
-    P.NIGHT_ROLE,
-  ],
-
-  student: [
-    P.DASHBOARD_NIGHT,
-    P.CALENDAR_VIEW,
-    P.UPCOMING_VIEW
-  ],
-
   adosa: [
     P.DASHBOARD_VENUE,
     P.DASHBOARD_NIGHT,

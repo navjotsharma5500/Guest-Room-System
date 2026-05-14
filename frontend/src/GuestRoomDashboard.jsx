@@ -36,6 +36,7 @@ import ApprovalPage from "./pages/ApprovalPage";
 import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
+const FULL_SCREEN_HOME_TABS = ["Approvals", "Bills", "DepartmentPayments", "Defaulters", "Feedback"];
 
 export default function GuestRoomDashboard() {
   const navigate = useNavigate();  
@@ -128,6 +129,25 @@ export default function GuestRoomDashboard() {
       setIsSidebarOpen(true);
     }
   }, [activeTab]);
+
+  const goToDashboardHome = useCallback(() => {
+    setActiveTab("Home");
+    setActiveHostel(null);
+    setActiveRoomRef(null);
+  }, []);
+
+  useEffect(() => {
+    if (!FULL_SCREEN_HOME_TABS.includes(activeTab)) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        goToDashboardHome();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [activeTab, goToDashboardHome]);
 
   // 🎯 Swipe Gesture Detection for Mobile Sidebar
   useSwipeGesture(
@@ -1011,10 +1031,7 @@ export default function GuestRoomDashboard() {
             {activeTab === "Approvals" && (
               <ApprovalPage
                 theme={theme}
-                onBack={() => {
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) setActiveHostel(currentUser.assignedHostel);
-                }}
+                onBack={goToDashboardHome}
               />
             )}
 
@@ -1065,12 +1082,7 @@ export default function GuestRoomDashboard() {
               <>
                 {console.log("✅ RENDERING FeedbackPage - activeTab is:", activeTab)}
                 <FeedbackPage
-                  onBack={() => {
-                    setActiveTab("Home");
-                    if (currentUser?.assignedHostel) {
-                      setActiveHostel(currentUser.assignedHostel);
-                    }
-                  }}
+                  onBack={goToDashboardHome}
                   theme={theme}
                 />
               </>   
@@ -1079,12 +1091,7 @@ export default function GuestRoomDashboard() {
             {activeTab === "Defaulters" && (
               <DefaulterManagement
                 currentUser={currentUser}
-                onBack={() => {
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) {
-                    setActiveHostel(currentUser.assignedHostel);
-                  }
-                }}
+                onBack={goToDashboardHome}
                 onOpenPaymentModal={(booking) => {
                   setDefaulterPaymentModal(booking);
                 }}
@@ -1093,12 +1100,7 @@ export default function GuestRoomDashboard() {
 
             {activeTab === "DepartmentPayments" && (
               <DepartmentPaymentsPending
-                onBack={() => {
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) {
-                    setActiveHostel(currentUser.assignedHostel);
-                  }
-                }}
+                onBack={goToDashboardHome}
                 currentUser={currentUser}
                 theme={theme}
               />
@@ -1113,12 +1115,7 @@ export default function GuestRoomDashboard() {
 
             {activeTab === "Bills" && (
               <WaivedBillsPage
-                onBack={() => {
-                  setActiveTab("Home");
-                  if (currentUser?.assignedHostel) {
-                    setActiveHostel(currentUser.assignedHostel);
-                  }
-                }}
+                onBack={goToDashboardHome}
                 theme={theme}
                 currentUser={currentUser}
               />
