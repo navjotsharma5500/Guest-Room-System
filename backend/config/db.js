@@ -21,7 +21,17 @@ const connectDB = async () => {
       console.log("📌 Using URL:", urlPreview);
 
       await mongoose.connect(process.env.MONGO_URL, {
-        serverSelectionTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 30000,
+
+        maxPoolSize: 10,
+        minPoolSize: 2,
+
+        retryWrites: true,
+        retryReads: true,
+
+        family: 4,
       });
 
       console.log("🟢 MongoDB Connected Successfully 🚀");

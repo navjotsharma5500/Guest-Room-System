@@ -605,15 +605,22 @@ const startServer = async () => {
     startAnalyticsEmailCronJobs();
     scheduleCleanupJob();
 
+    if (!server.listening) {
     server.listen(PORT, () => {
-      console.log(`ðŸ¨ Server running on port ${PORT}`);
-      console.log(`ðŸ“± iOS Safari supported`);
-      console.log(`ðŸŒ Allowed origins:`, allowedOrigins);
-      console.log(`ðŸ”Œ Socket.IO ready`);
+      console.log(`🏨 Server running on port ${PORT}`);
+      console.log(`📱 iOS Safari supported`);
+      console.log(`🌐 Allowed origins:`, allowedOrigins);
+      console.log(`🔌 Socket.IO ready`);
     });
+  }
   } catch (err) {
-    console.error("âŒ Server startup failed:", err);
-    process.exit(1);
+    console.error("❌ Server startup failed:", err);
+
+    console.log("🔄 Retrying server startup in 15 seconds...");
+
+    setTimeout(() => {
+      startServer();
+    }, 15000);
   }
 };
 
