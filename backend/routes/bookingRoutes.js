@@ -80,6 +80,54 @@ router.put("/:id/reported", protect, markReported);
 router.put("/:id/not-reported", protect, markNotReported);
 router.put("/:id/checkout", protect, checkOutGuest);
 
+router.post("/:id/attachments", protect, async (req, res) => {
+  try {
+    const { type, attachments } = req.body;
+    const fieldByType = {
+      enquiry: "files",
+      approval: "approvalDocuments",
+      paid: "paymentAttachments",
+      extension: "extensionAttachments",
+    };
+
+    const field = fieldByType[String(type || "").toLowerCase()];
+    if (!field) {
+      return res.status(400).json({ success: false, message: "Invalid attachment tab" });
+    }
+
+    const files = Array.isArray(attachments)
+      ? attachments.map((item) => String(item || "").trim()).filter(Boolean)
+      : [];
+
+    if (files.length === 0) {
+      return res.status(400).json({ success: false, message: "At least one attachment is required" });
+    }
+
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    booking[field] = [...(Array.isArray(booking[field]) ? booking[field] : []), ...files];
+    await booking.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-updated", {
+        bookingId: booking._id,
+        hostel: booking.hostel,
+        roomNo: booking.roomNo,
+        reason: "attachments-added",
+        timestamp: Date.now(),
+      });
+    }
+
+    return res.json({ success: true, message: "Attachments added", booking: normalizeBooking(booking) });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /* =============================================================
    HELPER: NORMALIZE BOOKING (CRITICAL FIX)
 ============================================================= */

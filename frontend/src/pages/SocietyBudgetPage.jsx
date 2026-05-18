@@ -20,6 +20,8 @@ import {
   Loader,
   FileText,
   Image as ImageIcon,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import {
@@ -82,7 +84,7 @@ function AttachmentPreview({ url, type }) {
 }
 
 // ─── Society List View ────────────────────────────────────────────────────────
-function SocietyListView({ budgets, loading, theme, onSelect, searchQuery, setSearchQuery }) {
+function SocietyListView({ budgets, loading, theme, onSelect, searchQuery, setSearchQuery, isAdmin, onEditSociety, onDeleteSociety }) {
   const filtered = budgets.filter(b =>
     b.societyName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -154,15 +156,43 @@ function SocietyListView({ budgets, loading, theme, onSelect, searchQuery, setSe
                       ID: {budget.societyId}
                     </p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    balance <= 0
-                      ? "bg-red-100 text-red-700"
-                      : balance < budget.totalAllocated * 0.2
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-green-100 text-green-700"
-                  }`}>
-                    ₹{Number(balance).toLocaleString("en-IN")} left
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                      balance <= 0
+                        ? "bg-red-100 text-red-700"
+                        : balance < budget.totalAllocated * 0.2
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-green-100 text-green-700"
+                    }`}>
+                      ₹{Number(balance).toLocaleString("en-IN")} left
+                    </span>
+                    {isAdmin && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEditSociety(budget);
+                          }}
+                          className={`p-1.5 rounded-lg transition ${theme === "dark" ? "hover:bg-[#3c4043] text-blue-300" : "hover:bg-blue-50 text-blue-600"}`}
+                          title="Edit society"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteSociety(budget);
+                          }}
+                          className={`p-1.5 rounded-lg transition ${theme === "dark" ? "hover:bg-[#3c4043] text-red-300" : "hover:bg-red-50 text-red-600"}`}
+                          title="Delete society"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Progress bar */}
@@ -194,9 +224,10 @@ function SocietyListView({ budgets, loading, theme, onSelect, searchQuery, setSe
 }
 
 // ─── Society Detail View ──────────────────────────────────────────────────────
-function SocietyDetailView({ budget, expenses, theme, isAdmin, onAddBudget, onAddExpense, loading }) {
+function SocietyDetailView({ budget, expenses, theme, isAdmin, onAddBudget, onAddExpense, onEditExpense, onDeleteExpense, loading }) {
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const balance = (budget.totalAllocated || 0) - (budget.totalSpent || 0);
 
@@ -268,6 +299,23 @@ function SocietyDetailView({ budget, expenses, theme, isAdmin, onAddBudget, onAd
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {editingExpense && (
+          <ExpenseForm
+            theme={theme}
+            balance={balance + Number(editingExpense.amount || 0)}
+            initialData={editingExpense}
+            title="Edit Expense"
+            submitLabel="Update Expense"
+            onSubmit={async (data) => {
+              await onEditExpense(editingExpense._id, data);
+              setEditingExpense(null);
+            }}
+            onClose={() => setEditingExpense(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Expenses list */}
       <div>
         <h3 className={`text-base font-semibold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
@@ -307,9 +355,27 @@ function SocietyDetailView({ budget, expenses, theme, isAdmin, onAddBudget, onAd
                       })}
                     </p>
                   </div>
-                  <span className="text-red-500 font-bold text-sm whitespace-nowrap">
-                    −₹{Number(exp.amount).toLocaleString("en-IN")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-500 font-bold text-sm whitespace-nowrap">
+                      −₹{Number(exp.amount).toLocaleString("en-IN")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingExpense(exp)}
+                      className={`p-1.5 rounded-lg transition ${theme === "dark" ? "hover:bg-[#3c4043] text-blue-300" : "hover:bg-blue-50 text-blue-600"}`}
+                      title="Edit expense"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteExpense(exp)}
+                      className={`p-1.5 rounded-lg transition ${theme === "dark" ? "hover:bg-[#3c4043] text-red-300" : "hover:bg-red-50 text-red-600"}`}
+                      title="Delete expense"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
                 {/* Attachments */}
                 {exp.attachments?.length > 0 && (
@@ -412,10 +478,10 @@ function BudgetAllocateForm({ theme, onSubmit, onClose }) {
 }
 
 // ─── Expense Form with ImageKit Upload ───────────────────────────────────────
-function ExpenseForm({ theme, balance, onSubmit, onClose }) {
-  const [description, setDescription] = useState("");
-  const [amount, setAmount]     = useState("");
-  const [attachments, setAttachments] = useState([]); // [{url, type}]
+function ExpenseForm({ theme, balance, onSubmit, onClose, initialData = null, title = "Add Expense", submitLabel = "Save Expense" }) {
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [amount, setAmount]     = useState(initialData?.amount ? String(initialData.amount) : "");
+  const [attachments, setAttachments] = useState(Array.isArray(initialData?.attachments) ? initialData.attachments : []); // [{url, type}]
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState("");
   const [loading, setLoading]   = useState(false);
@@ -470,7 +536,7 @@ function ExpenseForm({ theme, balance, onSubmit, onClose }) {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <h4 className={`font-semibold text-sm ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-            Add Expense
+            {title}
           </h4>
 
           {error && (
@@ -586,7 +652,7 @@ function ExpenseForm({ theme, balance, onSubmit, onClose }) {
               disabled={loading || uploading}
               className="px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50"
             >
-              {loading ? "Saving…" : "Save Expense"}
+              {loading ? "Saving…" : submitLabel}
             </button>
           </div>
         </form>
@@ -724,6 +790,83 @@ function AddSocietyModal({ theme, onClose, onCreated, societySuggestions }) {
   );
 }
 
+function EditSocietyModal({ theme, budget, onClose, onSubmit }) {
+  const [societyName, setSocietyName] = useState(budget?.societyName || "");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!societyName.trim()) return;
+    setLoading(true);
+    try {
+      await onSubmit({ societyName: societyName.trim() });
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.95 }}
+        onClick={e => e.stopPropagation()}
+        className={`w-full max-w-md rounded-2xl p-6 shadow-2xl ${theme === "dark" ? "bg-[#292a2d]" : "bg-white"}`}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className={`text-lg font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
+            Edit Society
+          </h2>
+          <button onClick={onClose} className={`p-1.5 rounded-lg ${theme === "dark" ? "hover:bg-[#3c4043] text-gray-400" : "hover:bg-gray-100 text-gray-500"}`}>
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className={`block text-xs font-medium mb-1.5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+              Society Name *
+            </label>
+            <input
+              type="text"
+              value={societyName}
+              onChange={e => setSocietyName(e.target.value)}
+              required
+              className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none ${
+                theme === "dark"
+                  ? "bg-[#3c4043] border-[#5f6368] text-gray-100"
+                  : "bg-white border-gray-200 text-gray-800"
+              }`}
+            />
+            <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+              Society ID remains unchanged: {budget?.societyId}
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end pt-1">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-xl border border-gray-300 hover:bg-gray-100 transition">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+            >
+              {loading ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
   const [budgets, setBudgets]       = useState([]);
@@ -733,6 +876,7 @@ export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSociety, setEditingSociety] = useState(null);
   const [societySuggestions, setSocietySuggestions] = useState([]);
   const [toast, setToast] = useState(null);
 
@@ -838,6 +982,86 @@ export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
     }
   }, [selectedBudget, fetchBudgets]);
 
+  const handleEditSociety = useCallback(async (budget, { societyName }) => {
+    try {
+      const res = await fetch(`${API}/api/societies/${encodeURIComponent(budget.societyId)}/budget`, {
+        method: "PUT",
+        headers: authHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ societyName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      showToast("Society updated successfully");
+      setBudgets(prev => prev.map(item => item.societyId === budget.societyId ? data.budget : item));
+      if (selectedBudget?.societyId === budget.societyId) setSelectedBudget(data.budget);
+      fetchBudgets();
+    } catch (err) {
+      showToast(err.message, "error");
+      throw err;
+    }
+  }, [fetchBudgets, selectedBudget]);
+
+  const handleDeleteSociety = useCallback(async (budget) => {
+    if (!window.confirm(`Delete "${budget.societyName}" and all its expenses? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/api/societies/${encodeURIComponent(budget.societyId)}/budget`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      showToast("Society deleted successfully");
+      setBudgets(prev => prev.filter(item => item.societyId !== budget.societyId));
+      if (selectedBudget?.societyId === budget.societyId) {
+        setSelectedBudget(null);
+        setExpenses([]);
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }, [selectedBudget]);
+
+  const handleEditExpense = useCallback(async (expenseId, { description, amount, attachments }) => {
+    try {
+      const res = await fetch(`${API}/api/societies/expenses/${encodeURIComponent(expenseId)}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ description, amount, attachments }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      showToast("Expense updated successfully");
+      setSelectedBudget(data.budget);
+      setExpenses(prev => prev.map(exp => exp._id === expenseId ? data.expense : exp));
+      fetchBudgets();
+    } catch (err) {
+      showToast(err.message, "error");
+      throw err;
+    }
+  }, [fetchBudgets]);
+
+  const handleDeleteExpense = useCallback(async (expense) => {
+    if (!window.confirm(`Delete this expense of ₹${Number(expense.amount || 0).toLocaleString("en-IN")}?`)) return;
+    try {
+      const res = await fetch(`${API}/api/societies/expenses/${encodeURIComponent(expense._id)}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      showToast("Expense deleted successfully");
+      setSelectedBudget(data.budget);
+      setExpenses(prev => prev.filter(exp => exp._id !== expense._id));
+      fetchBudgets();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }, [fetchBudgets]);
+
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       {/* Page header */}
@@ -888,6 +1112,8 @@ export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
           isAdmin={isAdmin}
           onAddBudget={handleAddBudget}
           onAddExpense={handleAddExpense}
+          onEditExpense={handleEditExpense}
+          onDeleteExpense={handleDeleteExpense}
           loading={loadingDetail}
         />
       ) : (
@@ -898,6 +1124,9 @@ export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
           onSelect={handleSelectSociety}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          isAdmin={isAdmin}
+          onEditSociety={setEditingSociety}
+          onDeleteSociety={handleDeleteSociety}
         />
       )}
 
@@ -914,6 +1143,14 @@ export default function SocietyBudgetPage({ theme = "dark", currentUser }) {
               await handleSelectSociety(newBudget);
             }}
             societySuggestions={societySuggestions}
+          />
+        )}
+        {editingSociety && (
+          <EditSocietyModal
+            theme={theme}
+            budget={editingSociety}
+            onClose={() => setEditingSociety(null)}
+            onSubmit={(payload) => handleEditSociety(editingSociety, payload)}
           />
         )}
       </AnimatePresence>

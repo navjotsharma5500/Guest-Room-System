@@ -522,6 +522,32 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       showToast(err.message || "Failed to rejoin booking", "error");
     }
   };
+
+  const handleAddBookingAttachments = async ({ type, files }) => {
+    const bookingId = b._id || b.id;
+    if (!bookingId) {
+      throw new Error("Booking ID not found");
+    }
+
+    const token = localStorage.getItem("token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(`${API}/api/bookings/${bookingId}/attachments`, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: JSON.stringify({ type, attachments: files }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success || !data.booking) {
+      throw new Error(data.message || "Failed to add attachments");
+    }
+
+    setBooking(normalizeBooking(data.booking));
+    showToast("✅ Attachments added successfully", "success");
+  };
   
   // ============================================================================
   // ✅ ADVANCED GUEST PROFILE PDF GENERATOR
@@ -1515,6 +1541,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           }
           
           theme={theme}
+          onAddAttachments={handleAddBookingAttachments}
         />
 
         {/* Cancel Modal */}

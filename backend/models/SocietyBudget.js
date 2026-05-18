@@ -12,7 +12,7 @@ const AttachmentSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// ─── Expense (immutable once created) ────────────────────────────────────────
+// ─── Expense ─────────────────────────────────────────────────────────────────
 const SocietyExpenseSchema = new mongoose.Schema(
   {
     societyId:   { type: String, required: true, index: true },
@@ -54,7 +54,7 @@ SocietyBudgetSchema.set("toObject", { virtuals: true });
 const SocietyBudgetLogSchema = new mongoose.Schema(
   {
     societyId:   { type: String, required: true, index: true },
-    action:      { type: String, enum: ["ADD_BUDGET", "ADD_EXPENSE"], required: true },
+    action:      { type: String, enum: ["ADD_BUDGET", "ADD_EXPENSE", "EDIT_EXPENSE", "DELETE_EXPENSE", "EDIT_SOCIETY", "DELETE_SOCIETY"], required: true },
     amount:      { type: Number, required: true },
     referenceId: { type: mongoose.Schema.Types.ObjectId }, // expenseId or n/a
     performedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

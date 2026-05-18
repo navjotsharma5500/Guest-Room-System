@@ -37,6 +37,10 @@ import { BACKEND_URL } from "./utils/apiConfig";
 
 const API = BACKEND_URL;
 const FULL_SCREEN_HOME_TABS = ["Approvals", "Bills", "DepartmentPayments", "Defaulters", "Feedback"];
+const getScreenSaverStorageKey = (user) => {
+  const email = user?.email || user?.user?.email || "default";
+  return `screenSaverEnabled:${email}`;
+};
 
 export default function GuestRoomDashboard() {
   const navigate = useNavigate();  
@@ -62,6 +66,9 @@ export default function GuestRoomDashboard() {
   // Screen Saver
   const isIdle = useIdleTimeout(2); // 5 minutes idle timeout
   const [showScreenSaver, setShowScreenSaver] = useState(false);
+  const [screenSaverEnabled, setScreenSaverEnabled] = useState(
+    localStorage.getItem("screenSaverEnabled:default") !== "false"
+  );
 
   // Profile Modal
   const [profileOpen, setProfileOpen] = useState(false);
@@ -177,12 +184,27 @@ export default function GuestRoomDashboard() {
     setCurrentUserData(currentUser);
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    const key = getScreenSaverStorageKey(currentUser);
+    const saved = localStorage.getItem(key);
+    setScreenSaverEnabled(saved !== "false");
+  }, [currentUser]);
+
+  useEffect(() => {
+    const key = getScreenSaverStorageKey(currentUser);
+    localStorage.setItem(key, screenSaverEnabled ? "true" : "false");
+  }, [currentUser, screenSaverEnabled]);
+
   // Show screen saver when idle
   useEffect(() => {
-    if (isIdle) {
+    if (isIdle && screenSaverEnabled) {
       setShowScreenSaver(true);
     }
-  }, [isIdle]);
+    if (!screenSaverEnabled) {
+      setShowScreenSaver(false);
+    }
+  }, [isIdle, screenSaverEnabled]);
 
   // Theme + notifications save
   useEffect(() => {
@@ -1023,6 +1045,8 @@ export default function GuestRoomDashboard() {
                 setTheme={setTheme}
                 notificationsEnabled={notificationsEnabled}
                 setNotificationsEnabled={setNotificationsEnabled}
+                screenSaverEnabled={screenSaverEnabled}
+                setScreenSaverEnabled={setScreenSaverEnabled}
                 setActiveTab={setActiveTab}
                 hostelData={hostelData}
               />
@@ -1183,7 +1207,7 @@ export default function GuestRoomDashboard() {
         />
         {/* ✅ SCREEN SAVER - RENDERS OVER EVERYTHING */}
         <ScreenSaver
-          isActive={showScreenSaver}
+          isActive={screenSaverEnabled && showScreenSaver}
           onDismiss={() => setShowScreenSaver(false)}
         />
       </ToastProvider>

@@ -25,6 +25,8 @@ export default function SettingsPage({
   setTheme,
   notificationsEnabled,
   setNotificationsEnabled,
+  screenSaverEnabled = true,
+  setScreenSaverEnabled = () => {},
   setActiveTab,
   hostelData = {},
   setHostelData = () => {},
@@ -633,6 +635,61 @@ export default function SettingsPage({
                   Dark
                 </button>
               </div>
+            </div>
+          </motion.div>
+
+          {/* ===================== SCREEN SAVER ===================== */}
+          <motion.div
+            whileHover={{ y: -4 }}
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+              theme === "dark"
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-50 rounded-full flex-shrink-0">
+                  <Sun className="text-red-600 w-5 h-5" />
+                </div>
+
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold text-red-700">
+                    Screen Saver
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Show animated screen saver when this user is idle.
+                  </p>
+                </div>
+              </div>
+
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={screenSaverEnabled}
+                  onChange={(e) => {
+                    setScreenSaverEnabled(e.target.checked);
+                    showToast(
+                      e.target.checked
+                        ? "Screen saver enabled"
+                        : "Screen saver disabled",
+                      "info"
+                    );
+                  }}
+                  className="hidden"
+                />
+                <span
+                  className={`w-14 h-8 flex items-center rounded-full p-1 transition ${
+                    screenSaverEnabled ? "bg-red-600" : "bg-gray-400"
+                  }`}
+                >
+                  <span
+                    className={`bg-white w-6 h-6 rounded-full shadow-md transform transition ${
+                      screenSaverEnabled ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+              </label>
             </div>
           </motion.div>
 
