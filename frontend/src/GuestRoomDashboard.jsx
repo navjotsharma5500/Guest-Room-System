@@ -19,6 +19,8 @@ import DefaulterManagement from "./pages/DefaulterManagement";
 import DepartmentPaymentsPending from "./pages/DepartmentPaymentsPending";
 import BookingsPage from "./pages/BookingsPage";
 import WaivedBillsPage from "./pages/WaivedBillsPage";
+import BroadcastPage from "./pages/BroadcastPage";
+import SupportRequestsPage from "./pages/SupportRequestsPage";
 
 import ProfileModal from "./components/ProfileModal";
 import ExtensionModal from "./components/ExtensionModal";
@@ -34,9 +36,10 @@ import ScreenSaver from "./components/ScreenSaver";
 import { useSwipeGesture } from "./hooks/useSwipeGesture";
 import ApprovalPage from "./pages/ApprovalPage";
 import { BACKEND_URL } from "./utils/apiConfig";
+import useSystemSettings from "./hooks/useSystemSettings";
 
 const API = BACKEND_URL;
-const FULL_SCREEN_HOME_TABS = ["Approvals", "Bills", "DepartmentPayments", "Defaulters", "Feedback"];
+const FULL_SCREEN_HOME_TABS = ["Approvals", "Bills", "DepartmentPayments", "Defaulters", "Feedback", "BroadcastCenter", "SupportRequests"];
 const getScreenSaverStorageKey = (user) => {
   const email = user?.email || user?.user?.email || "default";
   return `screenSaverEnabled:${email}`;
@@ -45,6 +48,8 @@ const getScreenSaverStorageKey = (user) => {
 export default function GuestRoomDashboard() {
   const navigate = useNavigate();  
   const { currentUser, loading, logout } = useAuth();
+  const { settings } = useSystemSettings();
+  const cleaningEnabled = settings?.operations?.enableCleaningWorkflow !== false;
   
   // Extract user role
   const role = currentUser?.role || currentUser?.user?.role;
@@ -75,18 +80,34 @@ export default function GuestRoomDashboard() {
 
   // Navigation & Selection
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "Home");
+  const [activeTab, setActiveTab] = useState(
+    location.pathname === "/broadcast-center"
+      ? "BroadcastCenter"
+      : location.pathname === "/support-requests"
+        ? "SupportRequests"
+        : location.state?.activeTab || "Home"
+  );
   const [activeHostel, setActiveHostel] = useState(null);
   const [activeRoomRef, setActiveRoomRef] = useState(null);
 
   // Read activeTab from navigation state (set by DashboardSelector)
   useEffect(() => {
+    if (location.pathname === "/broadcast-center") {
+      setActiveTab("BroadcastCenter");
+      return;
+    }
+
+    if (location.pathname === "/support-requests") {
+      setActiveTab("SupportRequests");
+      return;
+    }
+
     if (location.state?.activeTab) {
       setActiveTab(location.state.activeTab);
       // Clear so back-navigation doesn't re-trigger
       window.history.replaceState({}, document.title);
     }
-  }, [location.state?.activeTab]);
+  }, [location.pathname, location.state?.activeTab]);
 
   // 🔍 DEBUG: track active tab
   console.log("🧭 Dashboard activeTab =", activeTab);
@@ -129,7 +150,7 @@ export default function GuestRoomDashboard() {
 
   // ✅ Auto-Hide Sidebar for specific pages
   useEffect(() => {
-    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry", "Bills", "Approvals", "AllHostelsPortal"];
+    const fullScreenPages = ["Bookings", "Feedback", "Defaulters", "DepartmentPayments", "Analytics", "Settings", "Enquiry", "Bills", "Approvals", "AllHostelsPortal", "BroadcastCenter", "SupportRequests"];
     if (fullScreenPages.includes(activeTab)) {
       setIsSidebarOpen(false);
     } else {
@@ -149,12 +170,15 @@ export default function GuestRoomDashboard() {
     const handleEscape = (event) => {
       if (event.key === "Escape") {
         goToDashboardHome();
+        if (["/broadcast-center", "/support-requests"].includes(location.pathname)) {
+          navigate("/dashboard");
+        }
       }
     };
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [activeTab, goToDashboardHome]);
+  }, [activeTab, goToDashboardHome, location.pathname, navigate]);
 
   // 🎯 Swipe Gesture Detection for Mobile Sidebar
   useSwipeGesture(
@@ -355,7 +379,7 @@ export default function GuestRoomDashboard() {
     const rooms = hostelData[hostel]?.rooms || [];
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.isBlocked || (r.bookings && r.bookings.length > 0)
+      (r) => r.isBlocked || (cleaningEnabled && r.roomState === "cleaning_pending") || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };
@@ -365,7 +389,7 @@ export default function GuestRoomDashboard() {
     const rooms = Object.values(hostelData).flatMap((h) => h.rooms || []);
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.isBlocked || (r.bookings && r.bookings.length > 0)
+      (r) => r.isBlocked || (cleaningEnabled && r.roomState === "cleaning_pending") || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };
@@ -949,7 +973,7 @@ export default function GuestRoomDashboard() {
                   activeHostel={activeHostel}
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals", "BroadcastCenter", "SupportRequests"].includes(prev) ? prev : "Home"));
                     setMobileMenuOpen(false); // Close menu after selection
                   }}
                   setActiveRoomRef={setActiveRoomRef}
@@ -981,7 +1005,7 @@ export default function GuestRoomDashboard() {
                   setActiveHostel={(hostel) => {
                     setActiveHostel(hostel);
                     // ⚠️ Do NOT override Defaulters or Feedback tabs
-                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals"].includes(prev) ? prev : "Home"));
+                    setActiveTab((prev) => (["Defaulters", "Feedback", "DepartmentPayments", "Bookings", "Bills", "Approvals", "BroadcastCenter", "SupportRequests"].includes(prev) ? prev : "Home"));
                   }}
                   setActiveRoomRef={setActiveRoomRef}
                   hostelData={hostelData}
@@ -1142,6 +1166,27 @@ export default function GuestRoomDashboard() {
                 onBack={goToDashboardHome}
                 theme={theme}
                 currentUser={currentUser}
+              />
+            )}
+
+            {activeTab === "BroadcastCenter" && (
+              <BroadcastPage
+                currentUser={currentUser}
+                onBack={() => {
+                  goToDashboardHome();
+                  navigate("/dashboard");
+                }}
+              />
+            )}
+
+            {activeTab === "SupportRequests" && (
+              <SupportRequestsPage
+                currentUser={currentUser}
+                theme={theme}
+                onBack={() => {
+                  goToDashboardHome();
+                  navigate("/dashboard");
+                }}
               />
             )}
           </main>  

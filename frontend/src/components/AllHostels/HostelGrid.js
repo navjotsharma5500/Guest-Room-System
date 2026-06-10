@@ -3,6 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Building2 } from "lucide-react";
 import RoomCard from "../RoomCard";
+import useSystemSettings from "../../hooks/useSystemSettings";
 
 export default function HostelGrid({
   hostelData,
@@ -18,6 +19,8 @@ export default function HostelGrid({
   onBlockedClick,
   showToast,
 }) {
+  const { settings } = useSystemSettings();
+  const cleaningEnabled = settings?.operations?.enableCleaningWorkflow !== false;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -57,6 +60,7 @@ export default function HostelGrid({
         // Count blocked rooms as occupied in the summary, same as booked/checked-in rooms.
         const occupied = rooms.filter((r) => {
           if (r.isBlocked) return true;
+          if (cleaningEnabled && r.roomState === "cleaning_pending") return true;
           const activeBookings = getActiveBookings(r.bookings || []);
           return activeBookings.length > 0;
         }).length;
@@ -129,7 +133,12 @@ export default function HostelGrid({
                   blockRemarks: room.blockRemarks,
                   blockAttachments: room.blockAttachments,
                   blockedAt: room.blockedAt,
-                  blockedBy: room.blockedBy
+                  blockedBy: room.blockedBy,
+                  roomState: room.roomState || "available",
+                  cleaningPendingSince: room.cleaningPendingSince,
+                  lastCheckoutBookingId: room.lastCheckoutBookingId,
+                  lastCleanedAt: room.lastCleanedAt,
+                  lastCleanedBy: room.lastCleanedBy
                 };
 
                 return (

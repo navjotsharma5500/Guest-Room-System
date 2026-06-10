@@ -19,6 +19,7 @@ import PaymentModal from "./PaymentModal";
 import ExtensionModal from "./ExtensionModal";
 import HostelMenuButton from "./HostelMenuButton";
 import { BlockRoomModal, UnblockRoomModal, BlockedRoomInfoModal } from "./RoomBlockingModals";
+import DashboardBroadcastPanel from "./Broadcast/DashboardBroadcastPanel";
 
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendarCustom.css";
@@ -113,6 +114,26 @@ export default function MainContent(props) {
   const [downloadFromDate, setDownloadFromDate] = useState("");
   const [downloadToDate, setDownloadToDate] = useState("");
   const [showCalendarPage, setShowCalendarPage] = useState(false);
+  const [ratingAnalytics, setRatingAnalytics] = useState(null);
+
+  useEffect(() => {
+    const loadRatingAnalytics = async () => {
+      try {
+        const res = await fetch("/api/feedback/analytics?global=true", { credentials: "include" });
+        const data = await res.json();
+        if (res.ok) setRatingAnalytics(data.analytics || null);
+      } catch (err) {
+        console.warn("Feedback rating analytics unavailable", err);
+      }
+    };
+
+    loadRatingAnalytics();
+  }, []);
+
+  const getHostelRating = useCallback((hostelName) => {
+    const row = (ratingAnalytics?.hostelRankings || []).find((item) => item.hostel === hostelName);
+    return row ? Number(row.averageRating || 0).toFixed(1) : null;
+  }, [ratingAnalytics]);
 
   // ✅ Auto-hide sidebar when calendar page opens
   useEffect(() => {
@@ -1293,6 +1314,42 @@ export default function MainContent(props) {
                   </div>
                 )}
               </div>
+
+              <DashboardBroadcastPanel
+                currentUser={currentUser}
+                theme={theme}
+              />
+
+              {ratingAnalytics && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                  <div className={`rounded-2xl border p-4 shadow-sm ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  }`}>
+                    <p className="text-xs uppercase tracking-[0.18em] text-gray-400 font-semibold">Top Rated Hostel</p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                        {ratingAnalytics.topRatedHostel?.hostel || "No hostel yet"}
+                      </p>
+                      <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
+                        ⭐ {Number(ratingAnalytics.topRatedHostel?.averageRating || 0).toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`rounded-2xl border p-4 shadow-sm ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  }`}>
+                    <p className="text-xs uppercase tracking-[0.18em] text-gray-400 font-semibold">Most Reviewed Hostel</p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                        {ratingAnalytics.mostReviewedHostel?.hostel || "No hostel yet"}
+                      </p>
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
+                        {ratingAnalytics.mostReviewedHostel?.totalReviews || 0} review(s)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}  
 
@@ -1406,6 +1463,11 @@ export default function MainContent(props) {
                             }`}
                           >
                             {name}
+                            {getHostelRating(name) && (
+                              <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                                ⭐ {getHostelRating(name)}
+                              </span>
+                            )}
                           </h3>
 
                           {(h.rooms || []).map((room) => (
@@ -1455,6 +1517,11 @@ export default function MainContent(props) {
                               theme === "dark" ? "text-white" : "text-gray-900"
                             }`}>
                               {activeHostel}
+                              {getHostelRating(activeHostel) && (
+                                <span className="ml-3 align-middle rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
+                                  ⭐ {getHostelRating(activeHostel)}
+                                </span>
+                              )}
                             </h2>
                             <p className={`text-sm ${
                               theme === "dark" ? "text-gray-300" : "text-gray-700"

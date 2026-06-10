@@ -90,6 +90,43 @@ socket.on("venue-enquiry-updated", (data) => {
   window.dispatchEvent(new CustomEvent("venueEnquiryUpdated", { detail: data }));
 });
 
+// Broadcast events
+socket.on("broadcast_sent", (data) => {
+  window.dispatchEvent(new CustomEvent("broadcastSent", { detail: data }));
+});
+
+socket.on("guest_support_request", (data) => {
+  window.dispatchEvent(new CustomEvent("guestSupportRequest", { detail: data }));
+});
+
+socket.on("new_medical_request", (data) => {
+  window.dispatchEvent(new CustomEvent("newMedicalRequest", { detail: data }));
+});
+
+socket.on("new_cleaning_request", (data) => {
+  window.dispatchEvent(new CustomEvent("newCleaningRequest", { detail: data }));
+});
+
+socket.on("new_maintenance_request", (data) => {
+  window.dispatchEvent(new CustomEvent("newMaintenanceRequest", { detail: data }));
+});
+
+socket.on("new_sos_alert", (data) => {
+  window.dispatchEvent(new CustomEvent("newSosAlert", { detail: data }));
+});
+
+socket.on("support_request_updated", (data) => {
+  window.dispatchEvent(new CustomEvent("supportRequestUpdated", { detail: data }));
+});
+
+socket.on("guest_flagged", (data) => {
+  window.dispatchEvent(new CustomEvent("guestFlagged", { detail: data }));
+});
+
+socket.on("guest_blocked", (data) => {
+  window.dispatchEvent(new CustomEvent("guestBlocked", { detail: data }));
+});
+
 // ✅ ADD THIS BLOCK:
 // Cron job events
 socket.on("bookingDataUpdated", (data) => {

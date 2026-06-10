@@ -23,6 +23,26 @@ export const getPublicSettings = async (_req, res) => {
       settings: {
         bookingDays: settings.bookingDays,
         extensionRules: settings.extensionRules,
+        operations: settings.operations || {
+          enableBroadcastCenter: true,
+          enableCleaningWorkflow: true,
+          enableGuestSupportPortal: true,
+          enableGuestFlagging: true,
+        },
+        flagRules: settings.flagRules || {
+          yellowThreshold: 3,
+          orangeThreshold: 2,
+          redThreshold: 1,
+        },
+        cleaning: settings.cleaning || {
+          enableCleaningChecklist: true,
+          enableCleaningRequests: false,
+        },
+        support: settings.support || {
+          enableMedicalRequests: true,
+          enableMaintenanceRequests: true,
+          enableSosAlerts: true,
+        },
         dashboardRegistry: settings.dashboardRegistry || [],
       },
     });

@@ -1,6 +1,6 @@
 // GuestActions.jsx - UPDATED: Added Payment Waiver button for Admin/Manager
 import React from "react";
-import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff } from "lucide-react";
+import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import useSystemSettings from "../../hooks/useSystemSettings";
@@ -19,6 +19,7 @@ export default function GuestActions({
   onDirectExtendBooking,
   onCancelBooking,
   onRejoinBooking,
+  onFlagGuest,
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
@@ -67,6 +68,11 @@ export default function GuestActions({
     : Math.max(0, totalAmount - paidAmount - previousDiscount);
 
   const hasPendingBalance = pendingBalance > 0 && booking?.paymentType !== "Free";
+  const canFlagGuest =
+    onFlagGuest &&
+    booking &&
+    !["checked_out", "no_show"].includes(booking?.status) &&
+    ["admin", "manager", "caretaker", "warden", "Warden", "co_warden", "adosa"].includes(userRole);
 
   // ✅ WhatsApp and Email handlers
   const handleWhatsAppChat = () => {
@@ -195,6 +201,19 @@ export default function GuestActions({
                   onClick={onDownloadPDF}
                   theme={theme}
                 />
+
+                {canFlagGuest && (
+                  <ActionButton
+                    icon={<Flag className="w-4 h-4" />}
+                    label="Flag Guest"
+                    onClick={() => {
+                      onFlagGuest();
+                      setShowActionsDropdown(false);
+                    }}
+                    theme={theme}
+                    danger
+                  />
+                )}
 
                 {/* Pay Amount - Only if not cancelled and has pending balance */}
                 {booking?.status !== "cancelled" && hasPendingBalance && (

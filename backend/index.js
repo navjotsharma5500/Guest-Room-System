@@ -52,6 +52,12 @@ import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
 import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import societyBudgetRoutes from "./routes/societyBudgetRoutes.js";
+import broadcastRoutes from "./routes/broadcastRoutes.js";
+import { startBroadcastScheduler } from "./services/broadcastScheduler.js";
+import cleaningRoutes from "./routes/cleaningRoutes.js";
+import { ensureDefaultChecklistItems } from "./controllers/cleaningController.js";
+import guestSupportRoutes from "./routes/guestSupportRoutes.js";
+import guestFlagRoutes from "./routes/guestFlagRoutes.js";
 
 const app = express();
 
@@ -427,6 +433,10 @@ app.use("/api/analytics", awsAnalyticsRoutes);
 app.use("/api/public-ui", publicUiConfigRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/societies", societyBudgetRoutes);
+app.use("/api/broadcasts", broadcastRoutes);
+app.use("/api/cleaning", cleaningRoutes);
+app.use("/api/guest-support", guestSupportRoutes);
+app.use("/api/guest-flags", guestFlagRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
@@ -593,6 +603,8 @@ const startServer = async () => {
     console.log("âœ… Default society suggestions ensured");
     await seedDefaultEventSuggestions();
     console.log("âœ… Default event suggestions ensured");
+    await ensureDefaultChecklistItems();
+    console.log("✅ Default cleaning checklist ensured");
 
     // âœ… FIXED: Pass io instance to cron jobs
     startNoShowCronJob(io);
@@ -603,6 +615,7 @@ const startServer = async () => {
     startExtensionReminderCronJob(io);
     startRebookingAutoRejectCronJob(io);
     startAnalyticsEmailCronJobs();
+    startBroadcastScheduler(io);
     scheduleCleanupJob();
 
     if (!server.listening) {

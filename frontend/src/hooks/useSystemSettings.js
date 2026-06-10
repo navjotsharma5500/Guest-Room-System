@@ -16,6 +16,27 @@ export const DEFAULT_SYSTEM_SETTINGS = {
     adminLevelDays: 30,
   },
   emailSettings: {},
+  operations: {
+    enableBroadcastCenter: true,
+    enableCleaningWorkflow: true,
+    enableGuestSupportPortal: true,
+    enableHostelRatings: true,
+    enableGuestFlagging: true,
+  },
+  flagRules: {
+    yellowThreshold: 3,
+    orangeThreshold: 2,
+    redThreshold: 1,
+  },
+  cleaning: {
+    enableCleaningChecklist: true,
+    enableCleaningRequests: true,
+  },
+  support: {
+    enableMedicalRequests: true,
+    enableMaintenanceRequests: true,
+    enableSosAlerts: true,
+  },
   dashboardRegistry: [
     {
       key: "guestRoom",
@@ -55,6 +76,22 @@ const mergeSettings = (settings = {}) => ({
   emailSettings: {
     ...DEFAULT_SYSTEM_SETTINGS.emailSettings,
     ...(settings.emailSettings || {}),
+  },
+  operations: {
+    ...DEFAULT_SYSTEM_SETTINGS.operations,
+    ...(settings.operations || {}),
+  },
+  flagRules: {
+    ...DEFAULT_SYSTEM_SETTINGS.flagRules,
+    ...(settings.flagRules || {}),
+  },
+  cleaning: {
+    ...DEFAULT_SYSTEM_SETTINGS.cleaning,
+    ...(settings.cleaning || {}),
+  },
+  support: {
+    ...DEFAULT_SYSTEM_SETTINGS.support,
+    ...(settings.support || {}),
   },
   dashboardRegistry:
     Array.isArray(settings.dashboardRegistry) && settings.dashboardRegistry.length > 0

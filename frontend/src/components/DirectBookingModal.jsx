@@ -350,6 +350,14 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return;
     }
 
+    if (systemSettings?.operations?.enableCleaningWorkflow !== false && room?.roomState === "cleaning_pending") {
+      showToast(
+        "❌ This room is pending cleaning. Submit checklist and mark clean before booking.",
+        "error"
+      );
+      return;
+    }
+
     // ✅ CRITICAL FIX: Proper attachment routing based on payment type
     const bookingPayload = {
       guest: form.guest,
@@ -416,8 +424,15 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
       if (!res.ok) {
         const errText = await res.text();
+        let errorMessage = "Failed to save booking";
+        try {
+          const parsed = JSON.parse(errText);
+          errorMessage = parsed.message || errorMessage;
+        } catch {
+          errorMessage = errText || errorMessage;
+        }
         console.error("❌ Booking upload failed:", res.status, errText);
-        showToast("❌ Failed to save booking", "error");
+        showToast(`❌ ${errorMessage}`, "error");
         return;
       }
 

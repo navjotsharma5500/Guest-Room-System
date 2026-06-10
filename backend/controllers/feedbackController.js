@@ -1,6 +1,8 @@
 // controllers/feedbackController.js
 import Feedback from "../models/Feedback.js";
 import Booking from "../models/Booking.js";
+import GuestFeedback from "../models/GuestFeedback.js";
+import { getSystemSettings } from "../utils/systemSettings.js";
 
 // Helper: Get rating label from stars
 const getRatingLabel = (stars) => {
@@ -360,6 +362,198 @@ export const getFeedbackStats = async (req, res) => {
       success: false,
       message: "Failed to fetch statistics",
       error: err.message
+    });
+  }
+};
+
+const roundRating = (value) => Number((value || 0).toFixed(2));
+
+const getRoleScopedHostel = (req, requestedHostel) => {
+  const role = String(req.user?.role || "").toLowerCase();
+  if (String(req.query?.global || "").toLowerCase() === "true") {
+    return requestedHostel || "";
+  }
+  if (role === "caretaker" || role === "warden" || role === "co_warden") {
+    return req.user?.assignedHostel || req.user?.hostel || "";
+  }
+  return requestedHostel || "";
+};
+
+const buildDateFilter = ({ startDate, endDate }, fieldName) => {
+  if (!startDate && !endDate) return {};
+  const range = {};
+  if (startDate) range.$gte = new Date(startDate);
+  if (endDate) range.$lte = new Date(endDate);
+  return { [fieldName]: range };
+};
+
+const mergeHostelRows = (internalRows = [], publicRows = []) => {
+  const map = new Map();
+
+  for (const row of [...internalRows, ...publicRows]) {
+    if (!row?._id) continue;
+    const current = map.get(row._id) || {
+      hostel: row._id,
+      totalReviews: 0,
+      ratingSum: 0,
+      internalReviews: 0,
+      publicReviews: 0,
+    };
+
+    current.totalReviews += row.totalReviews || 0;
+    current.ratingSum += row.ratingSum || 0;
+    current.internalReviews += row.source === "internal" ? row.totalReviews || 0 : 0;
+    current.publicReviews += row.source === "public" ? row.totalReviews || 0 : 0;
+    map.set(row._id, current);
+  }
+
+  return Array.from(map.values())
+    .map((row) => ({
+      ...row,
+      averageRating: roundRating(row.ratingSum / (row.totalReviews || 1)),
+    }))
+    .sort((a, b) => b.averageRating - a.averageRating || b.totalReviews - a.totalReviews);
+};
+
+// ========================================
+// PHASE 5: HOSTEL / ROOM RATING ANALYTICS
+// Read-only endpoint. Does not change existing feedback submission/list flows.
+// ========================================
+export const getFeedbackAnalytics = async (req, res) => {
+  try {
+    const settings = await getSystemSettings({ fresh: true });
+    if (settings?.operations?.enableHostelRatings === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Hostel ratings analytics are currently disabled.",
+      });
+    }
+
+    const scopedHostel = getRoleScopedHostel(req, req.query.hostel);
+    const internalMatch = {
+      ...(scopedHostel ? { hostel: scopedHostel } : {}),
+      ...buildDateFilter(req.query, "submittedAt"),
+    };
+    const publicMatch = {
+      ...(scopedHostel ? { hostel: scopedHostel } : {}),
+      ...buildDateFilter(req.query, "submittedAt"),
+    };
+
+    const [internalHostels, publicHostels, roomRankings, internalTrends, publicTrends] = await Promise.all([
+      Feedback.aggregate([
+        { $match: internalMatch },
+        {
+          $group: {
+            _id: "$hostel",
+            totalReviews: { $sum: 1 },
+            ratingSum: { $sum: "$rating" },
+          },
+        },
+        { $addFields: { source: "internal" } },
+      ]),
+      GuestFeedback.aggregate([
+        { $match: publicMatch },
+        {
+          $group: {
+            _id: "$hostel",
+            totalReviews: { $sum: 1 },
+            ratingSum: { $sum: "$rating" },
+          },
+        },
+        { $addFields: { source: "public" } },
+      ]),
+      Feedback.aggregate([
+        { $match: internalMatch },
+        {
+          $group: {
+            _id: { hostel: "$hostel", roomNo: "$roomNo" },
+            totalReviews: { $sum: 1 },
+            averageRating: { $avg: "$rating" },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            hostel: "$_id.hostel",
+            roomNo: "$_id.roomNo",
+            totalReviews: 1,
+            averageRating: { $round: ["$averageRating", 2] },
+          },
+        },
+        { $sort: { averageRating: -1, totalReviews: -1 } },
+        { $limit: 20 },
+      ]),
+      Feedback.aggregate([
+        { $match: internalMatch },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$submittedAt" },
+              month: { $month: "$submittedAt" },
+            },
+            totalReviews: { $sum: 1 },
+            ratingSum: { $sum: "$rating" },
+          },
+        },
+      ]),
+      GuestFeedback.aggregate([
+        { $match: publicMatch },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$submittedAt" },
+              month: { $month: "$submittedAt" },
+            },
+            totalReviews: { $sum: 1 },
+            ratingSum: { $sum: "$rating" },
+          },
+        },
+      ]),
+    ]);
+
+    const hostelRankings = mergeHostelRows(internalHostels, publicHostels);
+    const totalReviews = hostelRankings.reduce((sum, row) => sum + row.totalReviews, 0);
+    const totalRatingSum = hostelRankings.reduce((sum, row) => sum + row.ratingSum, 0);
+
+    const trendMap = new Map();
+    for (const row of [...internalTrends, ...publicTrends]) {
+      const key = `${row._id.year}-${String(row._id.month).padStart(2, "0")}`;
+      const current = trendMap.get(key) || { period: key, totalReviews: 0, ratingSum: 0 };
+      current.totalReviews += row.totalReviews || 0;
+      current.ratingSum += row.ratingSum || 0;
+      trendMap.set(key, current);
+    }
+
+    const ratingTrends = Array.from(trendMap.values())
+      .map((row) => ({
+        period: row.period,
+        totalReviews: row.totalReviews,
+        averageRating: roundRating(row.ratingSum / (row.totalReviews || 1)),
+      }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+
+    res.json({
+      success: true,
+      analytics: {
+        averageHostelRating: roundRating(totalRatingSum / (totalReviews || 1)),
+        averageRoomRating: roundRating(
+          roomRankings.reduce((sum, row) => sum + row.averageRating * row.totalReviews, 0) /
+            (roomRankings.reduce((sum, row) => sum + row.totalReviews, 0) || 1)
+        ),
+        totalReviews,
+        topRatedHostel: hostelRankings[0] || null,
+        mostReviewedHostel: [...hostelRankings].sort((a, b) => b.totalReviews - a.totalReviews)[0] || null,
+        hostelRankings,
+        roomRankings,
+        ratingTrends,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Feedback analytics error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch feedback analytics",
+      error: err.message,
     });
   }
 };

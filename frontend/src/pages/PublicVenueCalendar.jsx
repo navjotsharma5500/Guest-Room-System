@@ -681,10 +681,34 @@ export default function PublicVenueCalendar() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
+      <style>{`
+        @media (max-width: 767px) {
+          .venue-calendar-header-inner {
+            flex-wrap: wrap;
+            align-items: flex-start;
+          }
+          .venue-calendar-actions {
+            display: flex;
+            width: calc(100% - 12px);
+            margin-right: 12px;
+            margin-bottom: 16px;
+            max-width: 100%;
+            overflow: hidden;
+            justify-content: flex-end;
+          }
+          .venue-calendar-back-btn {
+            width: 40px;
+            min-width: 40px;
+            padding-left: 0;
+            padding-right: 0;
+            justify-content: center;
+          }
+        }
+      `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-        <div className="max-w-[1280px] mx-auto px-6 min-h-24 flex items-center justify-between gap-4">
+        <div className="venue-calendar-header-inner max-w-[1280px] mx-auto px-6 min-h-24 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
             <img
               src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
@@ -700,7 +724,7 @@ export default function PublicVenueCalendar() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="venue-calendar-actions flex items-center gap-1.5">
             <a
               href="https://campusconnect.thapar.edu/venue-enquiry"
               target="_blank"
@@ -720,7 +744,7 @@ export default function PublicVenueCalendar() {
             </a>
             <a
               href="/"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+              className="venue-calendar-back-btn flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
             >
               <ArrowLeft size={13} />
               <span className="hidden sm:inline">Back</span>

@@ -5,6 +5,9 @@ import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } f
 import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
 import { useAuth } from "../context/AuthContext";
 import { BACKEND_URL } from "../utils/apiConfig";
+import CleaningChecklistModal from "./Cleaning/CleaningChecklistModal";
+import RoomCleaningStatusBadge from "./Cleaning/RoomCleaningStatusBadge";
+import useSystemSettings from "../hooks/useSystemSettings";
 
 const API = BACKEND_URL;
 
@@ -29,9 +32,13 @@ const RoomCard = memo(function RoomCard({
   showToast,
 }) {
   const [showBookings, setShowBookings] = useState(false);
+  const [showCleaningChecklist, setShowCleaningChecklist] = useState(false);
+  const [checklistSubmitted, setChecklistSubmitted] = useState(false);
   const { user } = useAuth();
+  const { settings } = useSystemSettings();
   const userEmail = user?.email || "";
   const userRole = (user?.role || "").toLowerCase();
+  const cleaningEnabled = settings?.operations?.enableCleaningWorkflow !== false;
 
   // Use hostelName if provided (AllHostelsPortal), otherwise use hostel (MainContent)
   const currentHostel = hostelName || hostel;
@@ -147,6 +154,15 @@ const RoomCard = memo(function RoomCard({
     });
   }, [activeBookings, now, isAllHostelsView]);
 
+  const roomState = room.isBlocked
+    ? "maintenance_blocked"
+    : cleaningEnabled && room.roomState === "cleaning_pending"
+      ? "cleaning_pending"
+      : currentActive || hasActive
+        ? "occupied"
+        : "available";
+  const isCleaningPending = roomState === "cleaning_pending";
+
   // ✅ FIXED: firstBooking should find the checked_in/reported booking first
   const firstBooking = useMemo(() => {
     // First, try to find a checked_in/reported booking
@@ -201,7 +217,7 @@ const RoomCard = memo(function RoomCard({
 
   const availableForNewDates = prefillGuest && prefillGuest.from && prefillGuest.to
     ? !hasConflict
-    : !isBooked;
+    : !isBooked && !isCleaningPending && !room.isBlocked;
 
   /* =========================
      DATE FORMATTERS
@@ -286,6 +302,11 @@ const RoomCard = memo(function RoomCard({
       return; // Always return early for blocked rooms
     }
 
+    if (isCleaningPending) {
+      setShowCleaningChecklist(true);
+      return;
+    }
+
     // âœ… AllHostelsPortal selection mode
     if (prefillGuest && prefillGuest.from && prefillGuest.to && selectionMode) {
       if (hasConflict && showToast) {
@@ -332,8 +353,45 @@ const RoomCard = memo(function RoomCard({
   const handleDirectBooking = (e) => {
     e.stopPropagation();
     if (bookingCompleted) return;
+    if (isCleaningPending) {
+      showToast?.("Complete cleaning checklist and mark room clean before booking.", "warning");
+      return;
+    }
     if (onDirectBooking) {
       onDirectBooking(currentHostel, room);
+    }
+  };
+
+  const handleMarkClean = async (event) => {
+    event.stopPropagation();
+    try {
+      if (!checklistSubmitted) {
+        const statusRes = await fetch(`${API}/api/cleaning/rooms/${encodeURIComponent(currentHostel)}/${encodeURIComponent(room.roomNo)}`, {
+          credentials: "include",
+        });
+        const statusData = await statusRes.json();
+        if (!statusRes.ok) throw new Error(statusData.message || "Failed to check cleaning status");
+
+        if (statusData.cleaningLog?.status !== "checklist_submitted") {
+          showToast?.("Submit the cleaning checklist before marking this room clean.", "warning");
+          setShowCleaningChecklist(true);
+          return;
+        }
+
+        setChecklistSubmitted(true);
+      }
+
+      const res = await fetch(`${API}/api/cleaning/rooms/${encodeURIComponent(currentHostel)}/${encodeURIComponent(room.roomNo)}/mark-clean`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to mark room clean");
+      setChecklistSubmitted(false);
+      showToast?.("Room marked clean and available.", "success");
+      window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
+    } catch (err) {
+      showToast?.(err.message, "error");
     }
   };
 
@@ -427,6 +485,12 @@ const RoomCard = memo(function RoomCard({
         : "bg-gray-300 border-gray-400 opacity-60 cursor-not-allowed";
     }
 
+    if (isCleaningPending) {
+      return theme === "dark"
+        ? "bg-yellow-900/40 border-yellow-500"
+        : "bg-yellow-50 border-yellow-400";
+    }
+
     if (primaryBooking?.approvalStatus === "under_review") {
       return theme === "dark"
         ? "bg-orange-900 border-orange-500"
@@ -510,6 +574,7 @@ const RoomCard = memo(function RoomCard({
             </div>
           ) : (
             <div className="mt-2">
+              <RoomCleaningStatusBadge state={roomState} className="mb-2" />
               <div className="flex items-center justify-center gap-1 mb-1">
                 <CheckCircle2
                   className={`w-3 h-3 ${approvalStatus === "under_review" ? "text-orange-700" : "text-green-700"}`}
@@ -517,7 +582,9 @@ const RoomCard = memo(function RoomCard({
                 <p
                   className={`text-xs font-medium ${approvalStatus === "under_review" ? "text-orange-700" : "text-green-700"}`}
                 >
-                  {approvalStatus === "under_review" ? (
+                  {isCleaningPending ? (
+                    "Checklist required"
+                  ) : approvalStatus === "under_review" ? (
                     "Under Review"
                   ) : isBooked ? (
                     activeBookings.length > 1 
@@ -708,6 +775,19 @@ const RoomCard = memo(function RoomCard({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {showCleaningChecklist && (
+          <CleaningChecklistModal
+            hostel={currentHostel}
+            room={room}
+            onClose={() => setShowCleaningChecklist(false)}
+            onDone={() => {
+              setChecklistSubmitted(true);
+              setShowCleaningChecklist(false);
+            }}
+            showToast={showToast}
+          />
+        )}
       </>
     );
   }
@@ -752,7 +832,8 @@ const RoomCard = memo(function RoomCard({
 
           <button
             onClick={handleDirectBooking}
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg"
+            disabled={isCleaningPending || room.isBlocked}
+            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CalendarPlus className="w-4 h-4" /> Direct Booking
           </button>
@@ -760,7 +841,11 @@ const RoomCard = memo(function RoomCard({
 
         <p className="text-sm mt-1">
           Status:{" "}
-          {approvalStatus === "under_review" ? (
+          {isCleaningPending ? (
+            <span className="font-semibold text-yellow-700">Cleaning Pending</span>
+          ) : roomState === "maintenance_blocked" ? (
+            <span className="font-semibold text-gray-700">Maintenance Blocked</span>
+          ) : approvalStatus === "under_review" ? (
             <span className="font-semibold text-orange-600">Under Review</span>
           ) : hasActive ? (
             <span className="font-semibold text-red-600">Active (Checked-in)</span>
@@ -772,6 +857,29 @@ const RoomCard = memo(function RoomCard({
             <span className="font-semibold text-green-600">Available</span>
           )}
         </p>
+        <div className="mt-2">
+          <RoomCleaningStatusBadge state={roomState} />
+        </div>
+
+        {isCleaningPending && (
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCleaningChecklist(true);
+              }}
+              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-2 rounded font-bold"
+            >
+              Checklist
+            </button>
+            <button
+              onClick={handleMarkClean}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-2 rounded font-bold"
+            >
+              Mark Clean
+            </button>
+          </div>
+        )}
 
         {isBooked && !hasActive && !hasPastOnly && (
           <div className={`text-xs mt-2 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
@@ -927,6 +1035,19 @@ const RoomCard = memo(function RoomCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showCleaningChecklist && (
+        <CleaningChecklistModal
+          hostel={currentHostel}
+          room={room}
+          onClose={() => setShowCleaningChecklist(false)}
+          onDone={() => {
+            setChecklistSubmitted(true);
+            setShowCleaningChecklist(false);
+          }}
+          showToast={showToast}
+        />
+      )}
     </>
   );
 });

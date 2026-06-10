@@ -12,6 +12,15 @@ const RoomSchema = new mongoose.Schema({
   blockAttachments: [{ type: String }],
   blockedAt: { type: Date },
   blockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  roomState: {
+    type: String,
+    enum: ["available", "occupied", "cleaning_pending", "maintenance_blocked"],
+    default: "available",
+  },
+  cleaningPendingSince: { type: Date },
+  lastCheckoutBookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+  lastCleanedAt: { type: Date },
+  lastCleanedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 });
 
 const HostelSchema = new mongoose.Schema(

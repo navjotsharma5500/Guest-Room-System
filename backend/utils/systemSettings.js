@@ -95,6 +95,27 @@ export const DEFAULT_SYSTEM_SETTINGS = {
     adminLevelDays: 30,
   },
   emailSettings: buildDefaultEmailSettings(),
+  operations: {
+    enableBroadcastCenter: true,
+    enableCleaningWorkflow: true,
+    enableGuestSupportPortal: true,
+    enableHostelRatings: true,
+    enableGuestFlagging: true,
+  },
+  flagRules: {
+    yellowThreshold: 3,
+    orangeThreshold: 2,
+    redThreshold: 1,
+  },
+  cleaning: {
+    enableCleaningChecklist: true,
+    enableCleaningRequests: true,
+  },
+  support: {
+    enableMedicalRequests: true,
+    enableMaintenanceRequests: true,
+    enableSosAlerts: true,
+  },
   dashboardRegistry: DEFAULT_DASHBOARD_REGISTRY,
   updatedBy: null,
 };
@@ -140,6 +161,22 @@ export const sanitizeSystemSettings = (doc = {}) => ({
     ...(doc.extensionRules || {}),
   },
   emailSettings: mergeEmailSettings(doc.emailSettings || {}),
+  operations: {
+    ...DEFAULT_SYSTEM_SETTINGS.operations,
+    ...(doc.operations || {}),
+  },
+  flagRules: {
+    ...DEFAULT_SYSTEM_SETTINGS.flagRules,
+    ...(doc.flagRules || {}),
+  },
+  cleaning: {
+    ...DEFAULT_SYSTEM_SETTINGS.cleaning,
+    ...(doc.cleaning || {}),
+  },
+  support: {
+    ...DEFAULT_SYSTEM_SETTINGS.support,
+    ...(doc.support || {}),
+  },
   dashboardRegistry: normalizeDashboardRegistry(doc.dashboardRegistry),
 });
 
@@ -177,6 +214,11 @@ export const validateSystemSettingsPayload = (payload = {}) => {
   }
   if (maxExtensionRequestDays > adminLevelDays) {
     throw new Error("Max extension request days must be less than or equal to admin level days");
+  }
+
+  const { yellowThreshold, orangeThreshold, redThreshold } = settings.flagRules || {};
+  if (Number(yellowThreshold) <= 0 || Number(orangeThreshold) <= 0 || Number(redThreshold) <= 0) {
+    throw new Error("Flag thresholds must be greater than 0");
   }
 };
 
@@ -223,6 +265,22 @@ export const updateSystemSettings = async (partialPayload = {}, updatedBy = null
       ...current.emailSettings,
       ...(partialPayload.emailSettings || {}),
     },
+    operations: {
+      ...current.operations,
+      ...(partialPayload.operations || {}),
+    },
+    flagRules: {
+      ...current.flagRules,
+      ...(partialPayload.flagRules || {}),
+    },
+    cleaning: {
+      ...current.cleaning,
+      ...(partialPayload.cleaning || {}),
+    },
+    support: {
+      ...current.support,
+      ...(partialPayload.support || {}),
+    },
     dashboardRegistry:
       partialPayload.dashboardRegistry || current.dashboardRegistry,
   });
@@ -236,6 +294,10 @@ export const updateSystemSettings = async (partialPayload = {}, updatedBy = null
         bookingDays: next.bookingDays,
         extensionRules: next.extensionRules,
         emailSettings: next.emailSettings,
+        operations: next.operations,
+        flagRules: next.flagRules,
+        cleaning: next.cleaning,
+        support: next.support,
         dashboardRegistry: next.dashboardRegistry,
         updatedBy: updatedBy || null,
       },

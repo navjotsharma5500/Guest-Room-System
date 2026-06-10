@@ -1,11 +1,13 @@
 // src/components/Sidebar.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle, Megaphone, LifeBuoy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
 import { BlockRoomModal, UnblockRoomModal } from "./RoomBlockingModals";
 import thaparLogo from "../assets/thapar_logo.png";
+import useSystemSettings from "../hooks/useSystemSettings";
 
 export default function Sidebar({
   activeHostel,
@@ -16,7 +18,9 @@ export default function Sidebar({
   setActiveTab,
   isSidebarOpen = true, // ✅ Default to true if not provided
 }) {
+  const navigate = useNavigate();
   const { currentUser, loading } = useAuth();
+  const { settings } = useSystemSettings();
   console.log('AUTH USER:', currentUser); // 🔍 DIAGNOSTIC LOG
   const [blockRoomModal, setBlockRoomModal] = useState(null);
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
@@ -27,8 +31,14 @@ export default function Sidebar({
 
   // ✅ ROLE EXTRACTION
   const role = currentUser?.role || currentUser?.user?.role;
+  const roleKey = String(role || "").toLowerCase();
   const isRestrictedRole = role === 'caretaker' || role === 'warden';
-  const isAdminLike = role === 'admin' || role === 'manager';
+  const canUseBroadcastCenter =
+    settings?.operations?.enableBroadcastCenter !== false &&
+    ["admin", "manager", "adosa"].includes(roleKey);
+  const canUseSupportRequests =
+    settings?.operations?.enableGuestSupportPortal !== false &&
+    (["admin", "manager", "adosa", "assistant", "caretaker", "warden", "co_warden"].includes(roleKey) || hasPermission(currentUser, "sidebar.hostels"));
 
   // ✅ PERMISSION CHECKS
   const canSeeAllHostels = hasPermission(currentUser, "sidebar.allHostels");
@@ -187,7 +197,7 @@ export default function Sidebar({
                 setActiveHostel(hostelName);
                 setActiveRoomRef(null);
                 setActiveTab((prev) =>
-                  ["Defaulters", "Feedback", "DepartmentPayments", "Approvals", "Bills", "Bookings"].includes(prev) ? prev : "Home"
+                  ["Defaulters", "Feedback", "DepartmentPayments", "Approvals", "Bills", "Bookings", "BroadcastCenter", "SupportRequests"].includes(prev) ? prev : "Home"
                 );
               })}
               className={`
@@ -374,6 +384,63 @@ export default function Sidebar({
             All Bookings
           </span>
         </motion.button>
+        )}
+
+        {/* ✅ BROADCAST CENTER BUTTON (Admin, Manager, DoSA only) */}
+        {canUseBroadcastCenter && (
+          <motion.button
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+            onClick={(e) => handleNavigation(() => {
+              e.stopPropagation();
+              navigate("/broadcast-center");
+              setActiveTab("BroadcastCenter");
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+            })}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl border
+              bg-white/30 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "BroadcastCenter"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
+          >
+            <Megaphone className="w-4 h-4 text-slate-600" />
+            <span className={`text-sm ${activeTab === "BroadcastCenter" ? "font-semibold" : ""}`}>
+              Broadcast Center
+            </span>
+          </motion.button>
+        )}
+
+        {canUseSupportRequests && (
+          <motion.button
+            whileHover={!isEnquiry ? { scale: 1.01 } : {}}
+            whileTap={!isEnquiry ? { scale: 0.98 } : {}}
+            onClick={(e) => handleNavigation(() => {
+              e.stopPropagation();
+              navigate("/support-requests");
+              setActiveTab("SupportRequests");
+              setActiveHostel(null);
+              setActiveRoomRef(null);
+            })}
+            className={`
+              relative group w-full text-left px-3 py-2 rounded-xl border
+              bg-white/30 backdrop-blur-xl flex items-center gap-3
+              ${
+                activeTab === "SupportRequests"
+                  ? "border-red-500 shadow-md"
+                  : "border-transparent hover:bg-white/80"
+              }
+            `}
+          >
+            <LifeBuoy className="w-4 h-4 text-slate-600" />
+            <span className={`text-sm ${activeTab === "SupportRequests" ? "font-semibold" : ""}`}>
+              Support Requests
+            </span>
+          </motion.button>
         )}
       </nav>
 

@@ -20,6 +20,8 @@ import {
 import User from "../models/User.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
 import { getRequiredExtensionApprovalLevel, getSystemSettings } from "../utils/systemSettings.js";
+import { setRoomCleaningPending } from "../utils/roomCleaningState.js";
+import { assertGuestNotBlocked } from "../utils/guestFlagging.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -515,6 +517,18 @@ export const createBooking = async (req, res) => {
       }
     }
 
+    if (
+      settings?.operations?.enableCleaningWorkflow !== false &&
+      !targetRoom.isBlocked &&
+      targetRoom.roomState === "cleaning_pending"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `❌ Room ${payload.roomNo} is pending cleaning. Complete the cleaning checklist and mark it clean before booking.`,
+        cleaningPending: true,
+      });
+    }
+
     if (!hostelDoc) {
       throw new Error(`Hostel not found in database: ${payload.hostel}`);
     }
@@ -598,6 +612,11 @@ export const createBooking = async (req, res) => {
       caretakerEmail: caretakerEmail,
       wardenEmail: wardenEmail,
     };
+
+    await assertGuestNotBlocked(
+      { email: bookingData.email, contact: bookingData.contact },
+      { allowOverride: req.user?.role === "admin" && req.body?.adminOverride === true }
+    );
 
     console.log("✅ Creating booking with database emails:", {
       caretakerEmail: bookingData.caretakerEmail,
@@ -813,8 +832,10 @@ export const createBooking = async (req, res) => {
     console.error("❌ CREATE BOOKING ERROR:", err.message);
     console.error("Stack:", err.stack);
     
-    res.status(500).json({ 
+    res.status(err.statusCode || 500).json({ 
       success: false, 
+      code: err.code,
+      risk: err.risk,
       message: err.message,
       error: err.message,
       errorName: err.name
@@ -869,8 +890,14 @@ export const markReported = async (req, res) => {
       });
     }
 
+    await assertGuestNotBlocked(
+      { email: booking.email, contact: booking.contact },
+      { allowOverride: req.user?.role === "admin" && req.body?.adminOverride === true }
+    );
+
     // ✅ CRITICAL FIX: Handle early check-in
     const reportDate = actualCheckInDate ? new Date(actualCheckInDate) : new Date();
+    const originalPlannedCheckIn = new Date(booking.from);
     const scheduledDate = new Date(booking.from);
     
     // Set to start of day for comparison
@@ -924,14 +951,18 @@ export const markReported = async (req, res) => {
       };
 
       if (paymentType === "Paid") {
-        booking.totalAmount = Number(booking.totalAmount || 0) + earlyAmount;
+        const baseTotalAmount = Number(booking.totalAmount || 0);
+        const baseAmount = Number(booking.amount || baseTotalAmount || 0);
+        booking.totalAmount = baseTotalAmount + earlyAmount;
         booking.balanceAmount = Number(booking.balanceAmount || 0) + earlyAmount;
-        booking.amount = Number(booking.amount || booking.totalAmount || 0) + earlyAmount;
+        booking.amount = baseAmount + earlyAmount;
         booking.amountToBePaid = Number(booking.balanceAmount || 0);
       }
 
       const earlyAudit = [
         "[EARLY CHECK-IN]",
+        `Original Check-in: ${originalPlannedCheckIn.toLocaleDateString("en-IN")}`,
+        `Actual Check-in: ${reportDate.toLocaleDateString("en-IN")}`,
         `Extra Amount: ₹${paymentType === "Paid" ? earlyAmount : 0}`,
         `Type: ${paymentType}`,
         `Remarks: ${earlyRemarks || "—"}`,
@@ -955,6 +986,22 @@ export const markReported = async (req, res) => {
     booking.reportedAt = new Date();
     booking.actualCheckInDate = actualCheckInDate ? new Date(actualCheckInDate) : new Date(booking.from);
     booking.actualCheckInTime = actualCheckInTime || booking.checkInTime || "00:00";
+    if (isEarlyCheckIn) {
+      booking.from = new Date(reportDate);
+      booking.checkInTime = booking.actualCheckInTime;
+      if (
+        booking.continuousStay?.startDate &&
+        new Date(booking.continuousStay.startDate) > booking.from
+      ) {
+        booking.continuousStay.startDate = booking.from;
+      }
+      if (booking.continuousStay) {
+        booking.continuousStay.totalDays = calculateStayDays(
+          booking.continuousStay.startDate || booking.from,
+          booking.to
+        );
+      }
+    }
     booking.idVerified = Boolean(idVerified);
     booking.status = "checked_in";
     
@@ -1005,9 +1052,11 @@ export const markReported = async (req, res) => {
 
   } catch (err) {
     console.error("❌ MARK REPORTED ERROR:", err);
-    res.status(500).json({ 
+    res.status(err.statusCode || 500).json({ 
       success: false, 
-      message: "Server error", 
+      code: err.code,
+      risk: err.risk,
+      message: err.statusCode ? err.message : "Server error", 
       error: err.message 
     });
   }
@@ -1170,6 +1219,12 @@ export const checkOutGuest = async (req, res) => {
     }
 
     await booking.save();
+    await setRoomCleaningPending({
+      hostel: booking.hostel,
+      roomNo: booking.roomNo,
+      bookingId: booking._id,
+      io: req.app.get("io"),
+    });
 
     createLog("guest_checked_out", req.user._id, {
       bookingId: booking._id,
@@ -2806,6 +2861,12 @@ export const autoCheckoutOverdueGuests = async () => {
         }
 
         await booking.save();
+        await setRoomCleaningPending({
+          hostel: booking.hostel,
+          roomNo: booking.roomNo,
+          bookingId: booking._id,
+          io: global.io,
+        });
         checkedOutCount++;
 
         // ✅ COLLECT BOOKING DATA FOR SOCKET EMISSION

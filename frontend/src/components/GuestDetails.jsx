@@ -16,6 +16,9 @@ import PaymentSection from "./GuestDetails/PaymentSection";
 import AttachmentsSection from "./GuestDetails/AttachmentsSection";
 import GuestProfile from "./GuestDetails/GuestProfile";
 import GuestActions from "./GuestDetails/GuestActions";
+import FlagGuestModal from "./Flags/FlagGuestModal";
+import GuestFlagBanner from "./Flags/GuestFlagBanner";
+import GuestFlagHistory from "./Flags/GuestFlagHistory";
 import thaparLogo from "../assets/thapar_logo.png";
 import BillHistoryModal from "./BillHistoryModal";
 import {
@@ -76,6 +79,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [deptPayUploading, setDeptPayUploading] = useState(false);
   const deptPayIkRef = useRef(null);
   const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
+  const [showFlagGuestModal, setShowFlagGuestModal] = useState(false);
+  const [guestFlagInfo, setGuestFlagInfo] = useState({ flags: [], risk: null });
 
   // ✅ FIXED: Close Guest Details panel on checkout
   useEffect(() => {
@@ -418,6 +423,53 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     }
   }, [activeRoomRef?.booking, token, fetchAttempts]);
 
+  const refreshGuestFlags = async (bookingId) => {
+    if (!bookingId || String(bookingId).startsWith("b_")) {
+      setGuestFlagInfo({ flags: [], risk: null });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/api/guest-flags/guest/${bookingId}`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setGuestFlagInfo({
+          flags: Array.isArray(data.flags) ? data.flags : [],
+          risk: data.risk || null,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load guest flags:", error);
+    }
+  };
+
+  useEffect(() => {
+    const bookingId = booking?._id || booking?.id;
+    if (!bookingId) {
+      setGuestFlagInfo({ flags: [], risk: null });
+      return;
+    }
+    refreshGuestFlags(bookingId);
+  }, [booking?._id, booking?.id]);
+
+  useEffect(() => {
+    const handleFlagUpdate = (event) => {
+      const eventBookingId = event.detail?.bookingId;
+      const currentBookingId = booking?._id || booking?.id;
+      if (!currentBookingId || String(eventBookingId) !== String(currentBookingId)) return;
+      refreshGuestFlags(currentBookingId);
+    };
+
+    window.addEventListener("guestFlagged", handleFlagUpdate);
+    window.addEventListener("guestBlocked", handleFlagUpdate);
+    return () => {
+      window.removeEventListener("guestFlagged", handleFlagUpdate);
+      window.removeEventListener("guestBlocked", handleFlagUpdate);
+    };
+  }, [booking?._id, booking?.id]);
+
   if (!activeRoomRef) {
     return (
       <div className="flex flex-col items-center justify-center mt-10 text-gray-500 italic">
@@ -447,6 +499,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   }
 
   const b = normalizeBooking(booking || {});
+  const canOverrideGuestFlags = userRole === "admin";
 
   console.log("🎯 Booking extensionAttachments:", {
     extensionAttachments: b.extensionAttachments,
@@ -547,6 +600,28 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
 
     setBooking(normalizeBooking(data.booking));
     showToast("✅ Attachments added successfully", "success");
+  };
+
+  const handleOverrideGuestFlag = async (flag) => {
+    const remarks = window.prompt("Enter admin override remarks");
+    if (!remarks?.trim()) return;
+
+    try {
+      const response = await fetch(`${API}/api/guest-flags/${flag._id}/override`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remarks }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to override flag");
+      }
+      await refreshGuestFlags(b._id || b.id);
+      showToast("✅ Guest flag overridden", "success");
+    } catch (error) {
+      showToast(error.message || "Failed to override flag", "error");
+    }
   };
   
   // ============================================================================
@@ -1070,6 +1145,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 setShowActionsDropdown(false);
                 handleRejoinBooking();
               }}
+              onFlagGuest={() => setShowFlagGuestModal(true)}
               onCancelBooking={() => setShowCancelModal(true)} 
               onPaymentWaiver={() => setShowPaymentWaiverModal(true)}
               userRole={userRole}
@@ -1089,6 +1165,15 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           </div>
         </div>
 
+        <GuestFlagBanner
+          risk={guestFlagInfo.risk}
+          canOverride={canOverrideGuestFlags}
+          onOverrideAll={() => {
+            const activeFlag = (guestFlagInfo.flags || []).find((flag) => flag.override?.isOverridden !== true);
+            if (activeFlag) handleOverrideGuestFlag(activeFlag);
+          }}
+        />
+
         {/* 1. PROFILE SECTION */}
         <GuestProfile 
           booking={b} 
@@ -1098,6 +1183,12 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           setIsUploadingProfile={setIsUploadingProfile} 
           setUploadedProfileUrl={setUploadedProfileUrl} 
           imagekitAuthenticator={imagekitAuthenticator} 
+        />
+
+        <GuestFlagHistory
+          flags={guestFlagInfo.flags}
+          canOverride={canOverrideGuestFlags}
+          onOverride={handleOverrideGuestFlag}
         />
 
         {/* 2. BOOKING INFO SECTION */}
@@ -1634,13 +1725,24 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       </AnimatePresence>
       
       <AnimatePresence>
-        {showBillHistory && (
-          <BillHistoryModal
-            booking={b}
-            onClose={() => setShowBillHistory(false)}
-            theme={theme}
-          />
-        )}
+      {showBillHistory && (
+        <BillHistoryModal 
+          booking={b}
+          onClose={() => setShowBillHistory(false)}
+          theme={theme}
+        />
+      )}
+
+      {showFlagGuestModal && (
+        <FlagGuestModal
+          booking={b}
+          onClose={() => setShowFlagGuestModal(false)}
+          onSuccess={async () => {
+            await refreshGuestFlags(b._id || b.id);
+            showToast("✅ Guest flagged successfully", "success");
+          }}
+        />
+      )}
       </AnimatePresence>
 
       {/* ✅ Payment Waiver Modal */}

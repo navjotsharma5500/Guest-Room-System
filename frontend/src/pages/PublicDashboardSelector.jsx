@@ -777,10 +777,37 @@ export default function ThaparPublicDashboard() {
         .card-grid{display:grid;gap:20px}
         @media(max-width:960px){.card-grid{grid-template-columns:repeat(2,1fr)!important}}
         @media(max-width:600px){.card-grid{grid-template-columns:1fr!important}}
-        .footer-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:48px}
-        @media(max-width:768px){.footer-cols{grid-template-columns:1fr!important;gap:32px!important}}
+        .public-header-inner{max-width:1280px;margin:0 auto;padding:0 24px;min-height:96px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+        .public-brand{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:0}
+        .public-logo{height:clamp(56px,6vw,72px);width:auto;object-fit:contain;flex-shrink:0}
+        .public-title{font-size:12.5px;font-weight:600;color:#111;line-height:1.2;margin:0}
+        .public-subtitle{font-size:11px;color:#c62828;font-weight:500;margin:0}
+        .public-login-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#c62828;color:#fff;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;flex-shrink:0;white-space:nowrap}
+        .footer-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}
+        .footer-link{display:flex;align-items:center;gap:9px;background:none;border:none;cursor:pointer;font-size:14px;color:#4b5563;font-family:inherit;padding:8px 0;text-decoration:none;text-align:left;line-height:1.35}
+        .footer-link:hover{color:#c62828}
+        .footer-link svg{color:#9ca3af;flex-shrink:0}
+        .contact-block{display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:#4b5563;line-height:1.55}
+        .contact-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
+        .contact-email{color:#2563eb;text-decoration:none;font-weight:500;overflow-wrap:anywhere}
         .nav-row{display:flex}
         @media(max-width:1024px){.nav-row{display:none!important}}
+        @media(max-width:767px){
+          .public-header-inner{min-height:auto;padding:14px 16px;align-items:flex-start;flex-direction:column;gap:10px}
+          .public-brand{width:100%;align-items:center}
+          .public-logo{height:54px}
+          .public-title{font-size:12px;line-height:1.25}
+          .public-subtitle{font-size:10.5px;margin-top:2px}
+          .public-login-btn{align-self:flex-end;min-height:34px;font-size:12px;padding:7px 13px;border-radius:999px}
+          .footer-cols{grid-template-columns:1fr!important;gap:34px!important}
+        }
+        @media(min-width:768px) and (max-width:1024px){
+          .public-header-inner{min-height:92px;padding:12px 22px}
+          .public-brand{flex:1}
+          .public-title{font-size:12.5px}
+          .public-login-btn{max-width:220px}
+          .footer-cols{gap:40px}
+        }
       `}</style>
 
       <div ref={topRef} style={{ background: pageBg, minHeight:"100vh", transition:"background .3s" }}>
@@ -788,17 +815,16 @@ export default function ThaparPublicDashboard() {
         {/* ══ NAVBAR ══════════════════════════════════ */}
         <header style={{ position:"sticky", top:0, zIndex:300, background:"#fff",
                          borderBottom:"1px solid #e5e7eb", boxShadow:"0 1px 4px rgba(0,0,0,.06)" }}>
-          <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 24px", minHeight:96,
-                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+          <div className="public-header-inner">
             {/* logo */}
-            <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+            <div className="public-brand">
               <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                alt="Thapar" style={{ height:"clamp(56px, 6vw, 72px)", width:"auto", objectFit:"contain" }}/>
-              <div>
-                <p style={{ fontSize:12.5, fontWeight:600, color:"#111", lineHeight:1.2, margin:0 }}>
+                alt="Thapar" className="public-logo"/>
+              <div style={{ minWidth:0 }}>
+                <p className="public-title">
                   Thapar Institute of Engineering and Technology
                 </p>
-                <p style={{ fontSize:11, color:"#c62828", fontWeight:500, margin:0 }}>
+                <p className="public-subtitle">
                   Created by DoSA Office
                 </p>
               </div>
@@ -809,10 +835,8 @@ export default function ThaparPublicDashboard() {
             </nav>
             {/* admin */}
             <a href="https://campusconnect.thapar.edu/login" target="_blank" rel="noopener noreferrer"
-              style={{ display:"flex", alignItems:"center", gap:6, background:"#c62828", color:"#fff",
-                       fontSize:12.5, fontWeight:600, padding:"8px 16px", borderRadius:6,
-                       textDecoration:"none", flexShrink:0, whiteSpace:"nowrap" }}>
-              <LogIn size={13}/> Admin/Staff Login
+              className="public-login-btn">
+              <LogIn size={13}/> Login
             </a>
           </div>
         </header>
@@ -832,7 +856,7 @@ export default function ThaparPublicDashboard() {
             </motion.p>
             <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25 }}
               style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize: "clamp(2.4rem,6vw,5rem)", fontWeight: 700, color: "#fff", lineHeight: 1.1, marginBottom: 20, maxWidth: 800 }}>
-              One Platform.<br />Every Student Need.
+              One Platform
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45 }}
               style={{ fontSize: 16, color: "rgba(255,255,255,.85)", maxWidth: 560, lineHeight: 1.7 }}>
@@ -860,107 +884,57 @@ export default function ThaparPublicDashboard() {
 
         {/* ══ FOOTER ══════════════════════════════════ */}
         <footer style={{ background:"#f0f1f3", borderTop:"1px solid #e5e7eb" }}>
-          <div className="footer-cols"
-            style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px 40px" }}>
-
-            {/* LEFT: logo + description */}
-            <div>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-                <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                  alt="Thapar" style={{ height:36, width:"auto", objectFit:"contain" }}/>
-                <span style={{ fontWeight:700, fontSize:14, color:"#111" }}>Thapar Operations</span>
-              </div>
-              <p style={{ fontSize:13.5, color:"#4b5563", lineHeight:1.7, maxWidth:260 }}>
-                Helping manage and streamline Thapar operations including bookings, permissions,
-                and student services — all in one place.
-              </p>
-              <p style={{ fontSize:12, color:"#9ca3af", marginTop:14 }}>
-                © {new Date().getFullYear()} DoSA Office, TIET
-              </p>
-            </div>
-
-            {/* CENTRE: Quick Links + Any General Query */}
+          <div className="footer-cols" style={{ maxWidth:1040, margin:"0 auto", padding:"48px 24px 40px" }}>
             <div>
               <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Quick Links</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                 <button onClick={() => act("home")}
-                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
-                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
-                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
-                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
-                  <Home size={14} color="#9ca3af"/> Home
+                  className="footer-link">
+                  <Home size={15}/> Home
                 </button>
                 <button onClick={() => navigate("/install-app")}
-                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
-                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
-                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
-                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
-                  <Package size={14} color="#9ca3af"/> How to Install
+                  className="footer-link">
+                  <Package size={15}/> How to Install
                 </button>
-                <button onClick={() => act("about")}
-                  style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none",
-                           cursor:"pointer", fontSize:13.5, color:"#4b5563", fontFamily:"inherit", padding:"2px 0" }}
-                  onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
-                  onMouseLeave={e=>e.currentTarget.style.color="#4b5563"}>
-                  <Users size={14} color="#9ca3af"/> About Us
+                <a href="https://campusconnect.thapar.edu/login" target="_blank" rel="noopener noreferrer"
+                  className="footer-link">
+                  <LogIn size={15}/> Sign In
+                </a>
+                <a href="https://campusconnect.thapar.edu/community-feedback" target="_blank" rel="noopener noreferrer"
+                  className="footer-link">
+                  <MessageSquare size={15}/> Community Feedback
+                </a>
+                <a href="https://studentsocieties.thapar.edu/" target="_blank" rel="noopener noreferrer"
+                  className="footer-link">
+                  <Users size={15}/> Student Societies
+                </a>
+                <button onClick={() => act("about")} className="footer-link">
+                  <Building2 size={15}/> About Us
                 </button>
-              </div>
-
-              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:12 }}>Any General Query</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:12, fontSize:13.5, color:"#4b5563" }}>
-                <div>
-                  <p style={{ color:"#6b7280", marginBottom:3 }}>Contact us for any assistance:</p>
-                  <a href="mailto:Queries_studentaffairs@thapar.edu"
-                    style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                    Queries_studentaffairs@thapar.edu
-                  </a>
-                </div>
-                <div>
-                  <p style={{ fontSize:11, fontWeight:700, color:"#9ca3af",
-                               textTransform:"uppercase", letterSpacing:".08em", marginBottom:3 }}>
-                    Technical Support
-                  </p>
-                  <a href="mailto:itmh@thapar.edu"
-                    style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                    itmh@thapar.edu
-                  </a>
-                </div>
               </div>
             </div>
 
-            {/* RIGHT: Contact Us */}
             <div>
               <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Contact Us</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:10,
-                            fontSize:13.5, color:"#4b5563", marginBottom:20 }}>
-                <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
-                  <Clock size={14} color="#9ca3af" style={{ marginTop:2, flexShrink:0 }}/>
-                  <span>Timings: 9 AM to 5:30 PM, Monday to Friday</span>
+              <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+                <div className="contact-block">
+                  <span className="contact-label">Timings</span>
+                  <span>9:00 AM to 5:30 PM</span>
+                  <span>Monday to Friday</span>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <Mail size={14} color="#9ca3af" style={{ flexShrink:0 }}/>
-                  <span>E-mail:{" "}
-                    <a href="mailto:dosa.office@thapar.edu" style={{ color:"#2563eb", textDecoration:"none" }}>
-                      dosa.office@thapar.edu
-                    </a>
-                  </span>
+                <div className="contact-block">
+                  <span className="contact-label">Any General Query or Assistance</span>
+                  <span>Email:</span>
+                  <a className="contact-email" href="mailto:dosa.office@thapar.edu">dosa.office@thapar.edu</a>
+                  <span>Email:</span>
+                  <a className="contact-email" href="mailto:Queries_studentaffairs@thapar.edu">Queries_studentaffairs@thapar.edu</a>
+                </div>
+                <div className="contact-block">
+                  <span className="contact-label">Technical Support</span>
+                  <span>Email:</span>
+                  <a className="contact-email" href="mailto:itmh@thapar.edu">itmh@thapar.edu</a>
                 </div>
               </div>
-              <hr style={{ border:"none", borderTop:"1px solid #d1d5db", marginBottom:14 }}/>
-              <div style={{ display:"flex", flexDirection:"column", gap:4, fontSize:12.5, color:"#6b7280" }}>
-                <p>Powered by Thapar Institute of Engineering &amp; Technology</p>
-                <p style={{ fontWeight:700, color:"#374151" }}>Created and Maintained by DoSA Office</p>
-              </div>
-            </div>
-          </div>
-
-          {/* bottom bar */}
-          <div style={{ borderTop:"1px solid #d1d5db", background:"#e5e6e8",
-                        padding:"12px 24px", display:"flex", alignItems:"center",
-                        justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
-            <span style={{ fontSize:12, color:"#6b7280" }}>Managed by DOSA Office</span>
-            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#6b7280" }}>
-              Crafted by <span style={{ color:"#374151", marginLeft:4 }}>DoSA Office</span>
             </div>
           </div>
         </footer>

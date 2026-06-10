@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import useSystemSettings from "../hooks/useSystemSettings";
 
 export default function HostelMenuButton({ 
   hostelName, 
@@ -19,6 +20,8 @@ export default function HostelMenuButton({
   });
 
   const [isOpen, setIsOpen] = useState(false);
+  const { settings } = useSystemSettings();
+  const cleaningEnabled = settings?.operations?.enableCleaningWorkflow !== false;
   const menuRef = useRef(null);
 
   // Close menu when clicking outside
@@ -63,7 +66,8 @@ export default function HostelMenuButton({
     guestRoomDetails: guestRooms.map(r => ({
       roomNo: r.roomNo,
       roomType: r.roomType,
-      isBlocked: r.isBlocked
+      isBlocked: r.isBlocked,
+      roomState: r.roomState
     }))
   });
 
@@ -145,6 +149,9 @@ export default function HostelMenuButton({
                       {room.isBlocked ? (
                         <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" 
                               title="Blocked" />
+                      ) : cleaningEnabled && room.roomState === "cleaning_pending" ? (
+                        <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"
+                              title="Cleaning Pending" />
                       ) : (
                         <span className="w-2 h-2 bg-green-500 rounded-full" 
                               title="Available" />
@@ -155,6 +162,11 @@ export default function HostelMenuButton({
                     {room.isBlocked && (
                       <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
                         Blocked
+                      </span>
+                    )}
+                    {!room.isBlocked && cleaningEnabled && room.roomState === "cleaning_pending" && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">
+                        Cleaning
                       </span>
                     )}
                   </button>

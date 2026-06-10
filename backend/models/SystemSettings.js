@@ -30,6 +30,27 @@ const systemSettingsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    operations: {
+      enableBroadcastCenter: { type: Boolean, default: true },
+      enableCleaningWorkflow: { type: Boolean, default: true },
+      enableGuestSupportPortal: { type: Boolean, default: true },
+      enableHostelRatings: { type: Boolean, default: true },
+      enableGuestFlagging: { type: Boolean, default: true },
+    },
+    flagRules: {
+      yellowThreshold: { type: Number, default: 3, min: 1 },
+      orangeThreshold: { type: Number, default: 2, min: 1 },
+      redThreshold: { type: Number, default: 1, min: 1 },
+    },
+    cleaning: {
+      enableCleaningChecklist: { type: Boolean, default: true },
+      enableCleaningRequests: { type: Boolean, default: true },
+    },
+    support: {
+      enableMedicalRequests: { type: Boolean, default: true },
+      enableMaintenanceRequests: { type: Boolean, default: true },
+      enableSosAlerts: { type: Boolean, default: true },
+    },
     dashboardRegistry: {
       type: [dashboardRegistryItemSchema],
       default: [

@@ -37,6 +37,7 @@ import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicAllEventsPage from "./pages/PublicAllEventsPage";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
+import GuestSupportPortal from "./pages/GuestSupportPortal";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
 import AllHostelsPortal from "./pages/AllHostelsPortal";
 import ApprovalPage from "./pages/ApprovalPage";
@@ -100,6 +101,13 @@ export default function App() {
   const canAccessGuestRoom = dashboardAccess.dashboards.includes("guestRoom");
   const canAccessVenue = dashboardAccess.dashboards.includes("venue");
   const canAccessNight = dashboardAccess.dashboards.includes("night") || role === "guard";
+  const canAccessBroadcast =
+    settings?.operations?.enableBroadcastCenter !== false &&
+    ["admin", "manager", "adosa"].includes(role);
+  const canAccessSupportRequests =
+    settings?.operations?.enableGuestSupportPortal !== false &&
+    canAccessGuestRoom &&
+    ["admin", "manager", "adosa", "assistant", "caretaker", "warden", "co_warden"].includes(role);
   const canSeeSelector =
     role === "admin" ||
     (DASHBOARD_SELECTOR_ENABLED &&
@@ -220,6 +228,24 @@ export default function App() {
           />
 
           <Route
+            path="/broadcast-center"
+            element={
+              currentUser && canAccessBroadcast
+                ? <GuestRoomDashboard />
+                : <Navigate to="/" replace />
+            }
+          />
+
+          <Route
+            path="/support-requests"
+            element={
+              currentUser && canAccessSupportRequests
+                ? <GuestRoomDashboard />
+                : <Navigate to="/" replace />
+            }
+          />
+
+          <Route
             path="/all-hostels"
             element={
               currentUser && role === "admin"
@@ -266,7 +292,8 @@ export default function App() {
             <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
             <Route path="/event-calendar"       element={<PublicEventCalendar />} />
             <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
-            <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+          <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
+          <Route path="/guest-support/:hostelId/:roomId" element={<GuestSupportPortal />} />
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<AboutUsPage />} />
           <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />

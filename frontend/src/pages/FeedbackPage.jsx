@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_URL_ENDPOINT, IMAGEKIT_AUTH_ENDPOINT } from '../utils/apiConfig';
 import { IKContext, IKUpload } from 'imagekitio-react';
+import FeedbackAnalytics from '../components/Feedback/FeedbackAnalytics';
 
 const API = BACKEND_URL;
 
@@ -48,8 +49,9 @@ const GUEST_RATING_CONFIG = {
 
 // Tab configuration
 const TABS = {
+  GUEST: 'guest',
   CARETAKER: 'caretaker',
-  GUEST: 'guest'
+  ANALYTICS: 'analytics'
 };
 
 // Feedback Modal Component (for Caretaker Feedback)
@@ -506,7 +508,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   const { currentUser } = useAuth();
   const user = currentUser?.user || currentUser;
 
-  const [activeTab, setActiveTab] = useState(TABS.CARETAKER);
+  const [activeTab, setActiveTab] = useState(TABS.GUEST);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -546,6 +548,10 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
 
   // Fetch data on mount
   useEffect(() => {
+    if (activeTab === TABS.ANALYTICS) {
+      setLoading(false);
+      return;
+    }
     if (activeTab === TABS.CARETAKER) {
       fetchCaretakerData();
     } else {
@@ -761,6 +767,18 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
           {/* Tabs */}
           <div className="flex flex-col sm:flex-row gap-2 mb-6">
             <button
+              onClick={() => setActiveTab(TABS.GUEST)}
+              className={`flex-1 px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all ${
+                activeTab === TABS.GUEST
+                  ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                  : theme === 'dark'
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-white text-slate-700 hover:bg-red-50 border-2 border-slate-200'
+              }`}
+            >
+              💬 Guest Feedback ({guestFeedbacks.length})
+            </button>
+            <button
               onClick={() => setActiveTab(TABS.CARETAKER)}
               className={`flex-1 px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all ${
                 activeTab === TABS.CARETAKER
@@ -773,20 +791,21 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
               📝 Caretaker Feedback ({caretakerGuests.length})
             </button>
             <button
-              onClick={() => setActiveTab(TABS.GUEST)}
+              onClick={() => setActiveTab(TABS.ANALYTICS)}
               className={`flex-1 px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all ${
-                activeTab === TABS.GUEST
+                activeTab === TABS.ANALYTICS
                   ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
                   : theme === 'dark'
                   ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   : 'bg-white text-slate-700 hover:bg-red-50 border-2 border-slate-200'
               }`}
             >
-              💬 Guest Feedback ({guestFeedbacks.length})
+              ⭐ Feedback Analytics
             </button>
           </div>
 
           {/* Search and Filters */}
+          {activeTab !== TABS.ANALYTICS && (
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="flex-1 relative">
               <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 ${
@@ -819,10 +838,11 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
               <span className="sm:hidden">Filter</span>
             </button>
           </div>
+          )}
 
           {/* Filter Panel */}
           <AnimatePresence>
-            {showFilters && (
+            {showFilters && activeTab !== TABS.ANALYTICS && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -911,7 +931,19 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
           </AnimatePresence>
         </motion.div>
 
+        {activeTab === TABS.ANALYTICS && (
+          <div className="mb-6">
+            <FeedbackAnalytics
+              selectedHostel={selectedHostel}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              theme={theme}
+            />
+          </div>
+        )}
+
         {/* Stats Cards */}
+        {activeTab !== TABS.ANALYTICS && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md p-3 md:p-4 border-l-4 border-red-500`}>
             <div className="flex items-center justify-between gap-2">
@@ -1012,8 +1044,11 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
             </>
           )}
         </div>
+        )}
 
         {/* Content */}
+        {activeTab !== TABS.ANALYTICS && (
+        <>
         {loading ? (
           <div className="flex flex-col items-center justify-center h-48 md:h-64">
             <div className="animate-spin rounded-full h-10 md:h-12 w-10 md:w-12 border-b-2 border-red-600 mb-4"></div>
@@ -1132,6 +1167,8 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
               </motion.div>
             )}
           </>
+        )}
+        </>
         )}
       </div>
 

@@ -45,6 +45,11 @@ export const getAllHostelsWithBookings = async (req, res) => {
             blockAttachments: room.blockAttachments || [],
             blockedAt: room.blockedAt,
             blockedBy: room.blockedBy,
+            roomState: room.isBlocked ? "maintenance_blocked" : room.roomState || "available",
+            cleaningPendingSince: room.cleaningPendingSince,
+            lastCheckoutBookingId: room.lastCheckoutBookingId,
+            lastCleanedAt: room.lastCleanedAt,
+            lastCleanedBy: room.lastCleanedBy,
             
             bookings: roomBookings.map((b) => ({
               id: b._id,
@@ -208,7 +213,26 @@ export const updateHostel = async (req, res) => {
     if (code !== undefined) hostel.code = code;
     if (caretakerEmail !== undefined) hostel.caretakerEmail = caretakerEmail;
     if (wardenEmail !== undefined) hostel.wardenEmail = wardenEmail;
-    if (rooms !== undefined) hostel.rooms = rooms;
+    if (rooms !== undefined) {
+      const existingByRoomNo = new Map((hostel.rooms || []).map((room) => [room.roomNo, room]));
+      hostel.rooms = rooms.map((incomingRoom) => {
+        const existingRoom = existingByRoomNo.get(incomingRoom.roomNo);
+        return {
+          ...incomingRoom,
+          isBlocked: incomingRoom.isBlocked ?? existingRoom?.isBlocked ?? false,
+          blockedTill: incomingRoom.blockedTill ?? existingRoom?.blockedTill,
+          blockRemarks: incomingRoom.blockRemarks ?? existingRoom?.blockRemarks,
+          blockAttachments: incomingRoom.blockAttachments ?? existingRoom?.blockAttachments ?? [],
+          blockedAt: incomingRoom.blockedAt ?? existingRoom?.blockedAt,
+          blockedBy: incomingRoom.blockedBy ?? existingRoom?.blockedBy,
+          roomState: incomingRoom.roomState ?? existingRoom?.roomState ?? "available",
+          cleaningPendingSince: incomingRoom.cleaningPendingSince ?? existingRoom?.cleaningPendingSince,
+          lastCheckoutBookingId: incomingRoom.lastCheckoutBookingId ?? existingRoom?.lastCheckoutBookingId,
+          lastCleanedAt: incomingRoom.lastCleanedAt ?? existingRoom?.lastCleanedAt,
+          lastCleanedBy: incomingRoom.lastCleanedBy ?? existingRoom?.lastCleanedBy,
+        };
+      });
+    }
     if (active !== undefined) hostel.active = active;
 
     await hostel.save();

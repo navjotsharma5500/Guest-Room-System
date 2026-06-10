@@ -387,6 +387,162 @@ export default function PublicEventCalendar() {
           : "bg-gradient-to-br from-blue-50 via-white to-purple-50"
       }`}
     >
+      <style>{`
+        .public-event-header-inner {
+          min-height: 96px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .public-event-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
+          min-width: 0;
+        }
+        .public-event-logo {
+          height: clamp(56px, 6vw, 72px);
+          width: auto;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+        .public-event-mobile-label {
+          display: none;
+        }
+        .public-event-center-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .public-event-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: nowrap;
+        }
+        .public-event-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          border-width: 1px;
+          border-radius: 8px;
+          transition: color .2s, border-color .2s, background .2s;
+          font-weight: 500;
+          padding: 6px 12px;
+          font-size: clamp(10px, 2.5vw, 13px);
+          white-space: nowrap;
+          text-decoration: none;
+        }
+        .event-tabs-shell {
+          max-width: 100%;
+          overflow: hidden;
+        }
+        .event-tabs-inner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          max-width: 100%;
+        }
+        .event-tab-control {
+          white-space: nowrap;
+        }
+        .event-footer-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 32px;
+        }
+        @media (max-width: 767px) {
+          .public-event-header-inner {
+            min-height: auto;
+            flex-direction: column;
+            align-items: stretch;
+            padding-top: 14px;
+            padding-bottom: 14px;
+            gap: 12px;
+          }
+          .public-event-brand {
+            width: 100%;
+            align-items: center;
+          }
+          .public-event-logo {
+            height: 54px;
+          }
+          .public-event-mobile-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .public-event-center-title {
+            display: none;
+          }
+          .public-event-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .public-event-action-btn {
+            min-height: 36px;
+            padding: 7px 10px;
+            font-size: 11.5px;
+            flex: 1 1 calc(33.333% - 8px);
+            justify-content: center;
+            min-width: 94px;
+          }
+          .event-tabs-shell {
+            justify-content: stretch;
+            padding-left: 0;
+            padding-right: 0;
+          }
+          .event-tabs-inner {
+            width: 100%;
+            gap: 4px;
+            padding: 4px;
+            justify-content: space-between;
+          }
+          .event-tab-control {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 8px 4px !important;
+            font-size: 10px !important;
+            text-align: center;
+            line-height: 1.15;
+            white-space: normal;
+          }
+          .event-footer-grid {
+            grid-template-columns: 1fr;
+            gap: 28px;
+          }
+        }
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .public-event-header-inner {
+            min-height: 92px;
+            gap: 12px;
+          }
+          .public-event-actions {
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+          }
+          .public-event-action-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+          }
+          .event-tabs-inner {
+            gap: 6px;
+          }
+          .event-tab-control {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+          }
+        }
+      `}</style>
+
       {/* About Modal */}
       <AnimatePresence>
         {showAboutModal && (
@@ -453,25 +609,27 @@ export default function PublicEventCalendar() {
         }`}
         style={{ boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
       >
-        <div className="w-full max-w-[1280px] mx-auto px-6"
-          style={{ minHeight: 96, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-6 public-event-header-inner">
 
           {/* Left: Logo + Institute name */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <div className="public-event-brand">
             <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" alt="Thapar Logo"
-              style={{ height: "clamp(56px, 6vw, 72px)", width: "auto", objectFit: "contain" }} />
-            <div>
+              className="public-event-logo" />
+            <div style={{ minWidth: 0 }}>
               <p className={`text-[12.5px] font-semibold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 Thapar Institute of Engineering and Technology
               </p>
-              <p className={`text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
+              <p className={`public-event-mobile-label ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
+                <CalendarIcon size={13} /> Event Calendar
+              </p>
+              <p className={`hidden sm:block text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
                 Event Calendar
               </p>
             </div>
           </div>
 
           {/* Centre: Page title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="public-event-center-title">
             <CalendarIcon size={18} className="text-red-700" />
             <h1 className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
               style={{ fontSize: "clamp(1rem,2.2vw,1.3rem)", letterSpacing: "-.01em" }}>
@@ -480,45 +638,33 @@ export default function PublicEventCalendar() {
           </div>
 
           {/* Right: Actions buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="public-event-actions">
             <a href="/event-calendar/all-events"
-              className={`flex items-center gap-1 border rounded-lg transition-colors font-medium ${
+              className={`public-event-action-btn ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400"
                   : "border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600"
               }`}
-              style={{ 
-                padding: "6px 12px",
-                fontSize: "clamp(10px, 2.5vw, 13px)",
-                whiteSpace: "nowrap",
-                textDecoration: "none"
-              }}
             >
               <CalendarIcon size={14} /> All Events
             </a>
 
             <a href="https://campusconnect.thapar.edu/venue-enquiry"
-              className={`flex items-center gap-1 border rounded-lg transition-colors font-medium ${
+              className={`public-event-action-btn ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-400"
                   : "border-gray-200 text-gray-600 hover:border-purple-600 hover:text-purple-600"
               }`}
-              style={{ 
-                padding: "6px 12px",
-                fontSize: "clamp(10px, 2.5vw, 13px)", // 🔥 dynamic font shrink
-                whiteSpace: "nowrap"
-              }}
             >
               <CalendarIcon size={14} /> Add Booking
             </a>
 
             <a href="/"
-              className={`flex items-center gap-1 sm:gap-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${
+              className={`public-event-action-btn ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
                   : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
               }`}
-              style={{ padding: "6px 10px", textDecoration: "none" }}
             >
               <ArrowLeft size={14} /> Back
             </a>
@@ -1008,9 +1154,9 @@ export default function PublicEventCalendar() {
         {/* Bottom Section: Tabs and List */}
         <div className="space-y-6 w-full">
           {/* Tabs + Inline Venue Button */}
-          <div className="flex justify-center px-2">
+          <div className="flex justify-center px-2 event-tabs-shell">
             <div
-              className={`flex p-1 rounded-xl gap-2 items-center ${
+              className={`event-tabs-inner p-1 rounded-xl ${
                 theme === "dark" ? "bg-gray-800" : "bg-gray-100"
               }`}
             >
@@ -1019,7 +1165,7 @@ export default function PublicEventCalendar() {
               <a
                 href="https://campusconnect.thapar.edu/venue-calendar"
                 onClick={() => setActiveTab("venue")}
-                className={`px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`event-tab-control px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   activeTab === "venue"
                     ? theme === "dark"
                       ? "bg-gray-700 text-white shadow-sm"
@@ -1041,7 +1187,7 @@ export default function PublicEventCalendar() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`event-tab-control px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                     activeTab === tab.id
                       ? theme === "dark"
                         ? "bg-gray-700 text-white shadow-sm"
@@ -1210,35 +1356,7 @@ export default function PublicEventCalendar() {
             : "bg-white border-gray-200 text-gray-600"
         }`}
       >
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-
-          {/* Block 1: General Query */}
-          <div className="space-y-4">
-            <h3 className={`font-bold text-base sm:text-lg ${
-              theme === "dark" ? "text-white" : "text-gray-900"
-            }`}>
-              Any General Query
-            </h3>
-            <div className="text-xs sm:text-sm space-y-2">
-              <p className="font-semibold">Contact us for any assistance:</p>
-              <a href="mailto:shabnam.rani@thapar.edu"
-                className="block text-blue-500 hover:underline break-all">
-                shabnam.rani@thapar.edu
-              </a>
-            </div>
-            <div className="pt-2">
-              <p className="text-xs font-semibold uppercase text-gray-500 mb-1">
-                Technical Support
-              </p>
-              <a href="mailto:itmh@thapar.edu"
-                className="text-xs sm:text-sm text-blue-500 hover:underline break-all">
-                itmh@thapar.edu
-              </a>
-              <p className="text-xs sm:text-sm mt-2">Crafted by DoSA Office</p>
-            </div>
-          </div>
-
-          {/* Block 2: Quick Links */}
+        <div className="w-full max-w-5xl mx-auto event-footer-grid">
           <div className="space-y-4">
             <h3 className={`font-bold text-base sm:text-lg ${
               theme === "dark" ? "text-white" : "text-gray-900"
@@ -1287,7 +1405,7 @@ export default function PublicEventCalendar() {
 
               <motion.a
                 whileHover={{ x: 4 }}
-                href="https://www.thapar.edu/students/pages/hostels"
+                href="https://studentsocieties.thapar.edu/"
                 target="_blank"
                 rel="noreferrer"
                 className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
@@ -1297,12 +1415,11 @@ export default function PublicEventCalendar() {
                 }`}
               >
                 <ExternalLink size={15} className="text-orange-500 shrink-0 group-hover:scale-110 transition-transform" />
-                <span className="font-medium text-sm">Student Amenities</span>
+                <span className="font-medium text-sm">Student Societies</span>
               </motion.a>
             </div>
           </div>
 
-          {/* Block 3: Contact Us */}
           <div className="space-y-4 sm:space-y-6">
             <div>
               <h3 className={`font-bold text-base sm:text-lg mb-3 sm:mb-4 ${
@@ -1310,15 +1427,41 @@ export default function PublicEventCalendar() {
               }`}>
                 Contact Us
               </h3>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm leading-relaxed">
-                <p>Timings: 9 AM to 5:30 PM, Monday to Friday</p>
-                <p>
-                  E-mail :{" "}
+              <div className="space-y-5 text-xs sm:text-sm leading-relaxed">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Timings</p>
+                  <p>9:00 AM to 5:30 PM</p>
+                  <p>Monday to Friday</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Any General Query or Assistance
+                  </p>
+                  <p>Email:</p>
                   <a href="mailto:dosa.office@thapar.edu"
                     className="text-blue-500 hover:underline break-all">
                     dosa.office@thapar.edu
                   </a>
-                </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  </p>
+                  <p>Email:</p>
+                  <a href="mailto:Queries_studentaffairs@thapar.edu"
+                    className="text-blue-500 hover:underline break-all">
+                    Queries_studentaffairs@thapar.edu
+                  </a>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Technical Support
+                  </p>
+                  <p>Email:</p>
+                  <a href="mailto:itmh@thapar.edu"
+                    className="text-blue-500 hover:underline break-all">
+                    itmh@thapar.edu
+                  </a>
+                </div>
               </div>
             </div>
             <div className="pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700 space-y-2 sm:space-y-3">
@@ -1333,48 +1476,6 @@ export default function PublicEventCalendar() {
               </p>
             </div>
           </div>
-
-          {/* Block 4: Thapar Branding Card — aligned to top like other columns */}
-          <div className="flex flex-col gap-4">
-
-            {/* Heading row — matches other column headings */}
-            <h3 className={`font-bold text-base sm:text-lg ${
-              theme === "dark" ? "text-white" : "text-gray-900"
-            }`}>
-              Thapar Event Calendar
-            </h3>
-
-            {/* Branding card */}
-            <div
-              className={`rounded-2xl p-5 flex flex-col items-center gap-3 text-center ${
-                theme === "dark"
-                  ? "bg-gray-700/40 border border-gray-600"
-                  : "bg-gray-50 border border-gray-200"
-              }`}
-            >
-              <img
-                src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                alt="Thapar Logo"
-                style={{ height: 38, width: "auto", objectFit: "contain" }}
-              />
-
-              <div style={{ width: 28, height: 2, borderRadius: 2, background: "#c62828" }} />
-
-              <p className={`text-xs leading-relaxed ${
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}>
-                The Event Calendar page keeps all event-related information in one accessible place, ensuring a well-organized campus environment.
-              </p>
-
-              <p className={`text-[10px] font-semibold tracking-wider ${
-                theme === "dark" ? "text-gray-400" : "text-gray-400"
-              }`}>
-                EVENT CALENDAR
-              </p>
-            </div>
-
-          </div>
-
         </div>
       </footer>
     </div>

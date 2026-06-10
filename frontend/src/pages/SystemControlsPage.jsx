@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Save, Users, LayoutGrid, Mail, CalendarDays, ShieldCheck } from "lucide-react";
+import { Save, Users, LayoutGrid, Mail, CalendarDays, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import useSystemSettings from "../hooks/useSystemSettings";
 import { BACKEND_URL } from "../utils/apiConfig";
 
@@ -9,6 +9,7 @@ const TABS = [
   { key: "bookingDays", label: "Booking Days", icon: CalendarDays },
   { key: "extensionRules", label: "Extension Rules", icon: ShieldCheck },
   { key: "emailSettings", label: "Email Settings", icon: Mail },
+  { key: "operations", label: "Operations", icon: SlidersHorizontal },
   { key: "userManagement", label: "User Management", icon: Users },
   { key: "dashboardAccess", label: "Dashboard Access", icon: LayoutGrid },
 ];
@@ -431,6 +432,185 @@ export default function SystemControlsPage({ theme = "light", onClose = () => {}
                 </div>
               )}
 
+              {activeTab === "operations" && (
+                <div className="space-y-6">
+                  <div className="rounded-xl border p-4">
+                    <h3 className="font-bold text-gray-900 mb-3">Enterprise Feature Switches</h3>
+                    <ToggleField
+                      label="Enable Broadcast Center"
+                      description="Turns Broadcast Center email and dashboard notice service on/off for every role."
+                      checked={draft.operations?.enableBroadcastCenter !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          operations: { ...prev.operations, enableBroadcastCenter: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Cleaning Workflow"
+                      description="Controls room cleaning states, checklist flow, and Mark Clean operations globally."
+                      checked={draft.operations?.enableCleaningWorkflow !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          operations: { ...prev.operations, enableCleaningWorkflow: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Guest Support Portal"
+                      description="Controls public QR based guest support requests globally."
+                      checked={draft.operations?.enableGuestSupportPortal !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          operations: { ...prev.operations, enableGuestSupportPortal: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Hostel Ratings"
+                      description="Controls hostel and room rating analytics visibility."
+                      checked={draft.operations?.enableHostelRatings !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          operations: { ...prev.operations, enableHostelRatings: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Guest Flagging"
+                      description="Controls guest flagging, auto-blocking, and blocked-guest operational guards globally."
+                      checked={draft.operations?.enableGuestFlagging !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          operations: { ...prev.operations, enableGuestFlagging: checked },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="rounded-xl border p-4">
+                    <h3 className="font-bold text-gray-900 mb-3">Flag Threshold Rules</h3>
+                    <p className="mb-4 text-sm text-gray-500">
+                      Guests are auto-blocked when any threshold is reached. Mixed severity also counts toward blocking.
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Field label="Yellow Threshold">
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-full rounded-lg border px-3 py-2"
+                          value={draft.flagRules?.yellowThreshold || ""}
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              flagRules: {
+                                ...prev.flagRules,
+                                yellowThreshold: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </Field>
+                      <Field label="Orange Threshold">
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-full rounded-lg border px-3 py-2"
+                          value={draft.flagRules?.orangeThreshold || ""}
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              flagRules: {
+                                ...prev.flagRules,
+                                orangeThreshold: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </Field>
+                      <Field label="Red Threshold">
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-full rounded-lg border px-3 py-2"
+                          value={draft.flagRules?.redThreshold || ""}
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              flagRules: {
+                                ...prev.flagRules,
+                                redThreshold: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border p-4">
+                    <h3 className="font-bold text-gray-900 mb-3">Guest Support Request Types</h3>
+                    <ToggleField
+                      label="Enable Medical Requests"
+                      checked={draft.support?.enableMedicalRequests !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          support: { ...prev.support, enableMedicalRequests: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Cleaning Requests"
+                      checked={draft.cleaning?.enableCleaningRequests === true}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          cleaning: { ...prev.cleaning, enableCleaningRequests: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable Maintenance Requests"
+                      checked={draft.support?.enableMaintenanceRequests !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          support: { ...prev.support, enableMaintenanceRequests: checked },
+                        }))
+                      }
+                    />
+                    <ToggleField
+                      label="Enable SOS Alerts"
+                      checked={draft.support?.enableSosAlerts !== false}
+                      onChange={(checked) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          support: { ...prev.support, enableSosAlerts: checked },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <SaveButton
+                    saving={saving}
+                    onClick={() =>
+                      persistSettings({
+                        operations: draft.operations,
+                        flagRules: draft.flagRules,
+                        cleaning: draft.cleaning,
+                        support: draft.support,
+                      })
+                    }
+                  />
+                </div>
+              )}
+
               {activeTab === "userManagement" && (
                 <div className="space-y-6">
                   <div className="rounded-xl border p-4">
@@ -614,6 +794,23 @@ function Field({ label, children }) {
       <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
       {children}
     </div>
+  );
+}
+
+function ToggleField({ label, description = "", checked, onChange }) {
+  return (
+    <label className="flex items-center justify-between gap-4 border-b last:border-b-0 py-3">
+      <span>
+        <span className="block text-sm font-semibold text-gray-800">{label}</span>
+        {description && <span className="block text-xs text-gray-500 mt-0.5">{description}</span>}
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-5 w-5 shrink-0"
+      />
+    </label>
   );
 }
 

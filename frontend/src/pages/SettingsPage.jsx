@@ -13,12 +13,16 @@ import {
   Trash2,
   Settings,
   Building2,
+  ClipboardCheck,
+  QrCode,
 } from "lucide-react";
 import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
 import { BACKEND_URL } from "../utils/apiConfig";
 import useVenueConfig from "../hooks/useVenueConfig";
 import SystemControlsPage from "./SystemControlsPage";
+import CleaningChecklistManagement from "../components/Cleaning/CleaningChecklistManagement";
+import SupportQRCodeManager from "../components/Support/SupportQRCodeManager";
 
 export default function SettingsPage({
   theme,
@@ -34,6 +38,8 @@ export default function SettingsPage({
   const [toast, setToast] = useState(null);
   const [manageVenuesModal, setManageVenuesModal] = useState(false);
   const [systemControlsOpen, setSystemControlsOpen] = useState(false);
+  const [cleaningChecklistOpen, setCleaningChecklistOpen] = useState(false);
+  const [supportQrOpen, setSupportQrOpen] = useState(false);
   const [newTabName, setNewTabName] = useState("");
   const [sectionDrafts, setSectionDrafts] = useState({});
   const [roomDrafts, setRoomDrafts] = useState({});
@@ -907,6 +913,68 @@ export default function SettingsPage({
               </div>
             </motion.div>
           )}
+
+          <motion.div
+            whileHover={{ y: -4 }}
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+              theme === "dark"
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                <ClipboardCheck className="text-red-600 w-5 h-5" />
+              </div>
+
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-red-700">
+                  Cleaning Checklist Management
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-500 mb-3">
+                  Manage universal and hostel-specific room cleaning checklist items.
+                </p>
+
+                <button
+                  onClick={() => setCleaningChecklistOpen(true)}
+                  className="bg-white border border-red-300 text-red-700 px-3 sm:px-4 py-2 text-sm rounded-lg hover:bg-red-50 inline-flex gap-2 items-center justify-center sm:justify-start whitespace-nowrap"
+                >
+                  <ClipboardCheck size={16} /> Manage Checklist
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -4 }}
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+              theme === "dark"
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-50 rounded-full mt-1 flex-shrink-0">
+                <QrCode className="text-red-600 w-5 h-5" />
+              </div>
+
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-red-700">
+                  Guest Support QR Codes
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-500 mb-3">
+                  Generate downloadable and printable QR/barcode support links for rooms.
+                </p>
+
+                <button
+                  onClick={() => setSupportQrOpen(true)}
+                  className="bg-white border border-red-300 text-red-700 px-3 sm:px-4 py-2 text-sm rounded-lg hover:bg-red-50 inline-flex gap-2 items-center justify-center sm:justify-start whitespace-nowrap"
+                >
+                  <QrCode size={16} /> Manage QR Codes
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* FOOTER */}
@@ -918,6 +986,80 @@ export default function SettingsPage({
       {/* ------------------------------------------------------------------------------------------------ */}
       {/* ADD / EDIT HOSTEL MODAL */}
       {/* ------------------------------------------------------------------------------------------------ */}
+
+      <AnimatePresence>
+        {cleaningChecklistOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden"
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+            >
+              <div className="flex justify-between items-center px-6 py-4 border-b">
+                <div>
+                  <h2 className="text-xl font-bold text-red-700">
+                    Cleaning Checklist Management
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Universal defaults plus caretaker-managed hostel items.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCleaningChecklistOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-90px)]">
+                <CleaningChecklistManagement showToast={showToast} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {supportQrOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden"
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+            >
+              <div className="flex justify-between items-center px-6 py-4 border-b">
+                <div>
+                  <h2 className="text-xl font-bold text-red-700">Guest Support QR Codes</h2>
+                  <p className="text-sm text-gray-500">Download or print room support QR codes.</p>
+                </div>
+                <button
+                  onClick={() => setSupportQrOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-90px)]">
+                <SupportQRCodeManager showToast={showToast} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {addHostelModal && (

@@ -7,6 +7,7 @@ import {
   getFeedbackByBooking,
   deleteFeedback,
   getFeedbackStats,
+  getFeedbackAnalytics,
 } from "../controllers/feedbackController.js";
 
 const router = express.Router();
@@ -19,6 +20,7 @@ router.get("/caretaker/list", protect, getAllFeedbacks);
 router.post("/", protect, submitFeedback);
 router.get("/", protect, getAllFeedbacks);
 router.get("/stats", protect, getFeedbackStats);
+router.get("/analytics", protect, getFeedbackAnalytics);
 router.get("/booking/:bookingId", protect, getFeedbackByBooking);
 router.delete("/:id", protect, deleteFeedback);
 
