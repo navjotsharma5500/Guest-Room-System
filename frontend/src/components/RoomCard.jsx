@@ -574,7 +574,9 @@ const RoomCard = memo(function RoomCard({
             </div>
           ) : (
             <div className="mt-2">
-              <RoomCleaningStatusBadge state={roomState} className="mb-2" />
+              {roomState !== "available" && (
+                <RoomCleaningStatusBadge state={roomState} className="mb-2" />
+              )}
               <div className="flex items-center justify-center gap-1 mb-1">
                 <CheckCircle2
                   className={`w-3 h-3 ${approvalStatus === "under_review" ? "text-orange-700" : "text-green-700"}`}
@@ -857,9 +859,11 @@ const RoomCard = memo(function RoomCard({
             <span className="font-semibold text-green-600">Available</span>
           )}
         </p>
-        <div className="mt-2">
-          <RoomCleaningStatusBadge state={roomState} />
-        </div>
+        {roomState !== "available" && (
+          <div className="mt-2">
+            <RoomCleaningStatusBadge state={roomState} />
+          </div>
+        )}
 
         {isCleaningPending && (
           <div className="flex gap-2 mt-3">

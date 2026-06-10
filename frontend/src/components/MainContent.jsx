@@ -1101,12 +1101,12 @@ export default function MainContent(props) {
               </div>
 
               {/* ========== UPCOMING BOOKINGS SECTION (FULL WIDTH) ========== */}
-              <div className={`shadow-md rounded-2xl p-6 ${
-                theme === "dark" ? "bg-gray-800" : "bg-white"
+              <div className={`shadow-md rounded-2xl border p-6 ${
+                theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
               }`}>
                 <div className="flex items-center justify-between mb-6">
                   <h3 className={`text-2xl font-semibold flex items-center gap-3 ${
-                    theme === "dark" ? "text-red-400" : "text-red-700"
+                    theme === "dark" ? "text-blue-300" : "text-blue-700"
                   }`}>
                     <span className="text-3xl">🗓️</span>
                     Upcoming Bookings
@@ -1138,14 +1138,14 @@ export default function MainContent(props) {
                           )}
                           className={`
                             group relative overflow-hidden rounded-xl border-2 cursor-pointer
-                            transition-all duration-300 transform hover:scale-105 hover:shadow-2xl
+                            transition-all duration-300 hover:shadow-lg
                             ${isSelected 
                               ? theme === "dark"
-                                ? "bg-gradient-to-br from-red-900/40 to-red-800/40 border-red-500 shadow-red-500/50 shadow-lg"
-                                : "bg-gradient-to-br from-red-50 to-orange-50 border-red-500 shadow-red-300/50 shadow-lg"
+                                ? "bg-gray-700 border-blue-500 shadow-blue-500/30 shadow-lg"
+                                : "bg-white border-blue-500 shadow-blue-200 shadow-lg"
                               : theme === "dark"
-                                ? "bg-gray-700/50 border-gray-600 hover:border-red-500 hover:bg-gray-700"
-                                : "bg-white border-gray-200 hover:border-red-400 hover:bg-gradient-to-br hover:from-red-50 hover:to-orange-50"
+                                ? "bg-gray-700/50 border-gray-600 hover:border-blue-500 hover:bg-gray-700"
+                                : "bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50/40"
                             }
                           `}
                           style={{
@@ -1164,7 +1164,7 @@ export default function MainContent(props) {
 
                           {/* Selected Indicator */}
                           {isSelected && (
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 animate-pulse" />
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-red-500 to-blue-500 animate-pulse" />
                           )}
 
                           {/* Card Content */}
@@ -1172,7 +1172,7 @@ export default function MainContent(props) {
                             {/* Guest Name */}
                             <div className="flex items-start gap-2 mb-4">
                               <div className={`text-2xl ${
-                                theme === "dark" ? "text-red-400" : "text-red-600"
+                                theme === "dark" ? "text-blue-300" : "text-blue-600"
                               }`}>
                                 👤
                               </div>
@@ -1225,7 +1225,7 @@ export default function MainContent(props) {
                                   Room Number
                                 </p>
                                 <p className={`font-bold text-lg ${
-                                  theme === "dark" ? "text-red-400" : "text-red-600"
+                                  theme === "dark" ? "text-blue-300" : "text-blue-700"
                                 }`}>
                                   {u.roomNo}
                                 </p>
@@ -1296,8 +1296,8 @@ export default function MainContent(props) {
                             transition-opacity duration-300 pointer-events-none
                             bg-gradient-to-t ${
                               theme === "dark"
-                                ? "from-red-900/30 to-transparent"
-                                : "from-red-100/50 to-transparent"
+                                ? "from-blue-900/20 to-transparent"
+                                : "from-blue-100/40 to-transparent"
                             }
                           `} />
                         </div>

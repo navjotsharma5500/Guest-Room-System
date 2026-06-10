@@ -439,18 +439,7 @@ export const getFeedbackAnalytics = async (req, res) => {
       ...buildDateFilter(req.query, "submittedAt"),
     };
 
-    const [internalHostels, publicHostels, roomRankings, internalTrends, publicTrends] = await Promise.all([
-      Feedback.aggregate([
-        { $match: internalMatch },
-        {
-          $group: {
-            _id: "$hostel",
-            totalReviews: { $sum: 1 },
-            ratingSum: { $sum: "$rating" },
-          },
-        },
-        { $addFields: { source: "internal" } },
-      ]),
+    const [publicHostels, roomRankings, publicTrends] = await Promise.all([
       GuestFeedback.aggregate([
         { $match: publicMatch },
         {
@@ -483,19 +472,6 @@ export const getFeedbackAnalytics = async (req, res) => {
         { $sort: { averageRating: -1, totalReviews: -1 } },
         { $limit: 20 },
       ]),
-      Feedback.aggregate([
-        { $match: internalMatch },
-        {
-          $group: {
-            _id: {
-              year: { $year: "$submittedAt" },
-              month: { $month: "$submittedAt" },
-            },
-            totalReviews: { $sum: 1 },
-            ratingSum: { $sum: "$rating" },
-          },
-        },
-      ]),
       GuestFeedback.aggregate([
         { $match: publicMatch },
         {
@@ -511,12 +487,12 @@ export const getFeedbackAnalytics = async (req, res) => {
       ]),
     ]);
 
-    const hostelRankings = mergeHostelRows(internalHostels, publicHostels);
+    const hostelRankings = mergeHostelRows([], publicHostels);
     const totalReviews = hostelRankings.reduce((sum, row) => sum + row.totalReviews, 0);
     const totalRatingSum = hostelRankings.reduce((sum, row) => sum + row.ratingSum, 0);
 
     const trendMap = new Map();
-    for (const row of [...internalTrends, ...publicTrends]) {
+    for (const row of publicTrends) {
       const key = `${row._id.year}-${String(row._id.month).padStart(2, "0")}`;
       const current = trendMap.get(key) || { period: key, totalReviews: 0, ratingSum: 0 };
       current.totalReviews += row.totalReviews || 0;

@@ -121,19 +121,21 @@ export default function DashboardBroadcastPanel({ currentUser, theme = "light" }
         <section className={`rounded-2xl shadow-md border overflow-hidden ${
           theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
         }`}>
-          <div className="px-5 py-4 border-b flex items-center justify-between">
+          <div className={`px-5 py-4 border-b flex items-center justify-between ${
+            theme === "dark" ? "border-gray-700" : "border-gray-100"
+          }`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
                 <Megaphone className="w-5 h-5" />
               </div>
               <div>
-                <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                <h3 className={`font-semibold text-lg ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
                   Broadcast Notices
                 </h3>
                 <p className="text-xs text-slate-500">General and emergency updates</p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 text-xs font-black">
+            <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
               {notices.length}
             </span>
           </div>
@@ -148,21 +150,21 @@ export default function DashboardBroadcastPanel({ currentUser, theme = "light" }
                   <button
                     key={notice._id}
                     onClick={() => openNotice(notice)}
-                    className={`w-full text-left rounded-2xl border p-4 transition hover:shadow-md ${
+                    className={`w-full text-left rounded-xl border p-4 transition hover:shadow-md ${
                       isEmergency
                         ? "bg-red-50 border-red-100 hover:bg-red-100"
-                        : "bg-cyan-50 border-cyan-100 hover:bg-cyan-100"
+                        : "bg-white border-gray-200 hover:bg-red-50 hover:border-red-200"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <Bell className={`w-4 h-4 ${isEmergency ? "text-red-600" : "text-cyan-700"}`} />
-                          <span className={`text-xs font-black ${isEmergency ? "text-red-700" : "text-cyan-700"}`}>
+                          <Bell className={`w-4 h-4 ${isEmergency ? "text-red-600" : "text-red-600"}`} />
+                          <span className={`text-xs font-semibold ${isEmergency ? "text-red-700" : "text-red-700"}`}>
                             {labelize(notice.messageType)}
                           </span>
                         </div>
-                        <h4 className="font-black text-slate-900 truncate mt-1">{notice.title}</h4>
+                        <h4 className="font-semibold text-slate-900 truncate mt-1">{notice.title}</h4>
                         <p className="text-xs text-slate-600 mt-1">
                           Valid till {notice.noticeEndAt ? new Date(notice.noticeEndAt).toLocaleDateString() : "-"}
                         </p>
@@ -184,19 +186,21 @@ export default function DashboardBroadcastPanel({ currentUser, theme = "light" }
         <section className={`rounded-2xl shadow-md border overflow-hidden ${
           theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
         }`}>
-          <div className="px-5 py-4 border-b flex items-center justify-between">
+          <div className={`px-5 py-4 border-b flex items-center justify-between ${
+            theme === "dark" ? "border-gray-700" : "border-gray-100"
+          }`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Wrench className="w-5 h-5" />
               </div>
               <div>
-                <h3 className={`font-black text-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                <h3 className={`font-semibold text-lg ${theme === "dark" ? "text-blue-300" : "text-blue-700"}`}>
                   Service Requests
                 </h3>
                 <p className="text-xs text-slate-500">Maintenance and Medical Request</p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-black">
+            <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
               {serviceRequestCount}
             </span>
           </div>
@@ -207,20 +211,20 @@ export default function DashboardBroadcastPanel({ currentUser, theme = "light" }
                   <button
                     key={`${request.requestType}-${request._id}`}
                     onClick={openSupportRequests}
-                    className="w-full text-left rounded-2xl border border-amber-100 bg-amber-50 p-4 transition hover:bg-amber-100 hover:shadow-md"
+                    className="w-full text-left rounded-xl border border-gray-200 bg-white p-4 transition hover:bg-blue-50 hover:border-blue-200 hover:shadow-md"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-amber-700" />
-                          <span className="text-xs font-black uppercase text-amber-700">
+                          <Wrench className="w-4 h-4 text-blue-700" />
+                          <span className="text-xs font-semibold uppercase text-blue-700">
                             {labelize(request.requestType)}
                           </span>
                           <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600">
                             {labelize(request.status)}
                           </span>
                         </div>
-                        <h4 className="mt-1 truncate font-black text-slate-900">
+                        <h4 className="mt-1 truncate font-semibold text-slate-900">
                           {request.guestName || "Guest"} · {request.room || "Room"}
                         </h4>
                         <p className="mt-1 truncate text-xs text-slate-600">
@@ -231,7 +235,7 @@ export default function DashboardBroadcastPanel({ currentUser, theme = "light" }
                     </div>
                   </button>
                 ))}
-                <button onClick={openSupportRequests} className="w-full rounded-xl border px-3 py-2 text-sm font-bold text-amber-700 hover:bg-amber-50">
+                <button onClick={openSupportRequests} className="w-full rounded-xl border px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
                   View all service requests
                 </button>
               </div>
