@@ -904,6 +904,14 @@ export default function ThaparPublicDashboard() {
                   className="footer-link">
                   <MessageSquare size={15}/> Community Feedback
                 </a>
+                <a href="https://campusconnect.thapar.edu/ic" target="_blank" rel="noopener noreferrer"
+                  className="footer-link">
+                  <CalendarDays size={15}/> Institute Calendar
+                </a>
+                <a href="https://campusconnect.thapar.edu/tc" target="_blank" rel="noopener noreferrer"
+                  className="footer-link">
+                  <CalendarDays size={15}/> Student Calendar
+                </a>
                 <a href="https://studentsocieties.thapar.edu/" target="_blank" rel="noopener noreferrer"
                   className="footer-link">
                   <Users size={15}/> Student Societies

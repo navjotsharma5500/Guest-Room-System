@@ -408,8 +408,27 @@ export default function PublicEventCalendar() {
           object-fit: contain;
           flex-shrink: 0;
         }
-        .public-event-mobile-label {
-          display: none;
+        .public-event-title {
+          font-size: 11.5px;
+          font-weight: 600;
+          line-height: 1.18;
+          margin: 0;
+        }
+        .public-event-calendar-links {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          margin-top: 6px;
+          flex-wrap: wrap;
+        }
+        .public-event-calendar-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 13.5px;
+          font-weight: 700;
+          line-height: 1.1;
+          text-decoration: none;
         }
         .public-event-center-title {
           display: flex;
@@ -469,13 +488,15 @@ export default function PublicEventCalendar() {
           .public-event-logo {
             height: 54px;
           }
-          .public-event-mobile-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 4px;
-            font-size: 12px;
-            font-weight: 700;
+          .public-event-title {
+            font-size: 11px;
+          }
+          .public-event-calendar-links {
+            gap: 14px;
+            margin-top: 6px;
+          }
+          .public-event-calendar-link {
+            font-size: 13px;
           }
           .public-event-center-title {
             display: none;
@@ -616,15 +637,23 @@ export default function PublicEventCalendar() {
             <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744" alt="Thapar Logo"
               className="public-event-logo" />
             <div style={{ minWidth: 0 }}>
-              <p className={`text-[12.5px] font-semibold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <p className={`public-event-title ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 Thapar Institute of Engineering and Technology
               </p>
-              <p className={`public-event-mobile-label ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
-                <CalendarIcon size={13} /> Event Calendar
-              </p>
-              <p className={`hidden sm:block text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
-                Event Calendar
-              </p>
+              <div className="public-event-calendar-links">
+                <a
+                  href="https://campusconnect.thapar.edu/ic"
+                  className={`public-event-calendar-link ${theme === "dark" ? "text-red-300" : "text-blue-700"}`}
+                >
+                  <CalendarIcon size={14} /> Institute Calendar
+                </a>
+                <a
+                  href="https://campusconnect.thapar.edu/tc"
+                  className={`public-event-calendar-link ${theme === "dark" ? "text-red-300" : "text-blue-700"}`}
+                >
+                  <CalendarIcon size={14} /> Student Calendar
+                </a>
+              </div>
             </div>
           </div>
 
@@ -1401,6 +1430,32 @@ export default function PublicEventCalendar() {
               >
                 <Home size={15} className="text-green-500 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-medium text-sm">Guest Room</span>
+              </motion.a>
+
+              <motion.a
+                whileHover={{ x: 4 }}
+                href="https://campusconnect.thapar.edu/ic"
+                className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
+                  theme === "dark"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
+                    : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
+                }`}
+              >
+                <CalendarIcon size={15} className="text-blue-500 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-medium text-sm">Institute Calendar</span>
+              </motion.a>
+
+              <motion.a
+                whileHover={{ x: 4 }}
+                href="https://campusconnect.thapar.edu/tc"
+                className={`text-left px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 group ${
+                  theme === "dark"
+                    ? "bg-gray-700/50 hover:bg-gray-700"
+                    : "bg-gray-50 hover:bg-gray-100 hover:shadow-md"
+                }`}
+              >
+                <CalendarIcon size={15} className="text-red-500 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-medium text-sm">Student Calendar</span>
               </motion.a>
 
               <motion.a
