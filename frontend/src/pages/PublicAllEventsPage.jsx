@@ -196,27 +196,82 @@ export default function PublicAllEventsPage() {
         }`}
         style={{ boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
       >
+        <style>{`
+          @media (max-width: 767px) {
+            .public-all-events-header {
+              min-height: auto !important;
+              padding: 14px 16px 16px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              justify-content: flex-start !important;
+              gap: 12px !important;
+              overflow: hidden;
+            }
+
+            .public-all-events-brand {
+              width: 100%;
+              min-width: 0;
+              align-items: center !important;
+            }
+
+            .public-all-events-logo {
+              height: 54px !important;
+              flex-shrink: 0;
+            }
+
+            .public-all-events-brand-title {
+              font-size: 12px !important;
+              line-height: 1.15 !important;
+              max-width: 280px;
+            }
+
+            .public-all-events-mobile-label {
+              display: flex !important;
+              align-items: center;
+              gap: 6px;
+              font-size: 13px !important;
+              font-weight: 700 !important;
+              margin-top: 6px !important;
+            }
+
+            .public-all-events-center-title {
+              display: none !important;
+            }
+
+            .public-all-events-actions {
+              width: 100%;
+              justify-content: flex-start;
+              overflow: hidden;
+            }
+
+            .public-all-events-back {
+              max-width: 100%;
+            }
+          }
+        `}</style>
         <div
-          className="w-full max-w-[1280px] mx-auto px-6"
+          className="public-all-events-header w-full max-w-[1280px] mx-auto px-6"
           style={{ minHeight: 96, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <div className="public-all-events-brand" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
             <img
               src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
               alt="Thapar Logo"
+              className="public-all-events-logo"
               style={{ height: "clamp(56px, 6vw, 72px)", width: "auto", objectFit: "contain" }}
             />
             <div>
-              <p className={`text-[12.5px] font-semibold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <p className={`public-all-events-brand-title text-[12.5px] font-semibold leading-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 Thapar Institute of Engineering and Technology
               </p>
-              <p className={`text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
-                All Events
+              <p className={`public-all-events-mobile-label text-[11px] font-medium leading-tight mt-0.5 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
+                <CalendarIcon size={14} /> All Events
               </p>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="public-all-events-center-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CalendarIcon size={18} className="text-red-700" />
             <h1
               className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
@@ -226,17 +281,19 @@ export default function PublicAllEventsPage() {
             </h1>
           </div>
 
-          <a
-            href="/event-calendar"
-            className={`flex items-center gap-1 sm:gap-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${
-              theme === "dark"
-                ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
-                : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
-            }`}
-            style={{ padding: "6px 10px", textDecoration: "none" }}
-          >
-            <ArrowLeft size={14} /> Back
-          </a>
+          <div className="public-all-events-actions" style={{ display: "flex", alignItems: "center" }}>
+            <a
+              href="/event-calendar"
+              className={`public-all-events-back flex items-center gap-1 sm:gap-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${
+                theme === "dark"
+                  ? "border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400"
+                  : "border-gray-200 text-gray-600 hover:border-red-600 hover:text-red-600"
+              }`}
+              style={{ padding: "6px 10px", textDecoration: "none" }}
+            >
+              <ArrowLeft size={14} /> Back
+            </a>
+          </div>
         </div>
       </header>
 
