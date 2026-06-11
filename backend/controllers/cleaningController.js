@@ -18,13 +18,16 @@ const DEFAULT_ITEMS = [
 
 const roleOf = (user) => String(user?.role || "").toLowerCase();
 const userHostel = (user) => user?.assignedHostel || user?.hostel || "";
+const normalizeHostelName = (value = "") => String(value || "").trim().toLowerCase();
 
 const canManageUniversal = (user) => roleOf(user) === "admin";
 
 const canAccessHostel = (user, hostel) => {
   const role = roleOf(user);
   if (["admin", "manager", "adosa"].includes(role)) return true;
-  if (["caretaker", "warden"].includes(role)) return userHostel(user) === hostel;
+  if (["caretaker", "warden"].includes(role)) {
+    return normalizeHostelName(userHostel(user)) === normalizeHostelName(hostel);
+  }
   return false;
 };
 

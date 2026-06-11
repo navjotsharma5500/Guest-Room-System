@@ -154,9 +154,13 @@ const RoomCard = memo(function RoomCard({
     });
   }, [activeBookings, now, isAllHostelsView]);
 
+  const hasCleaningPendingMarker =
+    cleaningEnabled &&
+    (room.roomState === "cleaning_pending" || Boolean(room.cleaningPendingSince));
+
   const roomState = room.isBlocked
     ? "maintenance_blocked"
-    : cleaningEnabled && room.roomState === "cleaning_pending"
+    : hasCleaningPendingMarker
       ? "cleaning_pending"
       : currentActive || hasActive
         ? "occupied"
@@ -601,6 +605,26 @@ const RoomCard = memo(function RoomCard({
                 <p className="text-xs text-gray-500 italic">
                   Click to view all bookings
                 </p>
+              )}
+
+              {isCleaningPending && (
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowCleaningChecklist(true);
+                    }}
+                    className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-2 rounded font-bold"
+                  >
+                    Checklist
+                  </button>
+                  <button
+                    onClick={handleMarkClean}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-2 rounded font-bold"
+                  >
+                    Mark Clean
+                  </button>
+                </div>
               )}
 
               {approvalStatus === "under_review" && canReviewUnderReviewBooking && primaryBooking && (

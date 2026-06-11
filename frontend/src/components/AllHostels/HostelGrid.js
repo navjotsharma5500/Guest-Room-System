@@ -60,7 +60,7 @@ export default function HostelGrid({
         // Count blocked rooms as occupied in the summary, same as booked/checked-in rooms.
         const occupied = rooms.filter((r) => {
           if (r.isBlocked) return true;
-          if (cleaningEnabled && r.roomState === "cleaning_pending") return true;
+          if (cleaningEnabled && (r.roomState === "cleaning_pending" || r.cleaningPendingSince)) return true;
           const activeBookings = getActiveBookings(r.bookings || []);
           return activeBookings.length > 0;
         }).length;

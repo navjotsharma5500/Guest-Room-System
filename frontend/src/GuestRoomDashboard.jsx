@@ -379,7 +379,7 @@ export default function GuestRoomDashboard() {
     const rooms = hostelData[hostel]?.rooms || [];
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.isBlocked || (cleaningEnabled && r.roomState === "cleaning_pending") || (r.bookings && r.bookings.length > 0)
+      (r) => r.isBlocked || (cleaningEnabled && (r.roomState === "cleaning_pending" || r.cleaningPendingSince)) || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };
@@ -389,7 +389,7 @@ export default function GuestRoomDashboard() {
     const rooms = Object.values(hostelData).flatMap((h) => h.rooms || []);
     const total = rooms.length;
     const occupied = rooms.filter(
-      (r) => r.isBlocked || (cleaningEnabled && r.roomState === "cleaning_pending") || (r.bookings && r.bookings.length > 0)
+      (r) => r.isBlocked || (cleaningEnabled && (r.roomState === "cleaning_pending" || r.cleaningPendingSince)) || (r.bookings && r.bookings.length > 0)
     ).length;
 
     return { total, occupied, available: total - occupied };

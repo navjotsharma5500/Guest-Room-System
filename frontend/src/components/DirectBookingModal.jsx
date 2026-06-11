@@ -350,7 +350,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return;
     }
 
-    if (systemSettings?.operations?.enableCleaningWorkflow !== false && room?.roomState === "cleaning_pending") {
+    if (
+      systemSettings?.operations?.enableCleaningWorkflow !== false &&
+      (room?.roomState === "cleaning_pending" || room?.cleaningPendingSince)
+    ) {
       showToast(
         "❌ This room is pending cleaning. Submit checklist and mark clean before booking.",
         "error"

@@ -149,7 +149,7 @@ export default function HostelMenuButton({
                       {room.isBlocked ? (
                         <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" 
                               title="Blocked" />
-                      ) : cleaningEnabled && room.roomState === "cleaning_pending" ? (
+                      ) : cleaningEnabled && (room.roomState === "cleaning_pending" || room.cleaningPendingSince) ? (
                         <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"
                               title="Cleaning Pending" />
                       ) : (
@@ -164,7 +164,7 @@ export default function HostelMenuButton({
                         Blocked
                       </span>
                     )}
-                    {!room.isBlocked && cleaningEnabled && room.roomState === "cleaning_pending" && (
+                    {!room.isBlocked && cleaningEnabled && (room.roomState === "cleaning_pending" || room.cleaningPendingSince) && (
                       <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">
                         Cleaning
                       </span>
