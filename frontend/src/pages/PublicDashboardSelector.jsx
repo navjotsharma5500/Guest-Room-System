@@ -934,7 +934,6 @@ export default function ThaparPublicDashboard() {
                   <span className="contact-label">Any General Query or Assistance</span>
                   <span>Email:</span>
                   <a className="contact-email" href="mailto:dosa.office@thapar.edu">dosa.office@thapar.edu</a>
-                  <span>Email:</span>
                   <a className="contact-email" href="mailto:Queries_studentaffairs@thapar.edu">Queries_studentaffairs@thapar.edu</a>
                 </div>
                 <div className="contact-block">

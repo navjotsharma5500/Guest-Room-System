@@ -414,22 +414,6 @@ export default function PublicEventCalendar() {
           line-height: 1.18;
           margin: 0;
         }
-        .public-event-calendar-links {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          margin-top: 6px;
-          flex-wrap: wrap;
-        }
-        .public-event-calendar-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 13.5px;
-          font-weight: 700;
-          line-height: 1.1;
-          text-decoration: none;
-        }
         .public-event-center-title {
           display: flex;
           align-items: center;
@@ -491,13 +475,6 @@ export default function PublicEventCalendar() {
           .public-event-title {
             font-size: 11px;
           }
-          .public-event-calendar-links {
-            gap: 14px;
-            margin-top: 6px;
-          }
-          .public-event-calendar-link {
-            font-size: 13px;
-          }
           .public-event-center-title {
             display: none;
           }
@@ -525,9 +502,10 @@ export default function PublicEventCalendar() {
             gap: 4px;
             padding: 4px;
             justify-content: space-between;
+            flex-wrap: wrap;
           }
           .event-tab-control {
-            flex: 1 1 0;
+            flex: 1 1 calc(33.333% - 4px);
             min-width: 0;
             padding: 8px 4px !important;
             font-size: 10px !important;
@@ -640,20 +618,6 @@ export default function PublicEventCalendar() {
               <p className={`public-event-title ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 Thapar Institute of Engineering and Technology
               </p>
-              <div className="public-event-calendar-links">
-                <a
-                  href="https://campusconnect.thapar.edu/ic"
-                  className={`public-event-calendar-link ${theme === "dark" ? "text-red-300" : "text-blue-700"}`}
-                >
-                  <CalendarIcon size={14} /> Institute Calendar
-                </a>
-                <a
-                  href="https://campusconnect.thapar.edu/tc"
-                  className={`public-event-calendar-link ${theme === "dark" ? "text-red-300" : "text-blue-700"}`}
-                >
-                  <CalendarIcon size={14} /> Student Calendar
-                </a>
-              </div>
             </div>
           </div>
 
@@ -668,24 +632,24 @@ export default function PublicEventCalendar() {
 
           {/* Right: Actions buttons */}
           <div className="public-event-actions">
-            <a href="/event-calendar/all-events"
+            <a href="https://campusconnect.thapar.edu/ic"
               className={`public-event-action-btn ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400"
                   : "border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600"
               }`}
             >
-              <CalendarIcon size={14} /> All Events
+              <CalendarIcon size={14} /> Institute Calendar
             </a>
 
-            <a href="https://campusconnect.thapar.edu/venue-enquiry"
+            <a href="https://campusconnect.thapar.edu/tc"
               className={`public-event-action-btn ${
                 theme === "dark"
                   ? "border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-400"
                   : "border-gray-200 text-gray-600 hover:border-purple-600 hover:text-purple-600"
               }`}
             >
-              <CalendarIcon size={14} /> Add Booking
+              <CalendarIcon size={14} /> Student Calendar
             </a>
 
             <a href="/"
@@ -1207,6 +1171,28 @@ export default function PublicEventCalendar() {
                 Venue Booking
               </a>
 
+              <a
+                href="https://campusconnect.thapar.edu/event-calendar/all-events"
+                className={`event-tab-control px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                  theme === "dark"
+                    ? "text-gray-400 hover:text-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                All Events
+              </a>
+
+              <a
+                href="https://campusconnect.thapar.edu/venue-enquiry"
+                className={`event-tab-control px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                  theme === "dark"
+                    ? "text-gray-400 hover:text-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Add Booking
+              </a>
+
               {/* Tabs */}
               {[
                 { id: "today", label: "Today Events" },
@@ -1501,7 +1487,6 @@ export default function PublicEventCalendar() {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
                   </p>
-                  <p>Email:</p>
                   <a href="mailto:Queries_studentaffairs@thapar.edu"
                     className="text-blue-500 hover:underline break-all">
                     Queries_studentaffairs@thapar.edu

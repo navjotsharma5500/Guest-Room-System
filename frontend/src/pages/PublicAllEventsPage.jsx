@@ -119,8 +119,8 @@ export default function PublicAllEventsPage() {
     return [...events].sort((a, b) => {
       const aDate = a.eventDate || "";
       const bDate = b.eventDate || "";
-      if (aDate !== bDate) return aDate.localeCompare(bDate);
-      return String(a.eventTime || "").localeCompare(String(b.eventTime || ""));
+      if (aDate !== bDate) return bDate.localeCompare(aDate);
+      return String(b.eventTime || "").localeCompare(String(a.eventTime || ""));
     });
   }, [events]);
 
