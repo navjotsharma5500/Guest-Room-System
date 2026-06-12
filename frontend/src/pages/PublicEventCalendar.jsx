@@ -409,7 +409,7 @@ export default function PublicEventCalendar() {
           flex-shrink: 0;
         }
         .public-event-title {
-          font-size: 11.5px;
+          font-size: 14px;
           font-weight: 600;
           line-height: 1.18;
           margin: 0;
@@ -429,7 +429,7 @@ export default function PublicEventCalendar() {
           display: flex;
           align-items: center;
           gap: 4px;
-          border-width: 1px;
+          border-width: 1.5px;
           border-radius: 8px;
           transition: color .2s, border-color .2s, background .2s;
           font-weight: 500;
@@ -437,6 +437,10 @@ export default function PublicEventCalendar() {
           font-size: clamp(10px, 2.5vw, 13px);
           white-space: nowrap;
           text-decoration: none;
+        }
+        .public-event-calendar-header-btn {
+          border-width: 2px;
+          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.10);
         }
         .event-tabs-shell {
           max-width: 100%;
@@ -473,7 +477,7 @@ export default function PublicEventCalendar() {
             height: 54px;
           }
           .public-event-title {
-            font-size: 11px;
+            font-size: 13px;
           }
           .public-event-center-title {
             display: none;
@@ -633,20 +637,20 @@ export default function PublicEventCalendar() {
           {/* Right: Actions buttons */}
           <div className="public-event-actions">
             <a href="https://campusconnect.thapar.edu/ic"
-              className={`public-event-action-btn ${
+              className={`public-event-action-btn public-event-calendar-header-btn ${
                 theme === "dark"
-                  ? "border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400"
-                  : "border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600"
+                  ? "border-blue-400 text-blue-200 bg-blue-500/10 hover:border-blue-300 hover:text-blue-100 hover:bg-blue-500/20"
+                  : "border-blue-500 text-blue-700 bg-blue-50 hover:border-blue-700 hover:text-blue-800 hover:bg-blue-100"
               }`}
             >
               <CalendarIcon size={14} /> Institute Calendar
             </a>
 
             <a href="https://campusconnect.thapar.edu/tc"
-              className={`public-event-action-btn ${
+              className={`public-event-action-btn public-event-calendar-header-btn ${
                 theme === "dark"
-                  ? "border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-400"
-                  : "border-gray-200 text-gray-600 hover:border-purple-600 hover:text-purple-600"
+                  ? "border-red-400 text-red-200 bg-red-500/10 hover:border-red-300 hover:text-red-100 hover:bg-red-500/20"
+                  : "border-red-500 text-red-700 bg-red-50 hover:border-red-700 hover:text-red-800 hover:bg-red-100"
               }`}
             >
               <CalendarIcon size={14} /> Student Calendar
