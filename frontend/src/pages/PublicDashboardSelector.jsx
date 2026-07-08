@@ -135,7 +135,7 @@ function FadeUp({ children, delay = 0, className = "" }) {
 const NAV = [
   { label: "Home", action: "home" },
   { label: "Booking Form", items: [
-    { label: "Hostel Guest-Room Booking", href: "https://campusconnect.thapar.edu/guest-enquiry" },
+    { label: "Hostel Guest-Room Booking", href: "https://campusconnect.thapar.edu/guest-room" },
     { label: "Event Venue Booking",        href: "https://campusconnect.thapar.edu/venue-enquiry" },
   ]},
   { label: "Calendar", items: [
@@ -162,7 +162,7 @@ const ALL_CARDS = {
   "guest-booking": {
     id: "guest-booking", title: "Hostel Guest Room Booking", sub: "Booking Form",
     Icon: Building2, iconBg: "#fce8e8", iconColor: "#c62828", dot: "#e57373",
-    href: "https://campusconnect.thapar.edu/guest-enquiry",
+    href: "https://campusconnect.thapar.edu/guest-room",
     bullets: ["Single & Double Occupancy Rooms","Online Booking System","Guest Registration & Verification","Advance Booking up to 30 Days"],
   },
   "venue-booking": {
@@ -208,7 +208,7 @@ const ALL_CARDS = {
 ═══════════════════════════════════════════════════ */
 const ECHO_RESPONSES = [
   { match: ["guest","room","hostel","book"],
-    reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-enquiry. You can check availability and make a reservation there." },
+    reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-room. You can check availability and make a reservation there." },
   { match: ["venue","event","hall","auditorium"],
     reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-enquiry. You can book auditoriums, seminar halls, and open spaces." },
   { match: ["calendar","schedule","fest","event"],
