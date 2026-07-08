@@ -44,7 +44,7 @@ export default function guestBookingApprovedPaid(b) {
       </div>
 
       <p>
-        Kindly complete the payment and carry a copy of the receipt or confirmation
+        Kindly complete the payment and carry a copy of the receipt and Address Proof
         at the time of reporting. The hostel caretaker may request it for verification.
       </p>
 

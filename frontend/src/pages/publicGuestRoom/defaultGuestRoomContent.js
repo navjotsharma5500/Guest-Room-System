@@ -1,0 +1,212 @@
+const heroImage =
+  "https://ik.imagekit.io/7khjnlfow/email-assets/thapar_logo.png?updatedAt=1776888126772";
+
+export const defaultGuestRoomContent = {
+  theme: {
+    backgroundStyle: "resortWarm",
+    primaryColor: "#9f1d2c",
+    accentColor: "#12345a",
+    headingFontStyle: "serif",
+    bodyFontStyle: "sans",
+    buttonRoundness: "pill",
+  },
+  home: {
+    hero: {
+      title: "Welcome to Thapar Hostel Guest Rooms",
+      subtitle:
+        "Comfortable, secure and institute-managed accommodation for official guests, parents and visitors.",
+      image: heroImage,
+      slides: [{ title: "Welcome to Thapar Hostel Guest Rooms", subtitle: "Institute hospitality inside a secure campus.", image: heroImage }],
+      primaryButton: "Book Your Stay",
+      primaryButtonLink: "/guest-room/booking",
+      primaryButtonVisible: true,
+      secondaryButton: "Explore Rooms",
+      secondaryButtonLink: "/guest-room/rooms",
+      secondaryButtonVisible: true,
+      overlayOpacity: 0.46,
+    },
+    intro: {
+      title: "Hospitality Inside the Thapar Campus",
+      text:
+        "Hostel Guest Rooms provide safe, comfortable and institute-managed accommodation for parents, official guests, faculty visitors and approved institutional guests.",
+      image: "",
+    },
+    stats: [
+      { label: "Guest Rooms", value: "31", icon: "rooms" },
+      { label: "Campus Support", value: "24x7", icon: "support" },
+      { label: "Secure Campus Stay", value: "Safe", icon: "security" },
+      { label: "Booking Request", value: "Online", icon: "booking" },
+    ],
+    roomCards: [
+      { title: "Campus Guest Room", hostel: "Institute Hostels", capacity: "1-2 Guests", description: "Calm rooms for approved short stays.", amenities: ["WiFi", "Housekeeping", "Support"], image: "", enabled: true },
+      { title: "AC Guest Room", hostel: "Selected Hostels", capacity: "2 Guests", description: "Comfortable AC rooms subject to availability.", amenities: ["AC", "Hot water", "Online payment"], image: "", enabled: true },
+      { title: "Family Visitor Stay", hostel: "Subject to availability", capacity: "Parents / Guardians", description: "Managed accommodation for approved visitors.", amenities: ["Secure campus", "Digital support"], image: "", enabled: true },
+    ],
+    journey: [
+      { title: "Submit Enquiry", description: "Share visit and stay details.", icon: "send", image: "" },
+      { title: "Request Reviewed", description: "Hostel administration reviews availability.", icon: "review", image: "" },
+      { title: "Room Approved", description: "Approval and reporting instructions are sent.", icon: "approve", image: "" },
+      { title: "Report to Hostel", description: "Guest reports with valid ID proof.", icon: "hostel", image: "" },
+      { title: "Check-in & Payment", description: "Payment and check-in formalities are completed.", icon: "payment", image: "" },
+      { title: "Stay Support", description: "Caretaker and digital support remain available.", icon: "support", image: "" },
+      { title: "Checkout & Feedback", description: "Checkout is recorded and feedback can be submitted.", icon: "feedback", image: "" },
+    ],
+    facilities: ["WiFi", "Hot & Cold Water", "Housekeeping", "Medical Support", "Dining", "Online Payments", "Guest Support QR", "SOS Support"],
+    cameraRoll: {
+      enabled: true,
+      speed: 32,
+      images: [
+        { image: heroImage, caption: "Thapar Institute" },
+        { image: heroImage, caption: "Campus Guest Hospitality" },
+        { image: heroImage, caption: "Institute Managed Stay" },
+      ],
+    },
+    cta: {
+      enabled: true,
+      heading: "Ready to request accommodation?",
+      text: "Submit your guest room request for review by hostel administration.",
+      buttonLabel: "Book Now",
+      buttonLink: "/guest-room/booking",
+    },
+    notice:
+      "Cash payment is not accepted. Payments are non-refundable. Booking requests are subject to hostel administration approval.",
+  },
+  about: {
+    hero: { title: "About Hostel Guest Rooms", subtitle: "Institute-managed visitor accommodation inside TIET campus.", image: "" },
+    sections: [
+      { title: "About Guest Rooms", text: "Thapar Hostel Guest Rooms are managed for institute-approved visitors, parents, guests and official invitees requiring short stay accommodation inside the campus.", image: "" },
+      { title: "About DoSA Office", text: "The Office of Dean Student Affairs coordinates hostel services, guest accommodation workflows and student welfare support.", image: "" },
+    ],
+    cards: ["Campus Security", "Managed by Institute", "Easy Approval Workflow", "Hostel-Based Support", "Digital Guest Services"],
+    mission: "To provide safe, transparent and well-managed guest accommodation services within the campus.",
+    vision: "A digital-first guest hospitality experience for institutional visitors.",
+    timeline: ["Enquiry", "Review", "Approval", "Check-in", "Stay Support", "Feedback"],
+  },
+  rooms: {
+    hero: { title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
+    cards: [
+      { title: "Single Occupancy", category: "Standard", capacity: "1 Guest", description: "Compact rooms for approved short stay guests.", amenities: ["WiFi", "Bed", "Study table"], image: "", enabled: true },
+      { title: "Double Occupancy", category: "Standard", capacity: "2 Guests", description: "Comfortable stay for parents and approved visitors.", amenities: ["Two beds", "Washroom", "Support"], image: "", enabled: true },
+      { title: "AC Rooms", category: "AC", capacity: "1-2 Guests", description: "Air-conditioned rooms subject to hostel availability.", amenities: ["AC", "WiFi", "Hot water"], image: "", enabled: true },
+      { title: "Non-AC Rooms", category: "Non-AC", capacity: "1-2 Guests", description: "Standard campus guest accommodation.", amenities: ["Fan", "Clean linen", "Support"], image: "", enabled: true },
+    ],
+    notes: ["Availability subject to approval", "Room allotment depends on availability", "Room capacity rules apply", "Guest must carry valid ID/address proof"],
+  },
+  tariff: {
+    hero: { title: "Tariff & Payment Information", subtitle: "Transparent tariff and payment rules for guest accommodation.", image: "" },
+    rows: [
+      ["Thapar Students / Parents", "Rs. 850 per day"],
+      ["Thapar Department Guest", "As approved / department pay"],
+      ["External / Other Guests", "Rs. 1000 per day"],
+      ["Official / Free Stay", "Subject to DoSA approval"],
+    ],
+    terms: ["Minimum one day charge is applicable after check-in.", "Even short stay after check-in is counted as one day.", "Payments are non-refundable.", "Early checkout does not create refund entitlement.", "Pending payment after checkout may mark guest as defaulter."],
+    noCashPolicy: "Cash payment is not accepted for hostel guest room accommodation.",
+    refundPolicy: "No refund after payment.",
+    cancellationPolicy: "If guest does not report within 23 hours, booking may be auto-cancelled.",
+    paymentInstructions: "Please make payment only after approval / check-in instruction.",
+  },
+  dining: {
+    hero: { title: "Dining & Campus Food Facilities", subtitle: "Campus dining options for approved guests.", image: "" },
+    text: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability.",
+    cards: [
+      { title: "Breakfast", timing: "07:30 AM - 09:30 AM", price: "As applicable", description: "Morning meal subject to hostel mess rules.", image: "" },
+      { title: "Lunch", timing: "12:30 PM - 02:30 PM", price: "As applicable", description: "Lunch facility as per availability.", image: "" },
+      { title: "Dinner", timing: "07:30 PM - 09:30 PM", price: "As applicable", description: "Dinner facility as per hostel schedule.", image: "" },
+    ],
+    rules: ["Meal availability is subject to hostel mess rules.", "Timings must be followed.", "Payment, if applicable, must follow institute policy."],
+    options: ["Canteen", "Food Court", "Nescafe kiosk", "Campus cafes"],
+  },
+  facilities: {
+    hero: { title: "Facilities & Guest Support", subtitle: "Safe stay with digital support services.", image: "" },
+    facilities: ["31 Elegantly appointed non-smoking rooms", "24 hrs support", "Elevator", "Running hot & cold water", "Treated and purified drinking water", "Round-the-clock Health Centre", "Free WiFi", "Daily housekeeping", "Canteen, food court and Nescafe kiosks", "No cash policy", "Online payment support", "Digital guest support"],
+    digitalServices: ["Cleaning Request", "Maintenance Request", "Medical Emergency", "SOS Alert", "Feedback"],
+    safetyCards: ["Hostel caretaker support", "Warden supervision", "DoSA office support", "Health Centre support"],
+  },
+  gallery: {
+    hero: { title: "Gallery", subtitle: "Guest rooms, dining, hostel and campus views.", image: "" },
+    images: [],
+    categories: ["Guest Rooms", "Dining", "Hostels", "Campus", "Facilities"],
+  },
+  booking: {
+    hero: { title: "Request Hostel Guest Room Accommodation", subtitle: "Submit your guest room enquiry for review by hostel administration.", image: "" },
+    studentCard: { title: "Parents / Students", text: "Students may request guest accommodation for parents, guardians or immediate family members through the approval process." },
+    staffCard: { title: "Faculty / Staff", text: "Faculty and staff guests can submit official guest accommodation requests using the form." },
+    policies: ["Address proof mandatory", "Maximum request duration as per system settings", "Approval required", "Report within 23 hours after approval", "Payment is non-refundable", "No cash policy", "Room capacity rules apply", "Hostel rules must be followed"],
+    termsText: "I confirm that the details are correct and I agree to the hostel guest room policies.",
+    successMessage: "Your guest room booking request has been submitted successfully. You will receive an email update after review.",
+    instructionText: "Please submit the request only after confirming visit dates and guest details.",
+  },
+  contact: {
+    hero: { title: "Contact Us", subtitle: "Hostel Guest Room support and institute contact details.", image: "" },
+    location: "Thapar Institute of Engineering & Technology, Patiala, Punjab",
+    office: "Office of Dean Student Affairs",
+    dosaOfficeAddress: "DoSA Office, TIET Patiala",
+    emails: ["dosa.office@thapar.edu", "Queries_studentaffairs@thapar.edu", "itmh@thapar.edu"],
+    phones: [],
+    hours: "9:00 AM to 5:30 PM, Monday to Friday",
+    mapUrl: "https://www.google.com/maps?q=Thapar+Institute+of+Engineering+and+Technology+Patiala&output=embed",
+    feedbackLink: "/guest-feedback",
+    emergencyContacts: [],
+  },
+  footer: {
+    logo: heroImage,
+    description: "Official public portal for hostel guest room accommodation requests at Thapar Institute of Engineering & Technology.",
+    mapUrl: "https://www.google.com/maps?q=Thapar+Institute+of+Engineering+and+Technology+Patiala&output=embed",
+    copyrightText: "© 2026 TIET",
+    quickContact: "Office of Dean Student Affairs",
+    quickLinks: [
+      { label: "Home", href: "/guest-room" },
+      { label: "Rooms", href: "/guest-room/rooms" },
+      { label: "Tariff", href: "/guest-room/tariff" },
+      { label: "Facilities", href: "/guest-room/facilities" },
+      { label: "Booking", href: "/guest-room/booking" },
+      { label: "Contact", href: "/guest-room/contact" },
+      { label: "Policies", href: "/policies" },
+      { label: "Terms", href: "/terms" },
+    ],
+    socialLinks: {
+      instagram: "",
+      snapchat: "",
+      twitter: "",
+      facebook: "",
+      youtube: "",
+    },
+  },
+  quicklinks: { links: [] },
+  bankdetails: {
+    accountName: "",
+    accountNumber: "",
+    ifsc: "",
+    bankName: "",
+    branch: "",
+    instructions: "Please make payment only after approval / check-in instruction.",
+  },
+};
+
+export const mergeGuestRoomContent = (remote = {}) => {
+  const merged = { ...defaultGuestRoomContent, ...remote };
+  Object.keys(defaultGuestRoomContent).forEach((key) => {
+    merged[key] = {
+      ...(defaultGuestRoomContent[key] || {}),
+      ...(remote?.[key] || {}),
+    };
+  });
+  return merged;
+};
+
+export const WEBSITE_SECTION_TABS = [
+  ["home", "Home"],
+  ["about", "About"],
+  ["rooms", "Rooms"],
+  ["tariff", "Tariff"],
+  ["dining", "Dining"],
+  ["facilities", "Facilities"],
+  ["gallery", "Gallery"],
+  ["booking", "Booking"],
+  ["contact", "Contact"],
+  ["footer", "Footer"],
+  ["quicklinks", "Quick Links"],
+  ["bankdetails", "Bank Details"],
+  ["theme", "Theme"],
+];

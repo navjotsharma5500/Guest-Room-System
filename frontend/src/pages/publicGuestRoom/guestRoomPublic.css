@@ -1,0 +1,112 @@
+.guest-room-public {
+  --guest-bg: #f7f0e6;
+  --guest-card: #fffdf8;
+  --guest-red: #a8323e;
+  --guest-red-dark: #731b26;
+  --guest-blue: #14385f;
+  --guest-text: #2f2a25;
+  --guest-muted: #776f66;
+  --guest-border: #e8dac7;
+  --guest-gold: #c08a3e;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(192, 138, 62, 0.14), transparent 28rem),
+    linear-gradient(135deg, #fbf7ef 0%, #f6eee3 45%, #f8fbff 100%);
+  color: var(--guest-text);
+  font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.guest-room-public[data-bg="cleanWhite"] {
+  --guest-bg: #ffffff;
+  background: #ffffff;
+}
+
+.guest-room-public[data-bg="warmCream"] {
+  --guest-bg: #faf2e6;
+  background: linear-gradient(135deg, #fffaf2, #f5ecdf);
+}
+
+.guest-room-public[data-bg="softPattern"] {
+  background:
+    linear-gradient(45deg, rgba(168, 50, 62, 0.035) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(20, 56, 95, 0.03) 25%, transparent 25%),
+    #fbf7ef;
+  background-size: 42px 42px;
+}
+
+.guest-room-public h1,
+.guest-room-public h2,
+.guest-room-public h3,
+.guest-room-public .guest-heading {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.025em;
+}
+
+.guest-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.guest-card {
+  border: 1px solid var(--guest-border);
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 24px 70px rgba(61, 43, 29, 0.09);
+  backdrop-filter: blur(16px);
+}
+
+.guest-pill {
+  border: 1px solid rgba(168, 50, 62, 0.16);
+  background: rgba(168, 50, 62, 0.08);
+  color: var(--guest-red-dark);
+}
+
+.guest-button-primary {
+  background: var(--guest-red);
+  color: #fff;
+  box-shadow: 0 14px 32px rgba(168, 50, 62, 0.22);
+}
+
+.guest-button-primary:hover {
+  background: var(--guest-red-dark);
+}
+
+.guest-button-secondary {
+  border: 1px solid var(--guest-border);
+  background: rgba(255, 253, 248, 0.88);
+  color: var(--guest-blue);
+}
+
+.guest-hero {
+  min-height: 70vh;
+}
+
+.guest-camera-track {
+  animation: guestCameraRoll var(--roll-speed, 32s) linear infinite;
+}
+
+.guest-camera-roll:hover .guest-camera-track {
+  animation-play-state: paused;
+}
+
+@keyframes guestCameraRoll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.guest-step-perspective {
+  perspective: 1200px;
+}
+
+.guest-step-card {
+  transform-style: preserve-3d;
+}
+
+@media (max-width: 768px) {
+  .guest-shell {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .guest-hero {
+    min-height: 76vh;
+  }
+}

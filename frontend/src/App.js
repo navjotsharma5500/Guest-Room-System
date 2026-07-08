@@ -32,10 +32,19 @@ import AboutUsPage from "./pages/AboutUsPage";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import VenueBookingDashboard from "./VenueBookingDashboard";
-import GuestEnquiryPage from "./pages/GuestEnquiryPage";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicAllEventsPage from "./pages/PublicAllEventsPage";
+import GuestRoomPublicLayout from "./pages/publicGuestRoom/GuestRoomPublicLayout";
+import GuestRoomHome from "./pages/publicGuestRoom/GuestRoomHome";
+import GuestRoomAbout from "./pages/publicGuestRoom/GuestRoomAbout";
+import GuestRoomRooms from "./pages/publicGuestRoom/GuestRoomRooms";
+import GuestRoomTariff from "./pages/publicGuestRoom/GuestRoomTariff";
+import GuestRoomDining from "./pages/publicGuestRoom/GuestRoomDining";
+import GuestRoomFacilities from "./pages/publicGuestRoom/GuestRoomFacilities";
+import GuestRoomGallery from "./pages/publicGuestRoom/GuestRoomGallery";
+import GuestRoomBooking from "./pages/publicGuestRoom/GuestRoomBooking";
+import GuestRoomContact from "./pages/publicGuestRoom/GuestRoomContact";
 import PublicGuestFeedback from "./pages/PublicGuestFeedback";
 import GuestSupportPortal from "./pages/GuestSupportPortal";
 import GuestFeedbackQRCode from "./components/GuestFeedbackQRCode";
@@ -288,10 +297,21 @@ export default function App() {
           {/* ================================================================
               PUBLIC ROUTES (no auth required)
               ================================================================ */}
-          <Route path="/guest-enquiry"        element={<GuestEnquiryPage />} />
-            <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
-            <Route path="/event-calendar"       element={<PublicEventCalendar />} />
-            <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
+          <Route path="/guest-room" element={<GuestRoomPublicLayout />}>
+            <Route index element={<GuestRoomHome />} />
+            <Route path="about" element={<GuestRoomAbout />} />
+            <Route path="rooms" element={<GuestRoomRooms />} />
+            <Route path="tariff" element={<GuestRoomTariff />} />
+            <Route path="dining" element={<GuestRoomDining />} />
+            <Route path="facilities" element={<GuestRoomFacilities />} />
+            <Route path="gallery" element={<GuestRoomGallery />} />
+            <Route path="booking" element={<GuestRoomBooking />} />
+            <Route path="contact" element={<GuestRoomContact />} />
+          </Route>
+          <Route path="/guest-enquiry" element={<Navigate to="/guest-room/booking" replace />} />
+          <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
+          <Route path="/event-calendar"       element={<PublicEventCalendar />} />
+          <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
           <Route path="/guest-support/:hostelId/:roomId" element={<GuestSupportPortal />} />
           <Route path="/install-app"          element={<InstallApp />} />
