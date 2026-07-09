@@ -6,6 +6,8 @@ const API = BACKEND_URL || "";
 export const DEFAULT_SYSTEM_SETTINGS = {
   bookingDays: {
     guestMaxRequestDays: 5,
+    facultyStaffMaxRequestDays: 7,
+    parentStudentMaxRequestDays: 4,
     managerMaxDirectBookingDays: 3,
     caretakerMaxDirectBookingDays: 3,
   },

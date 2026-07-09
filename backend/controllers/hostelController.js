@@ -4,6 +4,42 @@ import Hostel from "../models/Hostel.js";
 import { createLog } from "../middleware/logMiddleware.js";
 import { emitEvent } from "../utils/socket.js";
 
+const GIRLS_HOSTELS = new Set([
+  "Ira Hall (I)",
+  "Ananta Hall (N)",
+  "Dhriti Hall (PG)",
+  "Pavani Hall (PG-2)",
+  "Vahni Hall (Q)",
+]);
+
+const inferHostelType = (name = "") => (GIRLS_HOSTELS.has(name) ? "girls" : "boys");
+
+const inferGuestCapacity = (hostelName = "", room = {}) => {
+  if (Number(room.guestCapacity) > 0) return Number(room.guestCapacity);
+  return hostelName === "Ira Hall (I)" ? 3 : 2;
+};
+
+const normalizeRoomForResponse = (hostel, room) => ({
+  _id: room._id,
+  roomNo: room.roomNo,
+  roomType: room.roomType || "Guest Room",
+  guestRoom: room.guestRoom !== false,
+  guestCapacity: inferGuestCapacity(hostel.name, room),
+  caretakerEmail: room.caretakerEmail || hostel.caretakerEmail,
+  wardenEmail: room.wardenEmail || hostel.wardenEmail,
+  isBlocked: room.isBlocked || false,
+  blockedTill: room.blockedTill,
+  blockRemarks: room.blockRemarks,
+  blockAttachments: room.blockAttachments || [],
+  blockedAt: room.blockedAt,
+  blockedBy: room.blockedBy,
+  roomState: room.isBlocked ? "maintenance_blocked" : room.roomState || "available",
+  cleaningPendingSince: room.cleaningPendingSince,
+  lastCheckoutBookingId: room.lastCheckoutBookingId,
+  lastCleanedAt: room.lastCleanedAt,
+  lastCleanedBy: room.lastCleanedBy,
+});
+
 // ======================================================
 // GET ALL HOSTELS WITH BOOKINGS
 // ======================================================
@@ -25,6 +61,7 @@ export const getAllHostelsWithBookings = async (req, res) => {
         _id: hostel._id,
         name: hostel.name,
         code: hostel.code,
+        hostelType: hostel.hostelType || inferHostelType(hostel.name),
         caretakerEmail: hostel.caretakerEmail,
         wardenEmail: hostel.wardenEmail,
         active: hostel.active !== false, // Default to true
@@ -32,24 +69,10 @@ export const getAllHostelsWithBookings = async (req, res) => {
           const roomBookings = bookings.filter(
             (b) => b.hostel === hostel.name && b.roomNo === room.roomNo
           );
+          const normalizedRoom = normalizeRoomForResponse(hostel, room);
 
           return {
-            roomNo: room.roomNo,
-            roomType: room.roomType || "Guest Room",
-            caretakerEmail: room.caretakerEmail || hostel.caretakerEmail,
-            wardenEmail: room.wardenEmail || hostel.wardenEmail,
-            // ✅ Blocked status fields
-            isBlocked: room.isBlocked || false,
-            blockedTill: room.blockedTill,
-            blockRemarks: room.blockRemarks,
-            blockAttachments: room.blockAttachments || [],
-            blockedAt: room.blockedAt,
-            blockedBy: room.blockedBy,
-            roomState: room.isBlocked ? "maintenance_blocked" : room.roomState || "available",
-            cleaningPendingSince: room.cleaningPendingSince,
-            lastCheckoutBookingId: room.lastCheckoutBookingId,
-            lastCleanedAt: room.lastCleanedAt,
-            lastCleanedBy: room.lastCleanedBy,
+            ...normalizedRoom,
             
             bookings: roomBookings.map((b) => ({
               id: b._id,
@@ -126,11 +149,38 @@ export const getAllHostelsWithBookings = async (req, res) => {
 };
 
 // ======================================================
+// PUBLIC HOSTELS FOR GUEST ROOM ENQUIRY FORM
+// ======================================================
+export const getPublicHostelOptions = async (req, res) => {
+  try {
+    const hostels = await Hostel.find({ active: { $ne: false } }).lean();
+    const options = hostels.map((hostel) => ({
+      _id: hostel._id,
+      name: hostel.name,
+      code: hostel.code,
+      hostelType: hostel.hostelType || inferHostelType(hostel.name),
+      rooms: (hostel.rooms || [])
+        .map((room) => normalizeRoomForResponse(hostel, room))
+        .filter((room) => room.guestRoom !== false),
+    }));
+
+    res.json({ success: true, hostels: options });
+  } catch (error) {
+    console.error("❌ Public hostel options error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching hostel options",
+      error: error.message,
+    });
+  }
+};
+
+// ======================================================
 // CREATE HOSTEL
 // ======================================================
 export const createHostel = async (req, res) => {
   try {
-    const { name, code, caretakerEmail, wardenEmail, rooms, active } = req.body;
+    const { name, code, hostelType, caretakerEmail, wardenEmail, rooms, active } = req.body;
 
     // Check if hostel already exists
     const existingHostel = await Hostel.findOne({ name });
@@ -144,6 +194,7 @@ export const createHostel = async (req, res) => {
     const newHostel = await Hostel.create({
       name,
       code: code || name.substring(0, 3).toUpperCase(),
+      hostelType: hostelType || inferHostelType(name),
       caretakerEmail,
       wardenEmail,
       active: active !== false,
@@ -170,7 +221,7 @@ export const createHostel = async (req, res) => {
 export const updateHostel = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, caretakerEmail, wardenEmail, rooms, active } = req.body;
+    const { name, code, hostelType, caretakerEmail, wardenEmail, rooms, active } = req.body;
 
     console.log("🔓 UPDATE HOSTEL REQUEST:");
     console.log("   ID:", id);
@@ -211,6 +262,7 @@ export const updateHostel = async (req, res) => {
     // Update fields
     if (name !== undefined) hostel.name = name;
     if (code !== undefined) hostel.code = code;
+    if (hostelType !== undefined) hostel.hostelType = hostelType;
     if (caretakerEmail !== undefined) hostel.caretakerEmail = caretakerEmail;
     if (wardenEmail !== undefined) hostel.wardenEmail = wardenEmail;
     if (rooms !== undefined) {
@@ -226,6 +278,8 @@ export const updateHostel = async (req, res) => {
           blockedAt: incomingRoom.blockedAt ?? existingRoom?.blockedAt,
           blockedBy: incomingRoom.blockedBy ?? existingRoom?.blockedBy,
           roomState: incomingRoom.roomState ?? existingRoom?.roomState ?? "available",
+          guestRoom: incomingRoom.guestRoom ?? existingRoom?.guestRoom ?? true,
+          guestCapacity: Number(incomingRoom.guestCapacity || existingRoom?.guestCapacity || inferGuestCapacity(hostel.name, incomingRoom)),
           cleaningPendingSince: incomingRoom.cleaningPendingSince ?? existingRoom?.cleaningPendingSince,
           lastCheckoutBookingId: incomingRoom.lastCheckoutBookingId ?? existingRoom?.lastCheckoutBookingId,
           lastCleanedAt: incomingRoom.lastCleanedAt ?? existingRoom?.lastCleanedAt,

@@ -85,6 +85,8 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   key: "global",
   bookingDays: {
     guestMaxRequestDays: 5,
+    facultyStaffMaxRequestDays: 7,
+    parentStudentMaxRequestDays: 4,
     managerMaxDirectBookingDays: 3,
     caretakerMaxDirectBookingDays: 3,
   },
@@ -184,6 +186,8 @@ export const validateSystemSettingsPayload = (payload = {}) => {
   const settings = sanitizeSystemSettings(payload);
   const {
     guestMaxRequestDays,
+    facultyStaffMaxRequestDays,
+    parentStudentMaxRequestDays,
     managerMaxDirectBookingDays,
     caretakerMaxDirectBookingDays,
   } = settings.bookingDays;
@@ -196,6 +200,12 @@ export const validateSystemSettingsPayload = (payload = {}) => {
 
   if (guestMaxRequestDays <= 0) {
     throw new Error("Guest max request days must be greater than 0");
+  }
+  if (facultyStaffMaxRequestDays <= 0) {
+    throw new Error("Faculty / Staff max request days must be greater than 0");
+  }
+  if (parentStudentMaxRequestDays <= 0) {
+    throw new Error("Parent / Student max request days must be greater than 0");
   }
   if (managerMaxDirectBookingDays <= 0) {
     throw new Error("Manager max direct booking days must be greater than 0");

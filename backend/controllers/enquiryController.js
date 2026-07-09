@@ -1,4 +1,5 @@
 // controllers/enquiryController.js - PRODUCTION READY WITH EVENT-DRIVEN EMAILS
+import mongoose from "mongoose";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
@@ -20,6 +21,49 @@ import { sendBookingEmails } from "./bookingController.js";
 const safeSend = (emailPayload) => {
   return baseSafeSend(emailPayload, EmailLog);
 };
+
+const normalizeRole = (role = "") => String(role).toLowerCase();
+
+const buildRestrictedEnquiryQuery = async (user) => {
+  const role = normalizeRole(user?.role);
+  if (!["caretaker", "warden"].includes(role)) return {};
+
+  const assignedHostel = user?.assignedHostel || user?.hostel || "";
+  if (!assignedHostel) return { _id: null };
+
+  const hostel = await Hostel.findOne({ name: assignedHostel }).select("_id name").lean();
+  if (!hostel) return { hostelName: assignedHostel };
+
+  return {
+    $or: [
+      { hostelId: hostel._id },
+      { hostelName: hostel.name },
+    ],
+  };
+};
+
+const canAccessEnquiry = async (user, enquiry) => {
+  const query = await buildRestrictedEnquiryQuery(user);
+  if (!query || Object.keys(query).length === 0) return true;
+  if (query._id === null) return false;
+  if (query.hostelName && query.hostelName === enquiry.hostelName) return true;
+  if (Array.isArray(query.$or)) {
+    return query.$or.some((condition) => {
+      if (condition.hostelName && condition.hostelName === enquiry.hostelName) return true;
+      if (condition.hostelId && String(condition.hostelId) === String(enquiry.hostelId)) return true;
+      return false;
+    });
+  }
+  return false;
+};
+
+const buildRequestedRoomConflictQuery = (enquiry) => ({
+  hostel: enquiry.hostelName,
+  roomNo: enquiry.roomName,
+  status: { $in: ["booked", "checked_in"] },
+  from: { $lt: enquiry.to },
+  to: { $gt: enquiry.from },
+});
 
 // ======================================================
 //  CREATE ENQUIRY
@@ -50,6 +94,26 @@ export const createEnquiry = async (req, res) => {
 
     const checkInTime = fullData.checkInTime || "00:00";
     const checkOutTime = fullData.checkOutTime || "23:59";
+    let selectedHostel = null;
+    let selectedRoom = null;
+
+    if (fullData.hostelId) {
+      selectedHostel = await Hostel.findById(fullData.hostelId).lean();
+      if (!selectedHostel) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected hostel was not found",
+        });
+      }
+
+      selectedRoom = (selectedHostel.rooms || []).find((room) => String(room._id) === String(fullData.roomId));
+      if (fullData.roomId && !selectedRoom) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected guest room was not found in this hostel",
+        });
+      }
+    }
 
     console.log("🕐 EXTRACTED TIMES:", { checkInTime, checkOutTime });
 
@@ -76,6 +140,11 @@ export const createEnquiry = async (req, res) => {
       state: fullData.state || "",
       city: fullData.city || "",
       reference: fullData.reference || "",
+      hostelId: selectedHostel?._id || fullData.hostelId || null,
+      roomId: selectedRoom?._id || fullData.roomId || null,
+      hostelName: selectedHostel?.name || fullData.hostelName || "",
+      roomName: selectedRoom?.roomNo || fullData.roomName || "",
+      bookingCategory: fullData.bookingCategory || "",
       
       files: fileUrls,
       status: "pending",
@@ -89,12 +158,17 @@ export const createEnquiry = async (req, res) => {
           (1000 * 60 * 60 * 24)
       )
     );
-    const maxGuestRequestDays = Number(settings?.bookingDays?.guestMaxRequestDays || 5);
+    const isParentStudentRequest = enquiryData.bookingCategory === "ParentStudent";
+    const maxGuestRequestDays = Number(
+      isParentStudentRequest
+        ? settings?.bookingDays?.parentStudentMaxRequestDays || 4
+        : settings?.bookingDays?.facultyStaffMaxRequestDays || settings?.bookingDays?.guestMaxRequestDays || 7
+    );
 
     if (enquiryStayDays > maxGuestRequestDays) {
       return res.status(400).json({
         success: false,
-        message: `Guest enquiry cannot exceed ${maxGuestRequestDays} day(s)`,
+        message: `${isParentStudentRequest ? "Parent / Student" : "Faculty / Staff"} enquiry cannot exceed ${maxGuestRequestDays} day(s)`,
       });
     }
 
@@ -111,7 +185,22 @@ export const createEnquiry = async (req, res) => {
     // 📧 ENQUIRY EMAILS (NON-BLOCKING)
     // ======================================================
 
-    if (process.env.ADMIN_NOTIFICATION_EMAIL) {
+    const hostelNotificationRecipients = selectedHostel
+      ? [selectedHostel.caretakerEmail, selectedHostel.wardenEmail].filter(Boolean)
+      : [];
+
+    if (hostelNotificationRecipients.length > 0) {
+      asyncSendEmails(() => safeSend({
+        to: hostelNotificationRecipients,
+        subject: `New Guest Enquiry Received - ${selectedHostel.name}`,
+        html: enquiryNotification(enquiry),
+        meta: {
+          type: "new-enquiry-hostel",
+          enquiryId: enquiry._id,
+          hostelId: selectedHostel._id,
+        },
+      }));
+    } else if (process.env.ADMIN_NOTIFICATION_EMAIL) {
       asyncSendEmails(() => safeSend({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: "New Guest Enquiry Received",
@@ -153,8 +242,16 @@ export const createEnquiry = async (req, res) => {
       if (io) {
         io.to('dashboard-room').emit('enquiry-created', { 
           enquiry: enquiry.toJSON(),
+          hostelId: enquiry.hostelId,
+          hostelName: enquiry.hostelName,
           timestamp: Date.now()
         });
+        if (enquiry.hostelId) {
+          io.to(`hostel-${enquiry.hostelId}`).emit('enquiry-created', {
+            enquiry: enquiry.toJSON(),
+            timestamp: Date.now(),
+          });
+        }
         console.log('📡 Emitted enquiry-created event');
       }
     }
@@ -175,7 +272,8 @@ export const createEnquiry = async (req, res) => {
 export const getAllEnquiries = async (req, res) => {
   try {
     console.log("🔍 GET /api/enquiry called");
-    const enquiries = await Enquiry.find().sort({ createdAt: -1 }).lean();
+    const query = await buildRestrictedEnquiryQuery(req.user);
+    const enquiries = await Enquiry.find(query).sort({ createdAt: -1 }).lean();
 
     console.log("✅ Found enquiries:", enquiries.length);
     
@@ -229,6 +327,123 @@ export const getEnquiryById = async (req, res) => {
   }
 };
 
+const resolveEnquiryRoom = async (enquiry, roomId) => {
+  const hostel = enquiry.hostelId
+    ? await Hostel.findById(enquiry.hostelId).lean()
+    : await Hostel.findOne({ name: enquiry.hostelName }).lean();
+
+  if (!hostel || hostel.active === false) {
+    throw new Error("Selected hostel is not active or was not found");
+  }
+
+  const selectedRoom = (hostel.rooms || []).find((room) => String(room._id) === String(roomId));
+  if (!selectedRoom) {
+    throw new Error("Selected guest room does not belong to this hostel");
+  }
+  if (selectedRoom.guestRoom === false) {
+    throw new Error("Selected room is not enabled as a guest room");
+  }
+  if (selectedRoom.isBlocked || selectedRoom.roomState === "maintenance_blocked") {
+    throw new Error("Selected guest room is blocked");
+  }
+
+  return { hostel, room: selectedRoom };
+};
+
+// ======================================================
+//  UPDATE ENQUIRY SCHEDULE / ROOM ONLY
+// ======================================================
+export const updateEnquirySchedule = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to edit this enquiry" });
+    }
+
+    if (!["pending", "pending-approval"].includes(enquiry.status || "pending")) {
+      return res.status(400).json({ success: false, message: "Finalized enquiries cannot be edited" });
+    }
+
+    const { from, to, checkInTime, checkOutTime, roomId } = req.body;
+    if (!from || !to) {
+      return res.status(400).json({ success: false, message: "Check-in and check-out dates are required" });
+    }
+
+    const nextFrom = new Date(from);
+    const nextTo = new Date(to);
+    if (Number.isNaN(nextFrom.getTime()) || Number.isNaN(nextTo.getTime()) || nextTo < nextFrom) {
+      return res.status(400).json({ success: false, message: "Invalid enquiry date range" });
+    }
+
+    enquiry.from = nextFrom;
+    enquiry.to = nextTo;
+    enquiry.checkInTime = checkInTime || enquiry.checkInTime || "00:00";
+    enquiry.checkOutTime = checkOutTime || enquiry.checkOutTime || "23:59";
+
+    if (roomId && String(roomId) !== String(enquiry.roomId || "")) {
+      const { room } = await resolveEnquiryRoom(enquiry, roomId);
+      enquiry.roomId = room._id;
+      enquiry.roomName = room.roomNo;
+    }
+
+    await enquiry.save();
+
+    res.json({ success: true, message: "Enquiry updated", enquiry: enquiry.toJSON() });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("enquiry-updated", { enquiry: enquiry.toJSON(), timestamp: Date.now() });
+    }
+  } catch (error) {
+    console.error("❌ Update enquiry schedule error:", error);
+    res.status(500).json({ success: false, message: "Failed to update enquiry schedule", error: error.message });
+  }
+};
+
+// ======================================================
+//  CHECK REQUESTED ROOM AVAILABILITY BEFORE APPROVAL
+// ======================================================
+export const checkEnquiryRoomAvailability = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id).lean();
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to view this enquiry" });
+    }
+
+    if (!enquiry.hostelName || !enquiry.roomName) {
+      return res.json({ success: true, available: true, skipped: true });
+    }
+
+    const conflictingBooking = await Booking.findOne(buildRequestedRoomConflictQuery(enquiry))
+      .select("_id guest status from to")
+      .lean();
+
+    if (conflictingBooking) {
+      return res.status(409).json({
+        success: false,
+        available: false,
+        message: "Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.",
+        conflict: conflictingBooking,
+      });
+    }
+
+    res.json({ success: true, available: true });
+  } catch (error) {
+    console.error("❌ Check enquiry availability error:", error);
+    res.status(500).json({ success: false, message: "Failed to check room availability", error: error.message });
+  }
+};
+
 // ======================================================
 //  APPROVE ENQUIRY (CREATE BOOKING)
 // ======================================================
@@ -261,14 +476,62 @@ export const approveEnquiry = async (req, res) => {
       });
     }
 
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to approve this enquiry" });
+    }
+
+    if (["booked", "rejected", "approved"].includes(enquiry.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "This enquiry is already finalized",
+      });
+    }
+
+    const resolvedHostelName = hostel || enquiry.hostelName;
+    const resolvedRoomNo = roomNo || enquiry.roomName;
+
     // ✅ Fetch hostel emails from database
-    console.log("🔍 Looking up hostel:", hostel);
-    const hostelDoc = await Hostel.findOne({ name: hostel }).lean();
+    console.log("🔍 Looking up hostel:", resolvedHostelName || enquiry.hostelId);
+    const hostelDoc = enquiry.hostelId
+      ? await Hostel.findById(enquiry.hostelId).lean()
+      : await Hostel.findOne({ name: resolvedHostelName }).lean();
 
     if (!hostelDoc) {
       return res.status(400).json({
         success: false,
-        message: `Hostel not found in database: ${hostel}`
+        message: `Hostel not found in database: ${resolvedHostelName || enquiry.hostelId}`
+      });
+    }
+
+    const selectedRoom = (hostelDoc.rooms || []).find((room) => room.roomNo === resolvedRoomNo);
+    if (!selectedRoom || selectedRoom.guestRoom === false) {
+      return res.status(400).json({
+        success: false,
+        message: "Selected guest room is not valid for this hostel",
+      });
+    }
+    if (selectedRoom.isBlocked || selectedRoom.roomState === "maintenance_blocked") {
+      return res.status(400).json({
+        success: false,
+        message: "Selected guest room is blocked",
+      });
+    }
+
+    const availabilityEnquiry = {
+      ...enquiry.toObject(),
+      hostelName: resolvedHostelName || hostelDoc.name,
+      roomName: resolvedRoomNo,
+    };
+    const conflictingBooking = await Booking.findOne(buildRequestedRoomConflictQuery(availabilityEnquiry))
+      .select("_id guest status from to")
+      .lean();
+    if (conflictingBooking) {
+      return res.status(409).json({
+        success: false,
+        available: false,
+        message: "Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.",
+        conflict: conflictingBooking,
       });
     }
 
@@ -294,8 +557,11 @@ export const approveEnquiry = async (req, res) => {
       guest: enquiry.name,
       email: enquiry.email,
       contact: enquiry.contact,
-      hostel: hostel,
-      roomNo: roomNo,
+      rollno: enquiry.rollno || "",
+      department: enquiry.department || "",
+      gender: enquiry.gender || "",
+      hostel: resolvedHostelName || hostelDoc.name,
+      roomNo: resolvedRoomNo,
       from: parseDateOnlyToUtcDate(enquiry.from),
       to: parseDateOnlyToUtcDate(enquiry.to),
       checkInTime: checkInTime || enquiry.checkInTime || "00:00",
@@ -336,13 +602,53 @@ export const approveEnquiry = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
-    const booking = await Booking.create(bookingData);
+    let booking;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const freshEnquiry = await Enquiry.findById(id).session(session);
+        if (!freshEnquiry) {
+          const error = new Error("Enquiry not found");
+          error.statusCode = 404;
+          throw error;
+        }
+        if (["booked", "rejected", "approved"].includes(freshEnquiry.status)) {
+          const error = new Error("This enquiry is already finalized");
+          error.statusCode = 400;
+          throw error;
+        }
 
-    // Update enquiry status
-    enquiry.status = "approved";
-    enquiry.approvedAt = new Date();
-    enquiry.approvedBy = req.user?._id || null;
-    await enquiry.save();
+        const finalAvailabilityEnquiry = {
+          ...freshEnquiry.toObject(),
+          hostelName: resolvedHostelName || hostelDoc.name,
+          roomName: resolvedRoomNo,
+        };
+        const finalConflict = await Booking.findOne(buildRequestedRoomConflictQuery(finalAvailabilityEnquiry))
+          .session(session)
+          .select("_id guest status from to")
+          .lean();
+        if (finalConflict) {
+          const error = new Error("Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.");
+          error.statusCode = 409;
+          error.conflict = finalConflict;
+          throw error;
+        }
+
+        const createdBookings = await Booking.create([bookingData], { session });
+        booking = createdBookings[0];
+
+        freshEnquiry.status = "booked";
+        freshEnquiry.approvedAt = new Date();
+        freshEnquiry.approvedBy = req.user?._id || null;
+        await freshEnquiry.save({ session });
+
+        enquiry.status = freshEnquiry.status;
+        enquiry.approvedAt = freshEnquiry.approvedAt;
+        enquiry.approvedBy = freshEnquiry.approvedBy;
+      });
+    } finally {
+      await session.endSession();
+    }
 
     console.log("✅ Enquiry approved, sending emails...");
     console.log("📧 Email recipients for approval:", {
@@ -386,10 +692,11 @@ export const approveEnquiry = async (req, res) => {
     console.error("❌ APPROVE ENQUIRY ERROR:", err.message);
     console.error("Stack:", err.stack);
     
-    res.status(500).json({ 
+    res.status(err.statusCode || 500).json({ 
       success: false, 
       message: err.message,
-      error: err.message
+      error: err.message,
+      conflict: err.conflict,
     });
   }
 };

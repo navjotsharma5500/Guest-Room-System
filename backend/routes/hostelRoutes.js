@@ -2,6 +2,7 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   getAllHostelsWithBookings,
+  getPublicHostelOptions,
   createHostel,
   getHostel,
   updateHostel,
@@ -14,6 +15,9 @@ const router = express.Router();
 
 // GET all hostels + rooms + aggregated bookings
 router.get("/all", protect, getAllHostelsWithBookings);
+
+// PUBLIC safe hostel + guest room metadata for enquiry booking form
+router.get("/public-options", getPublicHostelOptions);
 
 // CREATE hostel
 router.post("/", protect, createHostel);

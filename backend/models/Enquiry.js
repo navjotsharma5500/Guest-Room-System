@@ -38,6 +38,17 @@ const enquirySchema = new mongoose.Schema(
     purpose: { type: String, default: "" },
     reference: { type: String, default: "" },
 
+    // ✅ Public booking workflow metadata
+    hostelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hostel", default: null },
+    roomId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    hostelName: { type: String, default: "" },
+    roomName: { type: String, default: "" },
+    bookingCategory: {
+      type: String,
+      enum: ["FacultyStaff", "ParentStudent", ""],
+      default: "",
+    },
+
     // ✅ Attached documents - ImageKit URLs
     files: { type: [String], default: [] },
 

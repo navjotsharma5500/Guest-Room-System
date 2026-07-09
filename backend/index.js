@@ -59,6 +59,7 @@ import { ensureDefaultChecklistItems } from "./controllers/cleaningController.js
 import guestSupportRoutes from "./routes/guestSupportRoutes.js";
 import guestFlagRoutes from "./routes/guestFlagRoutes.js";
 import websiteContentRoutes from "./routes/websiteContentRoutes.js";
+import publicGuestRoomRoutes from "./routes/publicGuestRoomRoutes.js";
 
 const app = express();
 
@@ -439,6 +440,7 @@ app.use("/api/cleaning", cleaningRoutes);
 app.use("/api/guest-support", guestSupportRoutes);
 app.use("/api/guest-flags", guestFlagRoutes);
 app.use("/api/website-content", websiteContentRoutes);
+app.use("/api/public/guest-room", publicGuestRoomRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");

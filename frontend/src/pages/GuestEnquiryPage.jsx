@@ -642,7 +642,11 @@ function GuestForm({
 // ==================== MAIN COMPONENT ====================
 export default function GuestEnquiryPage() {
   const { settings: systemSettings } = useSystemSettings();
-  const maxGuestRequestDays = Number(systemSettings?.bookingDays?.guestMaxRequestDays || 5);
+  const maxGuestRequestDays = Number(
+    systemSettings?.bookingDays?.facultyStaffMaxRequestDays ||
+      systemSettings?.bookingDays?.guestMaxRequestDays ||
+      7
+  );
   const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ Added auth state

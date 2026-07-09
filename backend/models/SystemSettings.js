@@ -17,6 +17,8 @@ const systemSettingsSchema = new mongoose.Schema(
     key: { type: String, default: "global", unique: true },
     bookingDays: {
       guestMaxRequestDays: { type: Number, default: 5, min: 1 },
+      facultyStaffMaxRequestDays: { type: Number, default: 7, min: 1 },
+      parentStudentMaxRequestDays: { type: Number, default: 4, min: 1 },
       managerMaxDirectBookingDays: { type: Number, default: 3, min: 1 },
       caretakerMaxDirectBookingDays: { type: Number, default: 3, min: 1 },
     },

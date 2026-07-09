@@ -3,6 +3,8 @@ import {
   createEnquiry,
   getAllEnquiries,
   getEnquiryById,
+  updateEnquirySchedule,
+  checkEnquiryRoomAvailability,
   approveEnquiry,
   rejectEnquiry,
   bookEnquiry,
@@ -18,6 +20,8 @@ router.post("/create", createEnquiry);
 // ADMIN
 router.get("/", protect, getAllEnquiries);
 router.get("/:id", protect, getEnquiryById);
+router.get("/:id/availability", protect, checkEnquiryRoomAvailability);
+router.patch("/:id/schedule", protect, updateEnquirySchedule);
 
 router.put("/:id/approved", protect, approveEnquiry);
 router.put("/:id/rejected", protect, rejectEnquiry);

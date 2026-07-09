@@ -3,11 +3,13 @@ import { Outlet } from "react-router-dom";
 import PublicGuestNavbar from "../../components/publicGuestRoom/PublicGuestNavbar";
 import PublicGuestFooter from "../../components/publicGuestRoom/PublicGuestFooter";
 import ScrollToTopButton from "../../components/publicGuestRoom/ScrollToTopButton";
+import usePublicGuestRoomVisitors from "../../hooks/usePublicGuestRoomVisitors";
 import useGuestRoomContent from "./useGuestRoomContent";
 import "./guestRoomPublic.css";
 
 export default function GuestRoomPublicLayout() {
   const { content } = useGuestRoomContent();
+  usePublicGuestRoomVisitors({ recordVisit: true, fetchCount: false });
   const theme = content.theme || {};
 
   return (

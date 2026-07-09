@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const RoomSchema = new mongoose.Schema({
   roomNo: { type: String, required: true },
   roomType: { type: String, default: "Guest Room" },
+  guestRoom: { type: Boolean, default: true },
+  guestCapacity: { type: Number, default: 2 },
   caretakerEmail: { type: String },
   wardenEmail: { type: String },
   // ✅ ADD THESE BLOCKING FIELDS
@@ -27,6 +29,11 @@ const HostelSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     code: { type: String, required: true },
+    hostelType: {
+      type: String,
+      enum: ["boys", "girls", "future", "co-ed"],
+      default: "boys",
+    },
     caretakerEmail: { type: String, required: true },
     wardenEmail: { type: String, required: true },
     active: { type: Boolean, default: true },

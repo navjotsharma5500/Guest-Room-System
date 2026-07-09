@@ -3,16 +3,20 @@ import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicTariffTable from "../../components/publicGuestRoom/PublicTariffTable";
 import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard";
+import PublicBankDetailsCard from "../../components/publicGuestRoom/PublicBankDetailsCard";
 import { useGuestContent } from "./pageUtils";
 
 export default function GuestRoomTariff() {
-  const tariff = useGuestContent().tariff || {};
+  const content = useGuestContent();
+  const tariff = content.tariff || {};
+  const bankDetails = content.bankdetails || {};
 
   return (
     <>
       <PublicHero hero={tariff.hero} badge="Tariff" />
       <PublicSection eyebrow="Tariff" title="Payment information">
         <PublicTariffTable rows={tariff.rows || []} />
+        <PublicBankDetailsCard bank={bankDetails} />
       </PublicSection>
       <PublicSection eyebrow="Terms" title="Important payment rules">
         <div className="grid gap-4 md:grid-cols-2">

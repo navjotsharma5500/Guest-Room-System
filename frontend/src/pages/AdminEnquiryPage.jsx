@@ -6,6 +6,7 @@ import {
   Home,
   FileText,
   CheckCircle2,
+  X,
   XCircle,
   ListFilter,
   Download,
@@ -89,6 +90,21 @@ export default function AdminEnquiryPage({ setActiveTab }) {
   const [toast, setToast] = useState({ show: false, message: "", color: "" });
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [editMode, setEditMode] = useState(false);
+  const [editSchedule, setEditSchedule] = useState({
+    from: "",
+    to: "",
+    checkInTime: "",
+    checkOutTime: "",
+    roomId: "",
+  });
+  const [hostelOptions, setHostelOptions] = useState([]);
+  const [approvalPayment, setApprovalPayment] = useState(null);
+  const [approvalPaymentForm, setApprovalPaymentForm] = useState({
+    paymentType: "Free",
+    totalAmount: "",
+    freeRemarks: "",
+  });
   const ITEMS_PER_PAGE = 10;
   
   const [enquiries, setEnquiries] = useState([]);
@@ -133,6 +149,33 @@ export default function AdminEnquiryPage({ setActiveTab }) {
   useEffect(() => {
     loadEnquiries();
   }, []);
+
+  useEffect(() => {
+    const loadHostelOptions = async () => {
+      try {
+        const res = await axios.get(`${API}/api/hostels/public-options`, { withCredentials: true });
+        setHostelOptions(Array.isArray(res.data?.hostels) ? res.data.hostels : []);
+      } catch (err) {
+        console.warn("Failed to load hostel room options", err);
+      }
+    };
+    loadHostelOptions();
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setEditMode(false);
+      return;
+    }
+    setEditSchedule({
+      from: selected.from ? new Date(selected.from).toISOString().slice(0, 10) : "",
+      to: selected.to ? new Date(selected.to).toISOString().slice(0, 10) : "",
+      checkInTime: selected.checkInTime || "00:00",
+      checkOutTime: selected.checkOutTime || "23:59",
+      roomId: selected.roomId || "",
+    });
+    setEditMode(false);
+  }, [selected?._id]);
 
   // ✅ Listen for booking completion to refresh enquiry status
   useEffect(() => {
@@ -202,52 +245,25 @@ export default function AdminEnquiryPage({ setActiveTab }) {
     if (!selected) return;
 
     if (status === "approved") {
-      // Don't update backend status yet - just prepare for room selection
-      
-      // Store the enquiry in localStorage for AllHostelsPortal
-      const approvedGuest = {
-        id: "b_" + Date.now(),
-        enquiryId: selected._id,
-        name: selected.name,
-        guest: selected.name,
-        rollno: selected.rollno || "",
-        department: selected.department || "",
-        numGuests: Number(selected.guests || selected.numGuests || 1),
-        females: selected.females || 0,
-        males: selected.males || 0,
-        contact: selected.contact || "",
-        email: selected.email || "",
-        gender: selected.gender || "",
-        state: selected.state || "",
-        city: selected.city || "",
-        purpose: selected.purpose || "",
-        reference: selected.reference || "",
-        checkInTime: selected.checkInTime || "00:00",
-        checkOutTime: selected.checkOutTime || "23:59",
-        files: selected.files || [],
-        enquiryAttachments: selected.files || [],
-        paymentType: "Pending",
-        amount: 0,
-        from: selected.from,
-        to: selected.to,
-        status: "pending-room-selection",
-      };
-
-      localStorage.setItem("lastApprovedGuest", JSON.stringify(approvedGuest));
-      window.dispatchEvent(new Event("lastApprovedGuestChanged"));
-
-      showToast("Please select a guest room to complete approval", "blue");
-
-      // Navigate to AllHostelsPortal
-      if (typeof setActiveTab === "function") {
-        const container = document.querySelector(".admin-page-container");
-        if (container) container.classList.add("fade-out");
-        setTimeout(() => {
-          setActiveTab("AllHostelsPortal");
-          if (container) container.classList.remove("fade-out");
-        }, 300);
+      if (selected.hostelId && selected.roomId) {
+        try {
+          await axios.get(`${API}/api/enquiry/${selected._id}/availability`, { withCredentials: true });
+        } catch (err) {
+          showToast(
+            err.response?.data?.message ||
+              "Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.",
+            "red"
+          );
+          return;
+        }
       }
 
+      setApprovalPayment(selected);
+      setApprovalPaymentForm({
+        paymentType: "Free",
+        totalAmount: "",
+        freeRemarks: "",
+      });
       return;
     }  
 
@@ -284,6 +300,67 @@ export default function AdminEnquiryPage({ setActiveTab }) {
     } catch (err) {
       console.error("Decision error:", err);
       showToast("Failed to update enquiry", "red");
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!selected) return;
+    try {
+      const res = await axios.patch(
+        `${API}/api/enquiry/${selected._id}/schedule`,
+        editSchedule,
+        { withCredentials: true }
+      );
+      const updated = res.data?.enquiry;
+      showToast("Enquiry schedule updated", "blue");
+      setEditMode(false);
+      await loadEnquiries();
+      if (updated) setSelected(updated);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update enquiry schedule", "red");
+    }
+  };
+
+  const handleApproveWithPayment = async () => {
+    if (!approvalPayment) return;
+    if (approvalPaymentForm.paymentType === "Paid" && Number(approvalPaymentForm.totalAmount || 0) <= 0) {
+      showToast("Enter a valid paid booking amount", "red");
+      return;
+    }
+    if (approvalPaymentForm.paymentType === "Free" && !approvalPaymentForm.freeRemarks.trim()) {
+      showToast("Enter remarks for free booking", "red");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `${API}/api/enquiry/${approvalPayment._id}/approved`,
+        {
+          hostel: approvalPayment.hostelName,
+          roomNo: approvalPayment.roomName,
+          checkInTime: approvalPayment.checkInTime || "00:00",
+          checkOutTime: approvalPayment.checkOutTime || "23:59",
+          paymentType: approvalPaymentForm.paymentType,
+          totalAmount: approvalPaymentForm.paymentType === "Paid" ? Number(approvalPaymentForm.totalAmount || 0) : 0,
+          freeRemarks: approvalPaymentForm.freeRemarks,
+          approvalDocuments: approvalPayment.files || [],
+        },
+        { withCredentials: true }
+      );
+
+      localStorage.removeItem("lastApprovedGuest");
+      window.dispatchEvent(new Event("lastApprovedGuestChanged"));
+      window.dispatchEvent(new Event("reloadHostelData"));
+      showToast("Enquiry approved and booking created", "green");
+      setApprovalPayment(null);
+      await loadEnquiries();
+      setSelected(null);
+    } catch (err) {
+      showToast(
+        err.response?.data?.message ||
+          "Failed to approve enquiry. Please verify room availability and payment details.",
+        "red"
+      );
     }
   };
 
@@ -335,6 +412,10 @@ export default function AdminEnquiryPage({ setActiveTab }) {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const editableRooms = selected
+    ? (hostelOptions.find((hostel) => String(hostel._id) === String(selected.hostelId))?.rooms || [])
+    : [];
 
   const filteredEnquiries =
     (filter === "all"
@@ -470,6 +551,9 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                       <h3 className="text-base sm:text-lg font-semibold text-red-700 dark:text-gray-200 truncate">
                         {e.name}
                       </h3>
+                      <span className="mt-1 inline-flex w-fit rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                        {e.bookingCategory === "ParentStudent" ? "Parent / Student" : "Faculty"}
+                      </span>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                         {new Date(e.createdAt).toLocaleString("en-GB", {
                           day: "2-digit",
@@ -520,10 +604,6 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                         <span className="text-xs sm:text-sm font-semibold text-yellow-600 dark:text-yellow-400 whitespace-nowrap">
                           Pending
                         </span>
-                      ) : e.status === "pending-room-selection" ? (
-                        <span className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                          Awaiting Room
-                        </span>
                       ) : (
                         <span
                           className={`text-xs sm:text-sm font-semibold capitalize whitespace-nowrap ${
@@ -558,8 +638,11 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                 {/* ✅ Unified detail list for Guest Enquiry */}
                 {[
                   { label: "Name / Society Name", key: "name" },
+                  { label: "Category", key: "bookingCategory" },
                   { label: "Roll No / Employee ID", key: "rollno" },
                   { label: "Department", key: "department" },
+                  { label: "Requested Hostel", key: "hostelName" },
+                  { label: "Requested Guest Room", key: "roomName" },
                   { label: "Gender", key: "gender" },
                   { label: "Number of Guests", key: "numGuests", altKey: "guests" },
                   { label: "Number of Females", key: "females", altKey: "femaleGuests" },
@@ -586,6 +669,65 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                 })}
               </div>
 
+              {editMode && (
+                <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-gray-500 dark:bg-gray-600">
+                  <h3 className="mb-3 font-semibold text-blue-700 dark:text-blue-300">Edit Schedule & Guest Room</h3>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-sm font-medium sm:col-span-2">
+                      Guest Room
+                      <select
+                        value={editSchedule.roomId}
+                        onChange={(e) => setEditSchedule((prev) => ({ ...prev, roomId: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border px-3 py-2"
+                      >
+                        <option value="">Select guest room</option>
+                        {editableRooms.map((room) => (
+                          <option key={room._id} value={room._id}>
+                            {room.roomNo} {room.roomType ? `(${room.roomType})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-sm font-medium">
+                      Check In Date
+                      <input
+                        type="date"
+                        value={editSchedule.from}
+                        onChange={(e) => setEditSchedule((prev) => ({ ...prev, from: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border px-3 py-2"
+                      />
+                    </label>
+                    <label className="text-sm font-medium">
+                      Check Out Date
+                      <input
+                        type="date"
+                        value={editSchedule.to}
+                        onChange={(e) => setEditSchedule((prev) => ({ ...prev, to: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border px-3 py-2"
+                      />
+                    </label>
+                    <label className="text-sm font-medium">
+                      Check In Time
+                      <input
+                        type="time"
+                        value={editSchedule.checkInTime}
+                        onChange={(e) => setEditSchedule((prev) => ({ ...prev, checkInTime: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border px-3 py-2"
+                      />
+                    </label>
+                    <label className="text-sm font-medium">
+                      Check Out Time
+                      <input
+                        type="time"
+                        value={editSchedule.checkOutTime}
+                        onChange={(e) => setEditSchedule((prev) => ({ ...prev, checkOutTime: e.target.value }))}
+                        className="mt-1 w-full rounded-lg border px-3 py-2"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* ✅ Data Verification Section */}
               {selected && (
                 <div className="mt-4 p-3 sm:p-4 bg-blue-50 dark:bg-gray-600 rounded-lg border border-blue-200 dark:border-gray-500">
@@ -596,6 +738,18 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                     <div>
                       <p className="font-medium text-gray-600 dark:text-gray-400">Roll No:</p>
                       <p className="font-semibold">{selected.rollno || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-600 dark:text-gray-400">Category:</p>
+                      <p className="font-semibold">{selected.bookingCategory === "ParentStudent" ? "Parent / Student" : "Faculty"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-600 dark:text-gray-400">Requested Hostel:</p>
+                      <p className="font-semibold">{selected.hostelName || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-600 dark:text-gray-400">Requested Guest Room:</p>
+                      <p className="font-semibold">{selected.roomName || "—"}</p>
                     </div>
                     <div>  
                       <p className="font-medium text-gray-600 dark:text-gray-400">Department:</p>
@@ -711,13 +865,37 @@ export default function AdminEnquiryPage({ setActiveTab }) {
               {selected && (
                 <>
                   {/* Show Approve/Reject buttons ONLY if status is "pending" (initial state) */}
-                  {[
-                    undefined,
-                    "pending",
-                    "pending-approval",
-                    "pending-room-selection",
-                  ].includes(selected.status) && (
+                  {[undefined, "pending", "pending-approval"].includes(selected.status) && (
                     <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4 mt-6 sm:mt-8">
+                      {editMode ? (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleSaveSchedule}
+                            className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-semibold text-sm sm:text-base"
+                          >
+                            Save Schedule
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setEditMode(false)}
+                            className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold text-sm sm:text-base"
+                          >
+                            Cancel Edit
+                          </motion.button>
+                        </>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setEditMode(true)}
+                          className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-semibold text-sm sm:text-base"
+                        >
+                          Edit
+                        </motion.button>
+                      )}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -816,6 +994,99 @@ export default function AdminEnquiryPage({ setActiveTab }) {
           </div>
         )}
       </motion.div>
+
+      <AnimatePresence>
+        {approvalPayment && (
+          <motion.div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl"
+              initial={{ scale: 0.95, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 12 }}
+            >
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-green-700">Approve & Create Booking</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {approvalPayment.name} • {approvalPayment.hostelName} • {approvalPayment.roomName}
+                  </p>
+                </div>
+                <button onClick={() => setApprovalPayment(null)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Payment Type
+                  <select
+                    value={approvalPaymentForm.paymentType}
+                    onChange={(e) =>
+                      setApprovalPaymentForm((prev) => ({
+                        ...prev,
+                        paymentType: e.target.value,
+                        totalAmount: e.target.value === "Free" ? "" : prev.totalAmount,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-lg border px-3 py-2"
+                  >
+                    <option value="Free">Free</option>
+                    <option value="Paid">Paid</option>
+                  </select>
+                </label>
+
+                {approvalPaymentForm.paymentType === "Paid" && (
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Total Amount
+                    <input
+                      type="number"
+                      min="1"
+                      value={approvalPaymentForm.totalAmount}
+                      onChange={(e) => setApprovalPaymentForm((prev) => ({ ...prev, totalAmount: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border px-3 py-2"
+                      placeholder="Enter booking amount"
+                    />
+                  </label>
+                )}
+
+                <label className="block text-sm font-semibold text-gray-700">
+                  Remarks {approvalPaymentForm.paymentType === "Free" ? "*" : ""}
+                  <textarea
+                    value={approvalPaymentForm.freeRemarks}
+                    onChange={(e) => setApprovalPaymentForm((prev) => ({ ...prev, freeRemarks: e.target.value }))}
+                    className="mt-1 min-h-24 w-full rounded-lg border px-3 py-2"
+                    placeholder="Payment / approval remarks"
+                  />
+                </label>
+
+                <div className="rounded-xl border bg-green-50 p-3 text-sm text-green-800">
+                  Availability has already been checked. Submitting will create a standard guest room booking and mark this enquiry as booked.
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => setApprovalPayment(null)}
+                  className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApproveWithPayment}
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  Create Booking
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ===== Toast ===== */}
       <AnimatePresence>

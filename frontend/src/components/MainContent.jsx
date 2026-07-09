@@ -73,12 +73,13 @@ export default function MainContent(props) {
 
   const { currentUser, loadingUser } = useAuth();
   const role = currentUser?.role || currentUser?.user?.role;
-  const isRestrictedRole = role === 'caretaker' || role === 'warden';
+  const normalizedRole = String(role || "").toLowerCase();
+  const isRestrictedRole = normalizedRole === 'caretaker' || normalizedRole === 'warden';
   const hasGuestRoomPermission = currentUser?.permissions?.guestRoom === true;
   const isAdminLike =
-    role === 'admin' ||
-    role === 'manager' ||
-    (role === 'adosa' && hasGuestRoomPermission);
+    normalizedRole === 'admin' ||
+    normalizedRole === 'manager' ||
+    (normalizedRole === 'adosa' && hasGuestRoomPermission);
   const userHostel = currentUser?.assignedHostel || currentUser?.hostel || null;
 
   // ✅ STATE HELPER - Add after state declarations
@@ -101,6 +102,13 @@ export default function MainContent(props) {
   const [unblockRoomModal, setUnblockRoomModal] = useState(null);
   const [blockedRoomInfoModal, setBlockedRoomInfoModal] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [readEnquiryIds, setReadEnquiryIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("readEnquiryNotificationIds") || "[]");
+    } catch {
+      return [];
+    }
+  });
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
@@ -178,11 +186,11 @@ export default function MainContent(props) {
   // ENQUIRY POLLING FROM BACKEND
   // ====================================================
   useEffect(() => {
-    // ✅ CRITICAL FIX: Only admin and manager should receive enquiry notifications
-    if (role !== "admin" && role !== "manager") {
+    const canViewEnquiries = ["admin", "manager", "co_warden", "adosa", "caretaker", "warden"].includes(normalizedRole);
+    if (!canViewEnquiries) {
       console.log("🔒 Enquiry notifications disabled for role:", role);
       setNotifications([]);
-      return; // Exit early for caretakers
+      return;
     }
 
     let interval;
@@ -191,11 +199,13 @@ export default function MainContent(props) {
       const result = await fetchEnquiries();
       const enquiries = Array.isArray(result) ? result : (result?.enquiries || []);
 
-      const pending = enquiries.filter((e) => e.status === "pending");
+      const readSet = new Set(readEnquiryIds);
+      const pending = enquiries.filter((e) => e.status === "pending" && !readSet.has(String(e._id)));
 
       if (notificationsEnabled) {
         setNotifications(
           pending.map((e) => ({
+            id: e._id,
             name: e.name,
             message: e.purpose || "New enquiry submitted",
             date: new Date(e.createdAt).toLocaleString(),
@@ -212,7 +222,6 @@ export default function MainContent(props) {
         return;
       }
 
-      // ✅ Only show toast for admin/manager
       if (pending.length > lastPendingRef.current && notificationsEnabled) {
         const newest = pending[pending.length - 1];
 
@@ -229,9 +238,15 @@ export default function MainContent(props) {
 
     load();
     interval = setInterval(load, 5000);
+    window.addEventListener("guestEnquiryCreated", load);
+    window.addEventListener("enquiryCreated", load);
 
-    return () => clearInterval(interval);
-  }, [notificationsEnabled, role]);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("guestEnquiryCreated", load);
+      window.removeEventListener("enquiryCreated", load);
+    };
+  }, [notificationsEnabled, role, normalizedRole, readEnquiryIds]);
 
   
 
@@ -828,21 +843,19 @@ export default function MainContent(props) {
           <div className="flex flex-wrap items-center gap-2 lg:gap-4 w-full lg:w-auto">
             <LiveBookingCounter theme={theme} currentUser={currentUser} />
             
-            {!isRestrictedRole && (
-              <button
-                onClick={() => setActiveTab("Enquiry")}
-                className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
-                  activeTab === "Enquiry"
-                    ? "bg-red-600 text-white border-red-700"
-                    : theme === "dark"
-                    ? "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
-                    : "bg-white text-red-700 border-red-300 hover:bg-red-100"
-                }`}
-              >
-                <span className="hidden sm:inline">Enquiry</span>
-                <span className="sm:hidden">📧</span>
-              </button>
-            )}
+            <button
+              onClick={() => setActiveTab("Enquiry")}
+              className={`px-3 py-1.5 lg:px-6 lg:py-2 rounded-lg font-medium border text-sm lg:text-lg transition ${
+                activeTab === "Enquiry"
+                  ? "bg-red-600 text-white border-red-700"
+                  : theme === "dark"
+                  ? "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+                  : "bg-white text-red-700 border-red-300 hover:bg-red-100"
+              }`}
+            >
+              <span className="hidden sm:inline">Enquiry</span>
+              <span className="sm:hidden">📧</span>
+            </button>
 
             <button
               onClick={() => {
@@ -903,8 +916,7 @@ export default function MainContent(props) {
               <span className="sm:hidden">⬇️</span>
             </button>
 
-            {!isRestrictedRole && (
-              <div className="relative notif-wrapper">
+            <div className="relative notif-wrapper">
                 <button
                   onClick={() => setShowNotifDropdown((prev) => !prev)}
                   className={`relative p-2 lg:p-3 border rounded-full shadow-md transition ${
@@ -950,6 +962,11 @@ export default function MainContent(props) {
                                 : "hover:bg-red-50 border-gray-200"
                             }`}
                             onClick={() => {
+                              if (n.id) {
+                                const nextRead = Array.from(new Set([...readEnquiryIds, String(n.id)]));
+                                setReadEnquiryIds(nextRead);
+                                localStorage.setItem("readEnquiryNotificationIds", JSON.stringify(nextRead));
+                              }
                               setActiveTab("Enquiry");
                               setShowNotifDropdown(false);
                             }}
@@ -993,6 +1010,14 @@ export default function MainContent(props) {
                             : "text-blue-600 hover:bg-blue-50"
                         }`}
                         onClick={() => {
+                          const nextRead = Array.from(
+                            new Set([
+                              ...readEnquiryIds,
+                              ...notifications.map((n) => String(n.id)).filter(Boolean),
+                            ])
+                          );
+                          setReadEnquiryIds(nextRead);
+                          localStorage.setItem("readEnquiryNotificationIds", JSON.stringify(nextRead));
                           setActiveTab("Enquiry");
                           setShowNotifDropdown(false);
                         }}
@@ -1002,8 +1027,7 @@ export default function MainContent(props) {
                     )}
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
         </header>
       )}

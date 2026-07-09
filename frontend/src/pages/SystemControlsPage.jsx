@@ -235,17 +235,33 @@ export default function SystemControlsPage({ theme = "light", onClose = () => {}
             <>
               {activeTab === "bookingDays" && (
                 <div className="space-y-4">
-                  <Field label="Max Booking Days Request - Guest">
+                  <Field label="Max Booking Days Request - Faculty / Staff">
                     <input
                       type="number"
                       className="w-full rounded-lg border px-3 py-2"
-                      value={draft.bookingDays?.guestMaxRequestDays || ""}
+                      value={draft.bookingDays?.facultyStaffMaxRequestDays || draft.bookingDays?.guestMaxRequestDays || ""}
                       onChange={(e) =>
                         setDraft((prev) => ({
                           ...prev,
                           bookingDays: {
                             ...prev.bookingDays,
-                            guestMaxRequestDays: Number(e.target.value),
+                            facultyStaffMaxRequestDays: Number(e.target.value),
+                          },
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Max Booking Days Request - Parent / Student">
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border px-3 py-2"
+                      value={draft.bookingDays?.parentStudentMaxRequestDays || ""}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          bookingDays: {
+                            ...prev.bookingDays,
+                            parentStudentMaxRequestDays: Number(e.target.value),
                           },
                         }))
                       }

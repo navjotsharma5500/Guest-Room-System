@@ -25,6 +25,7 @@ import SystemControlsPage from "./SystemControlsPage";
 import WebsiteContentManager from "./WebsiteContentManager";
 import CleaningChecklistManagement from "../components/Cleaning/CleaningChecklistManagement";
 import SupportQRCodeManager from "../components/Support/SupportQRCodeManager";
+import usePublicGuestRoomVisitors from "../hooks/usePublicGuestRoomVisitors";
 
 export default function SettingsPage({
   theme,
@@ -43,6 +44,7 @@ export default function SettingsPage({
   const [websiteContentOpen, setWebsiteContentOpen] = useState(false);
   const [cleaningChecklistOpen, setCleaningChecklistOpen] = useState(false);
   const [supportQrOpen, setSupportQrOpen] = useState(false);
+  const visitorStats = usePublicGuestRoomVisitors();
   const [newTabName, setNewTabName] = useState("");
   const [sectionDrafts, setSectionDrafts] = useState({});
   const [roomDrafts, setRoomDrafts] = useState({});
@@ -119,6 +121,7 @@ export default function SettingsPage({
   const [editingKey, setEditingKey] = useState(null);
   const [hostelName, setHostelName] = useState("");
   const [hostelCode, setHostelCode] = useState("");
+  const [hostelType, setHostelType] = useState("co-ed");
   const [numRooms, setNumRooms] = useState(1);
   const [roomType, setRoomType] = useState("2S AC");
   const [activeFlag, setActiveFlag] = useState(true);
@@ -180,6 +183,7 @@ export default function SettingsPage({
             _id: h._id,
             name: h.name,
             code: h.code,
+            hostelType: h.hostelType,
             active: h.active,
             caretakerEmail: h.caretakerEmail,
             wardenEmail: h.wardenEmail,
@@ -226,6 +230,7 @@ export default function SettingsPage({
     const payload = {
       name,
       code,
+      hostelType,
       caretakerEmail,
       wardenEmail,
       active: activeFlag,
@@ -270,6 +275,7 @@ export default function SettingsPage({
     setEditingKey(null);
     setHostelName("");
     setHostelCode("");
+    setHostelType("co-ed");
     setNumRooms(1);
     setRoomType("2S AC");
     setActiveFlag(true);
@@ -285,6 +291,7 @@ export default function SettingsPage({
     setEditingKey(existing._id);
     setHostelName(existing.name);
     setHostelCode(existing.code || "");
+    setHostelType(existing.hostelType || "co-ed");
     setNumRooms(existing.rooms?.length || 1);
     setRoomType(existing.rooms?.[0]?.roomType || "2S AC");
     setActiveFlag(existing.active !== false);
@@ -333,6 +340,7 @@ export default function SettingsPage({
         body: JSON.stringify({
           name: hostel.name,
           code: hostel.code,
+          hostelType: hostel.hostelType,
           caretakerEmail: hostel.caretakerEmail,
           wardenEmail: hostel.wardenEmail,
           rooms: hostel.rooms,
@@ -597,6 +605,45 @@ export default function SettingsPage({
                 >
                   Open
                 </button>
+              </div>
+            </motion.div>
+          )}
+
+          {String(role || "").toLowerCase() === "admin" && (
+            <motion.div
+              whileHover={{ y: -4 }}
+              className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border ${
+                theme === "dark"
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-blue-100"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-blue-50 p-2">
+                    <Building2 className="text-blue-600 w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-blue-700">Guest Room Website Visitors</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Anonymous public website visitor analytics
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Total Visitors</p>
+                  <p className="mt-1 text-2xl font-bold text-blue-700">
+                    {Number(visitorStats.totalVisitors || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">Today's Visitors</p>
+                  <p className="mt-1 text-2xl font-bold text-green-600">
+                    {Number(visitorStats.todayVisitors || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}
@@ -1187,6 +1234,19 @@ export default function SettingsPage({
                 placeholder="e.g. AGI (auto-generated if empty)"
               />
 
+              <label className="block text-xs sm:text-sm font-medium mb-1">
+                Hostel Gender / Type
+              </label>
+              <select
+                value={hostelType}
+                onChange={(e) => setHostelType(e.target.value)}
+                className="border rounded p-2 text-sm w-full mb-3"
+              >
+                <option value="boys">Boys Hostel</option>
+                <option value="girls">Girls Hostel</option>
+                <option value="co-ed">Co-ed / General</option>
+              </select>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium mb-1">
@@ -1343,7 +1403,7 @@ export default function SettingsPage({
                         <div className="min-w-0">
                           <h4 className="font-semibold text-sm sm:text-base truncate">{h.name}</h4>
                           <div className="text-xs text-gray-500">
-                            {h.rooms?.length} rooms •{" "}
+                            {h.rooms?.length} rooms • {h.hostelType || "co-ed"} •{" "}
                             {h.active ? "Active" : "Inactive"}
                           </div>
                           {h.caretakerEmail && (

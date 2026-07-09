@@ -104,6 +104,7 @@ export default function AllHostelsPortal({
 
   const suppressToastRef = useRef(false);
   const hasInitializedRef = useRef(false);
+  const autoSelectedRequestRef = useRef(null);
 
   // ✅ FILTER STEP: Apply safety filter to incoming data
   const filteredHostelData = useMemo(() => {
@@ -177,8 +178,10 @@ export default function AllHostelsPortal({
       
       setSelectionMode(true);
       setBookingCompleted(false);
-      setSelectedRooms([]);
-      setConsolidateModal(false);
+      if (!prefillGuest.requestedHostel || !prefillGuest.requestedRoom) {
+        setSelectedRooms([]);
+        setConsolidateModal(false);
+      }
       setDirectBookingModal(null);
       setBookingDetailsModal(null);
       setBookingListModal(null);
@@ -192,6 +195,33 @@ export default function AllHostelsPortal({
       }
     }
   }, [prefillGuest?.from, prefillGuest?.to, showToast]);
+
+  useEffect(() => {
+    if (!prefillGuest?.requestedHostel || !prefillGuest?.requestedRoom || !prefillGuest?.from || !prefillGuest?.to) return;
+    const requestKey = `${prefillGuest.enquiryId || prefillGuest.id}_${prefillGuest.requestedHostel}_${prefillGuest.requestedRoom}`;
+    if (autoSelectedRequestRef.current === requestKey) return;
+    if (!stableHostelData?.[prefillGuest.requestedHostel]) return;
+
+    const roomExists = (stableHostelData[prefillGuest.requestedHostel]?.rooms || []).some(
+      (room) => room.roomNo === prefillGuest.requestedRoom
+    );
+    if (!roomExists) return;
+
+    autoSelectedRequestRef.current = requestKey;
+    setSelectionMode(true);
+    setSelectedRooms([{ hostel: prefillGuest.requestedHostel, roomNo: prefillGuest.requestedRoom }]);
+    setConsolidateModal(true);
+    showToast("✅ Requested guest room verified. Review and confirm booking.", "success");
+  }, [
+    prefillGuest?.enquiryId,
+    prefillGuest?.id,
+    prefillGuest?.requestedHostel,
+    prefillGuest?.requestedRoom,
+    prefillGuest?.from,
+    prefillGuest?.to,
+    stableHostelData,
+    showToast,
+  ]);
 
   // ✅ Listen for booking completion from other components
   useEffect(() => {
