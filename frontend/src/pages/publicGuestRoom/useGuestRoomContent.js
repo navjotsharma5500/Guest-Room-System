@@ -26,8 +26,13 @@ export default function useGuestRoomContent() {
     };
 
     load();
+    const refresh = () => load();
+    window.addEventListener("websiteContentPublished", refresh);
+    window.addEventListener("focus", refresh);
     return () => {
       mounted = false;
+      window.removeEventListener("websiteContentPublished", refresh);
+      window.removeEventListener("focus", refresh);
     };
   }, []);
 

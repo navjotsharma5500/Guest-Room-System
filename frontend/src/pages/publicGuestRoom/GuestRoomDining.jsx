@@ -18,7 +18,8 @@ export default function GuestRoomDining() {
       </PublicSection>
       <PublicSection eyebrow="Rules & Options" title="Dining guidance">
         <div className="grid gap-4 md:grid-cols-2">
-          {[...(dining.rules || []), ...(dining.options || []).map((item) => `Campus option: ${item}`)].map((item) => <PublicPolicyCard key={item} text={item} />)}
+          {(dining.rules || []).map((item) => <PublicPolicyCard key={`rule-${item}`} text={item} />)}
+          {(dining.options || []).map((item) => <PublicPolicyCard key={`option-${item}`} text={`Campus option: ${item}`} />)}
         </div>
       </PublicSection>
     </>

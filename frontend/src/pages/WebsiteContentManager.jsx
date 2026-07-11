@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Eye, Plus, RefreshCw, RotateCcw, Save, Send, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Plus, RefreshCw, RotateCcw, Save, Send, Trash2 } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
 import CmsImageUploader from "../components/publicGuestRoom/CmsImageUploader";
 import { defaultGuestRoomContent, WEBSITE_SECTION_TABS } from "./publicGuestRoom/defaultGuestRoomContent";
@@ -21,6 +21,16 @@ const Field = ({ label, value, onChange, textarea = false, type = "text" }) => (
   </label>
 );
 
+const ToggleField = ({ label, checked, onChange, description }) => (
+  <label className="flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+    <span>
+      <span className="block text-sm font-bold text-gray-800">{label}</span>
+      {description && <span className="mt-1 block text-xs text-gray-500">{description}</span>}
+    </span>
+    <input type="checkbox" checked={checked !== false} onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 accent-red-600" />
+  </label>
+);
+
 const Panel = ({ title, children }) => (
   <details open className="rounded-2xl border border-gray-200 bg-white">
     <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-gray-900">{title}</summary>
@@ -35,9 +45,25 @@ const ArrayEditor = ({ title, items = [], onChange, newItem, renderItem }) => (
         <div key={index} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-700">Item {index + 1}</p>
-            <button type="button" onClick={() => onChange(items.filter((_, i) => i !== index))} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
-              <Trash2 size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button type="button" disabled={index === 0} onClick={() => {
+                const next = [...items];
+                [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                onChange(next);
+              }} className="rounded-lg p-2 text-gray-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30">
+                <ArrowUp size={16} />
+              </button>
+              <button type="button" disabled={index === items.length - 1} onClick={() => {
+                const next = [...items];
+                [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                onChange(next);
+              }} className="rounded-lg p-2 text-gray-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30">
+                <ArrowDown size={16} />
+              </button>
+              <button type="button" onClick={() => onChange(items.filter((_, i) => i !== index))} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
           {renderItem(item, (patch) => onChange(items.map((old, i) => (i === index ? { ...old, ...patch } : old))), index)}
         </div>
@@ -129,6 +155,9 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
         doc = pubData.doc || { ...doc, isPublished: true };
       }
       setRecords((prev) => ({ ...prev, [active]: doc || { section: active, data: draft, isPublished: true } }));
+      if (publish) {
+        window.dispatchEvent(new CustomEvent("websiteContentPublished", { detail: { section: active, doc } }));
+      }
       showToast(publish ? "Section published" : "Draft saved", "success");
     } catch (err) {
       showToast(err.message || "Save failed", "error");
@@ -222,12 +251,49 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
     </>
   );
 
+  const renderDining = () => (
+    <>
+      {renderHero()}
+      <Panel title="Dining Intro">
+        <Field label="Dining Text" value={draft.text} onChange={(v) => setPath(["text"], v)} textarea />
+      </Panel>
+      <ArrayEditor
+        title="Dining Cards"
+        items={draft.cards || []}
+        onChange={(v) => setPath(["cards"], v)}
+        newItem={{ title: "", timing: "", price: "", description: "", image: "" }}
+        renderItem={(item, patch) => (
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} />
+            <Field label="Timing" value={item.timing} onChange={(v) => patch({ timing: v })} />
+            <Field label="Price" value={item.price} onChange={(v) => patch({ price: v })} />
+            <Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea />
+            <CmsImageUploader label="Dining Image" folder="/public-guest-room/dining" value={item.image || ""} onChange={(v) => patch({ image: v })} />
+          </div>
+        )}
+      />
+      <TextListEditor title="Rules" items={draft.rules || []} onChange={(v) => setPath(["rules"], v)} />
+      <TextListEditor title="Options" items={draft.options || []} onChange={(v) => setPath(["options"], v)} />
+    </>
+  );
+
+  const renderFacilities = () => (
+    <>
+      {renderHero()}
+      <TextListEditor title="Guest Room Facilities" items={draft.facilities || []} onChange={(v) => setPath(["facilities"], v)} />
+      <TextListEditor title="Digital Services" items={draft.digitalServices || []} onChange={(v) => setPath(["digitalServices"], v)} />
+      <TextListEditor title="Safety" items={draft.safetyCards || []} onChange={(v) => setPath(["safetyCards"], v)} />
+    </>
+  );
+
   const renderEditor = () => {
     if (active === "home") return renderHome();
     if (active === "rooms") return <><>{renderHero()}</><RoomCardsEditor title="Room Cards" items={draft.cards || []} onChange={(v) => setPath(["cards"], v)} /><TextListEditor title="Room Notes" items={draft.notes || []} onChange={(v) => setPath(["notes"], v)} /></>;
     if (active === "gallery") return <><>{renderHero()}</><GalleryEditor images={draft.images || []} categories={draft.categories || []} onImages={(v) => setPath(["images"], v)} onCategories={(v) => setPath(["categories"], v)} /></>;
+    if (active === "dining") return renderDining();
+    if (active === "facilities") return renderFacilities();
     if (active === "tariff") return <><>{renderHero()}</><TariffEditor rows={draft.rows || []} onChange={(v) => setPath(["rows"], v)} /><TextListEditor title="General Terms" items={draft.terms || []} onChange={(v) => setPath(["terms"], v)} /><Panel title="Policies"><div className="grid gap-4 md:grid-cols-2"><Field label="No Cash Policy" value={draft.noCashPolicy} onChange={(v) => setPath(["noCashPolicy"], v)} textarea /><Field label="Refund Policy" value={draft.refundPolicy} onChange={(v) => setPath(["refundPolicy"], v)} textarea /><Field label="Cancellation Policy" value={draft.cancellationPolicy} onChange={(v) => setPath(["cancellationPolicy"], v)} textarea /><Field label="Payment Instructions" value={draft.paymentInstructions} onChange={(v) => setPath(["paymentInstructions"], v)} textarea /></div></Panel></>;
-    if (active === "booking") return <><>{renderHero()}</><Panel title="Booking Cards & Messages"><div className="grid gap-4 md:grid-cols-2"><Field label="Parents / Students Title" value={draft.studentCard?.title} onChange={(v) => setPath(["studentCard", "title"], v)} /><Field label="Parents / Students Text" value={draft.studentCard?.text} onChange={(v) => setPath(["studentCard", "text"], v)} textarea /><Field label="Faculty / Staff Title" value={draft.staffCard?.title} onChange={(v) => setPath(["staffCard", "title"], v)} /><Field label="Faculty / Staff Text" value={draft.staffCard?.text} onChange={(v) => setPath(["staffCard", "text"], v)} textarea /><Field label="Terms Checkbox Text" value={draft.termsText} onChange={(v) => setPath(["termsText"], v)} textarea /><Field label="Success Message" value={draft.successMessage} onChange={(v) => setPath(["successMessage"], v)} textarea /></div></Panel><TextListEditor title="Policies" items={draft.policies || []} onChange={(v) => setPath(["policies"], v)} /></>;
+    if (active === "booking") return <><>{renderHero()}</><Panel title="Booking Form Visibility"><div className="grid gap-4 md:grid-cols-2"><ToggleField label="Enable Parent / Student Booking Form" checked={draft.enableParentStudentForm} onChange={(v) => setPath(["enableParentStudentForm"], v)} description="OFF hides this form card from the public selector." /><ToggleField label="Enable Faculty / Staff Booking Form" checked={draft.enableFacultyStaffForm} onChange={(v) => setPath(["enableFacultyStaffForm"], v)} description="OFF hides this form card from the public selector." /></div></Panel><Panel title="Booking Cards & Messages"><div className="grid gap-4 md:grid-cols-2"><Field label="Parents / Students Title" value={draft.studentCard?.title} onChange={(v) => setPath(["studentCard", "title"], v)} /><Field label="Parents / Students Text" value={draft.studentCard?.text} onChange={(v) => setPath(["studentCard", "text"], v)} textarea /><Field label="Faculty / Staff Title" value={draft.staffCard?.title} onChange={(v) => setPath(["staffCard", "title"], v)} /><Field label="Faculty / Staff Text" value={draft.staffCard?.text} onChange={(v) => setPath(["staffCard", "text"], v)} textarea /><Field label="Terms Checkbox Text" value={draft.termsText} onChange={(v) => setPath(["termsText"], v)} textarea /><Field label="Success Message" value={draft.successMessage} onChange={(v) => setPath(["successMessage"], v)} textarea /></div></Panel><TextListEditor title="Policies" items={draft.policies || []} onChange={(v) => setPath(["policies"], v)} /></>;
     if (active === "contact") return <><>{renderHero()}</><Panel title="Contact Details"><div className="grid gap-4 md:grid-cols-2"><Field label="Institute Address" value={draft.location} onChange={(v) => setPath(["location"], v)} textarea /><Field label="DoSA Office" value={draft.office} onChange={(v) => setPath(["office"], v)} /><Field label="DoSA Office Address" value={draft.dosaOfficeAddress} onChange={(v) => setPath(["dosaOfficeAddress"], v)} /><Field label="Working Hours" value={draft.hours} onChange={(v) => setPath(["hours"], v)} /><Field label="Map Embed URL" value={draft.mapUrl} onChange={(v) => setPath(["mapUrl"], v)} /><Field label="Feedback Link" value={draft.feedbackLink} onChange={(v) => setPath(["feedbackLink"], v)} /></div></Panel><TextListEditor title="Emails" items={draft.emails || []} onChange={(v) => setPath(["emails"], v)} /><TextListEditor title="Phone Numbers" items={draft.phones || []} onChange={(v) => setPath(["phones"], v)} /></>;
     if (active === "footer") return <FooterEditor draft={draft} setPath={setPath} />;
     if (active === "quicklinks") return <LinksEditor title="Quick Links" items={draft.links || []} onChange={(v) => setPath(["links"], v)} />;

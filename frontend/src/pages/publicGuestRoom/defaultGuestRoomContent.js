@@ -130,6 +130,8 @@ export const defaultGuestRoomContent = {
   },
   booking: {
     hero: { title: "Request Hostel Guest Room Accommodation", subtitle: "Submit your guest room enquiry for review by hostel administration.", image: "" },
+    enableParentStudentForm: true,
+    enableFacultyStaffForm: true,
     studentCard: { title: "Parents / Students", text: "Students may request guest accommodation for parents, guardians or immediate family members through the approval process." },
     staffCard: { title: "Faculty / Staff", text: "Faculty and staff guests can submit official guest accommodation requests using the form." },
     policies: ["Address proof mandatory", "Maximum request duration as per system settings", "Approval required", "Report within 23 hours after approval", "Payment is non-refundable", "No cash policy", "Room capacity rules apply", "Hostel rules must be followed"],
@@ -184,16 +186,20 @@ export const defaultGuestRoomContent = {
   },
 };
 
-export const mergeGuestRoomContent = (remote = {}) => {
-  const merged = { ...defaultGuestRoomContent, ...remote };
-  Object.keys(defaultGuestRoomContent).forEach((key) => {
-    merged[key] = {
-      ...(defaultGuestRoomContent[key] || {}),
-      ...(remote?.[key] || {}),
-    };
+const isPlainObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value);
+
+const mergeContentValue = (base, override) => {
+  if (override === undefined || override === null) return base;
+  if (!isPlainObject(base) || !isPlainObject(override)) return override;
+  const next = { ...base };
+  Object.keys(override).forEach((key) => {
+    next[key] = mergeContentValue(base?.[key], override[key]);
   });
-  return merged;
+  return next;
 };
+
+export const mergeGuestRoomContent = (remote = {}) => mergeContentValue(defaultGuestRoomContent, remote);
 
 export const WEBSITE_SECTION_TABS = [
   ["home", "Home"],

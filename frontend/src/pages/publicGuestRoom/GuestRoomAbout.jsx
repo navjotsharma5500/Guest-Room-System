@@ -2,7 +2,7 @@ import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
-import { useGuestContent } from "./pageUtils";
+import { hasImage, imgOrFallback, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomAbout() {
   const about = useGuestContent().about || {};
@@ -13,9 +13,14 @@ export default function GuestRoomAbout() {
       <PublicSection eyebrow="About" title="Institute-managed guest accommodation">
         <div className="grid gap-5 md:grid-cols-2">
           {(about.sections || []).map((section) => (
-            <div key={section.title} className="guest-card rounded-[2rem] p-7">
+            <div key={section.title} className="guest-card overflow-hidden rounded-[2rem]">
+              {hasImage(section.image) && (
+                <img src={imgOrFallback(section.image)} alt={section.title || "About guest rooms"} className="h-56 w-full object-cover" />
+              )}
+              <div className="p-7">
               <h3 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">{section.title}</h3>
               <p className="mt-4 leading-8 text-[var(--guest-muted)]">{section.text}</p>
+              </div>
             </div>
           ))}
         </div>

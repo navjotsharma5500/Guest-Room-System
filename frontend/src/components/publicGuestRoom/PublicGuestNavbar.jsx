@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
@@ -23,6 +24,15 @@ export default function PublicGuestNavbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   const linkClass = ({ isActive }) =>
     `text-sm font-semibold transition ${
@@ -60,28 +70,68 @@ export default function PublicGuestNavbar() {
         </button>
       </div>
 
-      {open && (
-        <div className="fixed inset-0 z-50 bg-stone-950/30 xl:hidden" onClick={() => setOpen(false)}>
-          <aside className="ml-auto h-full w-80 max-w-[88vw] bg-[#fffdf8] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-6 flex items-center justify-between">
-              <p className="guest-heading text-xl font-semibold text-[var(--guest-blue)]">Menu</p>
-              <button onClick={() => setOpen(false)} className="rounded-full border border-[var(--guest-border)] p-2">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="grid gap-2">
-              {navItems.map(([label, to]) => (
-                <NavLink key={to} to={to} end={to === "/guest-room"} onClick={() => setOpen(false)} className="rounded-2xl px-4 py-3 font-semibold text-stone-700 hover:bg-[#f7f0e6] hover:text-[var(--guest-red)]">
-                  {label}
-                </NavLink>
-              ))}
-              <Link to="/guest-room/booking" onClick={() => setOpen(false)} className="guest-button-primary mt-3 rounded-2xl px-4 py-3 text-center font-semibold">
-                Book Now
-              </Link>
-            </div>
-          </aside>
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-stone-950/55 backdrop-blur-sm xl:hidden"
+            onClick={() => setOpen(false)}
+          >
+            <aside
+              className="ml-auto flex h-full w-80 max-w-[88vw] flex-col overflow-hidden border-l border-[#eadcc8] bg-[#fffaf2] shadow-[-24px_0_80px_rgba(47,42,37,0.24)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="border-b border-[#eadcc8] bg-[#fffdf8] px-5 py-5 shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--guest-red)]">
+                      Guest Room
+                    </p>
+                    <p className="guest-heading mt-1 text-2xl font-semibold text-[var(--guest-blue)]">
+                      Menu
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="grid h-11 w-11 place-items-center rounded-full border border-[#e2cfb6] bg-[#fff7ed] text-[var(--guest-red)] shadow-sm"
+                    aria-label="Close menu"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-5">
+                <div className="grid gap-2">
+                  {navItems.map(([label, to]) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end={to === "/guest-room"}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        `rounded-2xl border px-4 py-3 text-base font-semibold transition ${
+                          isActive
+                            ? "border-[var(--guest-red)] bg-[#fff2f0] text-[var(--guest-red)] shadow-sm"
+                            : "border-transparent bg-white/75 text-stone-700 hover:border-[#eadcc8] hover:bg-white hover:text-[var(--guest-red)]"
+                        }`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                  ))}
+                  <Link
+                    to="/guest-room/booking"
+                    onClick={() => setOpen(false)}
+                    className="mt-4 rounded-2xl border border-[#8f1f2b] bg-[#a8323e] px-4 py-3 text-center text-base font-bold text-white shadow-[0_14px_30px_rgba(168,50,62,0.22)] transition hover:bg-[#731b26]"
+                  >
+                    Book Now
+                  </Link>
+                </div>
+              </div>
+            </aside>
+          </div>,
+          document.body
+        )}
     </header>
   );
 }

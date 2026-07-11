@@ -7,18 +7,26 @@ import PublicRoomCard from "../../components/publicGuestRoom/PublicRoomCard";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
 import PublicStayJourney3D from "../../components/publicGuestRoom/PublicStayJourney3D";
 import PublicCameraRoll from "../../components/publicGuestRoom/PublicCameraRoll";
-import { useGuestContent, visibleItems } from "./pageUtils";
+import { hasImage, imgOrFallback, useGuestContent, validImageItems, visibleItems } from "./pageUtils";
 
 export default function GuestRoomHome() {
   const content = useGuestContent();
   const home = content.home || {};
+  const cameraRollImages = validImageItems(home.cameraRoll?.images || []);
 
   return (
     <>
       <PublicHero hero={home.hero} />
 
       <PublicSection eyebrow="Welcome" title={home.intro?.title} text={home.intro?.text}>
-        <PublicStats stats={home.stats || []} />
+        <div className={`grid gap-8 ${hasImage(home.intro?.image) ? "lg:grid-cols-[1fr_0.8fr] lg:items-center" : ""}`}>
+          <PublicStats stats={home.stats || []} />
+          {hasImage(home.intro?.image) && (
+            <div className="overflow-hidden rounded-[2rem] border border-[var(--guest-border)] bg-white shadow-xl">
+              <img src={imgOrFallback(home.intro.image)} alt={home.intro?.title || "Guest room welcome"} className="h-72 w-full object-cover" />
+            </div>
+          )}
+        </div>
       </PublicSection>
 
       <PublicSection eyebrow="Featured Rooms" title="Calm campus stays for approved guests">
@@ -37,9 +45,11 @@ export default function GuestRoomHome() {
         </div>
       </PublicSection>
 
-      <PublicSection eyebrow="Camera Roll" title="A glimpse of Thapar hospitality">
-        <PublicCameraRoll config={home.cameraRoll} />
-      </PublicSection>
+      {home.cameraRoll?.enabled !== false && cameraRollImages.length > 0 && (
+        <PublicSection eyebrow="Camera Roll" title="A glimpse of Thapar hospitality">
+          <PublicCameraRoll config={{ ...home.cameraRoll, images: cameraRollImages }} />
+        </PublicSection>
+      )}
 
       {home.cta?.enabled !== false && (
         <PublicSection className="pt-4">

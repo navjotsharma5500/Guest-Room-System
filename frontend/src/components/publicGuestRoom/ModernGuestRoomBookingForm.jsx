@@ -116,6 +116,9 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
 
   const isParentStudent = category === CATEGORY_PARENT;
   const isFacultyStaff = category === CATEGORY_FACULTY;
+  const parentStudentEnabled = content.enableParentStudentForm !== false && content.studentCard?.enabled !== false;
+  const facultyStaffEnabled = content.enableFacultyStaffForm !== false && content.staffCard?.enabled !== false;
+  const unavailableMessage = "Online booking is currently unavailable. Please contact the Hostel Office.";
   const defaultMaxDays = isParentStudent ? 4 : 7;
   const configuredMaxDays = Number(
     isParentStudent
@@ -283,6 +286,13 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     setTouched({});
   };
 
+  useEffect(() => {
+    if ((category === CATEGORY_PARENT && !parentStudentEnabled) || (category === CATEGORY_FACULTY && !facultyStaffEnabled)) {
+      resetFlow();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, parentStudentEnabled, facultyStaffEnabled]);
+
   const buildPayload = () => {
     const categoryPayload = isParentStudent
       ? {
@@ -368,6 +378,21 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
         <button onClick={() => setSubmitted(false)} className="guest-button-primary mt-7 rounded-full px-6 py-3 font-semibold">
           Submit Another Request
         </button>
+      </div>
+    );
+  }
+
+  const categoryCards = [
+    parentStudentEnabled && [CATEGORY_PARENT, content.studentCard?.title || "Parents / Students", content.studentCard?.text || "Students and parents can submit a guest room enquiry after Google verification."],
+    facultyStaffEnabled && [CATEGORY_FACULTY, content.staffCard?.title || "Faculty / Staff", content.staffCard?.text || "Faculty and staff may submit official guest accommodation requests after Thapar Google verification."],
+  ].filter(Boolean);
+
+  if (categoryCards.length === 0) {
+    return (
+      <div className="guest-card mx-auto max-w-3xl rounded-[2rem] p-10 text-center">
+        <ShieldCheck className="mx-auto mb-5 h-14 w-14 text-[var(--guest-red)]" />
+        <h2 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">Online Booking Unavailable</h2>
+        <p className="mt-4 text-[var(--guest-muted)]">{unavailableMessage}</p>
       </div>
     );
   }
@@ -488,10 +513,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     <div className="space-y-8">
       {!category && (
         <div className="grid gap-5 md:grid-cols-2">
-          {[
-            [CATEGORY_PARENT, content.studentCard?.title || "Parents / Students", content.studentCard?.text || "Students and parents can submit a guest room enquiry after Google verification."],
-            [CATEGORY_FACULTY, content.staffCard?.title || "Faculty / Staff", content.staffCard?.text || "Faculty and staff may submit official guest accommodation requests after Thapar Google verification."],
-          ].map(([key, title, text]) => (
+          {categoryCards.map(([key, title, text]) => (
             <button key={key} onClick={() => setCategory(key)} className="guest-card rounded-[2rem] p-8 text-left transition hover:-translate-y-1">
               <h3 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">{title}</h3>
               <p className="mt-3 leading-7 text-[var(--guest-muted)]">{text}</p>

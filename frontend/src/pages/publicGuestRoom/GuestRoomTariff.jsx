@@ -10,6 +10,14 @@ export default function GuestRoomTariff() {
   const content = useGuestContent();
   const tariff = content.tariff || {};
   const bankDetails = content.bankdetails || {};
+  const policyItems = [
+    ...(tariff.terms || []),
+    ...(tariff.policies || []),
+    tariff.noCashPolicy,
+    tariff.refundPolicy,
+    tariff.cancellationPolicy,
+    tariff.paymentInstructions,
+  ].filter(Boolean);
 
   return (
     <>
@@ -20,7 +28,7 @@ export default function GuestRoomTariff() {
       </PublicSection>
       <PublicSection eyebrow="Terms" title="Important payment rules">
         <div className="grid gap-4 md:grid-cols-2">
-          {[...(tariff.terms || []), tariff.noCashPolicy, tariff.refundPolicy, tariff.cancellationPolicy, tariff.paymentInstructions].filter(Boolean).map((term) => <PublicPolicyCard key={term} text={term} />)}
+          {policyItems.map((term) => <PublicPolicyCard key={term} text={term} />)}
         </div>
       </PublicSection>
     </>
