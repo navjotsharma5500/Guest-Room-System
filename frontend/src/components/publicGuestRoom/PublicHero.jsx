@@ -2,10 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { imgOrFallback } from "../../pages/publicGuestRoom/pageUtils";
+import { getImageUrl, imgOrFallback } from "../../pages/publicGuestRoom/pageUtils";
 
 export default function PublicHero({ hero = {}, badge = "Institute Hospitality" }) {
-  const slide = (hero.slides || []).find((item) => item?.image) || hero;
+  const slide = getImageUrl(hero.image) ? hero : (hero.slides || []).find((item) => getImageUrl(item?.image)) || hero;
   const overlay = Number(hero.overlayOpacity ?? 0.46);
 
   return (

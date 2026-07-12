@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, MapPin, Play, Youtube } from "lucide-react";
+import { ExternalLink, Facebook, Instagram, Mail, MapPin, Play, Youtube } from "lucide-react";
+import { normalizeMapUrl } from "./mapUtils";
 
 const socialIcon = {
   instagram: Instagram,
@@ -23,6 +24,7 @@ export default function PublicGuestFooter({ content = {} }) {
   const contact = content.contact || {};
   const links = footer.quickLinks || [];
   const socialLinks = footer.socialLinks || {};
+  const footerMap = normalizeMapUrl(footer.mapUrl);
 
   return (
     <footer className="border-t border-[var(--guest-border)] bg-[#efe4d5]">
@@ -36,13 +38,25 @@ export default function PublicGuestFooter({ content = {} }) {
             </div>
           </div>
           <p className="mt-5 max-w-md text-sm leading-7 text-[var(--guest-muted)]">{footer.description}</p>
-          {footer.mapUrl && (
+          {footerMap.embedUrl && (
             <iframe
               title="Thapar location"
-              src={footer.mapUrl}
+              src={footerMap.embedUrl}
               className="mt-5 h-36 w-full max-w-md rounded-3xl border border-[var(--guest-border)]"
               loading="lazy"
             />
+          )}
+          {!footerMap.embedUrl && footerMap.linkUrl && (
+            <a
+              href={footerMap.linkUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-flex w-full max-w-md items-center justify-center gap-2 rounded-3xl border border-[var(--guest-border)] bg-white/70 px-4 py-5 text-sm font-semibold text-[var(--guest-blue)] hover:text-[var(--guest-red)]"
+            >
+              <MapPin size={17} className="text-[var(--guest-red)]" />
+              Open Location Map
+              <ExternalLink size={15} />
+            </a>
           )}
         </div>
 
