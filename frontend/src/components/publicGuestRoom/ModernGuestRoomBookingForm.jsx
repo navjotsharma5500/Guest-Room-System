@@ -3,7 +3,7 @@ import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import { ArrowLeft, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Lock, ShieldCheck, X } from "lucide-react";
 import { IndianStates } from "../../utils/indianStates";
 import { VENUE_DEPARTMENTS } from "../../config/venueDepartments";
 import useSystemSettings from "../../hooks/useSystemSettings";
@@ -113,11 +113,14 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
   const [hostels, setHostels] = useState([]);
   const [hostelLoadError, setHostelLoadError] = useState("");
   const [loadingHostels, setLoadingHostels] = useState(false);
+  const [lockedNotice, setLockedNotice] = useState(null);
 
   const isParentStudent = category === CATEGORY_PARENT;
   const isFacultyStaff = category === CATEGORY_FACULTY;
   const parentStudentEnabled = content.enableParentStudentForm !== false && content.studentCard?.enabled !== false;
   const facultyStaffEnabled = content.enableFacultyStaffForm !== false && content.staffCard?.enabled !== false;
+  const parentStudentLocked = content.lockParentStudentForm === true;
+  const facultyStaffLocked = content.lockFacultyStaffForm === true;
   const unavailableMessage = "Online booking is currently unavailable. Please contact the Hostel Office.";
   const defaultMaxDays = isParentStudent ? 4 : 7;
   const configuredMaxDays = Number(
@@ -383,8 +386,20 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
   }
 
   const categoryCards = [
-    parentStudentEnabled && [CATEGORY_PARENT, content.studentCard?.title || "Parents / Students", content.studentCard?.text || "Students and parents can submit a guest room enquiry after Google verification."],
-    facultyStaffEnabled && [CATEGORY_FACULTY, content.staffCard?.title || "Faculty / Staff", content.staffCard?.text || "Faculty and staff may submit official guest accommodation requests after Thapar Google verification."],
+    parentStudentEnabled && {
+      key: CATEGORY_PARENT,
+      title: content.studentCard?.title || "Parents / Students",
+      text: content.studentCard?.text || "Students and parents can submit a guest room enquiry after Google verification.",
+      locked: parentStudentLocked,
+      message: content.parentStudentLockMessage || unavailableMessage,
+    },
+    facultyStaffEnabled && {
+      key: CATEGORY_FACULTY,
+      title: content.staffCard?.title || "Faculty / Staff",
+      text: content.staffCard?.text || "Faculty and staff may submit official guest accommodation requests after Thapar Google verification.",
+      locked: facultyStaffLocked,
+      message: content.facultyStaffLockMessage || unavailableMessage,
+    },
   ].filter(Boolean);
 
   if (categoryCards.length === 0) {
@@ -513,14 +528,67 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     <div className="space-y-8">
       {!category && (
         <div className="grid gap-5 md:grid-cols-2">
-          {categoryCards.map(([key, title, text]) => (
-            <button key={key} onClick={() => setCategory(key)} className="guest-card rounded-[2rem] p-8 text-left transition hover:-translate-y-1">
-              <h3 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">{title}</h3>
+          {categoryCards.map(({ key, title, text, locked, message }) => (
+            <button
+              key={key}
+              onClick={() => {
+                if (locked) {
+                  setLockedNotice({ title, message });
+                  return;
+                }
+                setCategory(key);
+              }}
+              className={`guest-card relative rounded-[2rem] p-8 text-left transition hover:-translate-y-1 ${locked ? "cursor-pointer" : ""}`}
+            >
+                <h3 className="guest-heading pr-20 text-3xl font-semibold text-[var(--guest-blue)]">{title}</h3>
               <p className="mt-3 leading-7 text-[var(--guest-muted)]">{text}</p>
             </button>
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {lockedNotice && (
+          <motion.div
+            className="fixed inset-0 z-[9999] grid place-items-center bg-stone-950/55 px-4 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLockedNotice(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="w-full max-w-lg rounded-[2rem] border border-[var(--guest-border)] bg-[#fffdf8] p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-[var(--guest-red)]">
+                    <Lock size={22} />
+                  </div>
+                  <h3 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">{lockedNotice.title}</h3>
+                </div>
+                <button
+                  onClick={() => setLockedNotice(null)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--guest-border)] text-[var(--guest-red)] hover:bg-red-50"
+                  aria-label="Close message"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="whitespace-pre-line leading-7 text-[var(--guest-muted)]">{lockedNotice.message}</p>
+              <button
+                onClick={() => setLockedNotice(null)}
+                className="guest-button-primary mt-6 rounded-full px-6 py-3 text-sm font-semibold"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {category && (
