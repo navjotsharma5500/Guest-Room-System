@@ -42,14 +42,17 @@ const getIcon = (title = "") => {
   return match?.[1] || CheckCircle2;
 };
 
-export default function PublicFacilityCard({ title }) {
-  const Icon = getIcon(title);
+export default function PublicFacilityCard({ title, facility = {} }) {
+  const label = facility.title || title || "";
+  if (!label && !facility.description) return null;
+  const Icon = getIcon(label || facility.description);
   return (
     <div className="guest-card rounded-3xl p-5">
       <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-[var(--guest-red)]">
         <Icon size={22} />
       </div>
-      <p className="font-semibold text-[var(--guest-blue)]">{title}</p>
+      {label && <p className="font-semibold text-[var(--guest-blue)]">{label}</p>}
+      {facility.description && <p className="mt-2 text-sm leading-6 text-[var(--guest-muted)]">{facility.description}</p>}
     </div>
   );
 }

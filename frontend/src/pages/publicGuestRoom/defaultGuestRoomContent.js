@@ -12,6 +12,8 @@ export const defaultGuestRoomContent = {
   },
   home: {
     hero: {
+      enabled: true,
+      badge: "Institute Hospitality",
       title: "Welcome to Thapar Hostel Guest Rooms",
       subtitle:
         "Comfortable, secure and institute-managed accommodation for official guests, parents and visitors.",
@@ -24,6 +26,14 @@ export const defaultGuestRoomContent = {
       secondaryButtonLink: "/guest-room/rooms",
       secondaryButtonVisible: true,
       overlayOpacity: 0.46,
+    },
+    sections: {
+      intro: { enabled: true, eyebrow: "Welcome", heading: "Hospitality Inside the Thapar Campus", description: "" },
+      featuredRooms: { enabled: true, eyebrow: "Featured Rooms", heading: "Calm campus stays for approved guests", description: "" },
+      journey: { enabled: true, eyebrow: "Journey", heading: "Your Stay Journey", description: "A transparent guest-room workflow from enquiry to checkout." },
+      facilities: { enabled: true, eyebrow: "Facilities", heading: "Supported by campus hospitality services", description: "" },
+      gallery: { enabled: true, eyebrow: "Camera Roll", heading: "A glimpse of Thapar hospitality", description: "" },
+      cta: { enabled: true, eyebrow: "", heading: "", description: "" },
     },
     intro: {
       title: "Hospitality Inside the Thapar Campus",
@@ -43,13 +53,13 @@ export const defaultGuestRoomContent = {
       { title: "Family Visitor Stay", hostel: "Subject to availability", capacity: "Parents / Guardians", description: "Managed accommodation for approved visitors.", amenities: ["Secure campus", "Digital support"], image: "", enabled: true },
     ],
     journey: [
-      { title: "Submit Enquiry", description: "Share visit and stay details.", icon: "send", image: "" },
-      { title: "Request Reviewed", description: "Hostel administration reviews availability.", icon: "review", image: "" },
-      { title: "Room Approved", description: "Approval and reporting instructions are sent.", icon: "approve", image: "" },
-      { title: "Report to Hostel", description: "Guest reports with valid ID proof.", icon: "hostel", image: "" },
-      { title: "Check-in & Payment", description: "Payment and check-in formalities are completed.", icon: "payment", image: "" },
-      { title: "Stay Support", description: "Caretaker and digital support remain available.", icon: "support", image: "" },
-      { title: "Checkout & Feedback", description: "Checkout is recorded and feedback can be submitted.", icon: "feedback", image: "" },
+      { title: "Submit Enquiry", description: "Share visit and stay details.", icon: "send", image: "", enabled: true, order: 1, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Request Reviewed", description: "Hostel administration reviews availability.", icon: "review", image: "", enabled: true, order: 2, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Room Approved", description: "Approval and reporting instructions are sent.", icon: "approve", image: "", enabled: true, order: 3, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Report to Hostel", description: "Guest reports with valid ID proof.", icon: "hostel", image: "", enabled: true, order: 4, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Check-in & Payment", description: "Payment and check-in formalities are completed.", icon: "payment", image: "", enabled: true, order: 5, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Stay Support", description: "Caretaker and digital support remain available.", icon: "support", image: "", enabled: true, order: 6, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
+      { title: "Checkout & Feedback", description: "Checkout is recorded and feedback can be submitted.", icon: "feedback", image: "", enabled: true, order: 7, backgroundColor: "", cardWidth: "", cardHeight: "", buttonText: "", buttonUrl: "" },
     ],
     facilities: ["WiFi", "Hot & Cold Water", "Housekeeping", "Medical Support", "Dining", "Online Payments", "Guest Support QR", "SOS Support"],
     cameraRoll: {
@@ -83,7 +93,12 @@ export const defaultGuestRoomContent = {
     timeline: ["Enquiry", "Review", "Approval", "Check-in", "Stay Support", "Feedback"],
   },
   rooms: {
-    hero: { title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
+    hero: { enabled: true, badge: "Rooms", title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
+    sections: {
+      categories: { enabled: true, eyebrow: "Room Categories", heading: "Comfortable rooms inside campus", description: "" },
+      notes: { enabled: true, eyebrow: "Notes", heading: "Before requesting accommodation", description: "" },
+    },
+    categories: [],
     cards: [
       { title: "Single Occupancy", category: "Standard", capacity: "1 Guest", description: "Compact rooms for approved short stay guests.", amenities: ["WiFi", "Bed", "Study table"], image: "", enabled: true },
       { title: "Double Occupancy", category: "Standard", capacity: "2 Guests", description: "Comfortable stay for parents and approved visitors.", amenities: ["Two beds", "Washroom", "Support"], image: "", enabled: true },
@@ -118,13 +133,22 @@ export const defaultGuestRoomContent = {
     options: ["Canteen", "Food Court", "Nescafe kiosk", "Campus cafes"],
   },
   facilities: {
-    hero: { title: "Facilities & Guest Support", subtitle: "Safe stay with digital support services.", image: "" },
+    hero: { enabled: true, badge: "Facilities", title: "Facilities & Guest Support", subtitle: "Safe stay with digital support services.", image: "" },
+    sections: {
+      facilities: { enabled: true, eyebrow: "Facilities", heading: "Guest room facilities", description: "" },
+      digitalServices: { enabled: true, eyebrow: "Digital Services", heading: "Support from your mobile phone", description: "" },
+      safety: { enabled: true, eyebrow: "Safety", heading: "Supervised campus support", description: "" },
+    },
     facilities: ["31 Elegantly appointed non-smoking rooms", "24 hrs support", "Elevator", "Running hot & cold water", "Treated and purified drinking water", "Round-the-clock Health Centre", "Free WiFi", "Daily housekeeping", "Canteen, food court and Nescafe kiosks", "No cash policy", "Online payment support", "Digital guest support"],
     digitalServices: ["Cleaning Request", "Maintenance Request", "Medical Emergency", "SOS Alert", "Feedback"],
     safetyCards: ["Hostel caretaker support", "Warden supervision", "DoSA office support", "Health Centre support"],
   },
   gallery: {
-    hero: { title: "Gallery", subtitle: "Guest rooms, dining, hostel and campus views.", image: "" },
+    hero: { enabled: true, badge: "Gallery", title: "Gallery", subtitle: "Guest rooms, dining, hostel and campus views.", image: "" },
+    sections: {
+      gallery: { enabled: true, eyebrow: "Gallery", heading: "Campus guest room views", description: "" },
+    },
+    allCategoryLabel: "All",
     images: [],
     categories: ["Guest Rooms", "Dining", "Hostels", "Campus", "Facilities"],
   },

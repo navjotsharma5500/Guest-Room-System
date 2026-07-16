@@ -1,4 +1,5 @@
 import WebsiteContent from "../models/WebsiteContent.js";
+import WebsiteContentVersion from "../models/WebsiteContentVersion.js";
 import { DEFAULT_WEBSITE_CONTENT, WEBSITE_SECTIONS } from "../utils/defaultWebsiteContent.js";
 
 const roleOf = (user) => String(user?.role || "").toLowerCase();
@@ -101,6 +102,16 @@ export const seedDefaultWebsiteContent = async (req, res) => {
 export const publishWebsiteSection = async (req, res) => {
   if (!assertAdmin(req, res)) return;
   const section = normalizeSection(req.params.section);
+  const existing = await WebsiteContent.findOne({ section }).lean();
+  if (existing) {
+    await WebsiteContentVersion.create({
+      section,
+      data: existing.data || {},
+      sourceContentId: existing._id,
+      createdBy: req.user?._id || null,
+    });
+  }
+
   const doc = await WebsiteContent.findOneAndUpdate(
     { section },
     { $set: { isPublished: true, updatedBy: req.user?._id || null } },
@@ -126,5 +137,52 @@ export const resetWebsiteSection = async (req, res) => {
     },
     { new: true, upsert: true }
   );
+  res.json({ success: true, section, data: doc.data, doc });
+};
+
+export const getWebsiteSectionVersions = async (req, res) => {
+  if (!assertAdmin(req, res)) return;
+  const section = normalizeSection(req.params.section);
+  const versions = await WebsiteContentVersion.find({ section })
+    .select("section data createdAt createdBy restoredFromVersionId")
+    .sort({ createdAt: -1 })
+    .limit(30)
+    .lean();
+
+  res.json({ success: true, versions });
+};
+
+export const restoreWebsiteSectionVersion = async (req, res) => {
+  if (!assertAdmin(req, res)) return;
+  const section = normalizeSection(req.params.section);
+  const version = await WebsiteContentVersion.findOne({ _id: req.params.versionId, section }).lean();
+  if (!version) {
+    return res.status(404).json({ success: false, message: "Website content version not found" });
+  }
+
+  const existing = await WebsiteContent.findOne({ section }).lean();
+  if (existing) {
+    await WebsiteContentVersion.create({
+      section,
+      data: existing.data || {},
+      sourceContentId: existing._id,
+      restoredFromVersionId: version._id,
+      createdBy: req.user?._id || null,
+    });
+  }
+
+  const doc = await WebsiteContent.findOneAndUpdate(
+    { section },
+    {
+      $set: {
+        section,
+        data: version.data || {},
+        isPublished: true,
+        updatedBy: req.user?._id || null,
+      },
+    },
+    { new: true, upsert: true }
+  );
+
   res.json({ success: true, section, data: doc.data, doc });
 };

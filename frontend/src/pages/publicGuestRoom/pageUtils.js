@@ -9,6 +9,26 @@ export const useGuestContent = () => {
 export const visibleItems = (items = []) =>
   items.filter((item) => item?.enabled !== false);
 
+export const isFilled = (value) => {
+  if (Array.isArray(value)) return value.some(isFilled);
+  if (value && typeof value === "object") return Object.values(value).some(isFilled);
+  return String(value ?? "").trim().length > 0;
+};
+
+export const isEnabled = (config) => config?.enabled !== false;
+
+export const orderedItems = (items = []) =>
+  visibleItems(items)
+    .filter(isFilled)
+    .sort((a, b) => Number(a?.order ?? 999) - Number(b?.order ?? 999));
+
+export const shouldRenderSection = (config, content) => isEnabled(config) && isFilled(content);
+
+export const sectionText = (sections = {}, key = "") => sections?.[key] || {};
+
+export const buttonVisible = (button = {}) =>
+  button?.visible !== false && isFilled(button?.text || button?.label);
+
 const fallbackImage = "https://ik.imagekit.io/7khjnlfow/email-assets/thapar_logo.png?updatedAt=1776888126772";
 
 export const getImageUrl = (value) => {

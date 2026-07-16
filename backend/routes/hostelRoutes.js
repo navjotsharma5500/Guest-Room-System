@@ -3,6 +3,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import {
   getAllHostelsWithBookings,
   getPublicHostelOptions,
+  getActiveHostels,
   createHostel,
   getHostel,
   updateHostel,
@@ -18,6 +19,9 @@ router.get("/all", protect, getAllHostelsWithBookings);
 
 // PUBLIC safe hostel + guest room metadata for enquiry booking form
 router.get("/public-options", getPublicHostelOptions);
+
+// PUBLIC active hostel names for feedback/dropdowns
+router.get("/", getActiveHostels);
 
 // CREATE hostel
 router.post("/", protect, createHostel);

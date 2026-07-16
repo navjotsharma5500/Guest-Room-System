@@ -435,6 +435,8 @@ export const getFeedbackAnalytics = async (req, res) => {
       ...buildDateFilter(req.query, "submittedAt"),
     };
     const publicMatch = {
+      feedbackCategory: { $ne: "App / Website" },
+      hostel: { $ne: null },
       ...(scopedHostel ? { hostel: scopedHostel } : {}),
       ...buildDateFilter(req.query, "submittedAt"),
     };

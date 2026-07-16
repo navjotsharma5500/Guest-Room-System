@@ -24,9 +24,29 @@ const GuestFeedbackSchema = new mongoose.Schema(
       lowercase: true,
     },
     
+    feedbackCategory: {
+      type: String,
+      enum: ["Hostel Experience", "App / Website"],
+      default: "Hostel Experience",
+      index: true,
+    },
+
+    hostelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hostel",
+      default: null,
+      index: true,
+    },
+
+    hostelName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     hostel: {
       type: String,
-      required: true,
+      default: null,
     },
     
     // âœ… NEW: Profile Picture URL from ImageKit

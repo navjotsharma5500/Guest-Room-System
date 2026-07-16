@@ -2,27 +2,34 @@ import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
-import { useGuestContent } from "./pageUtils";
+import { orderedItems, sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomFacilities() {
   const facilities = useGuestContent().facilities || {};
+  const sections = facilities.sections || {};
+  const mainSection = sectionText(sections, "facilities");
+  const digitalSection = sectionText(sections, "digitalServices");
+  const safetySection = sectionText(sections, "safety");
+  const mainItems = orderedItems((facilities.facilities || []).map((item, index) => typeof item === "string" ? { title: item, order: index + 1, enabled: true } : item));
+  const digitalItems = orderedItems((facilities.digitalServices || []).map((item, index) => typeof item === "string" ? { title: item, order: index + 1, enabled: true } : item));
+  const safetyItems = orderedItems((facilities.safetyCards || []).map((item, index) => typeof item === "string" ? { title: item, order: index + 1, enabled: true } : item));
 
   return (
     <>
-      <PublicHero hero={facilities.hero} badge="Facilities" />
-      <PublicSection eyebrow="Facilities" title="Guest room facilities">
+      <PublicHero hero={facilities.hero} />
+      <PublicSection enabled={shouldRenderSection(mainSection, mainItems)} eyebrow={mainSection.eyebrow} title={mainSection.heading} text={mainSection.description}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {(facilities.facilities || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
+          {mainItems.map((item) => <PublicFacilityCard key={item.title} facility={item} />)}
         </div>
       </PublicSection>
-      <PublicSection eyebrow="Digital Services" title="Support from your mobile phone">
+      <PublicSection enabled={shouldRenderSection(digitalSection, digitalItems)} eyebrow={digitalSection.eyebrow} title={digitalSection.heading} text={digitalSection.description}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {(facilities.digitalServices || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
+          {digitalItems.map((item) => <PublicFacilityCard key={item.title} facility={item} />)}
         </div>
       </PublicSection>
-      <PublicSection eyebrow="Safety" title="Supervised campus support">
+      <PublicSection enabled={shouldRenderSection(safetySection, safetyItems)} eyebrow={safetySection.eyebrow} title={safetySection.heading} text={safetySection.description}>
         <div className="grid gap-4 md:grid-cols-4">
-          {(facilities.safetyCards || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
+          {safetyItems.map((item) => <PublicFacilityCard key={item.title} facility={item} />)}
         </div>
       </PublicSection>
     </>

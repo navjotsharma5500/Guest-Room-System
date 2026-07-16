@@ -452,7 +452,11 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
           <div className="space-y-1 md:space-y-2 text-xs md:text-sm">
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
               <Building2 className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
-              <span className="truncate">{feedback.hostel}</span>
+              <span className="truncate">
+                {feedback.feedbackCategory === 'App / Website'
+                  ? 'App / Website'
+                  : feedback.hostelName || feedback.hostel || 'Hostel Experience'}
+              </span>
             </div>
             <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
               <Calendar className="w-3 h-3 md:w-4 md:h-4 text-red-500 flex-shrink-0" />
@@ -692,7 +696,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
     let filtered = [...guestFeedbacks];
 
     if (selectedHostel) {
-      filtered = filtered.filter(f => f.hostel === selectedHostel);
+      filtered = filtered.filter(f => (f.hostelName || f.hostel) === selectedHostel);
     }
 
     if (dateFrom) {
@@ -726,8 +730,10 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
   const uniqueHostels = useMemo(() => {
     const hostels = activeTab === TABS.CARETAKER
       ? caretakerGuests.map(g => g.hostel)
-      : guestFeedbacks.map(f => f.hostel);
-    return [...new Set(hostels)].sort();
+      : guestFeedbacks
+          .filter(f => f.feedbackCategory !== 'App / Website')
+          .map(f => f.hostelName || f.hostel);
+    return [...new Set(hostels)].filter(Boolean).sort();
   }, [caretakerGuests, guestFeedbacks, activeTab]);
 
   return (

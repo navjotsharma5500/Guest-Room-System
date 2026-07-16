@@ -12,12 +12,7 @@ import axios from 'axios';
 import { BACKEND_URL } from '../utils/apiConfig';
 import PublicPageWidgets from '../components/PublicPageWidgets';
 
-const HOSTELS = [
-  'Agira Hall (A)', 'Amritam Hall (B)', 'Prithvi Hall (C)', 'Neeram Hall (D)',
-  'Vyan Hall (H)', 'Ira Hall (I)', 'Tejas Hall (J)', 'Ambaram Hall (K)',
-  'Viyat Hall (L)', 'Anantam Hall (M)', 'Ananta Hall (N)', 'Vyom Hall (O)',
-  'Dhriti Hall (PG)', 'Vahni Hostel (Q)'
-];
+const FEEDBACK_CATEGORIES = ["Hostel Experience", "App / Website"];
 
 // ============================================================================
 // ENHANCED ANIMATED SPARKLE BACKGROUND COMPONENT
@@ -147,6 +142,8 @@ function PublicGuestFeedback() {
     name: '',
     email: '',
     contact: '',
+    feedbackCategory: 'Hostel Experience',
+    hostelId: '',
     hostel: hostelFromURL || '',
     rating: 0,
     description: '',
@@ -160,6 +157,8 @@ function PublicGuestFeedback() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [hostels, setHostels] = useState([]);
+  const [hostelLoading, setHostelLoading] = useState(false);
 
   // Debug URL
   useEffect(() => {
@@ -169,9 +168,31 @@ function PublicGuestFeedback() {
   }, []);
 
   useEffect(() => {
-    if (hostelFromURL && HOSTELS.includes(hostelFromURL)) {
-      setFormData(prev => ({ ...prev, hostel: hostelFromURL }));
-    }
+    const loadHostels = async () => {
+      try {
+        setHostelLoading(true);
+        const response = await axios.get(`${BACKEND_URL}/api/hostels`, { timeout: 10000 });
+        const list = Array.isArray(response.data) ? response.data : response.data?.hostels || [];
+        setHostels(list);
+
+        if (hostelFromURL) {
+          const matched = list.find((item) => item.name === hostelFromURL);
+          setFormData((prev) => ({
+            ...prev,
+            feedbackCategory: 'Hostel Experience',
+            hostelId: matched?._id || '',
+            hostel: matched?.name || hostelFromURL,
+          }));
+        }
+      } catch (err) {
+        console.error('❌ Failed to load hostels:', err);
+        setError('Unable to load hostel list. Please refresh and try again.');
+      } finally {
+        setHostelLoading(false);
+      }
+    };
+
+    loadHostels();
   }, [hostelFromURL]);
 
   // ✅ FIXED: Upload image to ImageKit with correct endpoint
@@ -330,18 +351,23 @@ function PublicGuestFeedback() {
       return;
     }
 
-    if (!formData.contact.trim() || !/^[0-9]{10}$/.test(formData.contact)) {
-      setError('Valid 10-digit contact number is required');
+    if (formData.contact.trim() && !/^[0-9]{10}$/.test(formData.contact)) {
+      setError('Contact number must be 10 digits');
       return;
     }
 
-    if (!formData.hostel) {
+    if (formData.feedbackCategory === 'Hostel Experience' && !formData.hostelId && !formData.hostel) {
       setError('Please select your hostel');
       return;
     }
 
     if (formData.rating === 0) {
       setError('Please provide a rating');
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      setError('Please write your feedback');
       return;
     }
 
@@ -359,7 +385,10 @@ function PublicGuestFeedback() {
           name: formData.name.trim(),
           contact: formData.contact.trim(),
           email: formData.email.trim(),
-          hostel: formData.hostel,
+          feedbackCategory: formData.feedbackCategory,
+          hostelId: formData.feedbackCategory === 'Hostel Experience' ? formData.hostelId : null,
+          hostelName: formData.feedbackCategory === 'Hostel Experience' ? formData.hostel : null,
+          hostel: formData.feedbackCategory === 'Hostel Experience' ? formData.hostel : null,
           rating: formData.rating,
           description: formData.description.trim(),
           profilePictureUrl: formData.profilePictureUrl,
@@ -385,6 +414,8 @@ function PublicGuestFeedback() {
             name: '',
             email: '',
             contact: '',
+            feedbackCategory: 'Hostel Experience',
+            hostelId: '',
             hostel: hostelFromURL || '',
             rating: 0,
             description: '',
@@ -599,7 +630,7 @@ function PublicGuestFeedback() {
             {/* Contact Field */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Contact Number <span className="text-red-500">*</span>
+                Contact Number <span className="text-gray-400">(Optional)</span>
               </label>
               <input
                 type="tel"
@@ -608,33 +639,70 @@ function PublicGuestFeedback() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
                 placeholder="10-digit mobile number"
                 maxLength={10}
-                required
               />
             </div>
 
-            {/* Hostel Field */}
+            {/* Feedback Category */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Hostel <span className="text-red-500">*</span>
+                Feedback Category <span className="text-red-500">*</span>
               </label>
-              {hostelFromURL ? (
-                <div className="px-4 py-3 bg-gradient-to-r from-red-50 to-blue-50 border-2 border-red-200 rounded-lg text-gray-700 font-semibold">
-                  🏠 {formData.hostel}
-                </div>
-              ) : (
-                <select
-                  value={formData.hostel}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hostel: e.target.value }))}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
-                  required
-                >
-                  <option value="">Select your hostel</option>
-                  {HOSTELS.map(hostel => (
-                    <option key={hostel} value={hostel}>{hostel}</option>
-                  ))}
-                </select>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {FEEDBACK_CATEGORIES.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      feedbackCategory: category,
+                      hostelId: category === 'App / Website' ? '' : prev.hostelId,
+                      hostel: category === 'App / Website' ? '' : prev.hostel,
+                    }))}
+                    className={`px-4 py-3 rounded-xl border-2 font-semibold transition ${
+                      formData.feedbackCategory === category
+                        ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-red-200'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Hostel Field */}
+            {formData.feedbackCategory === 'Hostel Experience' && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Hostel <span className="text-red-500">*</span>
+                </label>
+                {hostelFromURL ? (
+                  <div className="px-4 py-3 bg-gradient-to-r from-red-50 to-blue-50 border-2 border-red-200 rounded-lg text-gray-700 font-semibold">
+                    🏠 {formData.hostel}
+                  </div>
+                ) : (
+                  <select
+                    value={formData.hostelId}
+                    onChange={(e) => {
+                      const selected = hostels.find((item) => String(item._id) === String(e.target.value));
+                      setFormData(prev => ({
+                        ...prev,
+                        hostelId: selected?._id || '',
+                        hostel: selected?.name || '',
+                      }));
+                    }}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
+                    required
+                    disabled={hostelLoading}
+                  >
+                    <option value="">{hostelLoading ? 'Loading hostels...' : 'Select your hostel'}</option>
+                    {hostels.map(hostel => (
+                      <option key={hostel._id} value={hostel._id}>{hostel.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {/* Rating */}
             <div className="mb-6 bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
@@ -647,7 +715,7 @@ function PublicGuestFeedback() {
             {/* Description */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description (Optional)
+                Feedback <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.description}
@@ -655,6 +723,7 @@ function PublicGuestFeedback() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition resize-none"
                 rows={4}
                 placeholder="Share your experience, suggestions, or concerns..."
+                required
               />
             </div>
 
@@ -697,4 +766,3 @@ function PublicGuestFeedback() {
 }
 
 export default PublicGuestFeedback;
-

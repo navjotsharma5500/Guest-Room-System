@@ -176,6 +176,30 @@ export const getPublicHostelOptions = async (req, res) => {
 };
 
 // ======================================================
+// PUBLIC ACTIVE HOSTELS FOR LIGHTWEIGHT DROPDOWNS
+// ======================================================
+export const getActiveHostels = async (req, res) => {
+  try {
+    const hostels = await Hostel.find({ active: { $ne: false } })
+      .select("_id name")
+      .sort({ name: 1 })
+      .lean();
+
+    res.json(hostels.map((hostel) => ({
+      _id: hostel._id,
+      name: hostel.name,
+    })));
+  } catch (error) {
+    console.error("❌ Active hostel list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching hostels",
+      error: error.message,
+    });
+  }
+};
+
+// ======================================================
 // CREATE HOSTEL
 // ======================================================
 export const createHostel = async (req, res) => {

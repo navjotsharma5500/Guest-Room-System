@@ -1,7 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { isFilled } from "../../pages/publicGuestRoom/pageUtils";
 
-export default function PublicSection({ eyebrow, title, text, children, className = "" }) {
+export default function PublicSection({ eyebrow, title, text, children, className = "", enabled = true }) {
+  if (enabled === false) return null;
+  if (!isFilled(eyebrow) && !isFilled(title) && !isFilled(text) && !isFilled(children)) return null;
   return (
     <section className={`py-16 md:py-24 ${className}`}>
       <div className="guest-shell">

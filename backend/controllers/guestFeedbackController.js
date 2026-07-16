@@ -1,5 +1,6 @@
 // controllers/guestFeedbackControllerUpgraded.js
 import GuestFeedback from "../models/GuestFeedback.js";
+import Hostel from "../models/Hostel.js";
 
 // Helper: Get rating label from stars
 const getRatingLabel = (stars) => {
@@ -22,6 +23,9 @@ export const submitGuestFeedback = async (req, res) => {
       name, 
       contact, 
       email, 
+      feedbackCategory = "Hostel Experience",
+      hostelId,
+      hostelName,
       hostel, 
       rating, 
       description, 
@@ -33,7 +37,9 @@ export const submitGuestFeedback = async (req, res) => {
     console.log("📝 Guest feedback submission (upgraded):", {
       name,
       email,
+      feedbackCategory,
       hostel,
+      hostelId,
       rating,
       hasProfilePicture: !!profilePictureUrl,
       hasGoogleAuth: !!googleAuthMetadata,
@@ -47,10 +53,10 @@ export const submitGuestFeedback = async (req, res) => {
       });
     }
 
-    if (!contact?.trim() || !/^[0-9]{10}$/.test(contact)) {
+    if (contact?.trim() && !/^[0-9]{10}$/.test(contact.trim())) {
       return res.status(400).json({
         success: false,
-        message: "Valid 10-digit contact number is required",
+        message: "Contact number must be 10 digits",
       });
     }
 
@@ -70,10 +76,33 @@ export const submitGuestFeedback = async (req, res) => {
       });
     }
 
-    if (!hostel) {
+    const normalizedCategory = feedbackCategory === "App / Website" ? "App / Website" : "Hostel Experience";
+    let resolvedHostel = null;
+
+    if (normalizedCategory === "Hostel Experience") {
+      if (hostelId && /^[a-f\d]{24}$/i.test(String(hostelId))) {
+        resolvedHostel = await Hostel.findOne({ _id: hostelId, active: { $ne: false } }).select("_id name").lean();
+      }
+
+      if (!resolvedHostel && (hostelName || hostel)) {
+        resolvedHostel = await Hostel.findOne({
+          name: String(hostelName || hostel).trim(),
+          active: { $ne: false },
+        }).select("_id name").lean();
+      }
+
+      if (!resolvedHostel) {
+        return res.status(400).json({
+          success: false,
+          message: "Hostel selection is required",
+        });
+      }
+    }
+
+    if (!description?.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Hostel selection is required",
+        message: "Feedback is required",
       });
     }
 
@@ -88,9 +117,12 @@ export const submitGuestFeedback = async (req, res) => {
 
     const feedbackData = {
       name: name.trim(),
-      contact: contact.trim(),
+      contact: contact?.trim() || "",
       email: email.trim().toLowerCase(),
-      hostel,
+      feedbackCategory: normalizedCategory,
+      hostelId: resolvedHostel?._id || null,
+      hostelName: resolvedHostel?.name || null,
+      hostel: resolvedHostel?.name || null,
       rating,
       ratingLabel,
       description: description?.trim() || "",
@@ -108,7 +140,9 @@ export const submitGuestFeedback = async (req, res) => {
     if (io) {
       io.to('dashboard-room').emit('guest-feedback-submitted', {
         feedbackId: feedback._id,
-        hostel,
+        feedbackCategory: normalizedCategory,
+        hostel: resolvedHostel?.name || null,
+        hostelId: resolvedHostel?._id || null,
         rating,
         hasProfilePicture: !!profilePictureUrl,
         timestamp: Date.now()
@@ -160,6 +194,7 @@ export const getAllGuestFeedbacks = async (req, res) => {
 
     // Build filter
     const filter = {};
+    const andClauses = [];
 
     // Role-based filtering
     if (req.user.role === "caretaker" || req.user.role === "warden") {
@@ -170,13 +205,21 @@ export const getAllGuestFeedbacks = async (req, res) => {
           message: "No hostel assigned to caretaker/warden",
         });
       }
-      filter.hostel = assignedHostel;
+      filter.feedbackCategory = { $ne: "App / Website" };
+      filter.status = "reviewed";
+      andClauses.push({ $or: [
+        { hostel: assignedHostel },
+        { hostelName: assignedHostel },
+      ]});
       console.log("🔒 Restricted to hostel:", assignedHostel);
     }
 
     // Hostel filter (admin/manager)
     if (hostel && req.user.role !== "caretaker" && req.user.role !== "warden") {
-      filter.hostel = hostel;
+      andClauses.push({ $or: [
+        { hostel },
+        { hostelName: hostel },
+      ]});
     }
 
     // Rating filter
@@ -185,17 +228,17 @@ export const getAllGuestFeedbacks = async (req, res) => {
     }
 
     // Status filter
-    if (status) {
+    if (status && req.user.role !== "caretaker" && req.user.role !== "warden") {
       filter.status = status;
     }
 
     // Search by name, email, or contact
     if (search) {
-      filter.$or = [
+      andClauses.push({ $or: [
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { contact: { $regex: search, $options: "i" } },
-      ];
+      ]});
     }
 
     // Date range filter
@@ -203,6 +246,10 @@ export const getAllGuestFeedbacks = async (req, res) => {
       filter.submittedAt = {};
       if (startDate) filter.submittedAt.$gte = new Date(startDate);
       if (endDate) filter.submittedAt.$lte = new Date(endDate);
+    }
+
+    if (andClauses.length) {
+      filter.$and = andClauses;
     }
 
     console.log("🔍 Filter:", JSON.stringify(filter, null, 2));
@@ -259,7 +306,8 @@ export const getGuestFeedbackById = async (req, res) => {
     // Check role-based access
     if (req.user.role === "caretaker" || req.user.role === "warden") {
       const assignedHostel = req.user.assignedHostel || req.user.hostel;
-      if (feedback.hostel !== assignedHostel) {
+      const feedbackHostel = feedback.hostelName || feedback.hostel;
+      if (feedback.feedbackCategory === "App / Website" || feedback.status !== "reviewed" || feedbackHostel !== assignedHostel) {
         return res.status(403).json({
           success: false,
           message: "Access denied to this feedback",
@@ -382,9 +430,18 @@ export const getGuestFeedbackStats = async (req, res) => {
 
     // Role-based filtering
     if (req.user.role === "caretaker" || req.user.role === "warden") {
-      filter.hostel = req.user.assignedHostel || req.user.hostel;
+      const assignedHostel = req.user.assignedHostel || req.user.hostel;
+      filter.feedbackCategory = { $ne: "App / Website" };
+      filter.status = "reviewed";
+      filter.$or = [
+        { hostel: assignedHostel },
+        { hostelName: assignedHostel },
+      ];
     } else if (hostel) {
-      filter.hostel = hostel;
+      filter.$or = [
+        { hostel },
+        { hostelName: hostel },
+      ];
     }
 
     const stats = await GuestFeedback.aggregate([
