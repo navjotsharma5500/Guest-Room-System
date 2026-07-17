@@ -11,6 +11,13 @@ const CMS_PREVIEW_KEY = "guestRoomCmsPreview";
 
 const folderFor = (section) => `/public-guest-room/${["home", "about", "booking"].includes(section) ? "hero" : section}`;
 
+const slugify = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const Field = ({ label, value, onChange, textarea = false, type = "text" }) => (
   <label className="block">
     <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">{label}</span>
@@ -306,6 +313,20 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
     </>
   );
 
+  const renderAbout = () => (
+    <>
+      {renderGeneric()}
+      <Panel title="Mission">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Mission Label" value={draft.missionEyebrow} onChange={(v) => setPath(["missionEyebrow"], v)} />
+          <Field label="Mission Heading" value={draft.mission} onChange={(v) => setPath(["mission"], v)} textarea />
+          <Field label="Mission Description / Vision" value={draft.vision} onChange={(v) => setPath(["vision"], v)} textarea />
+        </div>
+      </Panel>
+      <TextListEditor title="Mission Timeline" items={draft.timeline || []} onChange={(v) => setPath(["timeline"], v)} />
+    </>
+  );
+
   const renderDining = () => (
     <>
       {renderHero()}
@@ -343,7 +364,8 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
 
   const renderEditor = () => {
     if (active === "home") return renderHome();
-    if (active === "rooms") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><RoomHierarchyEditor categories={draft.categories || []} onChange={(v) => setPath(["categories"], v)} /><RoomCardsEditor title="Legacy Room Cards" items={draft.cards || []} onChange={(v) => setPath(["cards"], v)} /><TextListEditor title="Room Notes" items={draft.notes || []} onChange={(v) => setPath(["notes"], v)} /></>;
+    if (active === "about") return renderAbout();
+    if (active === "rooms") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><RoomHierarchyEditor categories={draft.categories || []} onChange={(v) => setPath(["categories"], v)} showToast={showToast} /><RoomCardsEditor title="Legacy Room Cards" items={draft.cards || []} onChange={(v) => setPath(["cards"], v)} /><TextListEditor title="Room Notes" items={draft.notes || []} onChange={(v) => setPath(["notes"], v)} /></>;
     if (active === "gallery") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><GalleryEditor allCategoryLabel={draft.allCategoryLabel || ""} onAllCategoryLabel={(v) => setPath(["allCategoryLabel"], v)} images={draft.images || []} categories={draft.categories || []} onImages={(v) => setPath(["images"], v)} onCategories={(v) => setPath(["categories"], v)} /></>;
     if (active === "dining") return renderDining();
     if (active === "facilities") return <><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} />{renderFacilities()}</>;
@@ -438,7 +460,8 @@ function RoomCardsEditor({ title, items = [], onChange }) {
   return <ArrayEditor title={title} items={items} onChange={onChange} newItem={{ title: "", hostel: "", category: "", capacity: "", description: "", amenities: [], image: "", enabled: true }} renderItem={(item, patch) => <div className="grid gap-3 md:grid-cols-2"><Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} /><Field label="Hostel / Category" value={item.hostel || item.category} onChange={(v) => patch({ hostel: v, category: v })} /><Field label="Capacity" value={item.capacity} onChange={(v) => patch({ capacity: v })} /><Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea /><Field label="Amenities (comma separated)" value={(item.amenities || []).join(", ")} onChange={(v) => patch({ amenities: v.split(",").map((x) => x.trim()).filter(Boolean) })} /><CmsImageUploader label="Room Image" folder="/public-guest-room/rooms" value={item.image || ""} onChange={(v) => patch({ image: v })} /></div>} />;
 }
 
-function RoomHierarchyEditor({ categories = [], onChange }) {
+function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }) {
+  const [syncingHostels, setSyncingHostels] = useState(false);
   const newRoom = {
     id: "",
     name: "",
@@ -454,27 +477,131 @@ function RoomHierarchyEditor({ categories = [], onChange }) {
     order: "",
   };
 
+  const syncFromHostels = async () => {
+    try {
+      setSyncingHostels(true);
+      const res = await fetch(`${BACKEND_URL}/api/hostels/all`, {
+        headers: headers(),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to load hostels");
+
+      const activeHostels = (data.hostels || []).filter((hostel) => hostel.active !== false);
+      const byIdOrTitle = new Map();
+      categories.forEach((category) => {
+        const key = String(category.id || category._id || category.title || category.name || "").trim();
+        if (key) byIdOrTitle.set(key, category);
+      });
+
+      const nextCategories = activeHostels.map((hostel, hostelIndex) => {
+        const hostelId = String(hostel._id || slugify(hostel.name));
+        const existingCategory =
+          byIdOrTitle.get(hostelId) ||
+          byIdOrTitle.get(hostel.name) ||
+          categories.find((category) => String(category.title || category.name || "").trim() === hostel.name);
+
+        const existingRooms = existingCategory?.rooms || [];
+        const roomLookup = new Map();
+        existingRooms.forEach((room) => {
+          [room.id, room._id, room.name, room.title, room.roomNo].filter(Boolean).forEach((key) => {
+            roomLookup.set(String(key), room);
+          });
+        });
+
+        const rooms = (hostel.rooms || []).map((room, roomIndex) => {
+          const roomId = String(room._id || `${hostelId}-${slugify(room.roomNo || room.name || `room-${roomIndex + 1}`)}`);
+          const roomName = room.roomNo || room.name || room.title || `Guest Room ${roomIndex + 1}`;
+          const existingRoom = roomLookup.get(roomId) || roomLookup.get(roomName);
+          return {
+            id: roomId,
+            name: roomName,
+            title: roomName,
+            subtitle: existingRoom?.subtitle || room.roomType || "Guest Room",
+            description: existingRoom?.description || "",
+            coverImage: existingRoom?.coverImage || existingRoom?.image || "",
+            amenities: existingRoom?.amenities || [],
+            details: existingRoom?.details?.length
+              ? existingRoom.details
+              : [
+                  { label: "Capacity", value: room.guestCapacity ? `${room.guestCapacity} Guest(s)` : "", enabled: Boolean(room.guestCapacity), order: 1 },
+                  { label: "Type", value: room.roomType || "", enabled: Boolean(room.roomType), order: 2 },
+                ].filter((detail) => detail.value),
+            images: existingRoom?.images || existingRoom?.gallery || [],
+            buttonText: existingRoom?.buttonText || "Book Now",
+            buttonUrl: existingRoom?.buttonUrl || "/guest-room/booking",
+            enabled: existingRoom?.enabled ?? room.guestRoom !== false,
+            order: existingRoom?.order || roomIndex + 1,
+          };
+        });
+
+        return {
+          id: hostelId,
+          title: hostel.name,
+          name: hostel.name,
+          subtitle: existingCategory?.subtitle || "Hostel Guest Rooms",
+          description: existingCategory?.description || "",
+          coverImage: existingCategory?.coverImage || existingCategory?.image || "",
+          enabled: existingCategory?.enabled ?? true,
+          order: existingCategory?.order || hostelIndex + 1,
+          rooms,
+        };
+      });
+
+      const activeIds = new Set(nextCategories.map((category) => String(category.id)));
+      const customCategories = categories.filter((category) => {
+        const key = String(category.id || "").trim();
+        const title = String(category.title || category.name || "").trim();
+        return (!key || !activeIds.has(key)) && !activeHostels.some((hostel) => hostel.name === title);
+      });
+
+      onChange([...nextCategories, ...customCategories]);
+      showToast(`Synced ${nextCategories.length} hostel category item(s) from Manage Hostels`, "success");
+    } catch (err) {
+      showToast(err.message || "Failed to sync hostels", "error");
+    } finally {
+      setSyncingHostels(false);
+    }
+  };
+
   return (
-    <ArrayEditor
-      title="Room Categories / Hostels"
-      items={categories}
-      onChange={onChange}
-      newItem={{ id: "", title: "", subtitle: "", description: "", coverImage: "", enabled: true, order: "", rooms: [] }}
-      renderItem={(category, patch) => (
-        <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <ToggleField label="Enabled" checked={category.enabled !== false} onChange={(v) => patch({ enabled: v })} />
-            <Field label="Display Order" type="number" value={category.order} onChange={(v) => patch({ order: Number(v) || "" })} />
-            <Field label="Category ID" value={category.id} onChange={(v) => patch({ id: v })} />
-            <Field label="Category / Hostel Name" value={category.title || category.name} onChange={(v) => patch({ title: v, name: v })} />
-            <Field label="Subtitle" value={category.subtitle} onChange={(v) => patch({ subtitle: v })} />
-            <Field label="Description" value={category.description} onChange={(v) => patch({ description: v })} textarea />
-            <CmsImageUploader label="Cover Image" folder="/public-guest-room/rooms" value={category.coverImage || ""} onChange={(v) => patch({ coverImage: v })} />
-          </div>
-          <RoomListEditor rooms={category.rooms || []} onChange={(rooms) => patch({ rooms })} newRoom={newRoom} />
+    <Panel title="Room Categories / Hostels">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+        <div>
+          <p className="text-sm font-bold text-blue-900">Create hostel categories from Manage Hostels</p>
+          <p className="text-xs text-blue-700">This adds one CMS item per active hostel and includes that hostel&apos;s guest rooms. Existing images, descriptions, gallery and details are preserved.</p>
         </div>
-      )}
-    />
+        <button
+          type="button"
+          onClick={syncFromHostels}
+          disabled={syncingHostels}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw size={16} className={syncingHostels ? "animate-spin" : ""} />
+          {syncingHostels ? "Syncing..." : "Sync from Manage Hostels"}
+        </button>
+      </div>
+      <ArrayEditor
+        title="Hostel / Category Items"
+        items={categories}
+        onChange={onChange}
+        newItem={{ id: "", title: "", subtitle: "", description: "", coverImage: "", enabled: true, order: "", rooms: [] }}
+        renderItem={(category, patch) => (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <ToggleField label="Enabled" checked={category.enabled !== false} onChange={(v) => patch({ enabled: v })} />
+              <Field label="Display Order" type="number" value={category.order} onChange={(v) => patch({ order: Number(v) || "" })} />
+              <Field label="Category ID" value={category.id} onChange={(v) => patch({ id: v })} />
+              <Field label="Category / Hostel Name" value={category.title || category.name} onChange={(v) => patch({ title: v, name: v })} />
+              <Field label="Subtitle" value={category.subtitle} onChange={(v) => patch({ subtitle: v })} />
+              <Field label="Description" value={category.description} onChange={(v) => patch({ description: v })} textarea />
+              <CmsImageUploader label="Cover Image" folder="/public-guest-room/rooms" value={category.coverImage || ""} onChange={(v) => patch({ coverImage: v })} />
+            </div>
+            <RoomListEditor rooms={category.rooms || []} onChange={(rooms) => patch({ rooms })} newRoom={newRoom} />
+          </div>
+        )}
+      />
+    </Panel>
   );
 }
 

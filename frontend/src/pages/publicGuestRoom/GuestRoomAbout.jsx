@@ -2,7 +2,7 @@ import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
-import { hasImage, imgOrFallback, useGuestContent } from "./pageUtils";
+import { hasImage, imgOrFallback, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomAbout() {
   const about = useGuestContent().about || {};
@@ -30,7 +30,7 @@ export default function GuestRoomAbout() {
           {(about.cards || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
         </div>
       </PublicSection>
-      <PublicSection eyebrow="Mission" title={about.mission} text={about.vision}>
+      <PublicSection enabled={shouldRenderSection({ enabled: true }, [about.missionEyebrow, about.mission, about.vision, about.timeline])} eyebrow={about.missionEyebrow} title={about.mission} text={about.vision}>
         <div className="guest-card rounded-[2rem] p-6">
           <div className="flex flex-wrap gap-3">
             {(about.timeline || []).map((step, index) => <span key={step} className="guest-pill rounded-full px-4 py-2 text-sm font-semibold">{index + 1}. {step}</span>)}

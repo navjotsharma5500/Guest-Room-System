@@ -28,12 +28,21 @@ export default function GuestRoomHome() {
     <>
       <PublicHero hero={home.hero} />
 
-      <PublicSection enabled={shouldRenderSection(introSection, [home.intro?.title, home.intro?.text, home.stats, home.intro?.image])} eyebrow={introSection.eyebrow} title={introSection.heading || home.intro?.title} text={introSection.description || home.intro?.text}>
-        <div className={`grid gap-8 ${hasImage(home.intro?.image) ? "lg:grid-cols-[1fr_0.8fr] lg:items-center" : ""}`}>
-          <PublicStats stats={home.stats || []} />
+      <PublicSection enabled={shouldRenderSection(introSection, [home.intro?.title, home.intro?.text, home.stats, home.intro?.image])} className="py-14 md:py-20">
+        <div className={`guest-card grid gap-8 rounded-[2.5rem] p-6 md:p-8 lg:items-center xl:p-10 ${hasImage(home.intro?.image) ? "md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:grid-cols-2" : ""}`}>
+          <div className="flex min-w-0 flex-col justify-center">
+            {introSection.eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--guest-red)]">{introSection.eyebrow}</p>}
+            {(introSection.heading || home.intro?.title) && <h2 className="guest-heading text-4xl font-semibold leading-tight text-[var(--guest-blue)] md:text-5xl">{introSection.heading || home.intro?.title}</h2>}
+            {(introSection.description || home.intro?.text) && <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--guest-muted)]">{introSection.description || home.intro?.text}</p>}
+            <div className="mt-7">
+              <PublicStats stats={home.stats || []} />
+            </div>
+          </div>
           {hasImage(home.intro?.image) && (
-            <div className="overflow-hidden rounded-[2rem] border border-[var(--guest-border)] bg-white shadow-xl">
-              <img src={imgOrFallback(home.intro.image)} alt={home.intro?.title || "Guest room welcome"} className="h-72 w-full object-cover" />
+            <div className="flex min-w-0 items-center">
+              <div className="w-full overflow-hidden rounded-[2rem] border border-[var(--guest-border)] bg-white shadow-xl">
+                <img src={imgOrFallback(home.intro.image)} alt={home.intro?.title || ""} className="h-72 w-full object-cover sm:h-80 lg:h-[26rem]" />
+              </div>
             </div>
           )}
         </div>
