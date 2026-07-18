@@ -97,6 +97,13 @@ const TextArea = ({ label, error, ...props }) => (
   </label>
 );
 
+const FormSectionTitle = ({ children, helper }) => (
+  <div className="md:col-span-2 border-b border-[var(--guest-border)] pb-2 pt-2">
+    <h3 className="guest-heading text-2xl font-semibold text-[var(--guest-blue)]">{children}</h3>
+    {helper && <p className="mt-1 text-sm text-[var(--guest-muted)]">{helper}</p>}
+  </div>
+);
+
 export default function ModernGuestRoomBookingForm({ content = {} }) {
   const { settings, loading: settingsLoading, error: settingsError } = useSystemSettings();
   const toast = useToast();
@@ -269,7 +276,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
       setForm((prev) => ({
         ...prev,
         email,
-        name: prev.name || decoded.name || "",
+        name: isParentStudent ? (prev.name || decoded.name || "") : prev.name,
       }));
       setTouched((prev) => ({ ...prev, email: true }));
       showToast("Google account verified", "success");
@@ -430,19 +437,23 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     </div>
   );
 
-  const renderCommonFields = () => (
-    <>
-      <Input label="Full Name of the Guest *" value={form.name} onChange={(e) => update("name", e.target.value)} error={visibleError("name")} />
-      <Input label="Email *" type="email" value={form.email} disabled error={visibleError("email")} helper="Auto-filled from Google Auth" />
-      <Input label="Contact *" value={form.contact} onChange={(e) => update("contact", e.target.value.replace(/[^0-9]/g, "").slice(0, 10))} error={visibleError("contact")} placeholder="10 digit mobile number" />
-    </>
-  );
-
   const renderParentStudentFields = () => (
     <>
-      {renderCommonFields()}
+      <FormSectionTitle>Requester Details</FormSectionTitle>
+      <Input
+        label="Requester Name *"
+        value={form.reference}
+        onChange={(e) => update("reference", e.target.value)}
+        error={visibleError("reference")}
+        placeholder="Enter requester name"
+      />
+      <Input label="Email *" type="email" value={form.email} disabled error={visibleError("email")} helper="Auto-filled from Google Auth" />
+      <Input label="Contact *" value={form.contact} onChange={(e) => update("contact", e.target.value.replace(/[^0-9]/g, "").slice(0, 10))} error={visibleError("contact")} placeholder="10 digit mobile number" />
       <Input label="Roll Number" value={form.rollno} onChange={(e) => update("rollno", e.target.value)} placeholder="Student roll number (optional)" />
-      <Select label="Hostel *" value={form.hostelId} onChange={(e) => handleHostelChange(e.target.value)} error={visibleError("hostelId")}>
+
+      <FormSectionTitle>Guest Details</FormSectionTitle>
+      <Input label="Full Name of the Guest *" value={form.name} onChange={(e) => update("name", e.target.value)} error={visibleError("name")} />
+      <Select label="Requested Hostel *" value={form.hostelId} onChange={(e) => handleHostelChange(e.target.value)} error={visibleError("hostelId")}>
         <option value="">{loadingHostels ? "Loading hostels..." : "Select hostel"}</option>
         {hostels.map((hostel) => <option key={hostel._id} value={hostel._id}>{hostel.name}</option>)}
       </Select>
@@ -460,12 +471,23 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
 
   const renderFacultyFields = () => (
     <>
-      {renderCommonFields()}
+      <FormSectionTitle>Requester Details</FormSectionTitle>
+      <Input
+        label="Host / Referring Faculty or Staff Name *"
+        value={form.reference}
+        onChange={(e) => update("reference", e.target.value)}
+        error={visibleError("reference")}
+        placeholder="Enter the name of the TIET faculty/staff member hosting or referring this guest"
+      />
+      <Input label="Email *" type="email" value={form.email} disabled error={visibleError("email")} helper="Auto-filled from Google Auth" />
+      <Input label="Contact *" value={form.contact} onChange={(e) => update("contact", e.target.value.replace(/[^0-9]/g, "").slice(0, 10))} error={visibleError("contact")} placeholder="10 digit mobile number" />
       <Input label="Emp ID *" value={form.empId} onChange={(e) => update("empId", e.target.value)} error={visibleError("empId")} />
       <Select label="Department *" value={form.department} onChange={(e) => update("department", e.target.value)} error={visibleError("department")}>
         <option value="">Select department</option>
         {VENUE_DEPARTMENTS.map((dept) => <option key={dept} value={dept}>{dept}</option>)}
       </Select>
+
+      <FormSectionTitle>Guest Details</FormSectionTitle>
     </>
   );
 
@@ -474,10 +496,11 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
       <div className="md:col-span-2 rounded-2xl bg-[#fbf6ee] px-4 py-3 text-sm font-semibold text-[var(--guest-blue)]">
         Guest room requests can be submitted for a maximum stay of {maxDays} days.
       </div>
+      {isFacultyStaff && <Input label="Full Name of the Guest *" value={form.name} onChange={(e) => update("name", e.target.value)} error={visibleError("name")} />}
       <Input label="Check-in Date *" type="date" value={form.from} onChange={(e) => update("from", e.target.value)} error={visibleError("from")} />
       <Input label="Check-out Date *" type="date" value={form.to} onChange={(e) => update("to", e.target.value)} error={visibleError("to")} />
-      <Input label="Check-in Time" type="time" value={form.checkInTime} onChange={(e) => update("checkInTime", e.target.value)} />
-      <Input label="Check-out Time" type="time" value={form.checkOutTime} onChange={(e) => update("checkOutTime", e.target.value)} />
+      <Input label="Check-in Time *" type="time" value={form.checkInTime} onChange={(e) => update("checkInTime", e.target.value)} />
+      <Input label="Check-out Time *" type="time" value={form.checkOutTime} onChange={(e) => update("checkOutTime", e.target.value)} />
       <Input
         label="Total Guests *"
         type="number"
@@ -512,14 +535,6 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
         {cities.map((city) => <option key={city} value={city}>{city}</option>)}
       </Select>
 
-      <Input
-        label={isParentStudent ? "Student Name *" : "Host / Referring Faculty or Staff Name *"}
-        value={form.reference}
-        onChange={(e) => update("reference", e.target.value)}
-        error={visibleError("reference")}
-        placeholder={isParentStudent ? "Enter the name of your son/daughter studying at TIET." : "Enter the name of the TIET faculty/staff member hosting or referring this guest"}
-        className="md:col-span-2"
-      />
       <TextArea label="Purpose *" value={form.purpose} onChange={(e) => update("purpose", e.target.value)} error={visibleError("purpose")} />
     </>
   );

@@ -470,7 +470,6 @@ function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }
     coverImage: "",
     amenities: [],
     details: [],
-    images: [],
     buttonText: "",
     buttonUrl: "",
     enabled: true,
@@ -527,7 +526,6 @@ function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }
                   { label: "Capacity", value: room.guestCapacity ? `${room.guestCapacity} Guest(s)` : "", enabled: Boolean(room.guestCapacity), order: 1 },
                   { label: "Type", value: room.roomType || "", enabled: Boolean(room.roomType), order: 2 },
                 ].filter((detail) => detail.value),
-            images: existingRoom?.images || existingRoom?.gallery || [],
             buttonText: existingRoom?.buttonText || "Book Now",
             buttonUrl: existingRoom?.buttonUrl || "/guest-room/booking",
             enabled: existingRoom?.enabled ?? room.guestRoom !== false,
@@ -542,6 +540,7 @@ function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }
           subtitle: existingCategory?.subtitle || "Hostel Guest Rooms",
           description: existingCategory?.description || "",
           coverImage: existingCategory?.coverImage || existingCategory?.image || "",
+          images: existingCategory?.images || existingCategory?.gallery || [],
           enabled: existingCategory?.enabled ?? true,
           order: existingCategory?.order || hostelIndex + 1,
           rooms,
@@ -585,7 +584,7 @@ function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }
         title="Hostel / Category Items"
         items={categories}
         onChange={onChange}
-        newItem={{ id: "", title: "", subtitle: "", description: "", coverImage: "", enabled: true, order: "", rooms: [] }}
+        newItem={{ id: "", title: "", subtitle: "", description: "", coverImage: "", images: [], enabled: true, order: "", rooms: [] }}
         renderItem={(category, patch) => (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
@@ -597,6 +596,20 @@ function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }
               <Field label="Description" value={category.description} onChange={(v) => patch({ description: v })} textarea />
               <CmsImageUploader label="Cover Image" folder="/public-guest-room/rooms" value={category.coverImage || ""} onChange={(v) => patch({ coverImage: v })} />
             </div>
+            <ArrayEditor
+              title="Hostel Gallery Pictures"
+              items={category.images || category.gallery || []}
+              onChange={(images) => patch({ images, gallery: images })}
+              newItem={{ image: "", caption: "", enabled: true, order: "" }}
+              renderItem={(image, imagePatch) => (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <ToggleField label="Enabled" checked={image.enabled !== false} onChange={(v) => imagePatch({ enabled: v })} />
+                  <Field label="Display Order" type="number" value={image.order} onChange={(v) => imagePatch({ order: Number(v) || "" })} />
+                  <Field label="Caption" value={image.caption || image.title} onChange={(v) => imagePatch({ caption: v, title: v })} />
+                  <CmsImageUploader label="Gallery Image" folder="/public-guest-room/rooms" value={image.image || ""} onChange={(v) => imagePatch({ image: v })} />
+                </div>
+              )}
+            />
             <RoomListEditor rooms={category.rooms || []} onChange={(rooms) => patch({ rooms })} newRoom={newRoom} />
           </div>
         )}
@@ -637,20 +650,6 @@ function RoomListEditor({ rooms = [], onChange, newRoom }) {
                 <Field label="Display Order" type="number" value={detail.order} onChange={(v) => detailPatch({ order: Number(v) || "" })} />
                 <Field label="Label" value={detail.label} onChange={(v) => detailPatch({ label: v })} />
                 <Field label="Value" value={detail.value} onChange={(v) => detailPatch({ value: v })} />
-              </div>
-            )}
-          />
-          <ArrayEditor
-            title="Room Gallery"
-            items={room.images || []}
-            onChange={(images) => patch({ images })}
-            newItem={{ image: "", caption: "", enabled: true, order: "" }}
-            renderItem={(image, imagePatch) => (
-              <div className="grid gap-3 md:grid-cols-2">
-                <ToggleField label="Enabled" checked={image.enabled !== false} onChange={(v) => imagePatch({ enabled: v })} />
-                <Field label="Display Order" type="number" value={image.order} onChange={(v) => imagePatch({ order: Number(v) || "" })} />
-                <Field label="Caption" value={image.caption || image.title} onChange={(v) => imagePatch({ caption: v, title: v })} />
-                <CmsImageUploader label="Image" folder="/public-guest-room/rooms" value={image.image || ""} onChange={(v) => imagePatch({ image: v })} />
               </div>
             )}
           />

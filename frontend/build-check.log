@@ -1,8 +1,4 @@
-
-> guest-room-dashboard@0.1.0 build
-> react-scripts build
-
-(node:41036) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(node:3832) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Creating an optimized production build...
 Compiled with warnings.
@@ -345,11 +341,11 @@ To ignore, add // eslint-disable-next-line to the line before.
 
 File sizes after gzip:
 
-  816.34 kB (+932 B)  build\static\js\main.891adb76.js
-  46.36 kB            build\static\js\239.807d605c.chunk.js
-  33.57 kB            build\static\js\732.6c22405a.chunk.js
-  28.06 kB            build\static\css\main.c2830628.css
-  8.75 kB             build\static\js\977.f96a1f56.chunk.js
+  817.79 kB (+6 B)  build\static\js\main.b2e61b30.js
+  46.36 kB          build\static\js\239.807d605c.chunk.js
+  33.57 kB          build\static\js\732.6c22405a.chunk.js
+  28.09 kB          build\static\css\main.e1c17816.css
+  8.75 kB           build\static\js\977.f96a1f56.chunk.js
 
 The bundle size is significantly larger than recommended.
 Consider reducing it with code splitting: https://goo.gl/9VhYWB

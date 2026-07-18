@@ -55,3 +55,88 @@ export const validImageItems = (items = []) =>
       };
     })
     .filter((item) => item.image);
+
+const imageFieldNames = new Set([
+  "image",
+  "coverImage",
+  "desktopImage",
+  "mobileImage",
+  "backgroundImage",
+  "thumbnail",
+]);
+
+const sectionLabel = (section = "") =>
+  String(section || "")
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (char) => char.toUpperCase())
+    .trim();
+
+const isImageField = (key = "") => imageFieldNames.has(key);
+
+const imageItem = ({ value, source, context = {} }) => {
+  const image = getImageUrl(value);
+  if (!image) return null;
+  return {
+    image,
+    title: context.title || context.name || context.heading || context.caption || sectionLabel(source),
+    caption: context.caption || context.title || context.name || "",
+    description: context.description || context.subtitle || context.text || "",
+    category: context.category || context.hostel || sectionLabel(source),
+    source,
+  };
+};
+
+export const collectGuestRoomContentImages = (content = {}) => {
+  const images = [];
+
+  const walk = (value, source, context = {}, key = "") => {
+    if (!value) return;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => walk(item, source, context, key));
+      return;
+    }
+
+    if (typeof value === "string") {
+      if (isImageField(key)) {
+        const item = imageItem({ value, source, context });
+        if (item) images.push(item);
+      }
+      return;
+    }
+
+    if (typeof value !== "object" || value.enabled === false) return;
+
+    const nextContext = {
+      ...context,
+      title: value.title || context.title,
+      heading: value.heading || context.heading,
+      name: value.name || context.name,
+      caption: value.caption || context.caption,
+      description: value.description || value.subtitle || value.text || context.description,
+      category: value.category || value.hostel || context.category,
+    };
+
+    Object.entries(value).forEach(([childKey, childValue]) => {
+      if (isImageField(childKey)) {
+        const item = imageItem({ value: childValue, source, context: nextContext });
+        if (item) images.push(item);
+        return;
+      }
+      walk(childValue, source, nextContext, childKey);
+    });
+  };
+
+  Object.entries(content || {}).forEach(([section, sectionContent]) => {
+    if (section === "gallery" || section === "theme" || section === "bankdetails") return;
+    walk(sectionContent, section, {}, section);
+  });
+
+  const seen = new Set();
+  return images.filter((item) => {
+    const key = item.image;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
