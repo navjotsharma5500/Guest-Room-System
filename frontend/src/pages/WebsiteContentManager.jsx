@@ -29,6 +29,39 @@ const Field = ({ label, value, onChange, textarea = false, type = "text" }) => (
   </label>
 );
 
+const toAmenitiesText = (value) => {
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value || "");
+};
+
+const parseAmenities = (value) =>
+  String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const AmenitiesField = ({ value, onChange }) => {
+  const externalText = toAmenitiesText(value);
+  const [text, setText] = useState(externalText);
+
+  useEffect(() => {
+    setText(externalText);
+  }, [externalText]);
+
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Amenities (comma separated)</span>
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => onChange(parseAmenities(text))}
+        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-red-300"
+      />
+    </label>
+  );
+};
+
 const ToggleField = ({ label, checked, onChange, description }) => (
   <label className="flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
     <span>
@@ -457,7 +490,7 @@ function SectionSettingsEditor({ sections = {}, onChange }) {
 }
 
 function RoomCardsEditor({ title, items = [], onChange }) {
-  return <ArrayEditor title={title} items={items} onChange={onChange} newItem={{ title: "", hostel: "", category: "", capacity: "", description: "", amenities: [], image: "", enabled: true }} renderItem={(item, patch) => <div className="grid gap-3 md:grid-cols-2"><Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} /><Field label="Hostel / Category" value={item.hostel || item.category} onChange={(v) => patch({ hostel: v, category: v })} /><Field label="Capacity" value={item.capacity} onChange={(v) => patch({ capacity: v })} /><Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea /><Field label="Amenities (comma separated)" value={(item.amenities || []).join(", ")} onChange={(v) => patch({ amenities: v.split(",").map((x) => x.trim()).filter(Boolean) })} /><CmsImageUploader label="Room Image" folder="/public-guest-room/rooms" value={item.image || ""} onChange={(v) => patch({ image: v })} /></div>} />;
+  return <ArrayEditor title={title} items={items} onChange={onChange} newItem={{ title: "", hostel: "", category: "", capacity: "", description: "", amenities: [], image: "", enabled: true }} renderItem={(item, patch) => <div className="grid gap-3 md:grid-cols-2"><Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} /><Field label="Hostel / Category" value={item.hostel || item.category} onChange={(v) => patch({ hostel: v, category: v })} /><Field label="Capacity" value={item.capacity} onChange={(v) => patch({ capacity: v })} /><Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea /><AmenitiesField value={item.amenities} onChange={(amenities) => patch({ amenities })} /><CmsImageUploader label="Room Image" folder="/public-guest-room/rooms" value={item.image || ""} onChange={(v) => patch({ image: v })} /></div>} />;
 }
 
 function RoomHierarchyEditor({ categories = [], onChange, showToast = () => {} }) {
@@ -634,7 +667,7 @@ function RoomListEditor({ rooms = [], onChange, newRoom }) {
             <Field label="Room Name" value={room.name || room.title} onChange={(v) => patch({ name: v, title: v })} />
             <Field label="Subtitle" value={room.subtitle} onChange={(v) => patch({ subtitle: v })} />
             <Field label="Description" value={room.description} onChange={(v) => patch({ description: v })} textarea />
-            <Field label="Amenities (comma separated)" value={(room.amenities || []).join(", ")} onChange={(v) => patch({ amenities: v.split(",").map((x) => x.trim()).filter(Boolean) })} />
+            <AmenitiesField value={room.amenities} onChange={(amenities) => patch({ amenities })} />
             <Field label="Button Text" value={room.buttonText} onChange={(v) => patch({ buttonText: v })} />
             <Field label="Button URL" value={room.buttonUrl} onChange={(v) => patch({ buttonUrl: v })} />
             <CmsImageUploader label="Cover Image" folder="/public-guest-room/rooms" value={room.coverImage || ""} onChange={(v) => patch({ coverImage: v })} />

@@ -7,6 +7,14 @@ import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard"
 import PublicGalleryGrid from "../../components/publicGuestRoom/PublicGalleryGrid";
 import { imgOrFallback, orderedItems, sectionText, shouldRenderSection, useGuestContent, validImageItems } from "./pageUtils";
 
+const normalizeAmenities = (items) => {
+  if (Array.isArray(items)) return items.filter(Boolean);
+  return String(items || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 export default function GuestRoomRooms() {
   const rooms = useGuestContent().rooms || {};
   const [activeCategoryId, setActiveCategoryId] = useState("");
@@ -55,15 +63,14 @@ export default function GuestRoomRooms() {
       <PublicSection enabled={shouldRenderSection(categorySection, categories.length ? categories : legacyCards)} eyebrow={categorySection.eyebrow} title={categorySection.heading} text={categorySection.description}>
         {categories.length > 0 ? (
           <div className="space-y-8">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {categories.map((category) => (
                 <button
                   key={category.id || category.title}
                   type="button"
                   onClick={() => {
                     setActiveCategoryId(category.id || category.title);
-                    const firstRoom = orderedItems(category.rooms || [])[0];
-                    setActiveRoomId(firstRoom?.id || firstRoom?.title || firstRoom?.name || "");
+                    setActiveRoomId("");
                   }}
                   className={`guest-card overflow-hidden rounded-[2rem] text-left transition hover:-translate-y-1 ${activeCategory === category ? "ring-2 ring-[var(--guest-red)]" : ""}`}
                 >
@@ -73,7 +80,7 @@ export default function GuestRoomRooms() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {legacyCards.map((room) => <PublicRoomCard key={room.title} room={room} />)}
           </div>
         )}
@@ -141,6 +148,7 @@ function RoomCategoryModal({ category, rooms = [], activeRoom, activeRoomDetails
                       <div className="p-4">
                         <p className="font-semibold text-[var(--guest-blue)]">{name}</p>
                         {(room.subtitle || room.roomType) && <p className="mt-1 text-xs text-[var(--guest-muted)]">{room.subtitle || room.roomType}</p>}
+                        {room.description && <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--guest-muted)]">{room.description}</p>}
                       </div>
                     </button>
                   );
@@ -151,9 +159,10 @@ function RoomCategoryModal({ category, rooms = [], activeRoom, activeRoomDetails
             )}
           </section>
 
-          <section>
-            {activeRoom ? (
+          {activeRoom && (
+            <section>
               <div className="guest-card rounded-[2rem] p-5 sm:p-6">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">Selected Guest Room Details</p>
                 <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
                 <section>
                   <h4 className="guest-heading text-3xl font-semibold text-[var(--guest-blue)]">{roomTitle}</h4>
@@ -182,9 +191,9 @@ function RoomCategoryModal({ category, rooms = [], activeRoom, activeRoomDetails
                       ))}
                   </div>
 
-                  {activeRoom.amenities?.length > 0 && (
+                  {normalizeAmenities(activeRoom.amenities).length > 0 && (
                     <div className="mt-5 flex flex-wrap gap-2">
-                      {activeRoom.amenities.map((item) => <span key={item} className="guest-pill rounded-full px-3 py-1 text-xs font-semibold">{item}</span>)}
+                      {normalizeAmenities(activeRoom.amenities).map((item) => <span key={item} className="guest-pill rounded-full px-3 py-1 text-xs font-semibold">{item}</span>)}
                     </div>
                   )}
 
@@ -201,10 +210,8 @@ function RoomCategoryModal({ category, rooms = [], activeRoom, activeRoomDetails
                 </section>
                 </div>
               </div>
-            ) : (
-              <div className="guest-card rounded-[2rem] p-10 text-center text-[var(--guest-muted)]">Select a guest room to view gallery, type, capacity and booking option.</div>
-            )}
-          </section>
+            </section>
+          )}
         </div>
       </div>
     </div>

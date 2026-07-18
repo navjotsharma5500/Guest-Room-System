@@ -4,11 +4,11 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { buttonVisible, getImageUrl, imgOrFallback, isFilled } from "../../pages/publicGuestRoom/pageUtils";
 
-export default function PublicHero({ hero = {}, badge }) {
+export default function PublicHero({ hero = {} }) {
   if (hero?.enabled === false || !isFilled(hero)) return null;
   const slide = getImageUrl(hero.image) ? hero : (hero.slides || []).find((item) => getImageUrl(item?.image)) || hero;
   const overlay = Number(hero.overlayOpacity ?? 0.46);
-  const heroBadge = hero.badge || badge || "";
+  const heroBadge = String(hero.badge || "").trim();
   const primaryButton = hero.primaryButtonConfig || {
     text: hero.primaryButton,
     href: hero.primaryButtonLink || "/guest-room/booking",
