@@ -4,19 +4,22 @@ import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
 import { hasImage, imgOrFallback, sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
+const legacyMissionHeading = "To provide safe, transparent and well-managed guest accommodation services within the campus.";
+const legacyMissionDescription = "A digital-first guest hospitality experience for institutional visitors.";
+const legacyMissionTimeline = ["Enquiry", "Review", "Approval", "Check-in", "Stay Support", "Feedback"];
+
 export default function GuestRoomAbout() {
   const about = useGuestContent().about || {};
   const sections = about.sectionSettings || {};
   const aboutSection = sectionText(sections, "about");
   const whySection = sectionText(sections, "whyChooseUs");
   const missionSection = sectionText(sections, "mission");
-  const hasMissionSectionSettings = Object.prototype.hasOwnProperty.call(sections, "mission");
-  const missionEyebrow = hasMissionSectionSettings ? missionSection.eyebrow : about.missionEyebrow;
-  const missionHeading = hasMissionSectionSettings ? missionSection.heading : about.mission;
-  const missionDescription = hasMissionSectionSettings ? missionSection.description : about.vision;
-  const missionContent = hasMissionSectionSettings
-    ? [missionEyebrow, missionHeading, missionDescription]
-    : [missionEyebrow, missionHeading, missionDescription, about.timeline];
+  const missionEyebrow = missionSection.eyebrow;
+  const missionHeading = missionSection.heading === legacyMissionHeading ? "" : missionSection.heading;
+  const missionDescription = missionSection.description === legacyMissionDescription ? "" : missionSection.description;
+  const timelineItems = (about.timeline || []).filter(Boolean);
+  const missionTimeline = timelineItems.join("|") === legacyMissionTimeline.join("|") ? [] : timelineItems;
+  const missionContent = [missionHeading, missionDescription, missionTimeline];
 
   return (
     <>
@@ -42,11 +45,13 @@ export default function GuestRoomAbout() {
         </div>
       </PublicSection>
       <PublicSection enabled={shouldRenderSection(missionSection, missionContent)} eyebrow={missionEyebrow} title={missionHeading} text={missionDescription}>
-        <div className="guest-card rounded-[2rem] p-6">
-          <div className="flex flex-wrap gap-3">
-            {(about.timeline || []).map((step, index) => <span key={step} className="guest-pill rounded-full px-4 py-2 text-sm font-semibold">{index + 1}. {step}</span>)}
+        {missionTimeline.length > 0 && (
+          <div className="guest-card rounded-[2rem] p-6">
+            <div className="flex flex-wrap gap-3">
+              {missionTimeline.map((step, index) => <span key={step} className="guest-pill rounded-full px-4 py-2 text-sm font-semibold">{index + 1}. {step}</span>)}
+            </div>
           </div>
-        </div>
+        )}
       </PublicSection>
     </>
   );

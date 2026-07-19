@@ -86,17 +86,17 @@ export const defaultGuestRoomContent = {
     sectionSettings: {
       about: { enabled: true, eyebrow: "About", heading: "", description: "" },
       whyChooseUs: { enabled: true, eyebrow: "Why Choose Us", heading: "A thoughtful campus hospitality experience", description: "" },
-      mission: { enabled: true, eyebrow: "Mission", heading: "To provide safe, transparent and well-managed guest accommodation services within the campus.", description: "A digital-first guest hospitality experience for institutional visitors." },
+      mission: { enabled: true, eyebrow: "Mission", heading: "", description: "" },
     },
     sections: [
       { title: "About Guest Rooms", text: "Thapar Hostel Guest Rooms are managed for institute-approved visitors, parents, guests and official invitees requiring short stay accommodation inside the campus.", image: "" },
       { title: "About DoSA Office", text: "The Office of Dean Student Affairs coordinates hostel services, guest accommodation workflows and student welfare support.", image: "" },
     ],
     cards: ["Campus Security", "Managed by Institute", "Easy Approval Workflow", "Hostel-Based Support", "Digital Guest Services"],
-    missionEyebrow: "Mission",
-    mission: "To provide safe, transparent and well-managed guest accommodation services within the campus.",
-    vision: "A digital-first guest hospitality experience for institutional visitors.",
-    timeline: ["Enquiry", "Review", "Approval", "Check-in", "Stay Support", "Feedback"],
+    missionEyebrow: "",
+    mission: "",
+    vision: "",
+    timeline: [],
   },
   rooms: {
     hero: { enabled: true, badge: "Rooms", title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
