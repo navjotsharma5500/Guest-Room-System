@@ -265,9 +265,9 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
       const email = String(decoded.email || "").trim().toLowerCase();
-      if (isFacultyStaff && !email.endsWith("@thapar.edu")) {
+      if ((isParentStudent || isFacultyStaff) && !email.endsWith("@thapar.edu")) {
         setGoogleUser(null);
-        setGoogleError("Only @thapar.edu Google accounts can submit Faculty / Staff guest room requests.");
+        setGoogleError("Please sign in using your official @thapar.edu email address.");
         return;
       }
 
@@ -276,7 +276,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
       setForm((prev) => ({
         ...prev,
         email,
-        name: isParentStudent ? (prev.name || decoded.name || "") : prev.name,
+        name: prev.name,
       }));
       setTouched((prev) => ({ ...prev, email: true }));
       showToast("Google account verified", "success");
@@ -457,6 +457,11 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
         <option value="">{loadingHostels ? "Loading hostels..." : "Select hostel"}</option>
         {hostels.map((hostel) => <option key={hostel._id} value={hostel._id}>{hostel.name}</option>)}
       </Select>
+      {isGirlsHostel && (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-800">
+          Only female guests are permitted for overnight stays in the girls' hostels.
+        </div>
+      )}
       <Select label="Guest Room *" value={form.roomId} disabled={!selectedHostel} onChange={(e) => update("roomId", e.target.value)} error={visibleError("roomId")}>
         <option value="">{selectedHostel ? "Select guest room" : "Select hostel first"}</option>
         {(selectedHostel?.rooms || []).map((room) => (

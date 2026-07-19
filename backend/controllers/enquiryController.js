@@ -26,6 +26,9 @@ const normalizeRole = (role = "") => String(role).toLowerCase();
 
 const buildRestrictedEnquiryQuery = async (user) => {
   const role = normalizeRole(user?.role);
+  // Guest room managers handle only Faculty / Staff requests. Parent / Student
+  // requests remain available to the hostel and administrative approval flows.
+  if (role === "manager") return { bookingCategory: "FacultyStaff" };
   if (!["caretaker", "warden"].includes(role)) return {};
 
   const assignedHostel = user?.assignedHostel || user?.hostel || "";
@@ -43,9 +46,19 @@ const buildRestrictedEnquiryQuery = async (user) => {
 };
 
 const canAccessEnquiry = async (user, enquiry) => {
+  if (
+    normalizeRole(user?.role) === "manager" &&
+    enquiry?.bookingCategory !== "FacultyStaff"
+  ) {
+    return false;
+  }
+
   const query = await buildRestrictedEnquiryQuery(user);
   if (!query || Object.keys(query).length === 0) return true;
   if (query._id === null) return false;
+  if (query.bookingCategory) {
+    return query.bookingCategory === enquiry.bookingCategory;
+  }
   if (query.hostelName && query.hostelName === enquiry.hostelName) return true;
   if (Array.isArray(query.$or)) {
     return query.$or.some((condition) => {
@@ -307,6 +320,11 @@ export const getEnquiryById = async (req, res) => {
         success: false, 
         message: "Enquiry not found" 
       });
+    }
+
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to view this enquiry" });
     }
 
     const normalized = {
@@ -712,6 +730,11 @@ export const bookEnquiry = async (req, res) => {
       return res.status(404).json({ success: false, message: "Enquiry not found" });
     }
 
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to book this enquiry" });
+    }
+
     enquiry.status = "booked";
     await enquiry.save();
 
@@ -757,6 +780,11 @@ export const rejectEnquiry = async (req, res) => {
 
     if (!enquiry) {
       return res.status(404).json({ success: false, message: "Enquiry not found" });
+    }
+
+    const allowed = await canAccessEnquiry(req.user, enquiry);
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Not allowed to reject this enquiry" });
     }
 
     enquiry.status = "rejected";

@@ -1,23 +1,24 @@
 import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
-import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard";
+import PublicContentList from "../../components/publicGuestRoom/PublicContentList";
 import ModernGuestRoomBookingForm from "../../components/publicGuestRoom/ModernGuestRoomBookingForm";
-import { useGuestContent } from "./pageUtils";
+import { sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomBooking() {
   const booking = useGuestContent().booking || {};
+  const sections = booking.sections || {};
+  const formSection = sectionText(sections, "form");
+  const policiesSection = sectionText(sections, "policies");
 
   return (
     <>
-      <PublicHero hero={booking.hero} badge="Booking Request" />
-      <PublicSection eyebrow="Request Accommodation" title="Submit a guest room enquiry">
+      <PublicHero hero={booking.hero} />
+      <PublicSection enabled={shouldRenderSection(formSection, booking)} eyebrow={formSection.eyebrow} title={formSection.heading} text={formSection.description}>
         <ModernGuestRoomBookingForm content={booking} />
       </PublicSection>
-      <PublicSection eyebrow="Policies" title="Before submitting">
-        <div className="grid gap-4 md:grid-cols-2">
-          {(booking.policies || []).map((policy) => <PublicPolicyCard key={policy} text={policy} />)}
-        </div>
+      <PublicSection enabled={shouldRenderSection(policiesSection, booking.policies)} eyebrow={policiesSection.eyebrow} title={policiesSection.heading} text={policiesSection.description}>
+        <PublicContentList items={booking.policies || []} />
       </PublicSection>
     </>
   );

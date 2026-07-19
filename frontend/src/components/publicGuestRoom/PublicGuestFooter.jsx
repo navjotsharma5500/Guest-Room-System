@@ -22,9 +22,15 @@ function XIcon(props) {
 export default function PublicGuestFooter({ content = {} }) {
   const footer = content.footer || {};
   const contact = content.contact || {};
-  const links = footer.quickLinks || [];
+  const links = (footer.quickLinks || []).filter((link) => link?.label && link?.href);
   const socialLinks = footer.socialLinks || {};
   const footerMap = normalizeMapUrl(footer.mapUrl);
+  const emails = (contact.emails || []).filter(Boolean);
+  const hasLocation = Boolean(String(contact.location || "").trim());
+  const hasHours = Boolean(String(contact.hours || "").trim());
+  const footerTitle = String(footer.title || "").trim();
+  const footerSubtitle = String(footer.subtitle || "").trim();
+  const bottomItems = [footer.copyrightText, footer.maintainedText].filter((item) => String(item || "").trim());
 
   return (
     <footer className="border-t border-[var(--guest-border)] bg-[#efe4d5]">
@@ -33,11 +39,11 @@ export default function PublicGuestFooter({ content = {} }) {
           <div className="flex items-center gap-4">
             <img src={footer.logo || "https://ik.imagekit.io/7khjnlfow/email-assets/thapar_logo.png?updatedAt=1776888126772"} alt="Thapar" className="h-16 rounded-2xl bg-white/70 p-2" />
             <div>
-              <p className="guest-heading text-xl font-semibold text-[var(--guest-blue)]">Hostel Guest Room Booking System</p>
-              <p className="text-sm text-[var(--guest-muted)]">Thapar Institute of Engineering & Technology</p>
+              {footerTitle && <p className="guest-heading text-xl font-semibold text-[var(--guest-blue)]">{footerTitle}</p>}
+              {footerSubtitle && <p className="text-sm text-[var(--guest-muted)]">{footerSubtitle}</p>}
             </div>
           </div>
-          <p className="mt-5 max-w-md text-sm leading-7 text-[var(--guest-muted)]">{footer.description}</p>
+          {footer.description && <p className="mt-5 max-w-md text-sm leading-7 text-[var(--guest-muted)]">{footer.description}</p>}
           {footerMap.embedUrl && (
             <iframe
               title="Thapar location"
@@ -74,13 +80,13 @@ export default function PublicGuestFooter({ content = {} }) {
         <div>
           <h3 className="guest-heading text-xl font-semibold text-[var(--guest-blue)]">Contact</h3>
           <div className="mt-4 space-y-3 text-sm text-stone-700">
-            <p className="flex gap-2"><MapPin size={16} className="mt-1 shrink-0 text-[var(--guest-red)]" /> {contact.location}</p>
-            {(contact.emails || []).map((email) => (
+            {hasLocation && <p className="flex gap-2"><MapPin size={16} className="mt-1 shrink-0 text-[var(--guest-red)]" /> {contact.location}</p>}
+            {emails.map((email) => (
               <a key={email} href={`mailto:${email}`} className="flex gap-2 hover:text-[var(--guest-red)]">
                 <Mail size={16} className="mt-1 shrink-0 text-[var(--guest-blue)]" /> {email}
               </a>
             ))}
-            <p className="text-[var(--guest-muted)]">{contact.hours}</p>
+            {hasHours && <p className="text-[var(--guest-muted)]">{contact.hours}</p>}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
@@ -97,9 +103,11 @@ export default function PublicGuestFooter({ content = {} }) {
         </div>
       </div>
 
-      <div className="border-t border-[var(--guest-border)] px-4 py-5 text-center text-sm text-[var(--guest-muted)]">
-        {footer.copyrightText || "© 2026 TIET"} · Created and Maintained by DoSA Office
-      </div>
+      {!!bottomItems.length && (
+        <div className="border-t border-[var(--guest-border)] px-4 py-5 text-center text-sm text-[var(--guest-muted)]">
+          {bottomItems.join(" · ")}
+        </div>
+      )}
     </footer>
   );
 }

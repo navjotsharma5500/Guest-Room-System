@@ -4,16 +4,19 @@ import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicContactBlock from "../../components/publicGuestRoom/PublicContactBlock";
 import PublicMapEmbed from "../../components/publicGuestRoom/PublicMapEmbed";
-import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard";
-import { useGuestContent } from "./pageUtils";
+import PublicContentList from "../../components/publicGuestRoom/PublicContentList";
+import { sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomContact() {
   const contact = useGuestContent().contact || {};
+  const sections = contact.sections || {};
+  const contactSection = sectionText(sections, "contact");
+  const emergencySection = sectionText(sections, "emergency");
 
   return (
     <>
-      <PublicHero hero={contact.hero} badge="Contact" />
-      <PublicSection eyebrow="Contact" title={contact.office || "DoSA Office"}>
+      <PublicHero hero={contact.hero} />
+      <PublicSection enabled={shouldRenderSection(contactSection, [contact.emails, contact.hours, contact.phones, contact.assistanceText, contact.mapUrl])} eyebrow={contactSection.eyebrow} title={contactSection.heading} text={contactSection.description}>
         <PublicContactBlock contact={contact} />
         <div className="mt-8">
           <PublicMapEmbed url={contact.mapUrl} />
@@ -24,10 +27,8 @@ export default function GuestRoomContact() {
         </div>
       </PublicSection>
       {!!(contact.emergencyContacts || []).length && (
-        <PublicSection eyebrow="Emergency" title="Support contacts">
-          <div className="grid gap-4 md:grid-cols-2">
-            {contact.emergencyContacts.map((item) => <PublicPolicyCard key={item} text={item} />)}
-          </div>
+        <PublicSection enabled={shouldRenderSection(emergencySection, contact.emergencyContacts)} eyebrow={emergencySection.eyebrow} title={emergencySection.heading} text={emergencySection.description}>
+          <PublicContentList items={contact.emergencyContacts || []} ordered={false} />
         </PublicSection>
       )}
     </>

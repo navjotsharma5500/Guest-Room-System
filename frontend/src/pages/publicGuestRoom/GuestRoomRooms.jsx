@@ -3,7 +3,7 @@ import { BedDouble, Users, X } from "lucide-react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicRoomCard from "../../components/publicGuestRoom/PublicRoomCard";
-import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard";
+import PublicContentList from "../../components/publicGuestRoom/PublicContentList";
 import PublicGalleryGrid from "../../components/publicGuestRoom/PublicGalleryGrid";
 import { imgOrFallback, orderedItems, sectionText, shouldRenderSection, useGuestContent, validImageItems } from "./pageUtils";
 
@@ -86,9 +86,7 @@ export default function GuestRoomRooms() {
         )}
       </PublicSection>
       <PublicSection enabled={shouldRenderSection(notesSection, rooms.notes)} eyebrow={notesSection.eyebrow} title={notesSection.heading} text={notesSection.description}>
-        <div className="grid gap-4 md:grid-cols-2">
-          {(rooms.notes || []).map((note) => <PublicPolicyCard key={note} text={note} />)}
-        </div>
+        <PublicContentList items={rooms.notes || []} />
       </PublicSection>
       <RoomCategoryModal
         category={activeCategory}
@@ -205,7 +203,7 @@ function RoomCategoryModal({ category, rooms = [], activeRoom, activeRoomDetails
                 <section className="mx-auto w-full max-w-xl">
                   <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">Gallery</p>
                   <div className="mx-auto">
-                    <PublicGalleryGrid images={hostelGallery} hideMeta />
+                <PublicGalleryGrid images={hostelGallery} hideMeta />
                   </div>
                 </section>
                 </div>

@@ -29,8 +29,8 @@ export const DEFAULT_WEBSITE_CONTENT = {
     },
     sections: {
       intro: { enabled: true, eyebrow: "Welcome", heading: "Hospitality Inside the Thapar Campus", description: "" },
-      featuredRooms: { enabled: true, eyebrow: "Featured Rooms", heading: "Calm campus stays for approved guests", description: "" },
-      journey: { enabled: true, eyebrow: "Journey", heading: "Your Stay Journey", description: "A transparent guest-room workflow from enquiry to checkout." },
+      featuredRooms: { enabled: true, eyebrow: "Featured Rooms", heading: "", description: "" },
+      journey: { enabled: true, eyebrow: "Your Stay Journey", heading: "", description: "" },
       facilities: { enabled: true, eyebrow: "Facilities", heading: "Supported by campus hospitality services", description: "" },
       gallery: { enabled: true, eyebrow: "Camera Roll", heading: "A glimpse of Thapar hospitality", description: "" },
       cta: { enabled: true, eyebrow: "", heading: "", description: "" },
@@ -83,6 +83,16 @@ export const DEFAULT_WEBSITE_CONTENT = {
   },
   about: {
     hero: { title: "About Hostel Guest Rooms", subtitle: "Institute-managed visitor accommodation inside TIET campus.", image: "" },
+    sectionSettings: {
+      about: { enabled: true, eyebrow: "About", heading: "", description: "" },
+      whyChooseUs: { enabled: true, eyebrow: "Why Choose Us", heading: "A thoughtful campus hospitality experience", description: "" },
+      mission: {
+        enabled: true,
+        eyebrow: "Mission",
+        heading: "To provide safe, transparent and well-managed guest accommodation services within the campus.",
+        description: "A digital-first guest hospitality experience for institutional visitors.",
+      },
+    },
     sections: [
       { title: "About Guest Rooms", text: "Thapar Hostel Guest Rooms are managed for institute-approved visitors, parents, guests and official invitees requiring short stay accommodation inside the campus.", image: "" },
       { title: "About DoSA Office", text: "The Office of Dean Student Affairs coordinates hostel services, guest accommodation workflows and student welfare support.", image: "" },
@@ -97,7 +107,7 @@ export const DEFAULT_WEBSITE_CONTENT = {
     hero: { enabled: true, badge: "Rooms", title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
     sections: {
       categories: { enabled: true, eyebrow: "Room Categories", heading: "Comfortable rooms inside campus", description: "" },
-      notes: { enabled: true, eyebrow: "Notes", heading: "Before requesting accommodation", description: "" },
+      notes: { enabled: true, eyebrow: "Before Requesting Accommodation", heading: "", description: "" },
     },
     categories: [],
     cards: [
@@ -110,6 +120,12 @@ export const DEFAULT_WEBSITE_CONTENT = {
   },
   tariff: {
     hero: { title: "Tariff & Payment Information", subtitle: "Transparent tariff and payment rules for guest accommodation.", image: "" },
+    sections: {
+      tariff: { enabled: true, eyebrow: "Tariff", heading: "Payment Information", description: "" },
+      rules: { enabled: true, eyebrow: "Important Rules", heading: "", description: "" },
+      bankDetails: { enabled: true, eyebrow: "Bank Details", heading: "Official Payment Account", description: "" },
+    },
+    tariffValueLabel: "Tariff for Stay",
     rows: [
       ["Thapar Students / Parents", "Rs. 850 per day"],
       ["Thapar Department Guest", "As approved / department pay"],
@@ -124,11 +140,14 @@ export const DEFAULT_WEBSITE_CONTENT = {
   },
   dining: {
     hero: { title: "Dining & Campus Food Facilities", subtitle: "Campus dining options for approved guests.", image: "" },
+    sections: {
+      dining: { enabled: true, eyebrow: "Dining", heading: "Campus food facilities", description: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability." },
+      rules: { enabled: true, eyebrow: "Rules & Options", heading: "Dining guidance", description: "" },
+    },
     text: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability.",
     cards: [
-      { title: "Breakfast", timing: "07:30 AM - 09:30 AM", price: "As applicable", description: "Morning meal subject to hostel mess rules.", image: "" },
-      { title: "Lunch", timing: "12:30 PM - 02:30 PM", price: "As applicable", description: "Lunch facility as per availability.", image: "" },
-      { title: "Dinner", timing: "07:30 PM - 09:30 PM", price: "As applicable", description: "Dinner facility as per hostel schedule.", image: "" },
+      { title: "Campus Food Facilities", timing: "As per campus schedule", price: "As applicable", description: "Guests may avail campus food facilities as per applicable rules and availability.", image: "", enabled: true, order: 1 },
+      { title: "TIET Hostels Food Facilities", timing: "As per hostel mess schedule", price: "As applicable", description: "Hostel food facilities are available subject to hostel mess rules and approval.", image: "", enabled: true, order: 2 },
     ],
     rules: ["Meal availability is subject to hostel mess rules.", "Timings must be followed.", "Payment, if applicable, must follow institute policy."],
     options: ["Canteen", "Food Court", "Nescafe kiosk", "Campus cafes"],
@@ -155,6 +174,10 @@ export const DEFAULT_WEBSITE_CONTENT = {
   },
   booking: {
     hero: { title: "Request Hostel Guest Room Accommodation", subtitle: "Submit your guest room enquiry for review by hostel administration.", image: "" },
+    sections: {
+      form: { enabled: true, eyebrow: "Request Accommodation", heading: "Submit a guest room enquiry", description: "" },
+      policies: { enabled: true, eyebrow: "Policies", heading: "Before submitting", description: "" },
+    },
     enableParentStudentForm: true,
     enableFacultyStaffForm: true,
     lockParentStudentForm: false,
@@ -170,21 +193,29 @@ export const DEFAULT_WEBSITE_CONTENT = {
   },
   contact: {
     hero: { title: "Contact Us", subtitle: "Hostel Guest Room support and institute contact details.", image: "" },
+    sections: {
+      contact: { enabled: true, eyebrow: "Contact", heading: "", description: "" },
+      emergency: { enabled: true, eyebrow: "Emergency", heading: "Support contacts", description: "" },
+    },
     location: "Thapar Institute of Engineering & Technology, Patiala, Punjab",
     office: "Office of Dean Student Affairs",
     dosaOfficeAddress: "DoSA Office, TIET Patiala",
     emails: ["dosa.office@thapar.edu", "Queries_studentaffairs@thapar.edu", "itmh@thapar.edu"],
     phones: [],
     hours: "9:00 AM to 5:30 PM, Monday to Friday",
+    assistanceText: "For any further assistance, contact the DoSA Office.",
     mapUrl: "https://www.google.com/maps?q=Thapar+Institute+of+Engineering+and+Technology+Patiala&output=embed",
     feedbackLink: "/guest-feedback",
     emergencyContacts: [],
   },
   footer: {
     logo: heroImage,
+    title: "Hostel Guest Room Booking System",
+    subtitle: "Thapar Institute of Engineering & Technology",
     description: "Official public portal for hostel guest room accommodation requests at Thapar Institute of Engineering & Technology.",
     mapUrl: "https://www.google.com/maps?q=Thapar+Institute+of+Engineering+and+Technology+Patiala&output=embed",
     copyrightText: "© 2026 TIET",
+    maintainedText: "Created and Maintained by DoSA Office",
     quickContact: "Office of Dean Student Affairs",
     quickLinks: [
       { label: "Home", href: "/guest-room" },

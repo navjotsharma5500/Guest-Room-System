@@ -2,25 +2,30 @@ import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicDiningCard from "../../components/publicGuestRoom/PublicDiningCard";
-import PublicPolicyCard from "../../components/publicGuestRoom/PublicPolicyCard";
-import { useGuestContent } from "./pageUtils";
+import PublicContentList from "../../components/publicGuestRoom/PublicContentList";
+import { orderedItems, sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomDining() {
   const dining = useGuestContent().dining || {};
+  const sections = dining.sections || {};
+  const diningSection = sectionText(sections, "dining");
+  const rulesSection = sectionText(sections, "rules");
+  const cards = orderedItems(dining.cards || []);
+  const ruleItems = [
+    ...(dining.rules || []),
+    ...(dining.options || []).map((item) => `Campus option: ${item}`),
+  ];
 
   return (
     <>
-      <PublicHero hero={dining.hero} badge="Dining" />
-      <PublicSection eyebrow="Dining" title="Campus food facilities" text={dining.text}>
+      <PublicHero hero={dining.hero} />
+      <PublicSection enabled={shouldRenderSection(diningSection, cards)} eyebrow={diningSection.eyebrow} title={diningSection.heading} text={diningSection.description || dining.text}>
         <div className="grid gap-6 md:grid-cols-3">
-          {(dining.cards || []).map((item) => <PublicDiningCard key={item.title} item={item} />)}
+          {cards.map((item) => <PublicDiningCard key={item.title} item={item} />)}
         </div>
       </PublicSection>
-      <PublicSection eyebrow="Rules & Options" title="Dining guidance">
-        <div className="grid gap-4 md:grid-cols-2">
-          {(dining.rules || []).map((item) => <PublicPolicyCard key={`rule-${item}`} text={item} />)}
-          {(dining.options || []).map((item) => <PublicPolicyCard key={`option-${item}`} text={`Campus option: ${item}`} />)}
-        </div>
+      <PublicSection enabled={shouldRenderSection(rulesSection, ruleItems)} eyebrow={rulesSection.eyebrow} title={rulesSection.heading} text={rulesSection.description}>
+        <PublicContentList items={ruleItems} />
       </PublicSection>
     </>
   );

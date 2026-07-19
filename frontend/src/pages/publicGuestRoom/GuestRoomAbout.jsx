@@ -2,15 +2,22 @@ import React from "react";
 import PublicHero from "../../components/publicGuestRoom/PublicHero";
 import PublicSection from "../../components/publicGuestRoom/PublicSection";
 import PublicFacilityCard from "../../components/publicGuestRoom/PublicFacilityCard";
-import { hasImage, imgOrFallback, shouldRenderSection, useGuestContent } from "./pageUtils";
+import { hasImage, imgOrFallback, sectionText, shouldRenderSection, useGuestContent } from "./pageUtils";
 
 export default function GuestRoomAbout() {
   const about = useGuestContent().about || {};
+  const sections = about.sectionSettings || {};
+  const aboutSection = sectionText(sections, "about");
+  const whySection = sectionText(sections, "whyChooseUs");
+  const missionSection = sectionText(sections, "mission");
+  const missionEyebrow = missionSection.eyebrow ?? about.missionEyebrow;
+  const missionHeading = missionSection.heading ?? about.mission;
+  const missionDescription = missionSection.description ?? about.vision;
 
   return (
     <>
-      <PublicHero hero={about.hero} badge="About TIET Hospitality" />
-      <PublicSection eyebrow="About" title="Institute-managed guest accommodation">
+      <PublicHero hero={about.hero} />
+      <PublicSection enabled={shouldRenderSection(aboutSection, about.sections)} eyebrow={aboutSection.eyebrow} title={aboutSection.heading} text={aboutSection.description}>
         <div className="grid gap-5 md:grid-cols-2">
           {(about.sections || []).map((section) => (
             <div key={section.title} className="guest-card overflow-hidden rounded-[2rem]">
@@ -25,12 +32,12 @@ export default function GuestRoomAbout() {
           ))}
         </div>
       </PublicSection>
-      <PublicSection eyebrow="Why Choose Us" title="A thoughtful campus hospitality experience">
+      <PublicSection enabled={shouldRenderSection(whySection, about.cards)} eyebrow={whySection.eyebrow} title={whySection.heading} text={whySection.description}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {(about.cards || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
         </div>
       </PublicSection>
-      <PublicSection enabled={shouldRenderSection({ enabled: true }, [about.missionEyebrow, about.mission, about.vision, about.timeline])} eyebrow={about.missionEyebrow} title={about.mission} text={about.vision}>
+      <PublicSection enabled={shouldRenderSection(missionSection, [missionEyebrow, missionHeading, missionDescription, about.timeline])} eyebrow={missionEyebrow} title={missionHeading} text={missionDescription}>
         <div className="guest-card rounded-[2rem] p-6">
           <div className="flex flex-wrap gap-3">
             {(about.timeline || []).map((step, index) => <span key={step} className="guest-pill rounded-full px-4 py-2 text-sm font-semibold">{index + 1}. {step}</span>)}
