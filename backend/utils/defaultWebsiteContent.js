@@ -106,7 +106,7 @@ export const DEFAULT_WEBSITE_CONTENT = {
   rooms: {
     hero: { enabled: true, badge: "Rooms", title: "Comfortable Rooms Inside Campus", subtitle: "Room allotment is subject to approval and availability.", image: "" },
     sections: {
-      categories: { enabled: true, eyebrow: "Room Categories", heading: "Comfortable rooms inside campus", description: "" },
+      categories: { enabled: true, eyebrow: "Room Categories", heading: "Select a hostel below to explore its guest rooms.", description: "" },
       notes: { enabled: true, eyebrow: "Before Requesting Accommodation", heading: "", description: "" },
     },
     categories: [],
@@ -141,13 +141,14 @@ export const DEFAULT_WEBSITE_CONTENT = {
   dining: {
     hero: { title: "Dining & Campus Food Facilities", subtitle: "Campus dining options for approved guests.", image: "" },
     sections: {
-      dining: { enabled: true, eyebrow: "Dining", heading: "Campus food facilities", description: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability." },
+      hostelFood: { enabled: true, eyebrow: "Hostel Food Facilities", heading: "", description: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability. Guest may directly pay the food charges at the hostel Food Counter." },
+      campusFood: { enabled: true, eyebrow: "Campus Food Facilities", heading: "", description: "" },
       rules: { enabled: true, eyebrow: "Rules & Options", heading: "Dining guidance", description: "" },
     },
     text: "Guests may avail hostel mess/dining facilities as per applicable hostel rules and availability.",
     cards: [
-      { title: "Campus Food Facilities", timing: "As per campus schedule", price: "As applicable", description: "Guests may avail campus food facilities as per applicable rules and availability.", image: "", enabled: true, order: 1 },
-      { title: "TIET Hostels Food Facilities", timing: "As per hostel mess schedule", price: "As applicable", description: "Hostel food facilities are available subject to hostel mess rules and approval.", image: "", enabled: true, order: 2 },
+      { title: "TIET Hostels Food Facilities", group: "hostel", timing: "As per hostel mess schedule", price: "As applicable", description: "Hostel food facilities are available subject to hostel mess rules and approval.", image: "", enabled: true, order: 1 },
+      { title: "Campus Food Facilities", group: "campus", timing: "As per campus schedule", price: "As applicable", description: "Guests may avail campus food facilities as per applicable rules and availability.", image: "", enabled: true, order: 1 },
     ],
     rules: ["Meal availability is subject to hostel mess rules.", "Timings must be followed.", "Payment, if applicable, must follow institute policy."],
     options: ["Canteen", "Food Court", "Nescafe kiosk", "Campus cafes"],
@@ -155,8 +156,13 @@ export const DEFAULT_WEBSITE_CONTENT = {
   facilities: {
     hero: { enabled: true, badge: "Facilities", title: "Facilities & Guest Support", subtitle: "Safe stay with digital support services.", image: "" },
     sections: {
-      facilities: { enabled: true, eyebrow: "Facilities", heading: "Guest room facilities", description: "" },
-      digitalServices: { enabled: true, eyebrow: "Digital Services", heading: "Support from your mobile phone", description: "" },
+      facilities: { enabled: true, eyebrow: "Facilities", heading: "", description: "" },
+      digitalServices: {
+        enabled: true,
+        eyebrow: "Digital Services",
+        heading: "Support from your mobile phone",
+        description: "A QR code is available in every guest room. Scan it to raise a service request if you require any assistance.",
+      },
       safety: { enabled: true, eyebrow: "Safety", heading: "Supervised campus support", description: "" },
     },
     facilities: ["31 Elegantly appointed non-smoking rooms", "24 hrs support", "Elevator", "Running hot & cold water", "Treated and purified drinking water", "Round-the-clock Health Centre", "Free WiFi", "Daily housekeeping", "Canteen, food court and Nescafe kiosks", "No cash policy", "Online payment support", "Digital guest support"],

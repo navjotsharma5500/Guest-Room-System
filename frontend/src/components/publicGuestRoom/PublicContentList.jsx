@@ -12,17 +12,21 @@ export default function PublicContentList({ items = [], ordered = true }) {
 
   if (!normalized.length) return null;
 
-  const ListTag = ordered ? "ol" : "ul";
-
   return (
-    <div className="guest-card rounded-[2rem] bg-white/90 p-6 md:p-8">
-      <ListTag className={`space-y-4 ${ordered ? "list-decimal" : "list-disc"} pl-5 text-[var(--guest-muted)]`}>
+    <div className="guest-card overflow-hidden rounded-[2rem] bg-white/90">
+      <div className="divide-y divide-[var(--guest-border)]">
         {normalized.map((item, index) => (
-          <li key={`${item.text}-${index}`} className="pl-2 leading-7">
-            <span className="font-medium text-stone-800">{item.text}</span>
-          </li>
+          <div
+            key={`${item.text}-${index}`}
+            className="group flex gap-4 px-5 py-4 text-[var(--guest-muted)] transition hover:bg-[#fff8ef] sm:px-6"
+          >
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-red-100 bg-red-50 text-xs font-semibold text-[var(--guest-red)] transition group-hover:border-[var(--guest-red)] group-hover:bg-white">
+              {ordered ? index + 1 : "•"}
+            </span>
+            <span className="text-sm leading-7 text-stone-700 sm:text-base">{item.text}</span>
+          </div>
         ))}
-      </ListTag>
+      </div>
     </div>
   );
 }

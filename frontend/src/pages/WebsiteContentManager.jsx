@@ -361,32 +361,56 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
     </>
   );
 
-  const renderDining = () => (
-    <>
-      {renderHero()}
-      <SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} />
-      <Panel title="Legacy Dining Text">
-        <Field label="Dining Text" value={draft.text} onChange={(v) => setPath(["text"], v)} textarea />
-      </Panel>
-      <ArrayEditor
-        title="Dining Cards"
-        items={draft.cards || []}
-        onChange={(v) => setPath(["cards"], v)}
-        newItem={{ title: "", timing: "", price: "", description: "", image: "" }}
-        renderItem={(item, patch) => (
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} />
-            <Field label="Timing" value={item.timing} onChange={(v) => patch({ timing: v })} />
-            <Field label="Price" value={item.price} onChange={(v) => patch({ price: v })} />
-            <Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea />
-            <CmsImageUploader label="Dining Image" folder="/public-guest-room/dining" value={item.image || ""} onChange={(v) => patch({ image: v })} />
-          </div>
-        )}
-      />
-      <TextListEditor title="Rules" items={draft.rules || []} onChange={(v) => setPath(["rules"], v)} />
-      <TextListEditor title="Options" items={draft.options || []} onChange={(v) => setPath(["options"], v)} />
-    </>
-  );
+  const renderDining = () => {
+    const cards = draft.cards || [];
+    const isHostelCard = (item = {}) => {
+      const group = String(item.group || item.type || item.category || "").toLowerCase();
+      return group === "hostel" || /hostel/i.test(item.title || "");
+    };
+    const hostelCards = cards.filter(isHostelCard).map((item) => ({ ...item, group: "hostel" }));
+    const campusCards = cards.filter((item) => !isHostelCard(item)).map((item) => ({ ...item, group: "campus" }));
+    const diningSections = Object.fromEntries(
+      Object.entries(draft.sections || {}).filter(([key]) => !["intro", "dining"].includes(key))
+    );
+    const updateDiningGroup = (group, groupItems) => {
+      const otherItems = cards.filter((item) => (group === "hostel" ? !isHostelCard(item) : isHostelCard(item)));
+      setPath(["cards"], [...otherItems, ...groupItems.map((item) => ({ ...item, group }))]);
+    };
+    const renderDiningCardEditor = (item, patch) => (
+      <div className="grid gap-3 md:grid-cols-2">
+        <ToggleField label="Enabled" checked={item.enabled !== false} onChange={(v) => patch({ enabled: v })} />
+        <Field label="Order" type="number" value={item.order} onChange={(v) => patch({ order: Number(v) || "" })} />
+        <Field label="Title" value={item.title} onChange={(v) => patch({ title: v })} />
+        <Field label="Timing" value={item.timing} onChange={(v) => patch({ timing: v })} />
+        <Field label="Price" value={item.price} onChange={(v) => patch({ price: v })} />
+        <Field label="Description" value={item.description} onChange={(v) => patch({ description: v })} textarea />
+        <CmsImageUploader label="Dining Image" folder="/public-guest-room/dining" value={item.image || ""} onChange={(v) => patch({ image: v })} />
+      </div>
+    );
+
+    return (
+      <>
+        {renderHero()}
+        <SectionSettingsEditor sections={diningSections} onChange={(v) => setPath(["sections"], v)} />
+        <ArrayEditor
+          title="Hostel Food Facilities Cards"
+          items={hostelCards}
+          onChange={(v) => updateDiningGroup("hostel", v)}
+          newItem={{ title: "", group: "hostel", timing: "", price: "", description: "", image: "", enabled: true, order: "" }}
+          renderItem={renderDiningCardEditor}
+        />
+        <ArrayEditor
+          title="Campus Food Facilities Cards"
+          items={campusCards}
+          onChange={(v) => updateDiningGroup("campus", v)}
+          newItem={{ title: "", group: "campus", timing: "", price: "", description: "", image: "", enabled: true, order: "" }}
+          renderItem={renderDiningCardEditor}
+        />
+        <TextListEditor title="Rules" items={draft.rules || []} onChange={(v) => setPath(["rules"], v)} />
+        <TextListEditor title="Options" items={draft.options || []} onChange={(v) => setPath(["options"], v)} />
+      </>
+    );
+  };
 
   const renderFacilities = () => (
     <>

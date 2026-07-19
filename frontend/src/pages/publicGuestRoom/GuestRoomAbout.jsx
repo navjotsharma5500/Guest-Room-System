@@ -10,9 +10,13 @@ export default function GuestRoomAbout() {
   const aboutSection = sectionText(sections, "about");
   const whySection = sectionText(sections, "whyChooseUs");
   const missionSection = sectionText(sections, "mission");
-  const missionEyebrow = missionSection.eyebrow ?? about.missionEyebrow;
-  const missionHeading = missionSection.heading ?? about.mission;
-  const missionDescription = missionSection.description ?? about.vision;
+  const hasMissionSectionSettings = Object.prototype.hasOwnProperty.call(sections, "mission");
+  const missionEyebrow = hasMissionSectionSettings ? missionSection.eyebrow : about.missionEyebrow;
+  const missionHeading = hasMissionSectionSettings ? missionSection.heading : about.mission;
+  const missionDescription = hasMissionSectionSettings ? missionSection.description : about.vision;
+  const missionContent = hasMissionSectionSettings
+    ? [missionEyebrow, missionHeading, missionDescription]
+    : [missionEyebrow, missionHeading, missionDescription, about.timeline];
 
   return (
     <>
@@ -37,7 +41,7 @@ export default function GuestRoomAbout() {
           {(about.cards || []).map((item) => <PublicFacilityCard key={item} title={item} />)}
         </div>
       </PublicSection>
-      <PublicSection enabled={shouldRenderSection(missionSection, [missionEyebrow, missionHeading, missionDescription, about.timeline])} eyebrow={missionEyebrow} title={missionHeading} text={missionDescription}>
+      <PublicSection enabled={shouldRenderSection(missionSection, missionContent)} eyebrow={missionEyebrow} title={missionHeading} text={missionDescription}>
         <div className="guest-card rounded-[2rem] p-6">
           <div className="flex flex-wrap gap-3">
             {(about.timeline || []).map((step, index) => <span key={step} className="guest-pill rounded-full px-4 py-2 text-sm font-semibold">{index + 1}. {step}</span>)}
