@@ -98,7 +98,11 @@ export default function PublicAllEventsPage() {
     setError("");
     try {
       const data = await fetchFirstSuccessful(
-        ["/api/events/public", "/api/event-calendar/public"],
+        [
+          "/api/event-calendar/master/all?recordType=event&limit=500",
+          "/api/events/public",
+          "/api/event-calendar/public",
+        ],
         { method: "GET" }
       );
       setEvents(asArray(data.events));

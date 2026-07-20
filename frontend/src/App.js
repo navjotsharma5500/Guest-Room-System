@@ -35,6 +35,7 @@ import VenueBookingDashboard from "./VenueBookingDashboard";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicAllEventsPage from "./pages/PublicAllEventsPage";
+import EventCalendarAdminPage from "./pages/EventCalendarAdminPage";
 import GuestRoomPublicLayout from "./pages/publicGuestRoom/GuestRoomPublicLayout";
 import GuestRoomHome from "./pages/publicGuestRoom/GuestRoomHome";
 import GuestRoomAbout from "./pages/publicGuestRoom/GuestRoomAbout";
@@ -311,7 +312,13 @@ export default function App() {
           <Route path="/guest-enquiry" element={<Navigate to="/guest-room/booking" replace />} />
           <Route path="/venue-enquiry"        element={<VenueGuestEnquiryPage />} />
           <Route path="/event-calendar"       element={<PublicEventCalendar />} />
+          <Route path="/ic"                   element={<PublicEventCalendar />} />
+          <Route path="/tc"                   element={<PublicEventCalendar />} />
           <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
+          <Route path="/event-calendar/admin" element={<EventCalendarAdminPage />} />
+          <Route path="/event-calendar/admin/login" element={<EventCalendarAdminPage />} />
+          <Route path="/admin"                element={<Navigate to="/event-calendar/admin" replace />} />
+          <Route path="/Admin"                element={<Navigate to="/event-calendar/admin" replace />} />
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
           <Route path="/guest-support/:hostelId/:roomId" element={<GuestSupportPortal />} />
           <Route path="/install-app"          element={<InstallApp />} />

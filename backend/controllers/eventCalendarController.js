@@ -66,6 +66,8 @@ const bookingToCalendarEvent = (booking) => {
     createdBy: booking.createdBy || null,
     status: derivedStatus,
     sourceType: booking.enquiryId ? 'assistant-enquiry-booking' : 'direct-venue-booking',
+    bookingFor: booking.bookingFor || 'institute_calendar',
+    calendarType: booking.bookingFor || 'institute_calendar',
     bookingStatus: booking.status,
     contact: booking.contact,
     email: booking.email,
