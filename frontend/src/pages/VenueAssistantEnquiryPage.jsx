@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { BACKEND_URL, IMAGEKIT_URL_ENDPOINT } from "../utils/apiConfig";
+import {
+  DEFAULT_VENUE_BOOKING_FOR,
+  VENUE_BOOKING_FOR_OPTIONS,
+} from "../constants/venueBookingForOptions";
 
 const API = BACKEND_URL;
 
@@ -87,6 +91,10 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   
   // Feature: Event Details Editing state
   const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [approvalBookingFor, setApprovalBookingFor] = useState(
+    DEFAULT_VENUE_BOOKING_FOR
+  );
+  const [approvalConfirmOpen, setApprovalConfirmOpen] = useState(false);
   
   const [editForm, setEditForm] = useState({
     checkInDate: "",
@@ -262,7 +270,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
   };
 
   // Handle Approve
-  const handleApprove = async () => {
+  const handleApprove = async (bookingFor = approvalBookingFor) => {
     if (!selected) return;
 
     try {
@@ -287,6 +295,8 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
         approveData.purpose = editForm.purpose;
       }
 
+      approveData.bookingFor = bookingFor || DEFAULT_VENUE_BOOKING_FOR;
+
       await axios.put(
         `${API}/api/venue/enquiry/${selected._id}/approved`,
         approveData,
@@ -298,6 +308,8 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
       showToast("Enquiry approved and room booked successfully.", "success");
       await loadEnquiries();
       setNewEnquiriesCount(0);
+      setApprovalConfirmOpen(false);
+      setApprovalBookingFor(DEFAULT_VENUE_BOOKING_FOR);
     } catch (err) {
       console.error("Approve error:", err);
       showToast(err?.response?.data?.message || "Failed to approve enquiry", "error");
@@ -1117,7 +1129,7 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
                   </button>
 
                   <button
-                    onClick={handleApprove}
+                    onClick={() => setApprovalConfirmOpen(true)}
                     disabled={isEditingDates && dateConflict}
                     className={`
                       flex-1 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2
@@ -1174,6 +1186,82 @@ export default function VenueAssistantEnquiryPage({ theme = "dark" }) {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {approvalConfirmOpen && selected && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className={`w-full max-w-md rounded-2xl p-6 shadow-2xl ${
+                theme === "dark" ? "bg-[#292a2d]" : "bg-white"
+              }`}
+            >
+              <div className="mb-5">
+                <h3
+                  className={`text-lg font-semibold ${
+                    theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                  }`}
+                >
+                  Confirm Venue Booking
+                </h3>
+                <p
+                  className={`mt-2 text-sm ${
+                    theme === "dark" ? "text-[#9aa0a6]" : "text-[#5f6368]"
+                  }`}
+                >
+                  Select where this approved event should be classified internally.
+                </p>
+              </div>
+
+              <label
+                className={`mb-2 block text-sm font-semibold ${
+                  theme === "dark" ? "text-[#e8eaed]" : "text-[#202124]"
+                }`}
+              >
+                Calendar Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={approvalBookingFor}
+                onChange={(event) => setApprovalBookingFor(event.target.value)}
+                className={`w-full rounded-lg border px-4 py-3 text-sm outline-none ${
+                  theme === "dark"
+                    ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                    : "border-[#dadce0] bg-white text-[#202124]"
+                }`}
+              >
+                {VENUE_BOOKING_FOR_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setApprovalConfirmOpen(false)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApprove(approvalBookingFor)}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Approve & Book
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

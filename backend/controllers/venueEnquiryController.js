@@ -33,6 +33,19 @@ const adminAssistantOnly = (req, res) => {
   return true;
 };
 
+const VENUE_BOOKING_FOR_VALUES = ["student_calendar", "institute_calendar"];
+const DEFAULT_VENUE_BOOKING_FOR = "institute_calendar";
+
+const normalizeBookingFor = (value) => {
+  const normalized = String(value || DEFAULT_VENUE_BOOKING_FOR).trim();
+  return VENUE_BOOKING_FOR_VALUES.includes(normalized)
+    ? normalized
+    : DEFAULT_VENUE_BOOKING_FOR;
+};
+
+const validateBookingFor = (value) =>
+  VENUE_BOOKING_FOR_VALUES.includes(String(value || "").trim());
+
 const normalizePayload = (body = {}) => {
   const checkInDate = body.checkInDate || body.startDate || "";
   const checkInTime = body.checkInTime || body.startTime || "";
@@ -432,6 +445,16 @@ export const approveVenueEnquiry = async (req, res) => {
     const checkInTime = req.body.checkInTime || enquiry.checkInTime;
     const checkOutDate = req.body.checkOutDate || enquiry.checkOutDate;
     const checkOutTime = req.body.checkOutTime || enquiry.checkOutTime;
+    const bookingFor = req.body.bookingFor;
+
+    if (!validateBookingFor(bookingFor)) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking calendar selection is required",
+      });
+    }
+
+    const normalizedBookingFor = normalizeBookingFor(bookingFor);
 
     // Prevent overlap for the requested room before booking
     const overlappingBookings = await VenueBooking.find({
@@ -481,6 +504,7 @@ export const approveVenueEnquiry = async (req, res) => {
       bookingType: "venue",
       isVenueBooking: true,
       isHallBooking: false,
+      bookingFor: normalizedBookingFor,
     });
 
     enquiry.status = "booked";

@@ -92,6 +92,13 @@ const venueBookingSchema = new mongoose.Schema({
     type: String,
   }],
 
+  bookingFor: {
+    type: String,
+    enum: ['student_calendar', 'institute_calendar'],
+    default: 'institute_calendar',
+    required: true,
+  },
+
   // Status
   status: {
     type: String,
@@ -119,6 +126,36 @@ const venueBookingSchema = new mongoose.Schema({
   },
   cancelledAt: {
     type: Date,
+  },
+
+  editHistory: [{
+    editedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    editedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    previousValues: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    updatedValues: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+  }],
+
+  lastEditedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  lastEditedAt: {
+    type: Date,
+    default: null,
   },
 
   // Creator Info
@@ -173,6 +210,7 @@ venueBookingSchema.index({ hall: 1, roomNo: 1, checkInDate: 1, checkOutDate: 1 }
 venueBookingSchema.index({ status: 1 });
 venueBookingSchema.index({ email: 1 });
 venueBookingSchema.index({ enquiryId: 1 });
+venueBookingSchema.index({ bookingFor: 1 });
 
 // Virtual fields for compatibility
 venueBookingSchema.virtual('from').get(function() {

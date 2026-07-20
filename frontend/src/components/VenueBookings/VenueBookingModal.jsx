@@ -33,6 +33,12 @@ import {
   isDailySlotOverlapping,
   timeToMinutes,
 } from "../../utils/dateUtils";
+import {
+  DEFAULT_VENUE_BOOKING_FOR,
+  VENUE_BOOKING_FOR_OPTIONS,
+  getVenueBookingForLabel,
+  isValidVenueBookingFor,
+} from "../../constants/venueBookingForOptions";
 
 const API = BACKEND_URL;
 
@@ -83,6 +89,7 @@ const getInitialFormData = ({ prefill, checkIn, checkOut, mode }) => ({
   purpose: prefill?.purpose || "",
   description: prefill?.description || "",
   attachments: [],
+  bookingFor: prefill?.bookingFor || DEFAULT_VENUE_BOOKING_FOR,
 });
 
 const getStepTitle = (step) => {
@@ -379,6 +386,9 @@ export default function VenueBookingModal({
       if (formData.contact.trim() && !/^\d{10}$/.test(formData.contact)) {
         newErrors.contact = "Contact must be exactly 10 digits";
       }
+      if (!isValidVenueBookingFor(formData.bookingFor)) {
+        newErrors.bookingFor = "Calendar type is required";
+      }
     }
 
     if (step >= 2) {
@@ -433,6 +443,7 @@ export default function VenueBookingModal({
         Boolean(formData.department.trim()) &&
         (!formData.contact.trim() || /^\d{10}$/.test(formData.contact)) &&
         formData.email.endsWith("@thapar.edu")
+        && isValidVenueBookingFor(formData.bookingFor)
       );
     }
 
@@ -491,6 +502,7 @@ export default function VenueBookingModal({
       checkOutDate: formData.bookingEndDate,
       checkInTime: formData.dailyStartTime,
       checkOutTime: formData.dailyEndTime,
+      bookingFor: formData.bookingFor,
     };
 
     await onSubmit(payload);
@@ -803,6 +815,40 @@ export default function VenueBookingModal({
                       {errors.eventName && (
                         <p className="mt-1 text-xs text-red-500">
                           {errors.eventName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        className={`mb-2 block text-sm font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        <Calendar className="mr-2 inline h-4 w-4 text-red-600" />
+                        Calendar Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="bookingFor"
+                        value={formData.bookingFor}
+                        onChange={handleChange}
+                        className={`w-full rounded border px-4 py-3 text-sm ${
+                          errors.bookingFor
+                            ? "border-red-500"
+                            : theme === "dark"
+                            ? "border-[#5f6368] bg-[#3c4043] text-[#e8eaed]"
+                            : "border-[#dadce0] bg-white text-[#202124]"
+                        }`}
+                      >
+                        {VENUE_BOOKING_FOR_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.bookingFor && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {errors.bookingFor}
                         </p>
                       )}
                     </div>
@@ -1293,6 +1339,26 @@ export default function VenueBookingModal({
                           }`}
                         >
                           {venueSummary.join(", ") || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className={`text-xs font-semibold ${
+                            theme === "dark"
+                              ? "text-[#9aa0a6]"
+                              : "text-[#5f6368]"
+                          }`}
+                        >
+                          Calendar Type
+                        </p>
+                        <p
+                          className={`text-base ${
+                            theme === "dark"
+                              ? "text-[#e8eaed]"
+                              : "text-[#202124]"
+                          }`}
+                        >
+                          {getVenueBookingForLabel(formData.bookingFor)}
                         </p>
                       </div>
                       <div>

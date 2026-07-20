@@ -106,6 +106,7 @@ export default function useVenueBookingHandlers({
           purpose: formData.purpose || approvedEnquiry?.purpose || "",
           description: formData.description || approvedEnquiry?.description || "",
           attachments: uploadedAttachments,
+          bookingFor: formData.bookingFor || approvedEnquiry?.bookingFor || "institute_calendar",
           enquiryId: approvedEnquiry?.enquiryId || null,
           bookingType: "venue", 
           isVenueBooking: true,

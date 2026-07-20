@@ -16,6 +16,7 @@ export default function VenueBookingDetailsModal({
   onExtend,
   onCancel,
   onRebook,
+  onEdit,
 }) {
   useEscapeKey(onClose);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -83,6 +84,10 @@ export default function VenueBookingDetailsModal({
 
   // Check if booking can be extended
   const canExtend = new Date(booking.to || booking.checkOutDate) >= new Date();
+  const canEdit =
+    ["booked", "checked_in"].includes(String(booking.status || "")) &&
+    new Date(`${booking.checkOutDate || ""}T${booking.checkOutTime || ""}`) >
+      new Date();
 
   const handleCancel = () => {
     onCancel({
@@ -526,6 +531,17 @@ export default function VenueBookingDetailsModal({
           </motion.button>
 
           <div className="flex items-center gap-3">
+            {onEdit && canEdit && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onEdit}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+              >
+                <Edit2 className="w-5 h-5" />
+                Edit
+              </motion.button>
+            )}
             {onRebook && (
               <motion.button
                 whileHover={{ scale: 1.05 }}

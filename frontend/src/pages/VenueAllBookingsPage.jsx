@@ -6,6 +6,7 @@ import {
   Calendar,
   Clock,
   Eye,
+  Pencil,
   Loader2,
   Mail,
   Phone,
@@ -20,6 +21,9 @@ import { useToast } from "../context/ToastContext";
 import useVenueBookingHandlers from "../hooks/useVenueBookingHandlers";
 import VenueBookingDetailsModal from "../components/VenueBookings/VenueBookingDetailsModal";
 import VenueBookingModal from "../components/VenueBookings/VenueBookingModal";
+import VenueBookingEditModal, {
+  canEditVenueBooking,
+} from "../components/VenueBookings/VenueBookingEditModal";
 
 const API = BACKEND_URL;
 
@@ -74,6 +78,7 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
 
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [bookingDetailsModal, setBookingDetailsModal] = useState(null);
+  const [editBooking, setEditBooking] = useState(null);
   const [rebookModalOpen, setRebookModalOpen] = useState(false);
   const [rebookSourceBooking, setRebookSourceBooking] = useState(null);
 
@@ -220,6 +225,21 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
     setSelectedRooms([]);
     setRebookModalOpen(true);
   }, []);
+
+  const handleEditSaved = useCallback(
+    (updatedBooking) => {
+      if (updatedBooking?._id) {
+        setBookings((prev) =>
+          prev.map((booking) =>
+            booking._id === updatedBooking._id ? updatedBooking : booking
+          )
+        );
+      }
+      setEditBooking(null);
+      refreshBookings();
+    },
+    [refreshBookings]
+  );
 
   const closeRebookModal = useCallback(() => {
     setRebookModalOpen(false);
@@ -485,6 +505,15 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
                     <Eye size={14} />
                     View
                   </button>
+                  {canEditVenueBooking(booking) && (
+                    <button
+                      onClick={() => setEditBooking(booking)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50"
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </button>
+                  )}
                   <button
                     onClick={() => handleRebook(booking)}
                     className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -577,6 +606,11 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
               setBookingDetailsModal(null);
               handleRebook(booking);
             }}
+            onEdit={() => {
+              const booking = bookingDetailsModal.booking;
+              setBookingDetailsModal(null);
+              setEditBooking(booking);
+            }}
           />
         )}
 
@@ -595,6 +629,15 @@ export default function VenueAllBookingsPage({ theme, venueData = {}, setExtensi
                 refreshBookings();
               }
             }}
+          />
+        )}
+
+        {editBooking && (
+          <VenueBookingEditModal
+            theme={theme}
+            booking={editBooking}
+            onClose={() => setEditBooking(null)}
+            onSaved={handleEditSaved}
           />
         )}
       </AnimatePresence>

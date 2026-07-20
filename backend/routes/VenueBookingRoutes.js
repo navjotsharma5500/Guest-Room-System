@@ -39,6 +39,9 @@ router.get('/venue/:venue', protect, adminAssistantOnly, venueBookingController.
 // Get single venue booking by ID (admin/assistant only)
 router.get('/:id', protect, adminAssistantOnly, venueBookingController.getVenueBookingById);
 
+// Update editable venue booking fields (admin/assistant only)
+router.patch('/:id', protect, adminAssistantOnly, venueBookingController.updateVenueBooking);
+
 // Extend venue booking (admin/assistant only)
 router.patch('/:id/extend', protect, adminAssistantOnly, venueBookingController.extendVenueBooking);
 

@@ -66,6 +66,84 @@ const touchEventSuggestion = async (name = '') => {
   );
 };
 
+const VENUE_BOOKING_FOR_VALUES = ['student_calendar', 'institute_calendar'];
+const DEFAULT_VENUE_BOOKING_FOR = 'institute_calendar';
+const EDITABLE_VENUE_BOOKING_STATUSES = ['booked', 'checked_in'];
+
+const normalizeString = (value = '') => String(value || '').trim();
+
+const normalizeBookingFor = (value) => {
+  const normalized = normalizeString(value || DEFAULT_VENUE_BOOKING_FOR);
+  return VENUE_BOOKING_FOR_VALUES.includes(normalized)
+    ? normalized
+    : DEFAULT_VENUE_BOOKING_FOR;
+};
+
+const validateBookingFor = (value) =>
+  VENUE_BOOKING_FOR_VALUES.includes(normalizeString(value));
+
+const getBookingDateTime = (date, time) => {
+  if (!date || !time) return null;
+  const parsed = new Date(`${date}T${time}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const isVenueBookingEditable = (booking) => {
+  if (!booking || !EDITABLE_VENUE_BOOKING_STATUSES.includes(booking.status)) {
+    return false;
+  }
+
+  const end = getBookingDateTime(booking.checkOutDate, booking.checkOutTime);
+  return Boolean(end && end > new Date());
+};
+
+const arraysEqual = (left = [], right = []) =>
+  Array.isArray(left) &&
+  Array.isArray(right) &&
+  left.length === right.length &&
+  left.every((item, index) => item === right[index]);
+
+const normalizeAttachmentList = (attachments) =>
+  Array.isArray(attachments)
+    ? attachments.map((item) => normalizeString(item)).filter(Boolean)
+    : [];
+
+const editableVenueBookingFields = [
+  'hall',
+  'roomNo',
+  'name',
+  'societyName',
+  'eventName',
+  'department',
+  'contact',
+  'email',
+  'societyEmail',
+  'presidentEmail',
+  'checkInDate',
+  'checkInTime',
+  'checkOutDate',
+  'checkOutTime',
+  'purpose',
+  'description',
+  'attachments',
+  'bookingFor',
+];
+
+const pickVenueBookingUpdates = (body = {}) => {
+  const updates = {};
+  for (const field of editableVenueBookingFields) {
+    if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+    updates[field] =
+      field === 'attachments'
+        ? normalizeAttachmentList(body[field])
+        : normalizeString(body[field]);
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'bookingFor')) {
+    updates.bookingFor = normalizeString(updates.bookingFor);
+  }
+  return updates;
+};
+
 // ==================== CORE FUNCTIONS ====================
 
 // Create new venue booking(s)
@@ -86,6 +164,7 @@ const createVenueBookingCore = async (req, res) => {
     description,
     attachments,
     enquiryId,
+    bookingFor,
   } = req.body;
 
   if (!rooms || rooms.length === 0) {
@@ -113,6 +192,12 @@ const createVenueBookingCore = async (req, res) => {
   if (!email.endsWith('@thapar.edu')) {
     return res.status(400).json({ message: 'Email must be @thapar.edu' });
   }
+
+  if (!validateBookingFor(bookingFor)) {
+    return res.status(400).json({ message: 'Booking calendar selection is required' });
+  }
+
+  const normalizedBookingFor = normalizeBookingFor(bookingFor);
 
   try {
     await Promise.all([
@@ -190,6 +275,7 @@ const createVenueBookingCore = async (req, res) => {
       isVenueBooking: true,
       isHallBooking: false,
       enquiryId: enquiryId || null,
+      bookingFor: normalizedBookingFor,
     });
 
     await booking.save();
@@ -278,6 +364,198 @@ const getVenueBookingByIdCore = async (req, res) => {
   }
 
   res.status(200).json(booking);
+};
+
+// Update editable fields for an active/upcoming venue booking
+const updateVenueBookingCore = async (req, res) => {
+  const { id } = req.params;
+  const userRole = req.user?.role || '';
+
+  const booking = await VenueBooking.findById(id);
+
+  if (!booking) {
+    return res.status(404).json({ message: 'Venue booking not found' });
+  }
+
+  if (!canAccessVenueRoom(userRole, booking.hall, booking.roomNo)) {
+    return res.status(403).json({ message: 'Access denied to this room' });
+  }
+
+  if (!isVenueBookingEditable(booking)) {
+    return res.status(400).json({
+      message: 'Only upcoming or ongoing active bookings can be edited',
+    });
+  }
+
+  const updates = pickVenueBookingUpdates(req.body);
+  const merged = {
+    hall: updates.hall ?? booking.hall,
+    roomNo: updates.roomNo ?? booking.roomNo,
+    name: updates.name ?? booking.name,
+    societyName: updates.societyName ?? booking.societyName,
+    eventName: updates.eventName ?? booking.eventName,
+    department: updates.department ?? booking.department,
+    contact: updates.contact ?? booking.contact,
+    email: updates.email ?? booking.email,
+    societyEmail: updates.societyEmail ?? booking.societyEmail,
+    presidentEmail: updates.presidentEmail ?? booking.presidentEmail,
+    checkInDate: updates.checkInDate ?? booking.checkInDate,
+    checkInTime: updates.checkInTime ?? booking.checkInTime,
+    checkOutDate: updates.checkOutDate ?? booking.checkOutDate,
+    checkOutTime: updates.checkOutTime ?? booking.checkOutTime,
+    purpose: updates.purpose ?? booking.purpose,
+    description: updates.description ?? booking.description,
+    attachments: Object.prototype.hasOwnProperty.call(updates, 'attachments')
+      ? updates.attachments
+      : normalizeAttachmentList(booking.attachments),
+    bookingFor: updates.bookingFor ?? booking.bookingFor ?? DEFAULT_VENUE_BOOKING_FOR,
+  };
+
+  if (!merged.hall || !merged.roomNo) {
+    return res.status(400).json({ message: 'Venue and room are required' });
+  }
+
+  if (!merged.name || !merged.eventName || !merged.email) {
+    return res.status(400).json({ message: 'Name, event name, and email are mandatory fields' });
+  }
+
+  if (!merged.checkInDate || !merged.checkInTime || !merged.checkOutDate || !merged.checkOutTime) {
+    return res.status(400).json({ message: 'Check-in and check-out dates/times are required' });
+  }
+
+  if (!merged.attachments.length) {
+    return res.status(400).json({ message: 'At least one attachment is required' });
+  }
+
+  if (merged.contact && !/^\d{10}$/.test(merged.contact)) {
+    return res.status(400).json({ message: 'Contact must be exactly 10 digits' });
+  }
+
+  if (!merged.email.endsWith('@thapar.edu')) {
+    return res.status(400).json({ message: 'Email must be @thapar.edu' });
+  }
+
+  if (!validateBookingFor(merged.bookingFor)) {
+    return res.status(400).json({ message: 'Booking calendar selection is required' });
+  }
+
+  if (!canAccessVenueRoom(userRole, merged.hall, merged.roomNo)) {
+    return res.status(403).json({ message: `Access denied to room ${merged.roomNo}` });
+  }
+
+  const startDateTime = getBookingDateTime(merged.checkInDate, merged.checkInTime);
+  const endDateTime = getBookingDateTime(merged.checkOutDate, merged.checkOutTime);
+
+  if (!startDateTime || !endDateTime || endDateTime <= startDateTime) {
+    return res.status(400).json({ message: 'Check-out date/time must be after check-in date/time' });
+  }
+
+  if (merged.checkOutTime <= merged.checkInTime) {
+    return res.status(400).json({ message: 'Daily end time must be after daily start time' });
+  }
+
+  const overlappingBookings = await VenueBooking.find({
+    _id: { $ne: booking._id },
+    hall: merged.hall,
+    roomNo: merged.roomNo,
+    status: { $in: ['booked', 'checked_in'] },
+  });
+
+  for (const existing of overlappingBookings) {
+    const hasOverlap = isDailySlotOverlapping(
+      merged.checkInDate,
+      merged.checkOutDate,
+      merged.checkInTime,
+      merged.checkOutTime,
+      existing.checkInDate,
+      existing.checkOutDate,
+      existing.checkInTime,
+      existing.checkOutTime
+    );
+
+    if (hasOverlap) {
+      return res.status(400).json({
+        message: `Time overlap detected for ${merged.hall} - ${merged.roomNo}`,
+      });
+    }
+  }
+
+  const previousValues = {};
+  const updatedValues = {};
+
+  for (const field of editableVenueBookingFields) {
+    const before = field === 'attachments'
+      ? normalizeAttachmentList(booking.attachments)
+      : normalizeString(booking[field]);
+    const after = field === 'attachments'
+      ? normalizeAttachmentList(merged.attachments)
+      : normalizeString(merged[field]);
+
+    const changed = field === 'attachments'
+      ? !arraysEqual(before, after)
+      : before !== after;
+
+    if (changed) {
+      previousValues[field] = before;
+      updatedValues[field] = after;
+    }
+  }
+
+  if (Object.keys(updatedValues).length === 0) {
+    return res.status(200).json({
+      message: 'No changes detected',
+      booking,
+    });
+  }
+
+  const previousHall = booking.hall;
+  const previousRoomNo = booking.roomNo;
+
+  for (const field of editableVenueBookingFields) {
+    booking[field] = merged[field];
+  }
+
+  booking.bookingFor = normalizeBookingFor(booking.bookingFor);
+  booking.lastEditedBy = req.user?._id || null;
+  booking.lastEditedAt = new Date();
+  booking.editHistory.push({
+    editedBy: req.user?._id || null,
+    editedAt: booking.lastEditedAt,
+    previousValues,
+    updatedValues,
+  });
+
+  await booking.save();
+
+  try {
+    await Promise.all([
+      touchSocietySuggestion(booking.societyName),
+      touchEventSuggestion(booking.eventName),
+    ]);
+  } catch (suggestionError) {
+    console.error('⚠️ Suggestion update failed (non-critical):', suggestionError.message);
+  }
+
+  try {
+    const io = getSocketIO();
+    io.emit('venueBookingUpdated', {
+      booking,
+      bookingId: booking._id,
+      hall: booking.hall,
+      roomNo: booking.roomNo,
+      previousHall,
+      previousRoomNo,
+      type: 'venue',
+      isolated: true,
+    });
+  } catch (socketError) {
+    console.error('⚠️ Socket emit failed (non-critical):', socketError.message);
+  }
+
+  return res.status(200).json({
+    message: 'Venue booking updated successfully',
+    booking,
+  });
 };
 
 // Extend venue booking
@@ -465,6 +743,7 @@ export const createVenueBooking = isolatedHandler(createVenueBookingCore);
 export const getAllVenueBookings = isolatedHandler(getAllVenueBookingsCore);
 export const getVenueBookingsByVenue = isolatedHandler(getVenueBookingsByVenueCore);
 export const getVenueBookingById = isolatedHandler(getVenueBookingByIdCore);
+export const updateVenueBooking = isolatedHandler(updateVenueBookingCore);
 export const extendVenueBooking = isolatedHandler(extendVenueBookingCore);
 export const cancelVenueBooking = isolatedHandler(cancelVenueBookingCore);
 export const updateVenueBookingStatus = isolatedHandler(updateVenueBookingStatusCore);
