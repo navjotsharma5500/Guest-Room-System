@@ -13,6 +13,43 @@ const sourceLabel = {
 const adminEventKey = (event) =>
   event?.unifiedId || event?._id || event?.id || `${event?.sourceType || "event"}-${event?.eventName}-${event?.eventDate}-${event?.eventTime}`;
 
+const numericStat = (value) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const parseEventMinutes = (time = "") => {
+  if (!time) return null;
+  const match = String(time).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return null;
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === "PM" && hours < 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  return (hours * 60) + minutes;
+};
+
+const eventStatusForCardFallback = (event) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+  const startDate = event?.eventDate || "";
+  const endDate = event?.eventEndDate || event?.eventDate || "";
+  const startMinutes = parseEventMinutes(event?.eventTime);
+  const endMinutes = parseEventMinutes(event?.checkOutTime);
+
+  if (startDate > today) return "upcoming";
+  if (endDate < today) return "completed";
+  if (startDate <= today && endDate >= today) {
+    if (startMinutes !== null && endMinutes !== null) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes ? "live" : "active";
+    }
+    return "active";
+  }
+  return "completed";
+};
+
 export default function EventCalendarAdminPage() {
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -54,6 +91,22 @@ export default function EventCalendarAdminPage() {
     });
     return ids;
   }, [conflicts]);
+
+  const visibleEventStats = useMemo(() => {
+    return events.reduce((acc, eventRecord) => {
+      const status = eventStatusForCardFallback(eventRecord);
+      if (status === "upcoming") acc.upcoming += 1;
+      if (status === "live") acc.liveNow += 1;
+      return acc;
+    }, { upcoming: 0, liveNow: 0 });
+  }, [events]);
+
+  const dashboardStats = useMemo(() => ({
+    totalEvents: Math.max(numericStat(stats.totalEvents), numericStat(pagination.total), events.length),
+    conflicts: Math.max(numericStat(stats.conflicts), conflicts.length),
+    upcoming: Math.max(numericStat(stats.upcoming), visibleEventStats.upcoming),
+    liveNow: Math.max(numericStat(stats.liveNow), visibleEventStats.liveNow),
+  }), [stats, pagination.total, events.length, conflicts.length, visibleEventStats]);
 
   const checkSession = async () => {
     try {
@@ -288,10 +341,10 @@ export default function EventCalendarAdminPage() {
       <main className="max-w-7xl mx-auto p-4 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Events", value: stats.totalEvents, helper: `${pagination.total || 0} listed records` },
-            { label: "Conflicts", value: stats.conflicts, helper: "Unresolved overlaps" },
-            { label: "Upcoming", value: stats.upcoming, helper: "Future events" },
-            { label: "Live Now", value: stats.liveNow, helper: "Running currently" },
+            { label: "Total Events", value: dashboardStats.totalEvents, helper: `${pagination.total || 0} listed records` },
+            { label: "Conflicts", value: dashboardStats.conflicts, helper: "Unresolved overlaps" },
+            { label: "Upcoming", value: dashboardStats.upcoming, helper: "Future events" },
+            { label: "Live Now", value: dashboardStats.liveNow, helper: "Running currently" },
           ].map((card) => (
             <div key={card.label} className="rounded-2xl bg-white border border-slate-200 p-4">
               <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{card.label}</p>
