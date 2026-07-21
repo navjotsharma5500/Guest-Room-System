@@ -206,11 +206,81 @@ export const adminSession = async (req, res) => {
   res.json({ success: true, authenticated: true });
 };
 
+const eventStatusForStats = (event) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+  const startDate = event.eventDate || "";
+  const endDate = event.eventEndDate || event.eventDate || "";
+  const startMinutes = parseMinutes(event.eventTime);
+  const endMinutes = parseMinutes(event.checkOutTime);
+
+  if (startDate > today) return "upcoming";
+  if (endDate < today) return "completed";
+  if (startDate <= today && endDate >= today) {
+    if (startMinutes !== null && endMinutes !== null) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes ? "live" : "active";
+    }
+    return "active";
+  }
+  return "completed";
+};
+
+const detectEventConflicts = (events) => {
+  const candidates = events.filter((event) =>
+    event.recordType === "event" &&
+    event.sourceStatus !== "cancelled" &&
+    event.conflictResolved !== true &&
+    event.eventHall?.hall &&
+    event.eventDate &&
+    event.eventTime &&
+    event.checkOutTime
+  );
+  const conflicts = [];
+  for (let i = 0; i < candidates.length; i += 1) {
+    for (let j = i + 1; j < candidates.length; j += 1) {
+      const a = candidates[i];
+      const b = candidates[j];
+      const sameVenue =
+        `${a.eventHall.hall} ${a.eventHall.roomNo || ""}`.trim().toLowerCase() ===
+        `${b.eventHall.hall} ${b.eventHall.roomNo || ""}`.trim().toLowerCase();
+      const dateOverlap = a.eventDate <= (b.eventEndDate || b.eventDate) && (a.eventEndDate || a.eventDate) >= b.eventDate;
+      const timeOverlap = hasTimeOverlap(a, b);
+      if (sameVenue && dateOverlap && timeOverlap) {
+        conflicts.push({
+          conflictId: [a.unifiedId, b.unifiedId].sort().join("__"),
+          firstEvent: a,
+          secondEvent: b,
+          reason: "Same venue and overlapping date/time window",
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    }
+  }
+  return conflicts;
+};
+
 export const getAdminEvents = async (req, res) => {
   try {
     const { events, sources } = await getMasterEvents(eventFiltersFromQuery(req.query));
-    const paged = paginateEvents(events, req.query.page || 1, 50);
-    res.json({ success: true, ...paged, sources });
+    const conflicts = detectEventConflicts(events);
+    const conflictIds = new Set();
+    conflicts.forEach((conflict) => {
+      conflictIds.add(conflict.firstEvent.unifiedId);
+      conflictIds.add(conflict.secondEvent.unifiedId);
+    });
+    const filteredEvents = req.query.conflictsOnly === "true"
+      ? events.filter((event) => conflictIds.has(event.unifiedId))
+      : events;
+    const stats = filteredEvents.reduce((acc, event) => {
+      acc.totalEvents += 1;
+      const status = eventStatusForStats(event);
+      if (status === "upcoming") acc.upcoming += 1;
+      if (status === "live") acc.liveNow += 1;
+      return acc;
+    }, { totalEvents: 0, conflicts: conflicts.length, upcoming: 0, liveNow: 0 });
+    const paged = paginateEvents(filteredEvents, req.query.page || 1, 50);
+    res.json({ success: true, ...paged, sources, stats });
   } catch (err) {
     console.error("Admin master events error:", err.message);
     res.status(500).json({ success: false, message: "Failed to fetch admin events" });
@@ -300,6 +370,47 @@ export const deleteAdminEvent = async (req, res) => {
   }
 };
 
+export const resolveAdminEventConflict = async (req, res) => {
+  try {
+    const [source, id] = String(req.params.unifiedId || "").split(":");
+    const resolutionUpdate = {
+      conflictResolved: true,
+      conflictResolvedAt: new Date(),
+      conflictResolvedBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
+      conflictResolutionRemarks: req.body?.remarks || "Resolved from Event Calendar Admin",
+    };
+    let updated = null;
+
+    if (source === "venue") {
+      updated = await VenueBooking.findByIdAndUpdate(id, resolutionUpdate, { new: true, runValidators: true }).lean();
+    } else if (source === "event") {
+      updated = await EventCalendar.findByIdAndUpdate(id, resolutionUpdate, { new: true, runValidators: true }).lean();
+    } else {
+      const baseUrl = source === "student" ? process.env.STUDENT_CALENDAR_API_URL : process.env.INSTITUTE_CALENDAR_API_URL;
+      const response = await fetch(new URL(`api/integration/events/${id}`, `${String(baseUrl || "").replace(/\/$/, "")}/`), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-calendar-api-key": process.env.CALENDAR_INTERNAL_API_KEY || "",
+        },
+        body: JSON.stringify(resolutionUpdate),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) return res.status(response.status).json(json);
+      updated = json.data;
+    }
+
+    if (!updated) return res.status(404).json({ success: false, message: "Event not found" });
+    invalidateMasterCalendarCache();
+    try {
+      getSocketIO().emit("master-calendar-updated", { action: "conflict-resolved", unifiedId: req.params.unifiedId });
+    } catch {}
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 const parseMinutes = (time) => {
   if (!time || typeof time !== "string") return null;
   const normalized = time.trim().toUpperCase();
@@ -333,35 +444,7 @@ const hasTimeOverlap = (first, second) => {
 export const getAdminConflicts = async (req, res) => {
   try {
     const { events } = await getMasterEvents({ recordType: "event" });
-    const candidates = events.filter((event) =>
-      event.recordType === "event" &&
-      event.sourceStatus !== "cancelled" &&
-      event.eventHall?.hall &&
-      event.eventDate &&
-      event.eventTime &&
-      event.checkOutTime
-    );
-    const conflicts = [];
-    for (let i = 0; i < candidates.length; i += 1) {
-      for (let j = i + 1; j < candidates.length; j += 1) {
-        const a = candidates[i];
-        const b = candidates[j];
-        const sameVenue =
-          `${a.eventHall.hall} ${a.eventHall.roomNo || ""}`.trim().toLowerCase() ===
-          `${b.eventHall.hall} ${b.eventHall.roomNo || ""}`.trim().toLowerCase();
-        const dateOverlap = a.eventDate <= (b.eventEndDate || b.eventDate) && (a.eventEndDate || a.eventDate) >= b.eventDate;
-        const timeOverlap = hasTimeOverlap(a, b);
-        if (sameVenue && dateOverlap && timeOverlap) {
-          conflicts.push({
-            conflictId: [a.unifiedId, b.unifiedId].sort().join("__"),
-            firstEvent: a,
-            secondEvent: b,
-            reason: "Same venue and overlapping date/time window",
-            detectedAt: new Date().toISOString(),
-          });
-        }
-      }
-    }
+    const conflicts = detectEventConflicts(events);
     res.json({ success: true, conflicts });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to detect conflicts" });

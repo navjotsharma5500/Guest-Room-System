@@ -54,6 +54,23 @@ const eventCalendarSchema = new mongoose.Schema({
     default: 'upcoming',
   },
 
+  conflictResolved: {
+    type: Boolean,
+    default: false,
+  },
+  conflictResolvedAt: {
+    type: Date,
+    default: null,
+  },
+  conflictResolvedBy: {
+    type: String,
+    default: '',
+  },
+  conflictResolutionRemarks: {
+    type: String,
+    default: '',
+  },
+
   // Google Calendar Integration
   googleCalendarEventId: {
     type: String,

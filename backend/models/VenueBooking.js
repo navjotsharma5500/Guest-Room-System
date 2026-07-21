@@ -99,6 +99,23 @@ const venueBookingSchema = new mongoose.Schema({
     required: true,
   },
 
+  conflictResolved: {
+    type: Boolean,
+    default: false,
+  },
+  conflictResolvedAt: {
+    type: Date,
+    default: null,
+  },
+  conflictResolvedBy: {
+    type: String,
+    default: '',
+  },
+  conflictResolutionRemarks: {
+    type: String,
+    default: '',
+  },
+
   // Status
   status: {
     type: String,

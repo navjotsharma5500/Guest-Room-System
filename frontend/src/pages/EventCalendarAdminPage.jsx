@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Edit3, LogOut, RefreshCw, Search, ShieldAlert, Trash2, X } from "lucide-react";
+import { Calendar, CheckCircle2, Edit3, Filter, LogOut, RefreshCw, Search, ShieldAlert, Trash2, X } from "lucide-react";
 import { BACKEND_URL } from "../utils/apiConfig";
 
 const API = BACKEND_URL;
@@ -18,22 +18,33 @@ export default function EventCalendarAdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
-  const [sources, setSources] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [search, setSearch] = useState("");
   const [sourceType, setSourceType] = useState("");
+  const [venue, setVenue] = useState("");
+  const [department, setDepartment] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [conflictsOnly, setConflictsOnly] = useState(false);
+  const [stats, setStats] = useState({ totalEvents: 0, conflicts: 0, upcoming: 0, liveNow: 0 });
   const [error, setError] = useState("");
   const [conflicts, setConflicts] = useState([]);
   const [editingEvent, setEditingEvent] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [resolvingId, setResolvingId] = useState("");
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ page: String(pagination.page || 1), limit: "50" });
     if (search.trim()) params.set("search", search.trim());
     if (sourceType) params.set("sourceType", sourceType);
+    if (venue.trim()) params.set("venue", venue.trim());
+    if (department.trim()) params.set("department", department.trim());
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    if (conflictsOnly) params.set("conflictsOnly", "true");
     return params.toString();
-  }, [pagination.page, search, sourceType]);
+  }, [pagination.page, search, sourceType, venue, department, startDate, endDate, conflictsOnly]);
 
   const conflictEventIds = useMemo(() => {
     const ids = new Set();
@@ -62,8 +73,8 @@ export default function EventCalendarAdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to load events");
       setEvents(data.events || []);
-      setSources(data.sources || null);
       setPagination(data.pagination || { page: 1, totalPages: 1, total: 0 });
+      setStats(data.stats || { totalEvents: 0, conflicts: 0, upcoming: 0, liveNow: 0 });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -186,6 +197,41 @@ export default function EventCalendarAdminPage() {
     loadConflicts();
   };
 
+  const resetFilters = () => {
+    setSearch("");
+    setSourceType("");
+    setVenue("");
+    setDepartment("");
+    setStartDate("");
+    setEndDate("");
+    setConflictsOnly(false);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const resolveConflict = async (eventRecord) => {
+    if (!eventRecord?.unifiedId) return;
+    const confirmed = window.confirm(`Mark conflict as resolved for:\n\n${eventRecord.eventName}`);
+    if (!confirmed) return;
+    setResolvingId(eventRecord.unifiedId);
+    setError("");
+    try {
+      const response = await fetch(`${API}/api/event-calendar/admin/events/${encodeURIComponent(eventRecord.unifiedId)}/resolve-conflict`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ remarks: "Resolved from Event Calendar Admin" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "Conflict resolve failed");
+      loadEvents();
+      loadConflicts();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResolvingId("");
+    }
+  };
+
   if (loading && !authenticated) {
     return <div className="min-h-screen grid place-items-center text-slate-500">Loading Event Calendar Admin...</div>;
   }
@@ -241,66 +287,109 @@ export default function EventCalendarAdminPage() {
 
       <main className="max-w-7xl mx-auto p-4 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {["venue", "student", "institute"].map((key) => (
-            <div key={key} className="rounded-2xl bg-white border border-slate-200 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{key}</p>
-              <p className="text-2xl font-black text-slate-900">{sources?.[key]?.count ?? 0}</p>
-              <p className={sources?.[key]?.available === false ? "text-red-600 text-sm" : "text-green-600 text-sm"}>
-                {sources?.[key]?.available === false ? "Unavailable" : "Available"}
-              </p>
+          {[
+            { label: "Total Events", value: stats.totalEvents, helper: `${pagination.total || 0} listed records` },
+            { label: "Conflicts", value: stats.conflicts, helper: "Unresolved overlaps" },
+            { label: "Upcoming", value: stats.upcoming, helper: "Future events" },
+            { label: "Live Now", value: stats.liveNow, helper: "Running currently" },
+          ].map((card) => (
+            <div key={card.label} className="rounded-2xl bg-white border border-slate-200 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">{card.label}</p>
+              <p className="text-2xl font-black text-slate-900">{card.value ?? 0}</p>
+              <p className="text-sm text-slate-500">{card.helper}</p>
             </div>
           ))}
-          <div className="rounded-2xl bg-white border border-slate-200 p-4">
-            <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Conflicts</p>
-            <p className="text-2xl font-black text-slate-900">{conflicts.length}</p>
-            <p className="text-sm text-slate-500">Detected overlaps</p>
-          </div>
         </div>
 
         {error && <div className="rounded-2xl bg-red-50 border border-red-100 text-red-700 p-4">{error}</div>}
 
-        <div className="rounded-2xl bg-white border border-slate-200 p-4 flex flex-col md:flex-row gap-3">
-          <label className="flex-1 flex items-center gap-2 border border-slate-200 rounded-xl px-3">
-            <Search size={16} className="text-slate-400" />
-            <input
-              value={search}
+        <div className="rounded-2xl bg-white border border-slate-200 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+            <Filter size={16} className="text-blue-600" /> Search & Filters
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
+            <label className="lg:col-span-2 flex items-center gap-2 border border-slate-200 rounded-xl px-3">
+              <Search size={16} className="text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => {
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                  setSearch(event.target.value);
+                }}
+                className="w-full py-2 outline-none"
+                placeholder="Search event, society, department, venue..."
+              />
+            </label>
+            <select
+              value={sourceType}
               onChange={(event) => {
                 setPagination((prev) => ({ ...prev, page: 1 }));
-                setSearch(event.target.value);
+                setSourceType(event.target.value);
               }}
-              className="w-full py-2 outline-none"
-              placeholder="Search event, society, venue..."
+              className="border border-slate-200 rounded-xl px-3 py-2"
+            >
+              <option value="">All Sources</option>
+              <option value="venue-booking">Venue Booking</option>
+              <option value="student-calendar">Student Calendar</option>
+              <option value="institute-calendar">Institute Calendar</option>
+            </select>
+            <input
+              value={venue}
+              onChange={(event) => {
+                setPagination((prev) => ({ ...prev, page: 1 }));
+                setVenue(event.target.value);
+              }}
+              className="border border-slate-200 rounded-xl px-3 py-2 outline-none"
+              placeholder="Venue"
             />
-          </label>
-          <select
-            value={sourceType}
-            onChange={(event) => {
-              setPagination((prev) => ({ ...prev, page: 1 }));
-              setSourceType(event.target.value);
-            }}
-            className="border border-slate-200 rounded-xl px-3 py-2"
-          >
-            <option value="">All Sources</option>
-            <option value="venue-booking">Venue Booking</option>
-            <option value="student-calendar">Student Calendar</option>
-            <option value="institute-calendar">Institute Calendar</option>
-          </select>
-        </div>
-
-        {conflicts.length > 0 && (
-          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-            <div className="flex items-center gap-2 font-bold text-amber-800 mb-2">
-              <ShieldAlert size={18} /> Conflict Review
-            </div>
-            <div className="space-y-2">
-              {conflicts.slice(0, 5).map((conflict) => (
-                <div key={conflict.conflictId} className="bg-white/70 rounded-xl p-3 text-sm text-amber-900">
-                  {conflict.firstEvent.eventName} conflicts with {conflict.secondEvent.eventName}
-                </div>
-              ))}
-            </div>
+            <input
+              value={department}
+              onChange={(event) => {
+                setPagination((prev) => ({ ...prev, page: 1 }));
+                setDepartment(event.target.value);
+              }}
+              className="border border-slate-200 rounded-xl px-3 py-2 outline-none"
+              placeholder="Department"
+            />
+            <label className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">
+              <input
+                type="checkbox"
+                checked={conflictsOnly}
+                onChange={(event) => {
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                  setConflictsOnly(event.target.checked);
+                }}
+              />
+              Conflicts only
+            </label>
           </div>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-3">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => {
+                setPagination((prev) => ({ ...prev, page: 1 }));
+                setStartDate(event.target.value);
+              }}
+              className="border border-slate-200 rounded-xl px-3 py-2 outline-none"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => {
+                setPagination((prev) => ({ ...prev, page: 1 }));
+                setEndDate(event.target.value);
+              }}
+              className="border border-slate-200 rounded-xl px-3 py-2 outline-none"
+            />
+            <button onClick={resetFilters} className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600">
+              Clear
+            </button>
+            <button onClick={loadEvents} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center gap-2">
+              <RefreshCw size={16} /> Apply
+            </button>
+          </div>
+        </div>
 
         <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -327,6 +416,11 @@ export default function EventCalendarAdminPage() {
                             <ShieldAlert size={12} /> Conflict
                           </span>
                         )}
+                        {eventRecord.conflictResolved === true && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[11px] font-bold">
+                            <CheckCircle2 size={12} /> Resolved
+                          </span>
+                        )}
                       </p>
                       <p className="text-slate-500">{eventRecord.societyName}</p>
                     </td>
@@ -341,6 +435,15 @@ export default function EventCalendarAdminPage() {
                       <button onClick={() => openEdit(eventRecord)} className="text-blue-600 hover:bg-blue-50 rounded-lg p-2 mr-1">
                         <Edit3 size={16} />
                       </button>
+                      {hasConflict && (
+                        <button
+                          onClick={() => resolveConflict(eventRecord)}
+                          disabled={resolvingId === eventRecord.unifiedId}
+                          className="text-green-700 hover:bg-green-50 rounded-lg px-2 py-2 mr-1 font-bold disabled:opacity-50"
+                        >
+                          {resolvingId === eventRecord.unifiedId ? "Resolving..." : "Resolve Conflict"}
+                        </button>
+                      )}
                       {eventRecord.deletable !== false && (
                         <button onClick={() => deleteEvent(eventRecord)} className="text-red-600 hover:bg-red-50 rounded-lg p-2">
                           <Trash2 size={16} />

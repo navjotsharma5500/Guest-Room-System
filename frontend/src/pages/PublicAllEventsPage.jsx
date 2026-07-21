@@ -201,6 +201,61 @@ export default function PublicAllEventsPage() {
         style={{ boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
       >
         <style>{`
+          .public-all-events-filter-card {
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+          }
+
+          .public-all-events-filter-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 2fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(150px, .8fr) minmax(150px, .8fr) auto;
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+            align-items: center;
+          }
+
+          .public-all-events-filter-grid > * {
+            min-width: 0;
+          }
+
+          .public-all-events-filter-control {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .public-all-events-search-input {
+            min-width: 0;
+            text-overflow: ellipsis;
+          }
+
+          .public-all-events-clear-btn {
+            min-width: 96px;
+            white-space: nowrap;
+          }
+
+          @media (max-width: 1180px) {
+            .public-all-events-filter-grid {
+              grid-template-columns: minmax(260px, 1.4fr) repeat(2, minmax(160px, 1fr)) repeat(2, minmax(140px, .8fr));
+            }
+
+            .public-all-events-clear-btn {
+              grid-column: 1 / -1;
+              justify-self: end;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .public-all-events-filter-grid {
+              grid-template-columns: 1fr 1fr;
+            }
+
+            .public-all-events-search-field {
+              grid-column: 1 / -1;
+            }
+          }
+
           @media (max-width: 767px) {
             .public-all-events-header {
               min-height: auto !important;
@@ -252,6 +307,28 @@ export default function PublicAllEventsPage() {
             .public-all-events-back {
               max-width: 100%;
             }
+
+            .public-all-events-main {
+              padding-left: 14px !important;
+              padding-right: 14px !important;
+              overflow-x: hidden;
+            }
+
+            .public-all-events-filter-card {
+              padding: 14px !important;
+              border-radius: 18px !important;
+            }
+
+            .public-all-events-filter-grid {
+              grid-template-columns: 1fr;
+              gap: 10px;
+            }
+
+            .public-all-events-clear-btn {
+              width: 100%;
+              min-width: 0;
+              justify-self: stretch;
+            }
           }
         `}</style>
         <div
@@ -301,20 +378,20 @@ export default function PublicAllEventsPage() {
         </div>
       </header>
 
-      <main className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 flex-grow max-w-7xl mx-auto">
+      <main className="public-all-events-main relative z-10 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 flex-grow max-w-7xl mx-auto">
         <section
-          className={`rounded-2xl shadow-xl border p-4 sm:p-5 ${
+          className={`public-all-events-filter-card rounded-2xl shadow-xl border p-4 sm:p-5 ${
             theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
           }`}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.8fr_auto] gap-3">
-            <label className="relative">
+          <div className="public-all-events-filter-grid">
+            <label className="public-all-events-search-field relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search event, society, venue..."
-                className={`w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none ${
+                className={`public-all-events-filter-control public-all-events-search-input w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none ${
                   theme === "dark"
                     ? "bg-gray-900 border-gray-700 text-white"
                     : "bg-white border-gray-200 text-gray-900"
@@ -325,7 +402,7 @@ export default function PublicAllEventsPage() {
             <select
               value={venueFilter}
               onChange={(event) => setVenueFilter(event.target.value)}
-              className={`rounded-xl border px-3 py-2.5 text-sm outline-none ${
+              className={`public-all-events-filter-control rounded-xl border px-3 py-2.5 text-sm outline-none ${
                 theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200"
               }`}
             >
@@ -338,7 +415,7 @@ export default function PublicAllEventsPage() {
             <select
               value={societyFilter}
               onChange={(event) => setSocietyFilter(event.target.value)}
-              className={`rounded-xl border px-3 py-2.5 text-sm outline-none ${
+              className={`public-all-events-filter-control rounded-xl border px-3 py-2.5 text-sm outline-none ${
                 theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200"
               }`}
             >
@@ -352,7 +429,7 @@ export default function PublicAllEventsPage() {
               type="date"
               value={dateFilter}
               onChange={(event) => setDateFilter(event.target.value)}
-              className={`rounded-xl border px-3 py-2.5 text-sm outline-none ${
+              className={`public-all-events-filter-control rounded-xl border px-3 py-2.5 text-sm outline-none ${
                 theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200"
               }`}
             />
@@ -360,7 +437,7 @@ export default function PublicAllEventsPage() {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className={`rounded-xl border px-3 py-2.5 text-sm outline-none ${
+              className={`public-all-events-filter-control rounded-xl border px-3 py-2.5 text-sm outline-none ${
                 theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200"
               }`}
             >
@@ -373,7 +450,7 @@ export default function PublicAllEventsPage() {
 
             <button
               onClick={clearFilters}
-              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
+              className={`public-all-events-clear-btn inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
                 theme === "dark"
                   ? "border-gray-700 text-gray-200 hover:bg-gray-700"
                   : "border-gray-200 text-gray-700 hover:bg-gray-50"

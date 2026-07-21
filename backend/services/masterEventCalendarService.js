@@ -123,6 +123,10 @@ const normalizeVenueBooking = (booking) => ({
   attachments: booking.attachments || [],
   sourceStatus: booking.status || "",
   bookingStatus: booking.status || "",
+  conflictResolved: booking.conflictResolved === true,
+  conflictResolvedAt: booking.conflictResolvedAt,
+  conflictResolvedBy: booking.conflictResolvedBy || "",
+  conflictResolutionRemarks: booking.conflictResolutionRemarks || "",
   createdAt: booking.createdAt,
   updatedAt: booking.updatedAt,
   editable: true,
@@ -147,6 +151,10 @@ const normalizeLegacyEvent = (event) => ({
   purpose: "",
   attachments: event.attachments || [],
   sourceStatus: event.status || "",
+  conflictResolved: event.conflictResolved === true,
+  conflictResolvedAt: event.conflictResolvedAt,
+  conflictResolvedBy: event.conflictResolvedBy || "",
+  conflictResolutionRemarks: event.conflictResolutionRemarks || "",
   createdAt: event.createdAt,
   updatedAt: event.updatedAt,
   editable: true,
@@ -172,6 +180,10 @@ const normalizeRemoteEvent = (event, sourceType, calendarType) => ({
   attachments: event.attachments || [],
   sourceStatus: event.status || "",
   conflict: event.conflict,
+  conflictResolved: event.conflictResolved === true,
+  conflictResolvedAt: event.conflictResolvedAt,
+  conflictResolvedBy: event.conflictResolvedBy || "",
+  conflictResolutionRemarks: event.conflictResolutionRemarks || "",
   createdAt: event.createdAt,
   updatedAt: event.updatedAt,
   editable: true,
@@ -291,12 +303,12 @@ const getLocalEvents = async ({ startDate, endDate } = {}) => {
 
   const [venueBookings, legacyEvents] = await Promise.all([
     VenueBooking.find(bookingQuery)
-      .select("hall roomNo name societyName eventName department contact email checkInDate checkInTime checkOutDate checkOutTime purpose description attachments status bookingFor enquiryId createdAt updatedAt")
+      .select("hall roomNo name societyName eventName department contact email checkInDate checkInTime checkOutDate checkOutTime purpose description attachments status bookingFor enquiryId conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks createdAt updatedAt")
       .lean(),
     EventCalendar.find(startDate || endDate ? {
       eventDate: { $lte: endDate || "9999-12-31", $gte: startDate || "0000-01-01" },
     } : {})
-      .select("eventName societyName eventDate eventEndDate eventTime checkOutTime eventHall attachments status linkedVenueBooking description createdAt updatedAt")
+      .select("eventName societyName eventDate eventEndDate eventTime checkOutTime eventHall attachments status linkedVenueBooking description conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks createdAt updatedAt")
       .lean(),
   ]);
 

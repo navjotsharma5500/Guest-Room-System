@@ -47,6 +47,11 @@ router.put(
   masterEventCalendarController.requireEventCalendarAdmin,
   masterEventCalendarController.updateAdminEvent
 );
+router.patch(
+  '/admin/events/:unifiedId/resolve-conflict',
+  masterEventCalendarController.requireEventCalendarAdmin,
+  masterEventCalendarController.resolveAdminEventConflict
+);
 router.delete(
   '/admin/events/:unifiedId',
   masterEventCalendarController.requireEventCalendarAdmin,

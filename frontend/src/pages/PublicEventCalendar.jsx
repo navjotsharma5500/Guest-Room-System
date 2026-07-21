@@ -102,6 +102,18 @@ const fetchPublicUpcomingEvents = async (viewMode = "all") => {
   return { events: asArray(data.events), sources: data.sources || null };
 };
 
+const fetchPublicAllEvents = async (viewMode = "all") => {
+  const data = await fetchFirstSuccessful(
+    [
+      `/api/event-calendar/master/all${buildQuery({ ...(VIEW_FILTERS[viewMode] || {}), recordType: "event", limit: 1000 })}`,
+      "/api/events/public",
+      "/api/event-calendar/public",
+    ],
+    { method: "GET" }
+  );
+  return { events: asArray(data.events), sources: data.sources || null };
+};
+
 const fetchCalendarColorMap = async (year, month) => {
   const lastDay = new Date(Number(year), Number(month), 0).getDate();
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -223,6 +235,7 @@ const detectConflicts = (events) => {
   const ids = new Set();
   const comparable = events.filter((event) => {
     if (!isCalendarEvent(event)) return false;
+    if (event.conflictResolved === true) return false;
     if (!eventHasTime(event)) return false;
     if (!normalizeText(eventVenue(event))) return false;
     return true;
@@ -357,6 +370,7 @@ export default function PublicEventCalendar() {
   const [monthDirection, setMonthDirection] = useState(0);
   const [events, setEvents] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [allCalendarEvents, setAllCalendarEvents] = useState([]);
   const [dateColorMap, setDateColorMap] = useState({});
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [selectedDateLoading, setSelectedDateLoading] = useState(false);
@@ -373,7 +387,7 @@ export default function PublicEventCalendar() {
     search: "",
     location: "",
     source: "",
-    status: "",
+    department: "",
     fromDate: "",
     toDate: "",
     conflictsOnly: false,
@@ -403,9 +417,10 @@ export default function PublicEventCalendar() {
     try {
       const year = targetDate.getFullYear();
       const month = targetDate.getMonth() + 1;
-      const [monthEventsResult, upcomingEventsResult, colorMapResult] = await Promise.allSettled([
+      const [monthEventsResult, upcomingEventsResult, allEventsResult, colorMapResult] = await Promise.allSettled([
         fetchPublicEventMonth(year, month, viewMode),
         fetchPublicUpcomingEvents(viewMode),
+        fetchPublicAllEvents(viewMode),
         fetchCalendarColorMap(year, month),
       ]);
 
@@ -413,6 +428,7 @@ export default function PublicEventCalendar() {
 
       setEvents(monthEventsResult.status === "fulfilled" ? monthEventsResult.value.events : []);
       setUpcomingEvents(upcomingEventsResult.status === "fulfilled" ? upcomingEventsResult.value.events : []);
+      setAllCalendarEvents(allEventsResult.status === "fulfilled" ? allEventsResult.value.events : []);
       setDateColorMap(colorMapResult.status === "fulfilled" ? colorMapResult.value : {});
 
       if (options.commitMonth) {
@@ -424,6 +440,7 @@ export default function PublicEventCalendar() {
       console.error("Failed to load calendar data:", error);
       setEvents([]);
       setUpcomingEvents([]);
+      setAllCalendarEvents([]);
       setDateColorMap({});
     } finally {
       if (requestId === calendarRequestRef.current) {
@@ -464,7 +481,7 @@ export default function PublicEventCalendar() {
     };
   }, [loadCalendarData]);
 
-  const allFetchedEvents = useMemo(() => mergeSameSourceRecords([...events, ...upcomingEvents]), [events, upcomingEvents]);
+  const allFetchedEvents = useMemo(() => mergeSameSourceRecords([...events, ...upcomingEvents, ...allCalendarEvents]), [events, upcomingEvents, allCalendarEvents]);
   const conflictIds = useMemo(() => detectConflicts(allFetchedEvents), [allFetchedEvents]);
   const eventsWithConflicts = useMemo(
     () => events.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
@@ -473,6 +490,10 @@ export default function PublicEventCalendar() {
   const upcomingWithConflicts = useMemo(
     () => upcomingEvents.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
     [upcomingEvents, conflictIds]
+  );
+  const allCalendarEventsWithConflicts = useMemo(
+    () => allCalendarEvents.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
+    [allCalendarEvents, conflictIds]
   );
 
   const eventsForDate = useCallback(
@@ -521,13 +542,20 @@ export default function PublicEventCalendar() {
     return filteredUpcomingEvents;
   }, [activeTab, todayEvents, liveEvents, filteredUpcomingEvents]);
 
+  const hasFilters = Object.values(filters).some(Boolean);
+  const filterSearchPool = useMemo(
+    () => mergeSameSourceRecords(allCalendarEventsWithConflicts).filter(isCalendarEvent),
+    [allCalendarEventsWithConflicts]
+  );
+
   const filteredSelectedDateEvents = useMemo(() => {
     const searchText = normalizeText(filters.search);
-    return selectedDateEvents.filter((event) => {
+    const sourceEvents = hasFilters ? filterSearchPool : selectedDateEvents;
+    return sourceEvents.filter((event) => {
       if (filters.conflictsOnly && !event.__hasConflict) return false;
       if (filters.location && normalizeText(eventVenue(event)) !== normalizeText(filters.location)) return false;
       if (filters.source && eventSourceLabel(event) !== filters.source) return false;
-      if (filters.status && getEventStatus(event, todayStr, currentMinutes) !== filters.status) return false;
+      if (filters.department && normalizeText(event.department || event.societyName) !== normalizeText(filters.department)) return false;
       if (filters.fromDate && (event.eventEndDate || event.eventDate) < filters.fromDate) return false;
       if (filters.toDate && event.eventDate > filters.toDate) return false;
       if (searchText) {
@@ -535,16 +563,24 @@ export default function PublicEventCalendar() {
         if (!haystack.includes(searchText)) return false;
       }
       return true;
+    }).sort((a, b) => {
+      const dateCompare = String(b.eventDate || "").localeCompare(String(a.eventDate || ""));
+      if (dateCompare !== 0) return dateCompare;
+      return parseTime(b.eventTime) - parseTime(a.eventTime);
     });
-  }, [currentMinutes, filters, selectedDateEvents, todayStr]);
+  }, [filterSearchPool, filters, hasFilters, selectedDateEvents]);
 
   const locationOptions = useMemo(() => {
-    return [...new Set(allEventsPool.map(eventVenue).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  }, [allEventsPool]);
+    return [...new Set(filterSearchPool.map(eventVenue).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }, [filterSearchPool]);
 
   const sourceOptions = useMemo(() => {
-    return [...new Set(allEventsPool.map(eventSourceLabel).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  }, [allEventsPool]);
+    return [...new Set(filterSearchPool.map(eventSourceLabel).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }, [filterSearchPool]);
+
+  const departmentOptions = useMemo(() => {
+    return [...new Set(filterSearchPool.map((event) => event.department || event.societyName).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }, [filterSearchPool]);
 
   const holidays = useMemo(
     () => events.filter((event) => event.recordType === "holiday").sort((a, b) => String(a.eventDate || "").localeCompare(String(b.eventDate || ""))),
@@ -600,7 +636,7 @@ export default function PublicEventCalendar() {
   const sidebarItems = [
     { id: "add-booking", label: "Add Booking", icon: CalendarIcon, href: "/venue-enquiry" },
     { id: "all", label: "All Events", icon: CalendarIcon, href: "/event-calendar/all-events" },
-    { id: "venue", label: "Venue Booking", icon: Home },
+    { id: "venue", label: "Venue Booking", icon: Home, href: "/venue-calendar" },
     { id: "institute", label: "Institute Calendar", icon: CalendarIcon, href: "/ic" },
     { id: "student", label: "Student Calendar", icon: CalendarIcon, href: "/tc" },
   ];
@@ -619,10 +655,8 @@ export default function PublicEventCalendar() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", location: "", source: "", status: "", fromDate: "", toDate: "", conflictsOnly: false });
+    setFilters({ search: "", location: "", source: "", department: "", fromDate: "", toDate: "", conflictsOnly: false });
   };
-
-  const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <div className="event-calendar-page min-h-screen bg-white text-gray-900">
@@ -758,7 +792,7 @@ export default function PublicEventCalendar() {
               <motion.section initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} className="student-details-card">
                 <div className="student-details-head">
                   <div>
-                    <h2>Bookings on {humanDate(selectedDateKey)}</h2>
+                    <h2>{hasFilters ? "Filtered Events" : `Bookings on ${humanDate(selectedDateKey)}`}</h2>
                     <p>{filteredSelectedDateEvents.length} booking{filteredSelectedDateEvents.length !== 1 ? "s" : ""} shown</p>
                   </div>
                   <div className="student-details-actions">
@@ -802,13 +836,10 @@ export default function PublicEventCalendar() {
                       </select>
                     </label>
                     <label>
-                      <span>Status</span>
-                      <select value={filters.status} onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}>
-                        <option value="">All Status</option>
-                        <option value="live">Live</option>
-                        <option value="active">Active</option>
-                        <option value="upcoming">Upcoming</option>
-                        <option value="completed">Completed</option>
+                      <span>Department</span>
+                      <select value={filters.department} onChange={(e) => setFilters((prev) => ({ ...prev, department: e.target.value }))}>
+                        <option value="">All Departments</option>
+                        {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
                       </select>
                     </label>
                     <label className="student-checkbox-filter">
@@ -824,7 +855,7 @@ export default function PublicEventCalendar() {
                   ) : filteredSelectedDateEvents.length === 0 ? (
                     <div className="student-empty-state">
                       <CalendarIcon size={36} />
-                      <p>{hasFilters ? "No matching bookings found" : "No bookings on this day"}</p>
+                      <p>{hasFilters ? "No matching events found" : "No bookings on this day"}</p>
                       <span>{hasFilters ? "Try changing the filters." : "Select another date or source."}</span>
                     </div>
                   ) : (
