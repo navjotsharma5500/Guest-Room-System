@@ -1,5 +1,15 @@
 import { BACKEND_URL } from "./apiConfig";
 
+export const PUBLIC_CARD_IDS = [
+  "guest-booking",
+  "venue-booking",
+  "event-calendar",
+  "library-pass",
+  "society-pass",
+  "lost-found",
+  "community-feedback",
+];
+
 export const DEFAULT_PUBLIC_UI_CONFIG = {
   widgets: {
     developerText: "Created by DoSA Office",
@@ -9,131 +19,268 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     systemOnline: true,
     echoEnabled: true,
   },
-  selector: {
-    title: "Thapar Operations",
-    subtitle: "Centralized portal for Guest Rooms, Venues & Student Services",
-    themePreset: "light",
-    cardStyle: "glass",
-    layoutStyle: "grid-3",
-    cardOrder: [
-      "guest-booking",
-      "venue-booking",
-      "feedback",
-      "society-night-pass",
-      "calendar",
-      "lost-found",
+  header: {
+    logoUrl: "https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744",
+    logoAlt: "Thapar",
+    title: "Thapar Institute of Engineering and Technology",
+    subtitle: "",
+    loginText: "Admin Login",
+    loginDestination: "https://campusconnect.thapar.edu/login",
+    announcement: "",
+    topNotice: "",
+    navigationVisible: true,
+  },
+  navigation: [
+    { id: "home", title: "Home", action: "home", enabled: true, order: 0 },
+    {
+      id: "booking",
+      title: "Booking Form",
+      enabled: true,
+      order: 1,
+      items: [
+        { id: "guest-room", title: "Hostel Guest-Room Booking", destination: "https://campusconnect.thapar.edu/guest-room", target: "_blank", enabled: true },
+        { id: "venue", title: "Event Venue Booking", destination: "https://campusconnect.thapar.edu/venue-enquiry", target: "_blank", enabled: true },
+      ],
+    },
+    {
+      id: "calendar",
+      title: "Calendar",
+      enabled: true,
+      order: 2,
+      items: [
+        { id: "event-calendar", title: "Event Calendar", destination: "https://campusconnect.thapar.edu/event-calendar", target: "_blank", enabled: true },
+      ],
+    },
+    {
+      id: "night-pass",
+      title: "Night Pass",
+      enabled: true,
+      order: 3,
+      items: [
+      { id: "library-pass", title: "Library Night Pass", action: "libraryUnavailable", enabled: true },
+        { id: "society-pass", title: "Society Night Pass", action: "cs", badge: "Soon", enabled: true },
+      ],
+    },
+    {
+      id: "services",
+      title: "Services",
+      enabled: true,
+      order: 4,
+      items: [
+        { id: "lost-found", title: "Lost & Found", destination: "https://campusconnect.thapar.edu/lostnfound", target: "_blank", enabled: true },
+      ],
+    },
+    {
+      id: "support",
+      title: "Support",
+      enabled: true,
+      order: 5,
+      items: [
+        { id: "queries", title: "Any Queries", action: "q1", enabled: true },
+        { id: "reach", title: "Reach Out To Us", action: "q2", enabled: true },
+      ],
+    },
+    { id: "about", title: "About Us", action: "about", enabled: true, order: 6 },
+  ],
+  hero: {
+    enabled: true,
+    badge: "Thapar Campus Connect",
+    title: "One Platform",
+    subtitle: "Seamlessly Connected.",
+    description: "",
+    backgroundUrl: "https://ik.imagekit.io/7khjnlfow/email-assets/03_dsyrsv.png?updatedAt=1774118995455",
+    overlay: "linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%)",
+    minHeight: 480,
+    height: "70vh",
+    buttons: [],
+  },
+  sections: [
+    { id: "hero", title: "Hero", enabled: true, order: 0 },
+    { id: "services", title: "Services", enabled: true, order: 1 },
+    { id: "footer", title: "Footer", enabled: true, order: 2 },
+    { id: "echo", title: "Echo AI", enabled: true, order: 3 },
+  ],
+  timeline: [],
+  echo: {
+    defaultReply: "I'm here to help with campus operations.",
+    responses: [
+      { id: "guest", keywords: ["guest", "room", "hostel", "book"], reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-room.", priority: 1, enabled: true },
+      { id: "venue", keywords: ["venue", "event", "hall", "auditorium"], reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-enquiry.", priority: 1, enabled: true },
+      { id: "calendar", keywords: ["calendar", "schedule", "fest", "event"], reply: "Check the Event Calendar at https://campusconnect.thapar.edu/event-calendar.", priority: 1, enabled: true },
+      { id: "library", keywords: ["library", "night", "pass", "permission"], reply: "Library Night Pass applications are handled at https://permissions.thapar.edu.", priority: 1, enabled: true },
+      { id: "society", keywords: ["society", "club", "late"], reply: "Society Night Pass is coming soon.", priority: 1, enabled: true },
+      { id: "lost", keywords: ["lost", "found", "item"], reply: "Visit the Lost & Found portal at https://campusconnect.thapar.edu/lostnfound.", priority: 1, enabled: true },
+      { id: "login", keywords: ["login", "admin", "staff"], reply: "Admin/Staff login is at https://campusconnect.thapar.edu/login.", priority: 1, enabled: true },
+      { id: "support", keywords: ["help", "support", "query", "contact"], reply: "For support, email itmh@thapar.edu for technical issues, or dosa.office@thapar.edu for general queries.", priority: 1, enabled: true },
+      { id: "hello", keywords: ["hello", "hi", "hey", "namaste"], reply: "Hello. I'm Echo, the DoSA Operations assistant.", priority: 1, enabled: true },
     ],
+  },
+  modals: {
+    q1: {
+      title: "Any Queries?",
+      description: "Contact us for any assistance:",
+      emails: ["Queries_studentaffairs@thapar.edu"],
+      blocks: [
+        { id: "technical", label: "Technical Support", lines: [], emails: ["itmh@thapar.edu"], enabled: true },
+      ],
+    },
+    q2: {
+      title: "Reach Out To Us",
+      description: "For any feedback you can contact us on DoSA Office.",
+      blocks: [
+        { id: "timings", label: "Timings", lines: ["9 AM to 5:30 PM, Monday to Friday"], emails: [], enabled: true },
+        { id: "email", label: "E-mail", lines: [], emails: ["dosa.office@thapar.edu"], enabled: true },
+      ],
+    },
+    about: {
+      title: "About Thapar Operations",
+      description: "The Thapar Operations Portal centralizes campus services for students, staff, and guests.",
+      blocks: [
+        { id: "maintained", label: "Maintained By", lines: ["DoSA Office", "Version 1.0"], emails: [], enabled: true },
+      ],
+    },
+    libraryUnavailable: {
+      title: "Coming Soon",
+      description: "Library Night Pass is currently unavailable.",
+      emails: [],
+      blocks: [],
+    },
+  },
+  footer: {
+    enabled: true,
+    quickLinksTitle: "Quick Links",
+    contactTitle: "Contact Us",
+    copyright: "© 2026 TIET",
+    legalLinks: [
+      { id: "license", title: "License", destination: "/license", enabled: true },
+      { id: "policies", title: "Policies", destination: "/policies", enabled: true },
+      { id: "terms", title: "Terms", destination: "/terms", enabled: true },
+    ],
+    quickLinks: [
+      { id: "home", title: "Home", action: "home", enabled: true },
+      { id: "install", title: "How to Install", destination: "/install-app", enabled: true },
+      { id: "signin", title: "Sign In", destination: "https://campusconnect.thapar.edu/login", target: "_blank", enabled: true },
+      { id: "community", title: "Community Feedback", destination: "https://campusconnect.thapar.edu/community-feedback", target: "_blank", enabled: true },
+      { id: "ic", title: "Institute Calendar", destination: "https://campusconnect.thapar.edu/ic", target: "_blank", enabled: true },
+      { id: "tc", title: "Student Calendar", destination: "https://campusconnect.thapar.edu/tc", target: "_blank", enabled: true },
+      { id: "societies", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/", target: "_blank", enabled: true },
+      { id: "about", title: "About Us", action: "about", enabled: true },
+    ],
+    contactBlocks: [
+      { id: "timings", label: "Timings", lines: ["9:00 AM to 5:30 PM", "Monday to Friday"], enabled: true },
+      { id: "general", label: "Any General Query or Assistance", lines: ["Email:"], emails: ["dosa.office@thapar.edu", "Queries_studentaffairs@thapar.edu"], enabled: true },
+      { id: "technical", label: "Technical Support", lines: ["Email:"], emails: ["itmh@thapar.edu"], enabled: true },
+    ],
+  },
+  selector: {
+    title: "Thapar Campus Connect",
+    subtitle: "Seamlessly Connected.",
+    themePreset: "light",
+    cardStyle: "default",
+    layoutStyle: "grid-3",
+    homepageLayout: "classic-grid",
+    accentColor: "#c62828",
+    spacing: "normal",
+    borderRadius: 16,
+    shadow: "normal",
+    buttonStyle: "solid",
+    glassLevel: "medium",
+    cardOrder: [...PUBLIC_CARD_IDS],
     cards: [
-      {
-        id: "guest-booking",
-        enabled: true,
-        title: "Hostel Guest Room Booking Form",
-        description: "Book hostel guest rooms (Requires Google Login)",
-        features: ["Room Availability", "Booking Request", "Status Tracking"],
-      },
-      {
-        id: "venue-booking",
-        enabled: true,
-        title: "Event Venue Booking Form",
-        description: "Book institute venues for events (Requires Google Login)",
-        features: ["Venue Search", "Event Registration", "Approval Status"],
-      },
-      {
-        id: "feedback",
-        enabled: true,
-        title: "Guest Room Feedback Form",
-        description: "Share your experience (Requires Google Login)",
-        features: ["Rate Stay", "Suggestions", "Report Issues"],
-      },
-      {
-        id: "society-night-pass",
-        enabled: true,
-        title: "Library Night Permission",
-        description: "Apply for late-night library permissions",
-        features: ["Open Portal", "Submit Request", "Track Status"],
-      },
-      {
-        id: "calendar",
-        enabled: true,
-        title: "Event Calendar",
-        description: "View upcoming events and bookings",
-        features: ["Public Events", "Venue Availability", "Schedule"],
-      },
-      {
-        id: "lost-found",
-        enabled: true,
-        title: "Lost & Found",
-        description: "Report or find lost items on campus",
-        features: ["Search Items", "Report Lost", "Report Found"],
-      },
+      { id: "guest-booking", enabled: true, locked: false, lockMessage: "", title: "Hostel Guest Room Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/guest-room", icon: "building", badge: "", comingSoon: false, accentColor: "#c62828", cardColor: "#ffffff", features: ["Single & Double Occupancy Rooms", "Online Booking System", "Guest Registration & Verification", "Advance Booking up to 30 Days"], order: 0 },
+      { id: "venue-booking", enabled: true, locked: false, lockMessage: "", title: "Event Venue Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/venue-enquiry", icon: "calendar", badge: "", comingSoon: false, accentColor: "#1a56db", cardColor: "#ffffff", features: ["Auditorium & Seminar Hall Booking", "Open Air & Outdoor Spaces", "Equipment & AV Support Request", "Multi-day Event Scheduling"], order: 1 },
+      { id: "event-calendar", enabled: true, locked: false, lockMessage: "", title: "Event Calendar", subtitle: "Campus-wide schedule", description: "", destination: "https://campusconnect.thapar.edu/event-calendar", icon: "calendar", badge: "", comingSoon: false, accentColor: "#0d7a4e", cardColor: "#ffffff", features: ["Upcoming Fests & Competitions", "Department & Club Events", "Venue Availability Overview", "Monthly & Weekly View"], order: 2 },
+      { id: "library-pass", enabled: true, locked: false, lockMessage: "", title: "Library Night Pass", subtitle: "2 pass categories", description: "", destination: "https://permissions.thapar.edu/", icon: "moon", badge: "", comingSoon: false, accentColor: "#6d28d9", cardColor: "#ffffff", features: ["Overnight Study Access", "Research & Project Work", "Barcode Scanning", "Digital Pass on Mobile"], order: 3 },
+      { id: "society-pass", enabled: true, locked: false, lockMessage: "", title: "Society Night Pass", subtitle: "Coming soon", description: "", destination: "", action: "cs", icon: "sparkles", badge: "Coming Soon", comingSoon: true, accentColor: "#b45309", cardColor: "#ffffff", features: ["Late-Night Society Activities", "Cultural & Technical Clubs", "Coordinator Approval Flow", "Security Gate Integration"], order: 4 },
+      { id: "lost-found", enabled: true, locked: false, lockMessage: "", title: "Lost & Found", subtitle: "Online Portal", description: "", destination: "https://campusconnect.thapar.edu/lostnfound", icon: "search", badge: "", comingSoon: false, accentColor: "#c2410c", cardColor: "#ffffff", features: ["Report Lost Items Online", "Browse Found Item Listings", "Photo Upload & Description", "Claim & Handover Process"], order: 5 },
+      { id: "community-feedback", enabled: false, locked: false, lockMessage: "", title: "Community & Feedback", subtitle: "Public forum", description: "", destination: "/community-feedback", action: "community", icon: "message", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
     ],
   },
 };
 
-const deepMerge = (base, patch) => {
-  if (!base || typeof base !== "object") return patch;
-  const merged = Array.isArray(base) ? [...base] : { ...base };
+const DB_MANAGED_FIELDS = new Set(["_id", "__v", "createdAt", "updatedAt"]);
 
-  Object.keys(patch || {}).forEach((key) => {
-    const baseValue = merged[key];
-    const patchValue = patch[key];
+const isObject = (value) =>
+  Boolean(value) &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 
-    if (Array.isArray(patchValue)) {
-      merged[key] = patchValue;
-      return;
-    }
-
-    if (
-      baseValue &&
-      typeof baseValue === "object" &&
-      !Array.isArray(baseValue) &&
-      patchValue &&
-      typeof patchValue === "object" &&
-      !Array.isArray(patchValue)
-    ) {
-      merged[key] = deepMerge(baseValue, patchValue);
-      return;
-    }
-
-    merged[key] = patchValue;
-  });
-
-  return merged;
+const stripDatabaseFields = (value) => {
+  if (Array.isArray(value)) return value.map((item) => stripDatabaseFields(item));
+  if (!isObject(value)) return value;
+  return Object.keys(value).reduce((acc, key) => {
+    if (DB_MANAGED_FIELDS.has(key)) return acc;
+    acc[key] = stripDatabaseFields(value[key]);
+    return acc;
+  }, {});
 };
 
-export const normalizePublicUiConfig = (config) =>
-  deepMerge(DEFAULT_PUBLIC_UI_CONFIG, config || {});
-
-export const fetchPublicUiConfig = async () => {
-  const res = await fetch(`${BACKEND_URL}/api/public-ui/config`, {
-    method: "GET",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to load public UI config (HTTP ${res.status})`);
-  }
-
-  const data = await res.json();
-  return normalizePublicUiConfig(data?.config || {});
+const mergeDefaults = (base, patch) => {
+  if (typeof patch === "undefined") return base;
+  if (Array.isArray(base) || Array.isArray(patch)) return Array.isArray(patch) ? patch : base;
+  if (!isObject(base) || !isObject(patch)) return patch;
+  const keys = new Set([...Object.keys(base), ...Object.keys(patch)]);
+  return [...keys].reduce((acc, key) => {
+    acc[key] = mergeDefaults(base[key], patch[key]);
+    return acc;
+  }, {});
 };
 
-export const updatePublicUiConfig = async (config, token) => {
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
+const sortEnabled = (items = []) =>
+  [...items]
+    .filter((item) => item?.enabled !== false)
+    .sort((a, b) => Number(a?.order ?? 0) - Number(b?.order ?? 0));
 
-  const res = await fetch(`${BACKEND_URL}/api/public-ui/config`, {
-    method: "PUT",
-    credentials: "include",
-    headers,
-    body: JSON.stringify(config || {}),
+export const normalizePublicUiConfig = (config) => {
+  const merged = mergeDefaults(DEFAULT_PUBLIC_UI_CONFIG, stripDatabaseFields(config || {}));
+  const cardOrder = Array.isArray(merged.selector?.cardOrder)
+    ? merged.selector.cardOrder
+    : DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder;
+  const cards = Array.isArray(merged.selector?.cards)
+    ? merged.selector.cards.map((card, index) => ({ ...card, id: card.id || `card-${index}`, order: Number.isFinite(Number(card.order)) ? Number(card.order) : index }))
+    : DEFAULT_PUBLIC_UI_CONFIG.selector.cards;
+
+  return stripDatabaseFields({
+    ...merged,
+    navigation: Array.isArray(merged.navigation) ? merged.navigation : [],
+    sections: Array.isArray(merged.sections) ? merged.sections : [],
+    timeline: Array.isArray(merged.timeline) ? merged.timeline : [],
+    modals: isObject(merged.modals) ? merged.modals : {},
+    selector: {
+      ...merged.selector,
+      cardOrder,
+      cards,
+      accentColor: merged.selector?.accentColor ?? DEFAULT_PUBLIC_UI_CONFIG.selector.accentColor,
+    },
   });
+};
 
+export const getEnabledItems = sortEnabled;
+
+const requestConfig = async (path, options = {}) => {
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data?.success) {
-    throw new Error(data?.message || `Failed to update config (HTTP ${res.status})`);
+  if (!res.ok || data?.success === false) {
+    throw new Error(data?.message || `Public UI request failed (HTTP ${res.status})`);
   }
-
   return normalizePublicUiConfig(data?.config || {});
+};
+
+export const fetchPublicUiConfig = async () => requestConfig("/api/public-ui/config");
+
+export const fetchAdminPublicUiConfig = async () => requestConfig("/api/public-ui/admin/config");
+
+export const updatePublicUiConfig = async (config) => {
+  const normalizedConfig = normalizePublicUiConfig(config || {});
+  const editableConfig = stripDatabaseFields(normalizedConfig);
+
+  return requestConfig("/api/public-ui/admin/config", {
+    method: "PUT",
+    body: JSON.stringify(editableConfig),
+  });
 };

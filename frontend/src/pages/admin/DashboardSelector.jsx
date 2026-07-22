@@ -1052,7 +1052,7 @@ const DashboardSelector = () => {
           className="text-center mb-16 relative w-full max-w-7xl mx-auto"
         >
           {/* Back Button - Top Left */}
-          <div className="absolute top-0 left-0 hidden md:flex items-center">
+          <div className="absolute top-0 left-0 hidden md:flex items-center gap-2">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1062,6 +1062,17 @@ const DashboardSelector = () => {
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-semibold">Back</span>
             </motion.button>
+            {isAdmin && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/admin/public-ui-customizer")}
+                className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-red-100 rounded-xl shadow-sm text-red-600 hover:text-red-700 hover:border-red-200 transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="text-xs font-semibold">Public UI</span>
+              </motion.button>
+            )}
           </div>
 
           {/* Admin Analytics Button - Top Right */}
@@ -1130,13 +1141,24 @@ const DashboardSelector = () => {
 
           {/* Mobile Admin Analytics Button */}
           <div className="mt-6 md:hidden space-y-2">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-semibold">Back to Dashboard</span>
-            </button>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm font-semibold">Back to Dashboard</span>
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate("/admin/public-ui-customizer")}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-red-100 rounded-xl shadow-sm text-red-600 hover:text-red-700"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Public UI</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Mobile Admin Analytics Button */}

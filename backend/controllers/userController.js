@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import { createLog } from "../middleware/logMiddleware.js";
 import { getFallbackDashboardAccess } from "../utils/dashboardAccess.js";
 
@@ -96,6 +97,10 @@ export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
     let user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -129,6 +134,10 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
 
     await User.findByIdAndUpdate(id, { isActive: false });
 

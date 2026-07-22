@@ -1,5 +1,6 @@
 // middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 
 export const protect = async (req, res, next) => {
@@ -34,8 +35,14 @@ export const protect = async (req, res, next) => {
   try {
     console.log("🔐 Verifying token...");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decodedUserId = typeof decoded?.id === "string" ? decoded.id : String(decoded?.id || "");
 
-    const user = await User.findById(decoded.id).select("-password");
+    if (!mongoose.Types.ObjectId.isValid(decodedUserId)) {
+      console.log("❌ Invalid token user id");
+      return res.status(401).json({ message: "Token invalid", details: "Invalid user id" });
+    }
+
+    const user = await User.findById(decodedUserId).select("-password");
 
     if (!user) {
       console.log("❌ User not found");
@@ -110,7 +117,12 @@ export const optionalProtect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password");
+    const decodedUserId = typeof decoded?.id === "string" ? decoded.id : String(decoded?.id || "");
+    if (!mongoose.Types.ObjectId.isValid(decodedUserId)) {
+      req.user = null;
+      return next();
+    }
+    const user = await User.findById(decodedUserId).select("-password");
     req.user = user || null;
     return next();
   } catch (error) {

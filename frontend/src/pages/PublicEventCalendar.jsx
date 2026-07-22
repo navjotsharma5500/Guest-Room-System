@@ -208,15 +208,6 @@ const eventSourceLabel = (event) => {
 
 const isCalendarEvent = (event) => (event.recordType || "event") === "event";
 
-const isEventLive = (event, todayStr, currentMinutes) => {
-  const startDate = event.eventDate;
-  const endDate = event.eventEndDate || event.eventDate;
-  if (!(todayStr >= startDate && todayStr <= endDate)) return false;
-  const startMinutes = parseTime(event.eventTime);
-  const endMinutes = event.checkOutTime ? parseTime(event.checkOutTime) : startMinutes + 120;
-  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-};
-
 const getEventStatus = (event, todayStr, currentMinutes) => {
   const startDate = event.eventDate;
   const endDate = event.eventEndDate || event.eventDate;
@@ -378,7 +369,6 @@ export default function PublicEventCalendar() {
   const [selectedDateEvents, setSelectedDateEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState("today");
   const [viewMode, setViewMode] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -487,10 +477,6 @@ export default function PublicEventCalendar() {
     () => events.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
     [events, conflictIds]
   );
-  const upcomingWithConflicts = useMemo(
-    () => upcomingEvents.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
-    [upcomingEvents, conflictIds]
-  );
   const allCalendarEventsWithConflicts = useMemo(
     () => allCalendarEvents.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
     [allCalendarEvents, conflictIds]
@@ -514,33 +500,7 @@ export default function PublicEventCalendar() {
   }, [calendarLoading, eventsForDate, selectedDateKey]);
 
   const todayStr = toDateKey(now);
-  const tomorrowStr = toDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const allEventsPool = useMemo(
-    () => mergeSameSourceRecords([...eventsWithConflicts, ...upcomingWithConflicts]).filter(isCalendarEvent),
-    [eventsWithConflicts, upcomingWithConflicts]
-  );
-
-  const todayEvents = useMemo(() => {
-    return allEventsPool
-      .filter((event) => todayStr >= event.eventDate && todayStr <= (event.eventEndDate || event.eventDate))
-      .sort((a, b) => parseTime(a.eventTime) - parseTime(b.eventTime));
-  }, [allEventsPool, todayStr]);
-
-  const liveEvents = useMemo(() => allEventsPool.filter((event) => isEventLive(event, todayStr, currentMinutes)), [allEventsPool, todayStr, currentMinutes]);
-
-  const filteredUpcomingEvents = useMemo(() => {
-    return allEventsPool
-      .filter((event) => event.eventDate === tomorrowStr)
-      .sort((a, b) => (a.eventDate !== b.eventDate ? a.eventDate.localeCompare(b.eventDate) : parseTime(a.eventTime) - parseTime(b.eventTime)));
-  }, [allEventsPool, tomorrowStr]);
-
-  const displayedTabEvents = useMemo(() => {
-    if (activeTab === "today") return todayEvents;
-    if (activeTab === "live") return liveEvents;
-    return filteredUpcomingEvents;
-  }, [activeTab, todayEvents, liveEvents, filteredUpcomingEvents]);
 
   const hasFilters = Object.values(filters).some(Boolean);
   const filterSearchPool = useMemo(
@@ -922,43 +882,6 @@ export default function PublicEventCalendar() {
               </div>
             </section>
 
-            <section className="student-status-tabs">
-              <div className="student-tabs">
-                {[
-                  { id: "today", label: "Today Events" },
-                  { id: "upcoming", label: "Upcoming Events" },
-                  { id: "live", label: "Live Events" },
-                ].map((tab) => (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="student-tab-list">
-                {displayedTabEvents.length > 0 ? (
-                  displayedTabEvents.map((event) => (
-                    <EventTile
-                      key={eventKey(event)}
-                      event={event}
-                      todayStr={todayStr}
-                      currentMinutes={currentMinutes}
-                      onOpen={(selected) => {
-                        handleDateSelect(selected.eventDate);
-                        setSelectedEvent(selected);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    />
-                  ))
-                ) : (
-                  <div className="student-empty-state">
-                    <CalendarIcon size={34} />
-                    <p>No {activeTab} events found</p>
-                    <span>Check back later for updates.</span>
-                  </div>
-                )}
-              </motion.div>
-            </section>
           </div>
         </div>
       </main>

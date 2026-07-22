@@ -1,29 +1,22 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, CalendarDays, Moon, Search, Sparkles,
-  ChevronDown, X, Mail, ArrowRight, AlertCircle,
-  Package, Bell, LogIn, Home, Users, Github, Clock,
-  SlidersHorizontal, Eye, Save, RotateCcw, ArrowUp,
-  ArrowDown, MessageSquare, Send, Bot,
+  ChevronDown, X, ArrowRight,
+  Package, Bell, LogIn, Home, Users,
+  MessageSquare, Send, Bot, Lock,
 } from "lucide-react";
 import EchoOrb from "../components/EchoOrb";
+import {
+  DEFAULT_PUBLIC_UI_CONFIG,
+  PUBLIC_CARD_IDS,
+  fetchPublicUiConfig,
+  normalizePublicUiConfig,
+} from "../utils/publicUiConfig";
 
 // ─── keep the original PublicPageWidgets import if it exists in your project
 // import PublicPageWidgets from "../components/PublicPageWidgets";
-
-/* ═══════════════════════════════════════════════════
-   CONSTANTS — customize-my-view (mirrors original)
-═══════════════════════════════════════════════════ */
-const LOCAL_PREFS_KEY = "public_dashboard_selector_local_prefs_v1";
-
-const THEME_OPTIONS = [
-  { value: "light", label: "Light",  bg: "#ffffff" },
-  { value: "cool",  label: "Cool",   bg: "#e0f2fe" },
-  { value: "warm",  label: "Warm",   bg: "#fff7ed" },
-  { value: "slate", label: "Slate",  bg: "#f1f5f9" },
-];
 
 const THEME_BG = {
   light: "#ffffff",
@@ -32,207 +25,39 @@ const THEME_BG = {
   slate: "linear-gradient(135deg,#f1f5f9,#e2e8f0)",
 };
 
-const CARD_STYLE_OPTIONS = [
-  { value: "default", label: "Default" },
-  { value: "shadow",  label: "Shadowed" },
-  { value: "outline", label: "Outline" },
-];
-
-const LAYOUT_OPTIONS = [
-  { value: "grid-3", label: "Grid 3" },
-  { value: "grid-2", label: "Grid 2" },
-  { value: "list",   label: "List"   },
-];
-
-const CARD_IDS = [
-  "guest-booking",
-  "venue-booking",
-  "event-calendar",
-  "library-pass",
-  "society-pass",
-  "lost-found",
-  "community-feedback",
-];
-
-const TIMELINE = [
-  { year: "Oct 2025", label: "Idea",         desc: "Conceptualized by Dr. Meenakshi Rana, DoSA" },
-  { year: "Nov 2025", label: "Development",  desc: "Core team assembled, tech stack finalized" },
-  { year: "Jan 2026", label: "Testing",      desc: "Beta launched with Guest Room & Venue modules" },
-  { year: "Feb 2026", label: "Launch",       desc: "Full platform live with 6 integrated services" },
-];
-
-const CARD_LABELS_MAP = {
-  "guest-booking":       "Hostel Guest Room Booking",
-  "venue-booking":       "Event Venue Booking",
-  "event-calendar":      "Event Calendar",
-  "library-pass":        "Library Night Pass",
-  "society-pass":        "Society Night Pass",
-  "lost-found":          "Lost & Found",
-  "community-feedback":  "Community & Feedback",
+const ICONS = {
+  building: Building2,
+  calendar: CalendarDays,
+  moon: Moon,
+  sparkles: Sparkles,
+  search: Search,
+  message: MessageSquare,
+  package: Package,
+  login: LogIn,
+  home: Home,
+  users: Users,
 };
 
-function makeDefaultPrefs() {
-  return {
-    themePreset:  "light",
-    cardStyle:    "default",
-    layoutStyle:  "grid-3",
-    accentColor:  "#c62828",
-    cardOrder:    [...CARD_IDS],
-    hiddenCardIds: [],
-  };
-}
-
-function readLocalPrefs() {
-  try {
-    const raw = localStorage.getItem(LOCAL_PREFS_KEY);
-    if (!raw) return null;
-    
-    const saved = JSON.parse(raw);
-    if (!saved) return null;
-    
-    // ✨ MERGE STRATEGY: Ensure new cards are included
-    // If saved cardOrder is missing new cards, add them automatically
-    if (saved.cardOrder && Array.isArray(saved.cardOrder)) {
-      // Add any new cards from CARD_IDS that aren't in saved.cardOrder
-      const savedSet = new Set(saved.cardOrder);
-      const newCards = CARD_IDS.filter(id => !savedSet.has(id));
-      
-      if (newCards.length > 0) {
-        // Append new cards to the end (they'll be visible by default)
-        saved.cardOrder = [...saved.cardOrder, ...newCards];
-      }
-    } else {
-      // If saved.cardOrder is invalid, use default
-      saved.cardOrder = [...CARD_IDS];
-    }
-    
-    return saved;
-  } catch { return null; }
-}
-
-/* ═══════════════════════════════════════════════════
-   ANIMATION HELPER — FadeUp
-═══════════════════════════════════════════════════ */
-function FadeUp({ children, delay = 0, className = "" }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   NAV DATA
-═══════════════════════════════════════════════════ */
-const NAV = [
-  { label: "Home", action: "home" },
-  { label: "Booking Form", items: [
-    { label: "Hostel Guest-Room Booking", href: "https://campusconnect.thapar.edu/guest-room" },
-    { label: "Event Venue Booking",        href: "https://campusconnect.thapar.edu/venue-enquiry" },
-  ]},
-  { label: "Calendar", items: [
-    { label: "Event Calendar", href: "https://campusconnect.thapar.edu/event-calendar" },
-  ]},
-  { label: "Night Pass", items: [
-    { label: "Library Night Pass",  href: "https://permissions.thapar.edu/" },
-    { label: "Society Night Pass",  action: "cs" },
-  ]},
-  { label: "Services", items: [
-    { label: "Lost & Found", href: "https://campusconnect.thapar.edu/lostnfound" },
-  ]},
-  { label: "Support", items: [
-    { label: "Any Queries",     action: "q1" },
-    { label: "Reach Out To Us", action: "q2" },
-  ]},
-  { label: "About Us", action: "about" },
-];
-
-/* ═══════════════════════════════════════════════════
-   CARD DATA
-═══════════════════════════════════════════════════ */
-const ALL_CARDS = {
-  "guest-booking": {
-    id: "guest-booking", title: "Hostel Guest Room Booking", sub: "Booking Form",
-    Icon: Building2, iconBg: "#fce8e8", iconColor: "#c62828", dot: "#e57373",
-    href: "https://campusconnect.thapar.edu/guest-room",
-    bullets: ["Single & Double Occupancy Rooms","Online Booking System","Guest Registration & Verification","Advance Booking up to 30 Days"],
-  },
-  "venue-booking": {
-    id: "venue-booking", title: "Event Venue Booking", sub: "Booking Form",
-    Icon: CalendarDays, iconBg: "#e3eeff", iconColor: "#1a56db", dot: "#60a5fa",
-    href: "https://campusconnect.thapar.edu/venue-enquiry",
-    bullets: ["Auditorium & Seminar Hall Booking","Open Air & Outdoor Spaces","Equipment & AV Support Request","Multi-day Event Scheduling"],
-  },
-  "event-calendar": {
-    id: "event-calendar", title: "Event Calendar", sub: "Campus-wide schedule",
-    Icon: CalendarDays, iconBg: "#e6f9f0", iconColor: "#0d7a4e", dot: "#34d399",
-    href: "https://campusconnect.thapar.edu/event-calendar",
-    bullets: ["Upcoming Fests & Competitions","Department & Club Events","Venue Availability Overview","Monthly & Weekly View"],
-  },
-  "library-pass": {
-    id: "library-pass", title: "Library Night Pass", sub: "2 pass categories",
-    Icon: Moon, iconBg: "#f0ecff", iconColor: "#6d28d9", dot: "#a78bfa",
-    href: "https://permissions.thapar.edu/",
-    bullets: ["Overnight Study Access","Research & Project Work","Barcode Scanning","Digital Pass on Mobile"],
-  },
-  "society-pass": {
-    id: "society-pass", title: "Society Night Pass", sub: "Coming soon",
-    Icon: Sparkles, iconBg: "#fff8e1", iconColor: "#b45309", dot: "#fbbf24",
-    action: "cs",
-    bullets: ["Late-Night Society Activities","Cultural & Technical Clubs","Coordinator Approval Flow","Security Gate Integration"],
-  },
-  "lost-found": {
-    id: "lost-found", title: "Lost & Found", sub: "Online Portal",
-    Icon: Search, iconBg: "#fff3e0", iconColor: "#c2410c", dot: "#fb923c",
-    href: "https://campusconnect.thapar.edu/lostnfound",
-    bullets: ["Report Lost Items Online","Browse Found Item Listings","Photo Upload & Description","Claim & Handover Process"],
-  },
-  "community-feedback": {
-    id: "community-feedback", title: "Community & Feedback", sub: "Public forum",
-    Icon: MessageSquare, iconBg: "#e8f5e9", iconColor: "#2e7d32", dot: "#4caf50",
-    action: "community",
-    bullets: ["Share Suggestions & Ideas","Report Issues & Problems","Ask Questions Publicly","Like, Comment & Engage with Posts"],
-  },
+const CARD_VISUALS = {
+  "guest-booking": { Icon: Building2, iconBg: "#fce8e8", iconColor: "#c62828", dot: "#e57373" },
+  "venue-booking": { Icon: CalendarDays, iconBg: "#e3eeff", iconColor: "#1a56db", dot: "#60a5fa" },
+  "event-calendar": { Icon: CalendarDays, iconBg: "#e6f9f0", iconColor: "#0d7a4e", dot: "#34d399" },
+  "library-pass": { Icon: Moon, iconBg: "#f0ecff", iconColor: "#6d28d9", dot: "#a78bfa" },
+  "society-pass": { Icon: Sparkles, iconBg: "#fff8e1", iconColor: "#b45309", dot: "#fbbf24" },
+  "lost-found": { Icon: Search, iconBg: "#fff3e0", iconColor: "#c2410c", dot: "#fb923c" },
+  "community-feedback": { Icon: MessageSquare, iconBg: "#e8f5e9", iconColor: "#2e7d32", dot: "#4caf50" },
 };
 
-/* ═══════════════════════════════════════════════════
-   ECHO AI — canned responses
-═══════════════════════════════════════════════════ */
-const ECHO_RESPONSES = [
-  { match: ["guest","room","hostel","book"],
-    reply: "To book a hostel guest room, visit https://campusconnect.thapar.edu/guest-room. You can check availability and make a reservation there." },
-  { match: ["venue","event","hall","auditorium"],
-    reply: "Event venue bookings are done at https://campusconnect.thapar.edu/venue-enquiry. You can book auditoriums, seminar halls, and open spaces." },
-  { match: ["calendar","schedule","fest","event"],
-    reply: "Check the Event Calendar at https://campusconnect.thapar.edu/event-calendar to see all upcoming campus events and fests." },
-  { match: ["library","night","pass","permission"],
-    reply: "Library Night Pass applications are handled at https://permissions.thapar.edu. Apply there for overnight study access." },
-  { match: ["society","club","late"],
-    reply: "Society Night Pass is coming soon! We're working on integrating it into this portal." },
-  { match: ["lost","found","item"],
-    reply: "Visit the Lost & Found portal at https://campusconnect.thapar.edu/lostnfound to report or search for lost items." },
-  { match: ["login","admin","staff"],
-    reply: "Admin/Staff login is at https://campusconnect.thapar.edu/login. Use your institutional credentials." },
-  { match: ["help","support","query","contact"],
-    reply: "For support, email itmh@thapar.edu for technical issues, or dosa.office@thapar.edu for general queries." },
-  { match: ["hello","hi","hey","namaste"],
-    reply: "Hello! 👋 I'm Echo, the DoSA Operations assistant. Ask me about guest rooms, venues, night passes, or any campus service!" },
-];
-
-function getEchoReply(input) {
+function getEchoReply(input, echoConfig) {
   const low = input.toLowerCase();
-  for (const r of ECHO_RESPONSES) {
-    if (r.match.some(k => low.includes(k))) return r.reply;
+  const responses = Array.isArray(echoConfig?.responses)
+    ? [...echoConfig.responses].filter((item) => item?.enabled !== false).sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))
+    : DEFAULT_PUBLIC_UI_CONFIG.echo.responses;
+  for (const r of responses) {
+    const keywords = r.keywords || r.match || [];
+    if (keywords.some(k => low.includes(String(k).toLowerCase()))) return r.reply;
   }
-  return "I'm here to help with campus operations! You can ask me about guest room bookings, event venues, night passes, lost & found, or admin login.";
+  return echoConfig?.defaultReply ?? "I'm here to help with campus operations!";
 }
 
 /* ═══════════════════════════════════════════════════
@@ -288,25 +113,26 @@ function Modal({ title, children, onClose }) {
    DROPDOWN
 ═══════════════════════════════════════════════════ */
 function DropMenu({ items, onAction }) {
+  const enabledItems = (items || []).filter((item) => item?.enabled !== false);
   return (
     <motion.div initial={{ opacity:0, y:5 }} animate={{ opacity:1, y:0 }}
       exit={{ opacity:0, y:5 }} transition={{ duration:.11 }}
       style={{ position:"absolute", top:"calc(100% + 4px)", left:0, background:"#fff",
                borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,.13)",
                border:"1px solid #e5e7eb", padding:"6px 0", minWidth:220, zIndex:400 }}>
-      {items.map(it => (
-        <button key={it.label}
-          onClick={() => { if(it.href) window.open(it.href,"_blank"); else if(it.action) onAction(it.action); }}
+      {enabledItems.map(it => (
+        <button key={it.id || it.title || it.label}
+          onClick={() => onAction(it)}
           style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                    width:"100%", padding:"10px 16px", background:"none", border:"none",
                    cursor:"pointer", fontSize:13, color:"#374151", textAlign:"left",
                    fontFamily:"inherit", gap:8 }}
           onMouseEnter={e=>{ e.currentTarget.style.background="#fef2f2"; e.currentTarget.style.color="#c62828"; }}
           onMouseLeave={e=>{ e.currentTarget.style.background="none"; e.currentTarget.style.color="#374151"; }}>
-          <span>{it.label}</span>
-          {it.action==="cs" && (
+          <span>{it.title || it.label}</span>
+          {(it.badge || it.action==="cs") && (
             <span style={{ fontSize:10, background:"#fef3c7", color:"#92400e",
-                           padding:"2px 8px", borderRadius:20, fontWeight:600 }}>Soon</span>
+                           padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{it.badge || "Soon"}</span>
           )}
         </button>
       ))}
@@ -328,11 +154,12 @@ function NavItem({ item, onAction }) {
   const base = { background:"none", border:"none", cursor:"pointer", fontSize:13.5,
                  fontWeight:500, color:"#374151", padding:"4px 0", fontFamily:"inherit",
                  display:"flex", alignItems:"center", gap:3 };
-  if (!item.items) return (
-    <button style={base} onClick={() => onAction(item.action)}
+  const visibleChildren = (item.items || []).filter((child) => child?.enabled !== false);
+  if (!visibleChildren.length) return (
+    <button style={base} onClick={() => onAction(item)}
       onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
       onMouseLeave={e=>e.currentTarget.style.color="#374151"}>
-      {item.label}
+      {item.title || item.label}
     </button>
   );
   return (
@@ -341,10 +168,10 @@ function NavItem({ item, onAction }) {
       <button style={base}
         onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
         onMouseLeave={e=>e.currentTarget.style.color="#374151"}>
-        {item.label}
+        {item.title || item.label}
         <ChevronDown size={13} style={{ transform:open?"rotate(180deg)":"none", transition:"transform .18s" }}/>
       </button>
-      <AnimatePresence>{open && <DropMenu items={item.items} onAction={onAction}/>}</AnimatePresence>
+      <AnimatePresence>{open && <DropMenu items={visibleChildren} onAction={onAction}/>}</AnimatePresence>
     </div>
   );
 }
@@ -352,7 +179,7 @@ function NavItem({ item, onAction }) {
 /* ═══════════════════════════════════════════════════
    SERVICE CARD
 ═══════════════════════════════════════════════════ */
-function Card({ card, onAction, cardStyle, accentColor }) {
+function Card({ card, onAction, onLocked, onOpenDestination, cardStyle, accentColor }) {
   const { Icon } = card;
   const [hov, setHov] = useState(false);
 
@@ -368,15 +195,19 @@ function Card({ card, onAction, cardStyle, accentColor }) {
     <div
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={() => {
-
-        // 🎯 Library Night Pass control
-        if (card.id === "library-pass") {
-          window.open("https://permissions.thapar.edu/", "_blank");
+        if (card.locked) {
+          onLocked?.({
+            title: card.title,
+            message: card.lockMessage || "This service is currently unavailable.",
+          });
           return;
         }
 
-        // default behavior
-        if(card.href) window.open(card.href,"_blank");
+        if(card.id === "library-pass") {
+          onAction("libraryUnavailable");
+          return;
+        }
+        if(card.href && onOpenDestination?.(card.href)) return;
         else if(card.action) onAction(card.action);
       }}
       style={{ background:"#fff", borderRadius:16, border:borderStyle, padding:"24px 24px 20px",
@@ -392,25 +223,10 @@ function Card({ card, onAction, cardStyle, accentColor }) {
         </div>
         <div style={{ flex:1 }}>
           <p style={{ margin:0, fontWeight:700, fontSize:15.5, color:"#111", lineHeight:1.25 }}>{card.title}</p>
-          <p style={{ margin:"3px 0 0", fontSize:12.5, color:"#9ca3af" }}>{card.sub}</p>
         </div>
-        {card.action==="cs" && (
-          <span style={{ fontSize:10, background:"#fef9c3", color:"#92400e", border:"1px solid #fde68a",
-                         padding:"3px 8px", borderRadius:20, fontWeight:600, whiteSpace:"nowrap", marginTop:2 }}>
-            Coming Soon
-          </span>
-        )}
       </div>
 
-      {/* bullets */}
-      <ul style={{ margin:0, padding:0, listStyle:"none", flex:1, display:"flex", flexDirection:"column", gap:11 }}>
-        {card.bullets.map(b => (
-          <li key={b} style={{ display:"flex", alignItems:"flex-start", gap:10, fontSize:13.5, color:"#4b5563", lineHeight:1.4 }}>
-            <span style={{ width:7, height:7, borderRadius:"50%", background:card.dot, flexShrink:0, marginTop:5 }}/>
-            {b}
-          </li>
-        ))}
-      </ul>
+      <div style={{ flex:1 }} />
 
       {/* cta */}
       <div style={{ borderTop:"1px solid #f3f4f6", marginTop:20, paddingTop:16 }}>
@@ -426,7 +242,7 @@ function Card({ card, onAction, cardStyle, accentColor }) {
 /* ═══════════════════════════════════════════════════
    ECHO AI CHATBOT WIDGET
 ═══════════════════════════════════════════════════ */
-function EchoChatbot({ onClose }) {
+function EchoChatbot({ onClose, echoConfig }) {
   const [messages, setMessages] = useState([
     { from:"bot", text:"Hello! 👋 I'm Echo, your DoSA Operations assistant. How can I help you today?" }
   ]);
@@ -444,7 +260,7 @@ function EchoChatbot({ onClose }) {
     setTyping(true);
     setTimeout(() => {
       setTyping(false);
-      setMessages(m => [...m, { from:"bot", text:getEchoReply(q) }]);
+      setMessages(m => [...m, { from:"bot", text:getEchoReply(q, echoConfig) }]);
     }, 900);
   };
 
@@ -545,154 +361,6 @@ function EchoChatbot({ onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════
-   CUSTOMIZE MY VIEW — full panel (mirrors original)
-═══════════════════════════════════════════════════ */
-function CustomizePanel({ prefs, onUpdate, onMove, onToggleHide, onSave, onReset, onClose }) {
-  const [preview, setPreview] = useState(false);
-
-  return (
-    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:500,
-               backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-start",
-               justifyContent:"center", padding:"16px", overflowY:"auto" }}>
-      <motion.div initial={{ y:30, opacity:0 }} animate={{ y:0, opacity:1 }}
-        exit={{ y:30, opacity:0 }} transition={{ type:"spring", damping:22 }}
-        style={{ width:"100%", maxWidth:680, background:"#fff", borderRadius:20,
-                 border:"1px solid #e5e7eb", boxShadow:"0 24px 60px rgba(0,0,0,.18)",
-                 padding:28, marginTop:48, marginBottom:24 }}>
-
-        {/* title row */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-          <h2 style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize:22, fontWeight:600, color:"#111", margin:0 }}>
-            Customize My Dashboard View
-          </h2>
-          <button onClick={onClose}
-            style={{ padding:"6px 8px", border:"1px solid #e5e7eb", borderRadius:8,
-                     background:"none", cursor:"pointer", lineHeight:1, display:"flex" }}>
-            <X size={16} color="#6b7280"/>
-          </button>
-        </div>
-        <p style={{ fontSize:13, color:"#6b7280", marginBottom:20 }}>
-          Settings are saved only in your browser. They do not change the footer, heading, or logo.
-        </p>
-
-        {/* controls grid */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:16, marginBottom:24 }}>
-          {/* Theme */}
-          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Theme</span>
-            <select value={prefs.themePreset} onChange={e => onUpdate({ themePreset:e.target.value })}
-              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
-                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
-              {THEME_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </label>
-
-          {/* Card Style */}
-          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Card Style</span>
-            <select value={prefs.cardStyle} onChange={e => onUpdate({ cardStyle:e.target.value })}
-              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
-                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
-              {CARD_STYLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </label>
-
-          {/* Layout */}
-          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Layout</span>
-            <select value={prefs.layoutStyle} onChange={e => onUpdate({ layoutStyle:e.target.value })}
-              style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 10px",
-                       fontSize:13, fontFamily:"inherit", background:"#fff", color:"#111" }}>
-              {LAYOUT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </label>
-
-          {/* Accent Color */}
-          <label style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Accent Color</span>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <input type="color" value={prefs.accentColor}
-                onChange={e => onUpdate({ accentColor:e.target.value })}
-                style={{ width:44, height:38, border:"1px solid #e5e7eb", borderRadius:8,
-                         padding:3, cursor:"pointer", background:"#fff" }}/>
-              <span style={{ fontSize:13, color:"#6b7280", fontFamily:"monospace" }}>{prefs.accentColor}</span>
-            </div>
-          </label>
-        </div>
-
-        {/* Card order & visibility */}
-        <p style={{ fontSize:13, fontWeight:600, color:"#374151", marginBottom:10 }}>
-          Card Order &amp; Visibility
-        </p>
-        <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
-          {(prefs.cardOrder || CARD_IDS).map((id, idx) => {
-            const hidden = (prefs.hiddenCardIds||[]).includes(id);
-            return (
-              <div key={id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                                     border:"1px solid #e5e7eb", borderRadius:10,
-                                     padding:"10px 14px", background:hidden?"#f9fafb":"#fff" }}>
-                <div>
-                  <p style={{ margin:0, fontSize:13.5, fontWeight:600, color:hidden?"#9ca3af":"#111" }}>
-                    {CARD_LABELS_MAP[id]}
-                  </p>
-                  <p style={{ margin:0, fontSize:11, color:hidden?"#d1d5db":"#6b7280" }}>
-                    {hidden ? "Hidden" : "Visible"}
-                  </p>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                  <button disabled={idx===0} onClick={() => onMove(id,"up")}
-                    style={{ padding:"5px 7px", border:"1px solid #e5e7eb", borderRadius:7,
-                             background:"none", cursor:idx===0?"not-allowed":"pointer",
-                             opacity:idx===0?.35:1, lineHeight:1, display:"flex" }}>
-                    <ArrowUp size={14} color="#6b7280"/>
-                  </button>
-                  <button disabled={idx===(prefs.cardOrder||CARD_IDS).length-1} onClick={() => onMove(id,"down")}
-                    style={{ padding:"5px 7px", border:"1px solid #e5e7eb", borderRadius:7,
-                             background:"none", cursor:idx===(prefs.cardOrder||CARD_IDS).length-1?"not-allowed":"pointer",
-                             opacity:idx===(prefs.cardOrder||CARD_IDS).length-1?.35:1, lineHeight:1, display:"flex" }}>
-                    <ArrowDown size={14} color="#6b7280"/>
-                  </button>
-                  <button onClick={() => onToggleHide(id)}
-                    style={{ padding:"5px 12px", border:`1px solid ${hidden?"#fbbf24":"#6ee7b7"}`,
-                             borderRadius:7, background:hidden?"#fef9c3":"#ecfdf5",
-                             color:hidden?"#92400e":"#065f46", fontSize:12, fontWeight:600,
-                             cursor:"pointer", fontFamily:"inherit" }}>
-                    {hidden ? "Show" : "Hide"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* action buttons — mirror original exactly */}
-        <div style={{ display:"flex", flexWrap:"wrap", gap:10, justifyContent:"flex-end" }}>
-          <button onClick={() => setPreview(v=>!v)}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px",
-                     border:"1px solid #d1d5db", borderRadius:8, background:"#fff",
-                     color:"#374151", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>
-            <Eye size={15}/> {preview ? "Stop Preview" : "Preview"}
-          </button>
-          <button onClick={onReset}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px",
-                     border:"1px solid #d1d5db", borderRadius:8, background:"#fff",
-                     color:"#374151", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>
-            <RotateCcw size={15}/> Reset My View
-          </button>
-          <button onClick={onSave}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 18px",
-                     border:"none", borderRadius:8, background:"#2563eb",
-                     color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-            <Save size={15}/> Save on This Device
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════════════ */
 export default function ThaparPublicDashboard() {
@@ -703,56 +371,84 @@ export default function ThaparPublicDashboard() {
   const [toast,   setToast]   = useState(null);
   const [modal,   setModal]   = useState(null);
   const [chat,    setChat]    = useState(false);
-  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [lockModal, setLockModal] = useState(null);
+  const [publicConfig, setPublicConfig] = useState(() =>
+    normalizePublicUiConfig(DEFAULT_PUBLIC_UI_CONFIG)
+  );
 
-  // ── prefs (mirrors original pattern) ──
-  const [prefs, setPrefs] = useState(() => readLocalPrefs() || makeDefaultPrefs());
+  useEffect(() => {
+    let mounted = true;
+    fetchPublicUiConfig()
+      .then((config) => {
+        if (mounted) setPublicConfig(config);
+      })
+      .catch(() => {
+        if (mounted) setPublicConfig(normalizePublicUiConfig(DEFAULT_PUBLIC_UI_CONFIG));
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const updatePrefs = patch => setPrefs(p => ({ ...p, ...patch }));
+  const selectorConfig = publicConfig.selector || DEFAULT_PUBLIC_UI_CONFIG.selector;
+  const headerConfig = publicConfig.header || DEFAULT_PUBLIC_UI_CONFIG.header;
+  const heroConfig = publicConfig.hero || DEFAULT_PUBLIC_UI_CONFIG.hero;
+  const footerConfig = publicConfig.footer || DEFAULT_PUBLIC_UI_CONFIG.footer;
+  const echoConfig = publicConfig.echo || DEFAULT_PUBLIC_UI_CONFIG.echo;
+  const accentColor = selectorConfig.accentColor || "#c62828";
+  const sectionMap = useMemo(
+    () => new Map((publicConfig.sections || []).map((section) => [section.id, section])),
+    [publicConfig.sections]
+  );
+  const isSectionEnabled = (id) => sectionMap.get(id)?.enabled !== false;
+  const navigationItems = useMemo(
+    () => [...(publicConfig.navigation || [])]
+      .filter((item) => item?.enabled !== false)
+      .sort((a, b) => Number(a?.order ?? 0) - Number(b?.order ?? 0)),
+    [publicConfig.navigation]
+  );
+  const cardConfigMap = useMemo(
+    () => new Map((selectorConfig.cards || []).map((card) => [card.id, card])),
+    [selectorConfig.cards]
+  );
 
-  const moveCard = (id, dir) => {
-    setPrefs(p => {
-      const order = [...(p.cardOrder || CARD_IDS)];
-      const idx = order.indexOf(id);
-      const next = dir==="up" ? idx-1 : idx+1;
-      if (next<0 || next>=order.length) return p;
-      [order[idx], order[next]] = [order[next], order[idx]];
-      return { ...p, cardOrder:order };
-    });
-  };
-
-  const toggleHide = id => {
-    setPrefs(p => {
-      const hidden = new Set(p.hiddenCardIds||[]);
-      if (hidden.has(id)) hidden.delete(id); else hidden.add(id);
-      return { ...p, hiddenCardIds:[...hidden] };
-    });
-  };
-
-  const savePrefs = () => {
-    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(prefs));
-    setShowCustomizer(false);
-    setToast("View saved to this device ✓");
-  };
-
-  const resetPrefs = () => {
-    localStorage.removeItem(LOCAL_PREFS_KEY);
-    setPrefs(makeDefaultPrefs());
-    setToast("View reset to default ✓");
-  };
-
-  // ── derived cards list (respects order + hidden) ──
+  // ── derived cards list (global admin CMS config) ──
   const visibleCards = useMemo(() => {
-    const order = prefs.cardOrder || CARD_IDS;
-    const hidden = new Set(prefs.hiddenCardIds || []);
+    const order = selectorConfig.cardOrder || PUBLIC_CARD_IDS;
     return order
-      .filter(id => ALL_CARDS[id] && !hidden.has(id))
-      .map(id => ALL_CARDS[id]);
-  }, [prefs.cardOrder, prefs.hiddenCardIds]);
+      .map(id => {
+        const base = { id, title: "", sub: "", bullets: [] };
+        const saved = cardConfigMap.get(id) || {};
+        const visual = CARD_VISUALS[id] || {
+          Icon: ICONS[saved.icon] || Sparkles,
+          iconBg: "#f3f4f6",
+          iconColor: saved.accentColor || accentColor,
+          dot: saved.accentColor || accentColor,
+        };
+        return {
+          ...base,
+          ...saved,
+          Icon: ICONS[saved.icon] || visual.Icon,
+          iconBg: saved.iconBg || visual.iconBg,
+          iconColor: saved.accentColor || saved.iconColor || visual.iconColor,
+          dot: saved.accentColor || saved.dot || visual.dot,
+          sub: saved.subtitle ?? base.sub,
+          href: Object.prototype.hasOwnProperty.call(saved, "destination") ? saved.destination : "",
+          bullets: Array.isArray(saved.features) ? saved.features : base.bullets,
+        };
+      })
+      .filter(card => card.id !== "community-feedback" && card.enabled !== false);
+  }, [selectorConfig.cardOrder, cardConfigMap, accentColor]);
 
   // ── grid cols from layoutStyle ──
-  const gridCols = prefs.layoutStyle==="grid-2" ? "repeat(2,1fr)"
-                 : prefs.layoutStyle==="list"   ? "1fr"
+  const layoutStyle = selectorConfig.layoutStyle || "grid-3";
+  const gridCols = layoutStyle==="grid-4" ? "repeat(4,1fr)"
+                 : layoutStyle==="grid-2" ? "repeat(2,1fr)"
+                 : layoutStyle==="list" || layoutStyle==="horizontal" ? "1fr"
+                 : layoutStyle==="compact" ? "repeat(4,minmax(0,1fr))"
+                 : layoutStyle==="featured" ? "minmax(0,1.4fr) repeat(2,minmax(0,1fr))"
+                 : layoutStyle==="bento" ? "repeat(6,minmax(0,1fr))"
+                 : layoutStyle==="masonry" ? "repeat(3,minmax(0,1fr))"
                  : "repeat(3,1fr)";
 
   const act = a => {
@@ -762,10 +458,86 @@ export default function ThaparPublicDashboard() {
     else if (a==="q2")        setModal("q2");
     else if (a==="about")     navigate("/about-us");
     else if (a==="community") navigate("/community-feedback");
+    else if (a==="libraryUnavailable") setModal("libraryUnavailable");
   };
 
   // ── page background from theme ──
-  const pageBg = THEME_BG[prefs.themePreset] || "#ffffff";
+  const pageBg = THEME_BG[selectorConfig.themePreset] || "#ffffff";
+  const cardStyle = selectorConfig.cardStyle === "glass"
+    ? "default"
+    : selectorConfig.cardStyle === "solid"
+      ? "shadow"
+      : selectorConfig.cardStyle || "default";
+  const openDestination = (destination) => {
+    if (!destination) return false;
+    if (destination.startsWith("/")) {
+      navigate(destination);
+      return true;
+    }
+    if (/^https?:\/\//i.test(destination)) {
+      window.open(destination, "_blank", "noopener,noreferrer");
+      return true;
+    }
+    return false;
+  };
+
+  const handleCmsAction = (itemOrAction) => {
+    if (!itemOrAction) return;
+    if (typeof itemOrAction === "string") {
+      act(itemOrAction);
+      return;
+    }
+    if (itemOrAction.id === "library-pass" || itemOrAction.action === "libraryUnavailable") {
+      act("libraryUnavailable");
+      return;
+    }
+    if (itemOrAction.destination && openDestination(itemOrAction.destination)) return;
+    if (itemOrAction.href && openDestination(itemOrAction.href)) return;
+    if (itemOrAction.action) act(itemOrAction.action);
+  };
+
+  const renderCmsModal = (key) => {
+    const modalConfig = publicConfig.modals?.[key];
+    if (!modalConfig) return null;
+    const blocks = Array.isArray(modalConfig.blocks)
+      ? modalConfig.blocks.filter((block) => block?.enabled !== false)
+      : [];
+    const emails = Array.isArray(modalConfig.emails) ? modalConfig.emails.filter(Boolean) : [];
+    const hasContent = modalConfig.description || emails.length || blocks.length;
+    if (!hasContent) return null;
+
+    return (
+      <Modal title={modalConfig.title || ""} onClose={() => setModal(null)}>
+        <div style={{ display:"flex", flexDirection:"column", gap:14,
+                      fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
+          {modalConfig.description && <p>{modalConfig.description}</p>}
+          {emails.map((email) => (
+            <a key={email} href={`mailto:${email}`} style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
+              {email}
+            </a>
+          ))}
+          {blocks.map((block) => (
+            <div key={block.id || block.label}>
+              {block.label && (
+                <p style={{ fontSize:11, fontWeight:700, color:"#9ca3af",
+                           textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>
+                  {block.label}
+                </p>
+              )}
+              {(block.lines || []).filter(Boolean).map((line) => (
+                <p key={line} style={{ fontSize:13, color:"#4b5563", marginBottom:4 }}>{line}</p>
+              ))}
+              {(block.emails || []).filter(Boolean).map((email) => (
+                <a key={email} href={`mailto:${email}`} style={{ color:"#2563eb", textDecoration:"none", fontWeight:500, display:"block", marginBottom:4 }}>
+                  {email}
+                </a>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Modal>
+    );
+  };
 
   return (
     <>
@@ -775,8 +547,18 @@ export default function ThaparPublicDashboard() {
         html{scroll-behavior:smooth}
         body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
         .card-grid{display:grid;gap:20px}
+        .card-grid.layout-horizontal{display:flex;flex-direction:column}
+        .card-grid.layout-compact{gap:14px}
+        .card-grid.layout-compact > div article,.card-grid.layout-compact > div > div{min-height:170px}
+        .card-grid.layout-bento > div:nth-child(1){grid-column:span 3}
+        .card-grid.layout-bento > div:nth-child(2){grid-column:span 3}
+        .card-grid.layout-bento > div{grid-column:span 2}
+        .card-grid.layout-featured > div:first-child{grid-row:span 2}
+        .card-grid.layout-masonry{align-items:start}
+        .card-grid.layout-masonry > div:nth-child(3n+1){margin-top:24px}
         @media(max-width:960px){.card-grid{grid-template-columns:repeat(2,1fr)!important}}
-        @media(max-width:600px){.card-grid{grid-template-columns:1fr!important}}
+        @media(max-width:960px){.card-grid.layout-bento > div,.card-grid.layout-featured > div:first-child{grid-column:auto!important;grid-row:auto!important;margin-top:0!important}}
+        @media(max-width:600px){.card-grid{grid-template-columns:1fr!important}.card-grid.layout-masonry > div{margin-top:0!important}}
         .public-header-inner{max-width:1280px;margin:0 auto;padding:0 24px;min-height:96px;display:flex;align-items:center;justify-content:space-between;gap:16px}
         .public-brand{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:0}
         .public-logo{height:clamp(56px,6vw,72px);width:auto;object-fit:contain;flex-shrink:0}
@@ -813,61 +595,79 @@ export default function ThaparPublicDashboard() {
       <div ref={topRef} style={{ background: pageBg, minHeight:"100vh", transition:"background .3s" }}>
 
         {/* ══ NAVBAR ══════════════════════════════════ */}
+        {headerConfig.announcement && (
+          <div style={{ background: accentColor, color:"#fff", textAlign:"center", padding:"8px 16px", fontSize:13, fontWeight:600 }}>
+            {headerConfig.announcement}
+          </div>
+        )}
         <header style={{ position:"sticky", top:0, zIndex:300, background:"#fff",
                          borderBottom:"1px solid #e5e7eb", boxShadow:"0 1px 4px rgba(0,0,0,.06)" }}>
           <div className="public-header-inner">
             {/* logo */}
             <div className="public-brand">
-              <img src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
-                alt="Thapar" className="public-logo"/>
+              {headerConfig.logoUrl && (
+                <img src={headerConfig.logoUrl}
+                  alt={headerConfig.logoAlt || "Logo"} className="public-logo"/>
+              )}
               <div style={{ minWidth:0 }}>
-                <p className="public-title">
-                  Thapar Institute of Engineering and Technology
-                </p>
-                <p className="public-subtitle">
-                  Created by DoSA Office
-                </p>
+                {headerConfig.title && (
+                  <p className="public-title">
+                    {headerConfig.title}
+                  </p>
+                )}
               </div>
             </div>
             {/* tabs */}
-            <nav className="nav-row" style={{ alignItems:"center", gap:24, flex:1, justifyContent:"center" }}>
-              {NAV.map(it => <NavItem key={it.label} item={it} onAction={act}/>)}
-            </nav>
+            {headerConfig.navigationVisible !== false && (
+              <nav className="nav-row" style={{ alignItems:"center", gap:24, flex:1, justifyContent:"center" }}>
+                {navigationItems.map(it => <NavItem key={it.id || it.title} item={it} onAction={handleCmsAction}/>)}
+              </nav>
+            )}
             {/* admin */}
-            <a href="https://campusconnect.thapar.edu/login" target="_blank" rel="noopener noreferrer"
+            <a href={headerConfig.loginDestination || "/login"} target="_blank" rel="noopener noreferrer"
               className="public-login-btn">
-              <LogIn size={13}/> Login
+              <LogIn size={13}/> Admin Login
             </a>
           </div>
+          {headerConfig.topNotice && (
+            <div style={{ borderTop:"1px solid #f3f4f6", textAlign:"center", padding:"7px 16px", fontSize:12.5, color:"#6b7280" }}>
+              {headerConfig.topNotice}
+            </div>
+          )}
         </header>
 
         {/* ══ HERO ════════════════════════════════════ */}
-        <div style={{ position: "relative", height: "70vh", minHeight: 480, overflow: "hidden" }}>
-          <img
-            src="https://ik.imagekit.io/7khjnlfow/email-assets/03_dsyrsv.png?updatedAt=1774118995455"
-            alt="Thapar Campus"
-            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
-          />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%)" }} />
+        {heroConfig.enabled !== false && isSectionEnabled("hero") && (
+        <div style={{ position: "relative", height: heroConfig.height || "70vh", minHeight: Number(heroConfig.minHeight || 480), overflow: "hidden" }}>
+          {heroConfig.backgroundUrl && (
+            <img
+              src={heroConfig.backgroundUrl}
+              alt={heroConfig.backgroundAlt || "Campus"}
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+            />
+          )}
+          <div style={{ position: "absolute", inset: 0, background: heroConfig.overlay || "linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%)" }} />
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 24px" }}>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+            {heroConfig.badge && <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
               style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.7)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 16 }}>
-              Thapar Campus Connect
-            </motion.p>
-            <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25 }}
+              {heroConfig.badge}
+            </motion.p>}
+            {heroConfig.title && <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25 }}
               style={{ fontFamily:"'EB Garamond',Georgia,serif", fontSize: "clamp(2.4rem,6vw,5rem)", fontWeight: 700, color: "#fff", lineHeight: 1.1, marginBottom: 20, maxWidth: 800 }}>
-              One Platform
-            </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45 }}
+              {heroConfig.title}
+            </motion.h1>}
+            {heroConfig.subtitle && <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45 }}
               style={{ fontSize: 16, color: "rgba(255,255,255,.85)", maxWidth: 560, lineHeight: 1.7 }}>
-              Seamlessly Connected.
-            </motion.p>
+              {heroConfig.subtitle}
+            </motion.p>}
+            {heroConfig.description && <p style={{ fontSize: 14, color: "rgba(255,255,255,.78)", maxWidth: 620, marginTop: 12, lineHeight: 1.7 }}>{heroConfig.description}</p>}
           </div>
         </div>
+        )}
 
         {/* ══ CARDS ═══════════════════════════════════ */}
-        <section style={{ background:"transparent", padding:"120px 24px 80px" }}>
-          <div className="card-grid"
+        {isSectionEnabled("services") && <section style={{ background:"transparent", padding:"120px 24px 80px" }}>
+          <div className={`card-grid layout-${layoutStyle}`}
             style={{ maxWidth:1280, margin:"0 auto", gridTemplateColumns:gridCols }}>
             {visibleCards.map((c, i) => (
               <motion.div key={c.id}
@@ -875,97 +675,58 @@ export default function ThaparPublicDashboard() {
                 viewport={{ once:true, margin:"-20px" }}
                 transition={{ duration:.35, delay:i*.06 }}>
                 <Card card={c} onAction={act}
-                  cardStyle={prefs.cardStyle}
-                  accentColor={prefs.accentColor}/>
+                  onLocked={setLockModal}
+                  onOpenDestination={openDestination}
+                  cardStyle={cardStyle}
+                  accentColor={accentColor}/>
               </motion.div>
             ))}
           </div>
-        </section>
+        </section>}
 
         {/* ══ FOOTER ══════════════════════════════════ */}
-        <footer style={{ background:"#f0f1f3", borderTop:"1px solid #e5e7eb" }}>
+        {footerConfig.enabled !== false && isSectionEnabled("footer") && <footer style={{ background:"#f0f1f3", borderTop:"1px solid #e5e7eb" }}>
           <div className="footer-cols" style={{ maxWidth:1040, margin:"0 auto", padding:"48px 24px 40px" }}>
             <div>
-              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Quick Links</p>
+              {footerConfig.quickLinksTitle && <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>{footerConfig.quickLinksTitle}</p>}
               <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                <button onClick={() => act("home")}
-                  className="footer-link">
-                  <Home size={15}/> Home
-                </button>
-                <button onClick={() => navigate("/install-app")}
-                  className="footer-link">
-                  <Package size={15}/> How to Install
-                </button>
-                <a href="https://campusconnect.thapar.edu/login" target="_blank" rel="noopener noreferrer"
-                  className="footer-link">
-                  <LogIn size={15}/> Sign In
-                </a>
-                <a href="https://campusconnect.thapar.edu/community-feedback" target="_blank" rel="noopener noreferrer"
-                  className="footer-link">
-                  <MessageSquare size={15}/> Community Feedback
-                </a>
-                <a href="https://campusconnect.thapar.edu/ic" target="_blank" rel="noopener noreferrer"
-                  className="footer-link">
-                  <CalendarDays size={15}/> Institute Calendar
-                </a>
-                <a href="https://campusconnect.thapar.edu/tc" target="_blank" rel="noopener noreferrer"
-                  className="footer-link">
-                  <CalendarDays size={15}/> Student Calendar
-                </a>
-                <a href="https://studentsocieties.thapar.edu/" target="_blank" rel="noopener noreferrer"
-                  className="footer-link">
-                  <Users size={15}/> Student Societies
-                </a>
-                <button onClick={() => act("about")} className="footer-link">
-                  <Building2 size={15}/> About Us
-                </button>
+                {(footerConfig.quickLinks || []).filter((link) => link?.enabled !== false).map((link) => {
+                  const LinkIcon = ICONS[link.icon] || (
+                    link.id === "home" ? Home :
+                    link.id === "install" ? Package :
+                    link.id === "signin" ? LogIn :
+                    link.id === "societies" ? Users :
+                    link.id === "about" ? Building2 :
+                    link.id === "community" ? MessageSquare :
+                    CalendarDays
+                  );
+                  return (
+                    <button key={link.id || link.title} onClick={() => handleCmsAction(link)}
+                      className="footer-link">
+                      <LinkIcon size={15}/> {link.title}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div>
-              <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>Contact Us</p>
+              {footerConfig.contactTitle && <p style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:14 }}>{footerConfig.contactTitle}</p>}
               <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
-                <div className="contact-block">
-                  <span className="contact-label">Timings</span>
-                  <span>9:00 AM to 5:30 PM</span>
-                  <span>Monday to Friday</span>
-                </div>
-                <div className="contact-block">
-                  <span className="contact-label">Any General Query or Assistance</span>
-                  <span>Email:</span>
-                  <a className="contact-email" href="mailto:dosa.office@thapar.edu">dosa.office@thapar.edu</a>
-                  <a className="contact-email" href="mailto:Queries_studentaffairs@thapar.edu">Queries_studentaffairs@thapar.edu</a>
-                </div>
-                <div className="contact-block">
-                  <span className="contact-label">Technical Support</span>
-                  <span>Email:</span>
-                  <a className="contact-email" href="mailto:itmh@thapar.edu">itmh@thapar.edu</a>
-                </div>
+                {(footerConfig.contactBlocks || []).filter((block) => block?.enabled !== false).map((block) => (
+                  <div key={block.id || block.label} className="contact-block">
+                    {block.label && <span className="contact-label">{block.label}</span>}
+                    {(block.lines || []).map((line, index) => <span key={`${line}-${index}`}>{line}</span>)}
+                    {(block.emails || []).map((email) => (
+                      <a key={email} className="contact-email" href={`mailto:${email}`}>{email}</a>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </footer>
+        </footer>}
       </div>{/* end page wrapper */}
-
-      {/* ══ FIXED: CUSTOMIZE MY VIEW ════════════════
-          — button is always visible bottom-left
-          — mirrors original SlidersHorizontal icon + label
-      ═══════════════════════════════════════════════ */}
-      <button
-        onClick={() => setShowCustomizer(true)}
-        style={{ position:"fixed", bottom:40, left:24, zIndex:350,
-                 display:"flex", alignItems:"center", gap:8,
-                 background:"rgba(255,255,255,.92)", backdropFilter:"blur(8px)",
-                 border:"1px solid #d1d5db", borderRadius:12,
-                 padding:"10px 16px", fontSize:13, fontWeight:500, color:"#374151",
-                 cursor:"pointer", fontFamily:"inherit",
-                 boxShadow:"0 2px 16px rgba(0,0,0,.12)",
-                 transition:"box-shadow .2s, transform .2s" }}
-        onMouseEnter={e=>{ e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.18)"; e.currentTarget.style.transform="translateY(-2px)"; }}
-        onMouseLeave={e=>{ e.currentTarget.style.boxShadow="0 2px 16px rgba(0,0,0,.12)"; e.currentTarget.style.transform="none"; }}>
-        <SlidersHorizontal size={15} color="#6b7280"/>
-        Customize My View
-      </button>
 
       {/* ══ FIXED: LEGAL FOOTER BAR ══════════════════
           © 2026 TIET | License | Policies | Terms
@@ -978,16 +739,12 @@ export default function ThaparPublicDashboard() {
         padding:"7px 24px",
         boxShadow:"0 -1px 12px rgba(0,0,0,.06)",
       }}>
-        <span style={{ fontSize:12, color:"#9ca3af", marginRight:10 }}>© 2026 TIET</span>
-        {[
-          { label:"License",  path:"/license"  },
-          { label:"Policies", path:"/policies" },
-          { label:"Terms",    path:"/terms"    },
-        ].map(({ label, path }) => (
-          <span key={path} style={{ display:"flex", alignItems:"center" }}>
+        {footerConfig.copyright && <span style={{ fontSize:12, color:"#9ca3af", marginRight:10 }}>{footerConfig.copyright}</span>}
+        {(footerConfig.legalLinks || []).filter((link) => link?.enabled !== false).map((link) => (
+          <span key={link.id || link.title} style={{ display:"flex", alignItems:"center" }}>
             <span style={{ color:"#d1d5db", margin:"0 8px", fontSize:11 }}>|</span>
             <button
-              onClick={() => navigate(path)}
+              onClick={() => handleCmsAction(link)}
               style={{
                 background:"none", border:"none", cursor:"pointer",
                 fontSize:12, fontWeight:500, color:"#6b7280",
@@ -997,7 +754,7 @@ export default function ThaparPublicDashboard() {
               onMouseEnter={e => e.currentTarget.style.color="#c62828"}
               onMouseLeave={e => e.currentTarget.style.color="#6b7280"}
             >
-              {label}
+              {link.title}
             </button>
           </span>
         ))}
@@ -1007,94 +764,36 @@ export default function ThaparPublicDashboard() {
           — EchoOrb bot face (floating mode)
           — full chat panel with keyword responses
       ═══════════════════════════════════════════════ */}
-      <EchoOrb 
-        mode="floating"
-        onClick={() => setChat(v => !v)}
-      />
+      {publicConfig.widgets?.echoEnabled !== false && isSectionEnabled("echo") && (
+        <EchoOrb 
+          mode="floating"
+          onClick={() => setChat(v => !v)}
+        />
+      )}
 
       {/* Echo chat modal */}
       <AnimatePresence>
-        {chat && <EchoChatbot onClose={() => setChat(false)}/>}
-      </AnimatePresence>
-
-      {/* Customize panel */}
-      <AnimatePresence>
-        {showCustomizer && (
-          <CustomizePanel
-            prefs={prefs}
-            onUpdate={updatePrefs}
-            onMove={moveCard}
-            onToggleHide={toggleHide}
-            onSave={savePrefs}
-            onReset={resetPrefs}
-            onClose={() => setShowCustomizer(false)}
-          />
+        {publicConfig.widgets?.echoEnabled !== false && isSectionEnabled("echo") && chat && (
+          <EchoChatbot onClose={() => setChat(false)} echoConfig={echoConfig}/>
         )}
       </AnimatePresence>
 
       {/* ══ MODALS ══════════════════════════════════ */}
       <AnimatePresence>
-        {modal==="q1" && (
-          <Modal title="Any Queries?" onClose={() => setModal(null)}>
-            <div style={{ display:"flex", flexDirection:"column", gap:14,
-                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
-              <div>
-                <p style={{ fontSize:13, color:"#6b7280", marginBottom:6 }}>Contact us for any assistance:</p>
-                <a href="mailto:Queries_studentaffairs@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                  Queries_studentaffairs@thapar.edu
-                </a>
+        {lockModal && (
+          <Modal title={lockModal.title || "Service Unavailable"} onClose={() => setLockModal(null)}>
+            <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
+              <div style={{ width:36, height:36, borderRadius:12, background:"#fff7ed",
+                            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <Lock size={17} color="#c62828"/>
               </div>
-              <div>
-                <p style={{ fontSize:11, fontWeight:700, color:"#9ca3af",
-                           textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>
-                  Technical Support
-                </p>
-                <a href="mailto:itmh@thapar.edu" style={{ color:"#2563eb", textDecoration:"none", fontWeight:500 }}>
-                  itmh@thapar.edu
-                </a>
-              </div>
+              <p style={{ fontSize:14, color:"#4b5563", lineHeight:1.65, margin:0 }}>
+                {lockModal.message || "This service is currently unavailable."}
+              </p>
             </div>
           </Modal>
         )}
-        {modal==="q2" && (
-          <Modal title="Reach Out To Us" onClose={() => setModal(null)}>
-            <div style={{ display:"flex", flexDirection:"column", gap:14,
-                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
-              <p>For any feedback you can contact us on <strong style={{ color:"#111" }}>DoSA Office</strong></p>
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
-                  <Clock size={14} color="#9ca3af" style={{ marginTop:2, flexShrink:0 }}/>
-                  <span style={{ fontSize:13, color:"#4b5563" }}>Timings: 9 AM to 5:30 PM, Monday to Friday</span>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <Mail size={14} color="#9ca3af" style={{ flexShrink:0 }}/>
-                  <span style={{ fontSize:13, color:"#4b5563" }}>E-mail:{" "}
-                    <a href="mailto:dosa.office@thapar.edu" style={{ color:"#2563eb", textDecoration:"none" }}>
-                      dosa.office@thapar.edu
-                    </a>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Modal>
-        )}
-        {modal==="about" && (
-          <Modal title="About Thapar Operations" onClose={() => setModal(null)}>
-            <div style={{ display:"flex", flexDirection:"column", gap:14,
-                          fontSize:13.5, color:"#4b5563", lineHeight:1.65 }}>
-              <p>The <strong style={{ color:"#111" }}>Thapar Operations Portal</strong> was conceptualized
-                under the leadership of our Dean to digitize and centralize campus services.</p>
-              <p>Developed and maintained by the <strong style={{ color:"#111" }}>DoSA Office</strong> at
-                Thapar Institute of Engineering and Technology, Patiala.</p>
-              <div style={{ background:"#f9fafb", borderRadius:10, padding:14 }}>
-                <p style={{ fontWeight:600, color:"#111", marginBottom:8, fontSize:13.5 }}>Development Team</p>
-                <p style={{ fontSize:12.5, color:"#6b7280" }}>Created by <strong>DoSA Office</strong></p>
-                <p style={{ fontSize:12.5, color:"#6b7280" }}>Crafted by <strong>DoSA Office</strong></p>
-                <p style={{ fontSize:12, color:"#9ca3af", marginTop:8 }}>Version 1.0 · Campus Connect &amp; DoSA Office</p>
-              </div>
-            </div>
-          </Modal>
-        )}
+        {modal && renderCmsModal(modal)}
       </AnimatePresence>
 
       {/* ══ TOAST ═══════════════════════════════════ */}

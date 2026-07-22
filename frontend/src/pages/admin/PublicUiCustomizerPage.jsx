@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowDown, ArrowUp, Save } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DEFAULT_PUBLIC_UI_CONFIG,
-  fetchPublicUiConfig,
+  fetchAdminPublicUiConfig,
   normalizePublicUiConfig,
   updatePublicUiConfig,
 } from "../../utils/publicUiConfig";
@@ -11,11 +11,24 @@ import {
 const CARD_LABELS = {
   "guest-booking": "Guest Booking",
   "venue-booking": "Venue Booking",
-  feedback: "Feedback",
-  "society-night-pass": "Library Night Permission",
-  calendar: "Event Calendar",
+  "event-calendar": "Event Calendar",
+  "library-pass": "Library Night Pass",
+  "society-pass": "Society Night Pass",
   "lost-found": "Lost & Found",
+  "community-feedback": "Community & Feedback",
 };
+
+const LAYOUT_OPTIONS = [
+  ["grid-3", "Grid 3"],
+  ["grid-4", "Grid 4"],
+  ["grid-2", "Grid 2"],
+  ["list", "List"],
+  ["bento", "Bento"],
+  ["featured", "Featured"],
+  ["compact", "Compact"],
+  ["horizontal", "Horizontal Cards"],
+  ["masonry", "Masonry"],
+];
 
 const PublicUiCustomizerPage = () => {
   const navigate = useNavigate();
@@ -32,19 +45,16 @@ const PublicUiCustomizerPage = () => {
       setLoading(true);
       setError("");
       try {
-        const data = await fetchPublicUiConfig();
-        if (!mounted) return;
-        setConfig(data);
+        const data = await fetchAdminPublicUiConfig();
+        if (mounted) setConfig(data);
       } catch (err) {
-        if (!mounted) return;
-        setError(err.message || "Failed to load public UI config");
+        if (mounted) setError(err.message || "Failed to load public UI config");
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     loadConfig();
-
     return () => {
       mounted = false;
     };
@@ -54,7 +64,7 @@ const PublicUiCustomizerPage = () => {
     const cardMap = new Map((config.selector.cards || []).map((card) => [card.id, card]));
     return (config.selector.cardOrder || []).map((id) => ({
       id,
-      ...(cardMap.get(id) || { id, enabled: true, title: "", description: "", features: [] }),
+      ...(cardMap.get(id) || { id, enabled: true, title: "" }),
     }));
   }, [config]);
 
@@ -138,9 +148,9 @@ const PublicUiCustomizerPage = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Public UI Customizer</h1>
-            <p className="text-slate-600">Admin-only control for public footer widgets and dashboard selector design</p>
+            <p className="text-slate-600">Admin-only control for public footer widgets and dashboard selector design.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => navigate("/")}
               className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700"
@@ -216,14 +226,6 @@ const PublicUiCustomizerPage = () => {
                 />
                 Show system as online
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={config.widgets.echoEnabled}
-                  onChange={(e) => updateWidgets({ echoEnabled: e.target.checked })}
-                />
-                Enable Echo AI on public pages
-              </label>
             </div>
           </div>
 
@@ -235,14 +237,6 @@ const PublicUiCustomizerPage = () => {
                 <input
                   value={config.selector.title}
                   onChange={(e) => updateSelector({ title: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
-                />
-              </label>
-              <label className="text-sm font-medium text-slate-700 block">
-                Subtitle
-                <input
-                  value={config.selector.subtitle}
-                  onChange={(e) => updateSelector({ subtitle: e.target.value })}
                   className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
                 />
               </label>
@@ -267,8 +261,8 @@ const PublicUiCustomizerPage = () => {
                     onChange={(e) => updateSelector({ cardStyle: e.target.value })}
                     className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
                   >
-                    <option value="glass">Glass</option>
-                    <option value="solid">Solid</option>
+                    <option value="default">Default</option>
+                    <option value="shadow">Shadow</option>
                     <option value="outline">Outline</option>
                   </select>
                 </label>
@@ -279,18 +273,27 @@ const PublicUiCustomizerPage = () => {
                     onChange={(e) => updateSelector({ layoutStyle: e.target.value })}
                     className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
                   >
-                    <option value="grid-3">Grid (3 columns)</option>
-                    <option value="grid-2">Grid (2 columns)</option>
-                    <option value="list">List (1 column)</option>
+                    {LAYOUT_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
                   </select>
                 </label>
               </div>
+              <label className="text-sm font-medium text-slate-700 block">
+                Accent Colour
+                <input
+                  type="color"
+                  value={config.selector.accentColor || "#c62828"}
+                  onChange={(e) => updateSelector({ accentColor: e.target.value })}
+                  className="mt-1 h-11 w-full px-2 rounded-lg border border-slate-300"
+                />
+              </label>
             </div>
           </div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Button Cards (Order, Text, Visibility)</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Button Cards</h2>
           <div className="space-y-4">
             {cards.map((card, index) => (
               <div key={card.id} className="border border-slate-200 rounded-xl p-4">
@@ -301,7 +304,7 @@ const PublicUiCustomizerPage = () => {
                     </p>
                     <p className="text-xs text-slate-500">id: {card.id}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       disabled={index === 0}
@@ -326,6 +329,14 @@ const PublicUiCustomizerPage = () => {
                       />
                       Enabled
                     </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={card.locked === true}
+                        onChange={(e) => updateCard(card.id, { locked: e.target.checked })}
+                      />
+                      Locked
+                    </label>
                   </div>
                 </div>
 
@@ -339,28 +350,41 @@ const PublicUiCustomizerPage = () => {
                     />
                   </label>
                   <label className="text-sm font-medium text-slate-700 block">
-                    Description
+                    Destination URL or Internal Route
                     <input
-                      value={card.description || ""}
-                      onChange={(e) => updateCard(card.id, { description: e.target.value })}
+                      value={card.destination || ""}
+                      onChange={(e) => updateCard(card.id, { destination: e.target.value })}
+                      placeholder="/path or https://..."
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-slate-700 block">
+                    Icon Key
+                    <input
+                      value={card.icon || ""}
+                      onChange={(e) => updateCard(card.id, { icon: e.target.value })}
+                      placeholder="building, calendar, moon, sparkles, search, message"
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-slate-700 block">
+                    Accent Colour
+                    <input
+                      type="color"
+                      value={card.accentColor || "#c62828"}
+                      onChange={(e) => updateCard(card.id, { accentColor: e.target.value })}
+                      className="mt-1 h-11 w-full px-2 rounded-lg border border-slate-300"
                     />
                   </label>
                 </div>
 
                 <label className="text-sm font-medium text-slate-700 block mt-3">
-                  Features (comma separated)
-                  <input
-                    value={Array.isArray(card.features) ? card.features.join(", ") : ""}
-                    onChange={(e) =>
-                      updateCard(card.id, {
-                        features: e.target.value
-                          .split(",")
-                          .map((item) => item.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                  Lock Message
+                  <textarea
+                    value={card.lockMessage || ""}
+                    onChange={(e) => updateCard(card.id, { lockMessage: e.target.value })}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[72px]"
+                    placeholder="This service is currently unavailable."
                   />
                 </label>
               </div>

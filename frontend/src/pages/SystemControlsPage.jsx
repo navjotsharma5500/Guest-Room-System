@@ -163,8 +163,9 @@ export default function SystemControlsPage({ theme = "light", onClose = () => {}
   const handleSaveUsers = async () => {
     try {
       const payload = parseUserPayload(userForm);
-      const url = editingUserId ? `${API}/api/users/${editingUserId}` : `${API}/api/users`;
-      const method = editingUserId ? "PUT" : "POST";
+      const safeEditingUserId = typeof editingUserId === "string" ? editingUserId : "";
+      const url = safeEditingUserId ? `${API}/api/users/${safeEditingUserId}` : `${API}/api/users`;
+      const method = safeEditingUserId ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
@@ -630,7 +631,7 @@ export default function SystemControlsPage({ theme = "light", onClose = () => {}
               {activeTab === "userManagement" && (
                 <div className="space-y-6">
                   <div className="rounded-xl border p-4">
-                    <h4 className="mb-4 font-semibold">{editingUserId ? "Edit User" : "Create User"}</h4>
+                  <h4 className="mb-4 font-semibold">{typeof editingUserId === "string" && editingUserId ? "Edit User" : "Create User"}</h4>
                     <div className="grid gap-4 md:grid-cols-2">
                       <Field label="Name"><input className="w-full rounded-lg border px-3 py-2" value={userForm.name} onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
                       <Field label="Email"><input className="w-full rounded-lg border px-3 py-2" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} /></Field>
@@ -683,7 +684,7 @@ export default function SystemControlsPage({ theme = "light", onClose = () => {}
                         onClick={handleSaveUsers}
                         className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                       >
-                        {editingUserId ? "Update User" : "Create User"}
+                        {typeof editingUserId === "string" && editingUserId ? "Update User" : "Create User"}
                       </button>
                       {editingUserId && (
                         <button

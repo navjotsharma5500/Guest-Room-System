@@ -210,7 +210,7 @@ export default function App() {
             element={
               currentUser && role === "admin"
                 ? <PublicUiCustomizerPage />
-                : <Navigate to="/" replace />
+                : <Navigate to={currentUser ? "/admin/dashboard-selector" : "/login"} replace />
             }
           />
 
