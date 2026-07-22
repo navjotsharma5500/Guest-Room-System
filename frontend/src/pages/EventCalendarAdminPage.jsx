@@ -234,7 +234,7 @@ export default function EventCalendarAdminPage() {
 
   const deleteEvent = async (eventRecord) => {
     const confirmed = window.confirm(
-      `This will affect the original source.\n\nEvent: ${eventRecord.eventName}\nSource: ${sourceLabel[eventRecord.sourceType] || eventRecord.sourceType}\nDate: ${eventRecord.eventDate}`
+      `This will only hide the event from this Event Calendar.\nThe original source record will not be deleted or cancelled.\n\nEvent: ${eventRecord.eventName}\nSource: ${sourceLabel[eventRecord.sourceType] || eventRecord.sourceType}\nDate: ${eventRecord.eventDate}`
     );
     if (!confirmed) return;
     const response = await fetch(`${API}/api/event-calendar/admin/events/${encodeURIComponent(eventRecord.unifiedId)}`, {

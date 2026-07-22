@@ -70,6 +70,22 @@ const eventCalendarSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  hiddenFromMasterCalendar: {
+    type: Boolean,
+    default: false,
+  },
+  hiddenFromMasterCalendarAt: {
+    type: Date,
+    default: null,
+  },
+  hiddenFromMasterCalendarBy: {
+    type: String,
+    default: '',
+  },
+  hiddenFromMasterCalendarReason: {
+    type: String,
+    default: '',
+  },
 
   // Google Calendar Integration
   googleCalendarEventId: {

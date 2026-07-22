@@ -1,5 +1,6 @@
 import VenueBooking from "../models/VenueBooking.js";
 import EventCalendar from "../models/EventCalendar.js";
+import MasterEventCalendarOverride from "../models/MasterEventCalendarOverride.js";
 
 const CACHE_TTL_MS = 30 * 1000;
 const COLOR_CACHE_TTL_MS = 60 * 1000;
@@ -127,6 +128,7 @@ const normalizeVenueBooking = (booking) => ({
   conflictResolvedAt: booking.conflictResolvedAt,
   conflictResolvedBy: booking.conflictResolvedBy || "",
   conflictResolutionRemarks: booking.conflictResolutionRemarks || "",
+  hiddenFromMasterCalendar: booking.hiddenFromMasterCalendar === true,
   createdAt: booking.createdAt,
   updatedAt: booking.updatedAt,
   editable: true,
@@ -155,6 +157,7 @@ const normalizeLegacyEvent = (event) => ({
   conflictResolvedAt: event.conflictResolvedAt,
   conflictResolvedBy: event.conflictResolvedBy || "",
   conflictResolutionRemarks: event.conflictResolutionRemarks || "",
+  hiddenFromMasterCalendar: event.hiddenFromMasterCalendar === true,
   createdAt: event.createdAt,
   updatedAt: event.updatedAt,
   editable: true,
@@ -295,20 +298,25 @@ const applyFilters = (events, filters = {}) => {
 const getLocalEvents = async ({ startDate, endDate } = {}) => {
   const bookingQuery = {
     status: { $nin: ["cancelled", "no_show"] },
+    hiddenFromMasterCalendar: { $ne: true },
   };
   if (startDate || endDate) {
     bookingQuery.checkInDate = { $lte: endDate || "9999-12-31" };
     bookingQuery.checkOutDate = { $gte: startDate || "0000-01-01" };
   }
+  const legacyEventQuery = {
+    hiddenFromMasterCalendar: { $ne: true },
+  };
+  if (startDate || endDate) {
+    legacyEventQuery.eventDate = { $lte: endDate || "9999-12-31", $gte: startDate || "0000-01-01" };
+  }
 
   const [venueBookings, legacyEvents] = await Promise.all([
     VenueBooking.find(bookingQuery)
-      .select("hall roomNo name societyName eventName department contact email checkInDate checkInTime checkOutDate checkOutTime purpose description attachments status bookingFor enquiryId conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks createdAt updatedAt")
+      .select("hall roomNo name societyName eventName department contact email checkInDate checkInTime checkOutDate checkOutTime purpose description attachments status bookingFor enquiryId conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks hiddenFromMasterCalendar createdAt updatedAt")
       .lean(),
-    EventCalendar.find(startDate || endDate ? {
-      eventDate: { $lte: endDate || "9999-12-31", $gte: startDate || "0000-01-01" },
-    } : {})
-      .select("eventName societyName eventDate eventEndDate eventTime checkOutTime eventHall attachments status linkedVenueBooking description conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks createdAt updatedAt")
+    EventCalendar.find(legacyEventQuery)
+      .select("eventName societyName eventDate eventEndDate eventTime checkOutTime eventHall attachments status linkedVenueBooking description conflictResolved conflictResolvedAt conflictResolvedBy conflictResolutionRemarks hiddenFromMasterCalendar createdAt updatedAt")
       .lean(),
   ]);
 
@@ -322,6 +330,18 @@ const getLocalEvents = async ({ startDate, endDate } = {}) => {
   ];
 
   return events;
+};
+
+const applyMasterCalendarOverrides = async (events) => {
+  const unifiedIds = events.map((event) => event.unifiedId).filter(Boolean);
+  if (!unifiedIds.length) return events;
+
+  const overrides = await MasterEventCalendarOverride.find({
+    unifiedId: { $in: unifiedIds },
+    hiddenFromMasterCalendar: true,
+  }).select("unifiedId").lean();
+  const hiddenIds = new Set(overrides.map((override) => override.unifiedId));
+  return events.filter((event) => !hiddenIds.has(event.unifiedId) && event.hiddenFromMasterCalendar !== true);
 };
 
 export const getMasterEvents = async (filters = {}) => {
@@ -347,13 +367,13 @@ export const getMasterEvents = async (filters = {}) => {
   const holidaysPayload = holidaysResult.status === "fulfilled" ? holidaysResult.value : { available: false, data: [] };
   const teachingPayload = teachingResult.status === "fulfilled" ? teachingResult.value : { available: false, data: [] };
 
-  const merged = dedupeEvents([
+  const merged = await applyMasterCalendarOverrides(dedupeEvents([
     ...localEvents,
     ...(studentPayload.data || []).map((event) => normalizeRemoteEvent(event, "student-calendar", "student_calendar")),
     ...(institutePayload.data || []).map((event) => normalizeRemoteEvent(event, "institute-calendar", "institute_calendar")),
     ...(holidaysPayload.data || []).map(normalizeHoliday),
     ...(teachingPayload.data || []).map(normalizeTeachingDay),
-  ]);
+  ]));
 
   const filtered = sortEvents(applyFilters(merged, filters));
   const result = {

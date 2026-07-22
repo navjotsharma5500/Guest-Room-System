@@ -8,6 +8,7 @@ import {
 } from "../services/masterEventCalendarService.js";
 import VenueBooking from "../models/VenueBooking.js";
 import EventCalendar from "../models/EventCalendar.js";
+import MasterEventCalendarOverride from "../models/MasterEventCalendarOverride.js";
 import { getSocketIO } from "../utils/socket.js";
 
 const ADMIN_COOKIE = "event_calendar_admin";
@@ -338,33 +339,43 @@ export const updateAdminEvent = async (req, res) => {
 export const deleteAdminEvent = async (req, res) => {
   try {
     const [source, id] = String(req.params.unifiedId || "").split(":");
-    let deleted = null;
+    const unifiedId = req.params.unifiedId;
+    const hideUpdate = {
+      hiddenFromMasterCalendar: true,
+      hiddenFromMasterCalendarAt: new Date(),
+      hiddenFromMasterCalendarBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
+      hiddenFromMasterCalendarReason: req.body?.reason || "Hidden from Event Calendar Admin",
+    };
+    let hidden = null;
 
     if (source === "venue") {
-      deleted = await VenueBooking.findByIdAndUpdate(id, {
-        status: "cancelled",
-        cancellationRemarks: "Cancelled from Event Calendar Admin",
-        cancelledAt: new Date(),
-      }, { new: true }).lean();
+      hidden = await VenueBooking.findByIdAndUpdate(id, hideUpdate, { new: true }).lean();
     } else if (source === "event") {
-      deleted = await EventCalendar.findByIdAndDelete(id).lean();
+      hidden = await EventCalendar.findByIdAndUpdate(id, hideUpdate, { new: true }).lean();
     } else {
-      const baseUrl = source === "student" ? process.env.STUDENT_CALENDAR_API_URL : process.env.INSTITUTE_CALENDAR_API_URL;
-      const response = await fetch(new URL(`api/integration/events/${id}`, `${String(baseUrl || "").replace(/\/$/, "")}/`), {
-        method: "DELETE",
-        headers: { "x-calendar-api-key": process.env.CALENDAR_INTERNAL_API_KEY || "" },
-      });
-      const json = await response.json();
-      if (!response.ok) return res.status(response.status).json(json);
-      deleted = json.data;
+      hidden = await MasterEventCalendarOverride.findOneAndUpdate(
+        { unifiedId },
+        {
+          $set: {
+            unifiedId,
+            sourceType: source,
+            sourceId: id,
+            hiddenFromMasterCalendar: true,
+            hiddenAt: new Date(),
+            hiddenBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
+            hiddenReason: req.body?.reason || "Hidden from Event Calendar Admin",
+          },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ).lean();
     }
 
-    if (!deleted) return res.status(404).json({ success: false, message: "Event not found" });
+    if (!hidden) return res.status(404).json({ success: false, message: "Event not found" });
     invalidateMasterCalendarCache();
     try {
-      getSocketIO().emit("master-calendar-updated", { action: "deleted", unifiedId: req.params.unifiedId });
+      getSocketIO().emit("master-calendar-updated", { action: "hidden", unifiedId: req.params.unifiedId });
     } catch {}
-    res.json({ success: true, data: deleted });
+    res.json({ success: true, data: hidden, message: "Event hidden from Event Calendar. Original source was not changed." });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
