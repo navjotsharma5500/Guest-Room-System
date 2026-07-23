@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import {
   getMasterEvents,
   getSourceEvent,
@@ -9,6 +10,7 @@ import {
 import VenueBooking from "../models/VenueBooking.js";
 import EventCalendar from "../models/EventCalendar.js";
 import MasterEventCalendarOverride from "../models/MasterEventCalendarOverride.js";
+import User from "../models/User.js";
 import { getSocketIO } from "../utils/socket.js";
 
 const ADMIN_COOKIE = "event_calendar_admin";
@@ -185,21 +187,56 @@ export const adminLogout = async (req, res) => {
   res.json({ success: true });
 };
 
-export const requireEventCalendarAdmin = (req, res, next) => {
+const EVENT_CALENDAR_ADMIN_ROLES = new Set(["admin", "assistant"]);
+
+const getDashboardToken = (req) => {
+  if (req.headers.authorization?.startsWith("Bearer ")) {
+    return req.headers.authorization.split(" ")[1];
+  }
+  return req.cookies?.token || null;
+};
+
+export const requireEventCalendarAdmin = async (req, res, next) => {
   const token = req.cookies?.[ADMIN_COOKIE];
-  if (!token) return res.status(401).json({ success: false, message: "Admin session required" });
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.EVENT_CALENDAR_SESSION_SECRET || process.env.JWT_SECRET || "event-calendar-session-secret"
-    );
-    if (decoded.scope !== "event-calendar-admin") {
-      return res.status(401).json({ success: false, message: "Invalid admin session" });
+    if (token) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.EVENT_CALENDAR_SESSION_SECRET || process.env.JWT_SECRET || "event-calendar-session-secret"
+        );
+        if (decoded.scope === "event-calendar-admin") {
+          req.eventCalendarAdmin = decoded;
+          return next();
+        }
+      } catch {
+        res.clearCookie(ADMIN_COOKIE);
+      }
     }
-    req.eventCalendarAdmin = decoded;
-    next();
-  } catch {
-    res.status(401).json({ success: false, message: "Invalid admin session" });
+
+    const dashboardToken = getDashboardToken(req);
+    if (dashboardToken) {
+      const decoded = jwt.verify(dashboardToken, process.env.JWT_SECRET);
+      const userId = typeof decoded?.id === "string" ? decoded.id : String(decoded?.id || "");
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        const user = await User.findById(userId).select("-password").lean();
+        const role = String(user?.role || "").toLowerCase();
+        if (user && EVENT_CALENDAR_ADMIN_ROLES.has(role)) {
+          req.user = user;
+          req.eventCalendarAdmin = {
+            scope: "dashboard-admin",
+            userId: String(user._id),
+            email: user.email,
+            role: user.role,
+          };
+          return next();
+        }
+      }
+    }
+
+    return res.status(401).json({ success: false, message: "Admin session required" });
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "Invalid admin session" });
   }
 };
 
@@ -397,18 +434,18 @@ export const resolveAdminEventConflict = async (req, res) => {
     } else if (source === "event") {
       updated = await EventCalendar.findByIdAndUpdate(id, resolutionUpdate, { new: true, runValidators: true }).lean();
     } else {
-      const baseUrl = source === "student" ? process.env.STUDENT_CALENDAR_API_URL : process.env.INSTITUTE_CALENDAR_API_URL;
-      const response = await fetch(new URL(`api/integration/events/${id}`, `${String(baseUrl || "").replace(/\/$/, "")}/`), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-calendar-api-key": process.env.CALENDAR_INTERNAL_API_KEY || "",
+      updated = await MasterEventCalendarOverride.findOneAndUpdate(
+        { unifiedId: req.params.unifiedId },
+        {
+          $set: {
+            unifiedId: req.params.unifiedId,
+            sourceType: source,
+            sourceId: id,
+            ...resolutionUpdate,
+          },
         },
-        body: JSON.stringify(resolutionUpdate),
-      });
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok) return res.status(response.status).json(json);
-      updated = json.data;
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ).lean();
     }
 
     if (!updated) return res.status(404).json({ success: false, message: "Event not found" });

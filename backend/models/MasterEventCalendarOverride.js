@@ -31,6 +31,22 @@ const masterEventCalendarOverrideSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  conflictResolved: {
+    type: Boolean,
+    default: false,
+  },
+  conflictResolvedAt: {
+    type: Date,
+    default: null,
+  },
+  conflictResolvedBy: {
+    type: String,
+    default: "",
+  },
+  conflictResolutionRemarks: {
+    type: String,
+    default: "",
+  },
 }, {
   timestamps: true,
 });

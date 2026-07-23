@@ -338,10 +338,26 @@ const applyMasterCalendarOverrides = async (events) => {
 
   const overrides = await MasterEventCalendarOverride.find({
     unifiedId: { $in: unifiedIds },
-    hiddenFromMasterCalendar: true,
-  }).select("unifiedId").lean();
-  const hiddenIds = new Set(overrides.map((override) => override.unifiedId));
-  return events.filter((event) => !hiddenIds.has(event.unifiedId) && event.hiddenFromMasterCalendar !== true);
+  }).lean();
+  const overrideById = new Map(overrides.map((override) => [override.unifiedId, override]));
+
+  return events
+    .filter((event) => {
+      const override = overrideById.get(event.unifiedId);
+      return override?.hiddenFromMasterCalendar !== true && event.hiddenFromMasterCalendar !== true;
+    })
+    .map((event) => {
+      const override = overrideById.get(event.unifiedId);
+      if (!override?.conflictResolved) return event;
+
+      return {
+        ...event,
+        conflictResolved: true,
+        conflictResolvedAt: override.conflictResolvedAt,
+        conflictResolvedBy: override.conflictResolvedBy || "",
+        conflictResolutionRemarks: override.conflictResolutionRemarks || "",
+      };
+    });
 };
 
 export const getMasterEvents = async (filters = {}) => {
