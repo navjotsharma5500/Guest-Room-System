@@ -90,18 +90,6 @@ const fetchPublicEventMonth = async (year, month, viewMode = "all") => {
   return { events: asArray(data.events), sources: data.sources || null };
 };
 
-const fetchPublicUpcomingEvents = async (viewMode = "all") => {
-  const data = await fetchFirstSuccessful(
-    [
-      `/api/event-calendar/master/upcoming${buildQuery(VIEW_FILTERS[viewMode] || {})}`,
-      "/api/events/public/upcoming",
-      "/api/event-calendar/public/upcoming",
-    ],
-    { method: "GET" }
-  );
-  return { events: asArray(data.events), sources: data.sources || null };
-};
-
 const fetchPublicAllEvents = async (viewMode = "all") => {
   const data = await fetchFirstSuccessful(
     [
@@ -219,46 +207,6 @@ const getEventStatus = (event, todayStr, currentMinutes) => {
   return "active";
 };
 
-const rangesOverlap = (aStart, aEnd, bStart, bEnd) => aStart <= bEnd && bStart <= aEnd;
-const eventHasTime = (event) => Boolean(event.eventTime);
-
-const detectConflicts = (events) => {
-  const ids = new Set();
-  const comparable = events.filter((event) => {
-    if (!isCalendarEvent(event)) return false;
-    if (event.conflictResolved === true) return false;
-    if (!eventHasTime(event)) return false;
-    if (!normalizeText(eventVenue(event))) return false;
-    return true;
-  });
-
-  for (let i = 0; i < comparable.length; i += 1) {
-    for (let j = i + 1; j < comparable.length; j += 1) {
-      const first = comparable[i];
-      const second = comparable[j];
-      if (eventKey(first) === eventKey(second)) continue;
-      if (normalizeText(eventVenue(first)) !== normalizeText(eventVenue(second))) continue;
-
-      const firstStart = first.eventDate;
-      const firstEnd = first.eventEndDate || first.eventDate;
-      const secondStart = second.eventDate;
-      const secondEnd = second.eventEndDate || second.eventDate;
-      if (!rangesOverlap(firstStart, firstEnd, secondStart, secondEnd)) continue;
-
-      const firstTimeStart = parseTime(first.eventTime);
-      const firstTimeEnd = first.checkOutTime ? parseTime(first.checkOutTime) : firstTimeStart + 120;
-      const secondTimeStart = parseTime(second.eventTime);
-      const secondTimeEnd = second.checkOutTime ? parseTime(second.checkOutTime) : secondTimeStart + 120;
-      if (!rangesOverlap(firstTimeStart, firstTimeEnd, secondTimeStart, secondTimeEnd)) continue;
-
-      ids.add(eventKey(first));
-      ids.add(eventKey(second));
-    }
-  }
-
-  return ids;
-};
-
 const mergeSameSourceRecords = (list) => {
   const seen = new Set();
   return list.filter((event) => {
@@ -360,7 +308,6 @@ export default function PublicEventCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthDirection, setMonthDirection] = useState(0);
   const [events, setEvents] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [allCalendarEvents, setAllCalendarEvents] = useState([]);
   const [dateColorMap, setDateColorMap] = useState({});
   const [calendarLoading, setCalendarLoading] = useState(true);
@@ -407,9 +354,8 @@ export default function PublicEventCalendar() {
     try {
       const year = targetDate.getFullYear();
       const month = targetDate.getMonth() + 1;
-      const [monthEventsResult, upcomingEventsResult, allEventsResult, colorMapResult] = await Promise.allSettled([
+      const [monthEventsResult, allEventsResult, colorMapResult] = await Promise.allSettled([
         fetchPublicEventMonth(year, month, viewMode),
-        fetchPublicUpcomingEvents(viewMode),
         fetchPublicAllEvents(viewMode),
         fetchCalendarColorMap(year, month),
       ]);
@@ -417,7 +363,6 @@ export default function PublicEventCalendar() {
       if (requestId !== calendarRequestRef.current) return;
 
       setEvents(monthEventsResult.status === "fulfilled" ? monthEventsResult.value.events : []);
-      setUpcomingEvents(upcomingEventsResult.status === "fulfilled" ? upcomingEventsResult.value.events : []);
       setAllCalendarEvents(allEventsResult.status === "fulfilled" ? allEventsResult.value.events : []);
       setDateColorMap(colorMapResult.status === "fulfilled" ? colorMapResult.value : {});
 
@@ -429,7 +374,6 @@ export default function PublicEventCalendar() {
       if (requestId !== calendarRequestRef.current) return;
       console.error("Failed to load calendar data:", error);
       setEvents([]);
-      setUpcomingEvents([]);
       setAllCalendarEvents([]);
       setDateColorMap({});
     } finally {
@@ -471,8 +415,9 @@ export default function PublicEventCalendar() {
     };
   }, [loadCalendarData]);
 
-  const allFetchedEvents = useMemo(() => mergeSameSourceRecords([...events, ...upcomingEvents, ...allCalendarEvents]), [events, upcomingEvents, allCalendarEvents]);
-  const conflictIds = useMemo(() => detectConflicts(allFetchedEvents), [allFetchedEvents]);
+  // Conflict review is an admin-only workflow. The public calendar should never
+  // show red conflict styling or expose conflict labels to visitors.
+  const conflictIds = useMemo(() => new Set(), []);
   const eventsWithConflicts = useMemo(
     () => events.map((event) => ({ ...event, __hasConflict: conflictIds.has(eventKey(event)) })),
     [events, conflictIds]
