@@ -377,35 +377,23 @@ export const deleteAdminEvent = async (req, res) => {
   try {
     const [source, id] = String(req.params.unifiedId || "").split(":");
     const unifiedId = req.params.unifiedId;
-    const hideUpdate = {
-      hiddenFromMasterCalendar: true,
-      hiddenFromMasterCalendarAt: new Date(),
-      hiddenFromMasterCalendarBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
-      hiddenFromMasterCalendarReason: req.body?.reason || "Hidden from Event Calendar Admin",
-    };
-    let hidden = null;
+    if (!source || !id) return res.status(400).json({ success: false, message: "Invalid event id" });
 
-    if (source === "venue") {
-      hidden = await VenueBooking.findByIdAndUpdate(id, hideUpdate, { new: true }).lean();
-    } else if (source === "event") {
-      hidden = await EventCalendar.findByIdAndUpdate(id, hideUpdate, { new: true }).lean();
-    } else {
-      hidden = await MasterEventCalendarOverride.findOneAndUpdate(
-        { unifiedId },
-        {
-          $set: {
-            unifiedId,
-            sourceType: source,
-            sourceId: id,
-            hiddenFromMasterCalendar: true,
-            hiddenAt: new Date(),
-            hiddenBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
-            hiddenReason: req.body?.reason || "Hidden from Event Calendar Admin",
-          },
+    const hidden = await MasterEventCalendarOverride.findOneAndUpdate(
+      { unifiedId },
+      {
+        $set: {
+          unifiedId,
+          sourceType: source,
+          sourceId: id,
+          hiddenFromMasterCalendar: true,
+          hiddenAt: new Date(),
+          hiddenBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
+          hiddenReason: req.body?.reason || "Hidden from Event Calendar Admin",
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      ).lean();
-    }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
 
     if (!hidden) return res.status(404).json({ success: false, message: "Event not found" });
     invalidateMasterCalendarCache();
@@ -421,32 +409,27 @@ export const deleteAdminEvent = async (req, res) => {
 export const resolveAdminEventConflict = async (req, res) => {
   try {
     const [source, id] = String(req.params.unifiedId || "").split(":");
+    if (!source || !id) return res.status(400).json({ success: false, message: "Invalid event id" });
+
     const resolutionUpdate = {
       conflictResolved: true,
       conflictResolvedAt: new Date(),
       conflictResolvedBy: req.eventCalendarAdmin?.scope || "event-calendar-admin",
       conflictResolutionRemarks: req.body?.remarks || "Resolved from Event Calendar Admin",
     };
-    let updated = null;
 
-    if (source === "venue") {
-      updated = await VenueBooking.findByIdAndUpdate(id, resolutionUpdate, { new: true, runValidators: true }).lean();
-    } else if (source === "event") {
-      updated = await EventCalendar.findByIdAndUpdate(id, resolutionUpdate, { new: true, runValidators: true }).lean();
-    } else {
-      updated = await MasterEventCalendarOverride.findOneAndUpdate(
-        { unifiedId: req.params.unifiedId },
-        {
-          $set: {
-            unifiedId: req.params.unifiedId,
-            sourceType: source,
-            sourceId: id,
-            ...resolutionUpdate,
-          },
+    const updated = await MasterEventCalendarOverride.findOneAndUpdate(
+      { unifiedId: req.params.unifiedId },
+      {
+        $set: {
+          unifiedId: req.params.unifiedId,
+          sourceType: source,
+          sourceId: id,
+          ...resolutionUpdate,
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      ).lean();
-    }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
 
     if (!updated) return res.status(404).json({ success: false, message: "Event not found" });
     invalidateMasterCalendarCache();

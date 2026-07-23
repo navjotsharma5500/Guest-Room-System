@@ -494,6 +494,19 @@ export default function PublicEventCalendar() {
   );
 
   useEffect(() => {
+    if (calendarLoading || !selectedDateInitializedRef.current) return;
+    const visibleMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
+    if (!selectedDateKey.startsWith(visibleMonth)) return;
+
+    const refreshedDateEvents = eventsForDate(selectedDateKey);
+    setSelectedDateEvents(refreshedDateEvents);
+    setSelectedEvent((current) => {
+      if (!current) return current;
+      return refreshedDateEvents.find((event) => eventKey(event) === eventKey(current)) || null;
+    });
+  }, [calendarLoading, currentDate, eventsForDate, selectedDateKey]);
+
+  useEffect(() => {
     if (calendarLoading || selectedDateInitializedRef.current) return;
     setSelectedDateEvents(eventsForDate(selectedDateKey));
     selectedDateInitializedRef.current = true;
