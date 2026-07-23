@@ -223,6 +223,11 @@ function Card({ card, onAction, onLocked, onOpenDestination, cardStyle, accentCo
         </div>
         <div style={{ flex:1 }}>
           <p style={{ margin:0, fontWeight:700, fontSize:15.5, color:"#111", lineHeight:1.25 }}>{card.title}</p>
+          {card.description ? (
+            <p style={{ margin:"7px 0 0", fontSize:13, color:"#6b7280", lineHeight:1.55 }}>
+              {card.description}
+            </p>
+          ) : null}
         </div>
       </div>
 

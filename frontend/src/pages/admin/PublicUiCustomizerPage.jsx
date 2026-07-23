@@ -88,6 +88,16 @@ const PublicUiCustomizerPage = () => {
     }));
   };
 
+  const updateHeader = (patch) => {
+    setConfig((prev) => ({
+      ...prev,
+      header: {
+        ...prev.header,
+        ...patch,
+      },
+    }));
+  };
+
   const updateCard = (id, patch) => {
     setConfig((prev) => ({
       ...prev,
@@ -230,6 +240,24 @@ const PublicUiCustomizerPage = () => {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900">Header Actions</h2>
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-slate-700 block">
+                Admin Login Button Link
+                <input
+                  value={config.header?.loginDestination || ""}
+                  onChange={(e) => updateHeader({ loginDestination: e.target.value })}
+                  placeholder="/login or https://campusconnect.thapar.edu/login"
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </label>
+              <p className="text-xs text-slate-500">
+                Use an internal route like /login or a full https:// link. This controls the Admin Login button on the public homepage.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Selector Theme & Layout</h2>
             <div className="space-y-3">
               <label className="text-sm font-medium text-slate-700 block">
@@ -356,6 +384,15 @@ const PublicUiCustomizerPage = () => {
                       onChange={(e) => updateCard(card.id, { destination: e.target.value })}
                       placeholder="/path or https://..."
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-slate-700 block md:col-span-2">
+                    Card Description
+                    <textarea
+                      value={card.description || ""}
+                      onChange={(e) => updateCard(card.id, { description: e.target.value })}
+                      className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[78px]"
+                      placeholder="Short text shown inside this public homepage card."
                     />
                   </label>
                   <label className="text-sm font-medium text-slate-700 block">
