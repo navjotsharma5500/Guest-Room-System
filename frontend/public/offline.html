@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+
+    <meta name="theme-color" content="#ffffff" />
+
+    <title>No Internet Connection</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 24px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background: #ffffff;
+        color: #1f2937;
+
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+          sans-serif;
+      }
+
+      .offline-container {
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+      }
+
+      .offline-icon {
+        width: 88px;
+        height: 88px;
+        margin: 0 auto 28px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        background: #fff1f2;
+      }
+
+      .offline-icon svg {
+        width: 44px;
+        height: 44px;
+        stroke: #c62828;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      p {
+        margin: 0 auto 30px;
+        max-width: 330px;
+
+        color: #6b7280;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .retry-button {
+        width: 100%;
+        min-height: 52px;
+
+        border: none;
+        border-radius: 14px;
+
+        background: #c62828;
+        color: #ffffff;
+
+        font-size: 16px;
+        font-weight: 600;
+
+        cursor: pointer;
+        transition:
+          transform 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      .retry-button:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+      }
+
+      .retry-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .status-message {
+        min-height: 24px;
+        margin-top: 16px;
+
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      .brand {
+        margin-top: 42px;
+        color: #9ca3af;
+        font-size: 13px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="offline-container">
+      <div class="offline-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M2 8.82a15 15 0 0 1 20 0"></path>
+          <path d="M5 12.86a10 10 0 0 1 14 0"></path>
+          <path d="M8.5 16.43a5 5 0 0 1 7 0"></path>
+          <path d="M12 20h.01"></path>
+          <path d="M3 3l18 18"></path>
+        </svg>
+      </div>
+
+      <h1>No Internet Connection</h1>
+
+      <p>
+        Please check your Wi-Fi or mobile data connection and try again.
+      </p>
+
+      <button
+        id="retryButton"
+        class="retry-button"
+        type="button"
+        onclick="retryConnection()"
+      >
+        Try Again
+      </button>
+
+      <div id="statusMessage" class="status-message" aria-live="polite"></div>
+
+      <div class="brand">TIET Campus Connect</div>
+    </main>
+
+    <script>
+      function retryConnection() {
+        const retryButton = document.getElementById("retryButton");
+        const statusMessage = document.getElementById("statusMessage");
+
+        retryButton.disabled = true;
+        retryButton.textContent = "Checking...";
+
+        if (navigator.onLine) {
+          statusMessage.textContent =
+            "Internet connection detected. Opening the application...";
+
+          /*
+            * Do not reload or open any URL here.
+            * MainActivity.java will automatically load the live website
+            * inside the Android application.
+            */
+          setTimeout(function () {
+            retryButton.disabled = false;
+            retryButton.textContent = "Try Again";
+          }, 3000);
+        } else {
+          statusMessage.textContent =
+            "Internet is still unavailable. Please check your connection.";
+
+          setTimeout(function () {
+            retryButton.disabled = false;
+            retryButton.textContent = "Try Again";
+          }, 1500);
+        }
+      }
+
+      window.addEventListener("online", function () {
+        const retryButton = document.getElementById("retryButton");
+        const statusMessage = document.getElementById("statusMessage");
+
+        retryButton.disabled = true;
+        retryButton.textContent = "Connected";
+
+        statusMessage.textContent =
+          "Internet connection restored. Opening the application...";
+
+        /*
+          * MainActivity.java detects the restored network and loads
+          * https://campusconnect.thapar.edu inside the WebView.
+          */
+      });
+
+      window.addEventListener("offline", function () {
+        const retryButton = document.getElementById("retryButton");
+        const statusMessage = document.getElementById("statusMessage");
+
+        retryButton.disabled = false;
+        retryButton.textContent = "Try Again";
+
+        statusMessage.textContent =
+          "Internet connection is unavailable.";
+      });
+    </script>
+  </body>
+</html>
