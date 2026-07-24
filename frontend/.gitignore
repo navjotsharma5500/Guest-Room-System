@@ -17,3 +17,8 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Android Studio / Android
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/**/build/
