@@ -14,7 +14,9 @@
 // - /access-required → Shown when login OK but user not in system data
 // ============================================================================
 
-import React from "react";
+import React, { useEffect } from "react";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 import {
   BrowserRouter as Router,
   Routes,
@@ -91,6 +93,73 @@ const DASHBOARD_SELECTOR_ENABLED = true;
 export default function App() {
   const { currentUser, loading } = useAuth();
   const { settings } = useSystemSettings();
+
+  useEffect(() => {
+    let registrationListener;
+    let registrationErrorListener;
+    let notificationReceivedListener;
+    let notificationActionListener;
+
+    const initialisePushNotifications = async () => {
+      if (!Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      try {
+        let permissionStatus = await PushNotifications.checkPermissions();
+
+        if (permissionStatus.receive === "prompt") {
+          permissionStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permissionStatus.receive !== "granted") {
+          console.log("Push notification permission was not granted.");
+          return;
+        }
+
+        registrationListener = await PushNotifications.addListener(
+          "registration",
+          (token) => {
+            console.log("FCM registration token:", token.value);
+          }
+        );
+
+        registrationErrorListener = await PushNotifications.addListener(
+          "registrationError",
+          (error) => {
+            console.error("Push notification registration error:", error);
+          }
+        );
+
+        notificationReceivedListener = await PushNotifications.addListener(
+          "pushNotificationReceived",
+          (notification) => {
+            console.log("Push notification received:", notification);
+          }
+        );
+
+        notificationActionListener = await PushNotifications.addListener(
+          "pushNotificationActionPerformed",
+          (action) => {
+            console.log("Push notification opened:", action.notification);
+          }
+        );
+
+        await PushNotifications.register();
+      } catch (error) {
+        console.error("Failed to initialise push notifications:", error);
+      }
+    };
+
+    initialisePushNotifications();
+
+    return () => {
+      registrationListener?.remove();
+      registrationErrorListener?.remove();
+      notificationReceivedListener?.remove();
+      notificationActionListener?.remove();
+    };
+  }, []);
 
   if (loading) {
     return (

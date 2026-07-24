@@ -8,6 +8,7 @@ import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebView;
+import androidx.activity.OnBackPressedCallback;
 
 import com.getcapacitor.BridgeActivity;
 
