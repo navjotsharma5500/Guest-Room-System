@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "edu.thapar.campusconnect",
+      "sha256_cert_fingerprints": [
+        "2D:14:D1:C0:F9:88:54:AD:27:53:F3:3D:47:91:03:AC:BB:F4:8D:09:90:AA:E5:A4:F8:E8:AF:33:40:C5:92:29"
+      ]
+    }
+  }
+]
