@@ -142,6 +142,41 @@ export default function App() {
           "pushNotificationActionPerformed",
           (action) => {
             console.log("Push notification opened:", action.notification);
+
+            const notificationData = action.notification?.data || {};
+
+            const targetUrl =
+              notificationData.url ||
+              notificationData.link ||
+              notificationData.route;
+
+            if (!targetUrl) {
+              console.log("No destination URL found in notification data.");
+              return;
+            }
+
+            try {
+              const destination = new URL(
+                targetUrl,
+                "https://campusconnect.thapar.edu"
+              );
+
+              if (destination.hostname !== "campusconnect.thapar.edu") {
+                console.warn(
+                  "Blocked external notification URL:",
+                  destination.href
+                );
+                return;
+              }
+
+              window.location.href = destination.href;
+            } catch (error) {
+              console.error(
+                "Invalid notification URL:",
+                targetUrl,
+                error
+              );
+            }
           }
         );
 
