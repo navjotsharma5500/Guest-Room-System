@@ -120,7 +120,7 @@ export default function App() {
         registrationListener = await PushNotifications.addListener(
           "registration",
           (token) => {
-            console.log("FCM registration token:", token.value);
+            console.log(`FCM_TOKEN=${token.value}`);
           }
         );
 
