@@ -31,6 +31,8 @@ module.exports = {
     // Graceful shutdown
     kill_timeout: 5000,
     wait_ready: true,
-    listen_timeout: 10000
+    // Startup includes MongoDB connection and seed checks, so allow enough time
+    // and wait for the explicit "ready" signal sent after server.listen().
+    listen_timeout: 120000
   }]
 };

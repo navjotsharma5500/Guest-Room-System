@@ -628,6 +628,12 @@ const startServer = async () => {
       console.log(`📱 iOS Safari supported`);
       console.log(`🌐 Allowed origins:`, allowedOrigins);
       console.log(`🔌 Socket.IO ready`);
+
+      // Required by PM2's `wait_ready: true`. Without this signal, a reload can
+      // time out even though Node eventually starts listening.
+      if (typeof process.send === "function") {
+        process.send("ready");
+      }
     });
   }
   } catch (err) {
