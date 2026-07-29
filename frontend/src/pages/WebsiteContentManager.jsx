@@ -79,7 +79,7 @@ const Panel = ({ title, children }) => (
   </details>
 );
 
-const ArrayEditor = ({ title, items = [], onChange, newItem, renderItem }) => (
+const ArrayEditor = ({ title, items = [], onChange, newItem, renderItem, addLabel = "Add" }) => (
   <Panel title={title}>
     <div className="space-y-4">
       {items.map((item, index) => (
@@ -110,7 +110,7 @@ const ArrayEditor = ({ title, items = [], onChange, newItem, renderItem }) => (
         </div>
       ))}
       <button type="button" onClick={() => onChange([...items, clone(newItem)])} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
-        <Plus size={16} /> Add
+        <Plus size={16} /> {addLabel}
       </button>
     </div>
   </Panel>
@@ -428,7 +428,7 @@ export default function WebsiteContentManager({ showToast = () => {} }) {
     if (active === "gallery") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><GalleryEditor allCategoryLabel={draft.allCategoryLabel || ""} onAllCategoryLabel={(v) => setPath(["allCategoryLabel"], v)} images={draft.images || []} categories={draft.categories || []} onImages={(v) => setPath(["images"], v)} onCategories={(v) => setPath(["categories"], v)} /></>;
     if (active === "dining") return renderDining();
     if (active === "facilities") return <><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} />{renderFacilities()}</>;
-    if (active === "tariff") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><TariffEditor rows={draft.rows || []} tariffValueLabel={draft.tariffValueLabel} onLabelChange={(v) => setPath(["tariffValueLabel"], v)} onChange={(v) => setPath(["rows"], v)} /><TextListEditor title="Important Rules" items={draft.terms || []} onChange={(v) => setPath(["terms"], v)} /><Panel title="Policies"><div className="grid gap-4 md:grid-cols-2"><Field label="No Cash Policy" value={draft.noCashPolicy} onChange={(v) => setPath(["noCashPolicy"], v)} textarea /><Field label="Refund Policy" value={draft.refundPolicy} onChange={(v) => setPath(["refundPolicy"], v)} textarea /><Field label="Cancellation Policy" value={draft.cancellationPolicy} onChange={(v) => setPath(["cancellationPolicy"], v)} textarea /><Field label="Payment Instructions" value={draft.paymentInstructions} onChange={(v) => setPath(["paymentInstructions"], v)} textarea /></div></Panel></>;
+    if (active === "tariff") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><TariffEditor draft={draft} setPath={setPath} /><TextListEditor title="Important Rules" items={draft.terms || []} onChange={(v) => setPath(["terms"], v)} /><Panel title="Policies"><div className="grid gap-4 md:grid-cols-2"><Field label="No Cash Policy" value={draft.noCashPolicy} onChange={(v) => setPath(["noCashPolicy"], v)} textarea /><Field label="Refund Policy" value={draft.refundPolicy} onChange={(v) => setPath(["refundPolicy"], v)} textarea /><Field label="Cancellation Policy" value={draft.cancellationPolicy} onChange={(v) => setPath(["cancellationPolicy"], v)} textarea /><Field label="Payment Instructions" value={draft.paymentInstructions} onChange={(v) => setPath(["paymentInstructions"], v)} textarea /></div></Panel></>;
     if (active === "booking") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><Panel title="Booking Form Visibility"><div className="grid gap-4 md:grid-cols-2"><ToggleField label="Enable Parent / Student Booking Form" checked={draft.enableParentStudentForm} onChange={(v) => setPath(["enableParentStudentForm"], v)} description="OFF hides this form card from the public selector." /><ToggleField label="Enable Faculty / Staff Booking Form" checked={draft.enableFacultyStaffForm} onChange={(v) => setPath(["enableFacultyStaffForm"], v)} description="OFF hides this form card from the public selector." /><ToggleField label="Lock Parent / Student Booking Form" checked={draft.lockParentStudentForm === true} onChange={(v) => setPath(["lockParentStudentForm"], v)} description="ON keeps the card visible but opens only a popup message." /><ToggleField label="Lock Faculty / Staff Booking Form" checked={draft.lockFacultyStaffForm === true} onChange={(v) => setPath(["lockFacultyStaffForm"], v)} description="ON keeps the card visible but opens only a popup message." /><Field label="Parent / Student Popup Message" value={draft.parentStudentLockMessage} onChange={(v) => setPath(["parentStudentLockMessage"], v)} textarea /><Field label="Faculty / Staff Popup Message" value={draft.facultyStaffLockMessage} onChange={(v) => setPath(["facultyStaffLockMessage"], v)} textarea /></div></Panel><Panel title="Booking Cards & Messages"><div className="grid gap-4 md:grid-cols-2"><Field label="Parents / Students Title" value={draft.studentCard?.title} onChange={(v) => setPath(["studentCard", "title"], v)} /><Field label="Parents / Students Text" value={draft.studentCard?.text} onChange={(v) => setPath(["studentCard", "text"], v)} textarea /><Field label="Faculty / Staff Title" value={draft.staffCard?.title} onChange={(v) => setPath(["staffCard", "title"], v)} /><Field label="Faculty / Staff Text" value={draft.staffCard?.text} onChange={(v) => setPath(["staffCard", "text"], v)} textarea /><Field label="Terms Checkbox Text" value={draft.termsText} onChange={(v) => setPath(["termsText"], v)} textarea /><Field label="Success Message" value={draft.successMessage} onChange={(v) => setPath(["successMessage"], v)} textarea /></div></Panel><TextListEditor title="Policies" items={draft.policies || []} onChange={(v) => setPath(["policies"], v)} /></>;
     if (active === "contact") return <><>{renderHero()}</><SectionSettingsEditor sections={draft.sections || {}} onChange={(v) => setPath(["sections"], v)} /><Panel title="Contact Details"><div className="grid gap-4 md:grid-cols-2"><Field label="Institute Address" value={draft.location} onChange={(v) => setPath(["location"], v)} textarea /><Field label="DoSA Office" value={draft.office} onChange={(v) => setPath(["office"], v)} /><Field label="DoSA Office Address" value={draft.dosaOfficeAddress} onChange={(v) => setPath(["dosaOfficeAddress"], v)} /><Field label="Working Hours" value={draft.hours} onChange={(v) => setPath(["hours"], v)} /><Field label="Assistance Line" value={draft.assistanceText} onChange={(v) => setPath(["assistanceText"], v)} textarea /><Field label="Map URL / Google Maps Share Link" value={draft.mapUrl} onChange={(v) => setPath(["mapUrl"], v)} /><Field label="Feedback Link" value={draft.feedbackLink} onChange={(v) => setPath(["feedbackLink"], v)} /></div></Panel><TextListEditor title="Emails" items={draft.emails || []} onChange={(v) => setPath(["emails"], v)} /><TextListEditor title="Phone Numbers" items={draft.phones || []} onChange={(v) => setPath(["phones"], v)} /></>;
     if (active === "footer") return <FooterEditor draft={draft} setPath={setPath} />;
@@ -718,14 +718,71 @@ function RoomListEditor({ rooms = [], onChange, newRoom }) {
   );
 }
 
-function TariffEditor({ rows = [], tariffValueLabel = "", onLabelChange, onChange }) {
+function TariffRowsEditor({ rows = [], onChange }) {
   return (
-    <>
-      <Panel title="Tariff Table Settings">
-        <Field label="Tariff Column Header" value={tariffValueLabel} onChange={onLabelChange} />
+    <ArrayEditor
+      title="Table Rows"
+      items={rows.map((row) => ({ column1: row?.[0] || "", column2: row?.[1] || "" }))}
+      onChange={(next) => onChange(next.map((item) => [item.column1, item.column2]))}
+      newItem={{ column1: "", column2: "" }}
+      addLabel="Add Row"
+      renderItem={(item, patch) => (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Column 1 Value" value={item.column1} onChange={(v) => patch({ column1: v })} />
+          <Field label="Column 2 Value" value={item.column2} onChange={(v) => patch({ column2: v })} />
+        </div>
+      )}
+    />
+  );
+}
+
+function TariffEditor({ draft, setPath }) {
+  const tables = Array.isArray(draft.tables) ? draft.tables : [];
+  const updateTable = (index, patch) => setPath(["tables"], tables.map((table, i) => (i === index ? { ...table, ...patch } : table)));
+  const moveTable = (index, offset) => {
+    const next = [...tables];
+    [next[index], next[index + offset]] = [next[index + offset], next[index]];
+    setPath(["tables"], next);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Panel title="Payment Information Table">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Table Title" value={draft.sections?.tariff?.heading || ""} onChange={(v) => setPath(["sections", "tariff", "heading"], v)} />
+          <Field label="Column 1 Header" value={draft.categoryLabel || "Category"} onChange={(v) => setPath(["categoryLabel"], v)} />
+          <Field label="Column 2 Header" value={draft.tariffValueLabel || "Tariff for Stay"} onChange={(v) => setPath(["tariffValueLabel"], v)} />
+        </div>
+        <div className="mt-4">
+          <TariffRowsEditor rows={draft.rows || []} onChange={(v) => setPath(["rows"], v)} />
+        </div>
       </Panel>
-      <ArrayEditor title="Tariff Rows" items={rows.map((row) => ({ category: row[0], tariff: row[1] }))} onChange={(next) => onChange(next.map((item) => [item.category, item.tariff]))} newItem={{ category: "", tariff: "" }} renderItem={(item, patch) => <div className="grid gap-3 md:grid-cols-2"><Field label="Category" value={item.category} onChange={(v) => patch({ category: v })} /><Field label="Tariff" value={item.tariff} onChange={(v) => patch({ tariff: v })} /></div>} />
-    </>
+
+      {tables.map((table, index) => (
+        <div key={index} className="rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-gray-900">{table.title || `Tariff Table ${index + 2}`}</p>
+            <div className="flex items-center gap-1">
+              <button type="button" title="Move table up" disabled={index === 0} onClick={() => moveTable(index, -1)} className="rounded-lg p-2 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp size={16} /></button>
+              <button type="button" title="Move table down" disabled={index === tables.length - 1} onClick={() => moveTable(index, 1)} className="rounded-lg p-2 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown size={16} /></button>
+              <button type="button" title="Delete table" onClick={() => setPath(["tables"], tables.filter((_, i) => i !== index))} className="rounded-lg p-2 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Table Title" value={table.title} onChange={(v) => updateTable(index, { title: v })} />
+            <Field label="Column 1 Header" value={table.column1Header} onChange={(v) => updateTable(index, { column1Header: v })} />
+            <Field label="Column 2 Header" value={table.column2Header} onChange={(v) => updateTable(index, { column2Header: v })} />
+          </div>
+          <div className="mt-4">
+            <TariffRowsEditor rows={table.rows || []} onChange={(rows) => updateTable(index, { rows })} />
+          </div>
+        </div>
+      ))}
+
+      <button type="button" onClick={() => setPath(["tables"], [...tables, { title: "", column1Header: "", column2Header: "", rows: [] }])} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+        <Plus size={16} /> Add Table
+      </button>
+    </div>
   );
 }
 

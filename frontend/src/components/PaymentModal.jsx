@@ -418,6 +418,9 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                 <p className="text-green-100 text-sm">
                   For {booking.guest || "Guest"}
                 </p>
+                <p className="text-green-100 text-xs">
+                  Booking ID: {booking.bookingId || booking._id || booking.id || "—"}
+                </p>
               </div>
             </div>
             <button

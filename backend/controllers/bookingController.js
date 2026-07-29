@@ -112,6 +112,19 @@ const safeSend = (emailPayload) => {
   return baseSafeSend(emailPayload, EmailLog);
 };
 
+const getDisplayBookingId = (booking) =>
+  booking?.bookingId || booking?._id?.toString?.() || booking?._id || "";
+
+const addBookingReferenceToEmail = (html, booking) => {
+  const reference = getDisplayBookingId(booking);
+  if (!html || !reference) return html;
+  const block = `
+    <div style="margin:16px 0;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:left;">
+      <strong>Guest Room Booking ID:</strong> ${reference}
+    </div>`;
+  return html.includes("</body>") ? html.replace("</body>", `${block}</body>`) : `${html}${block}`;
+};
+
 const roundCurrency = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
 const generateBillNumber = async (prefix = "BILL") => {
@@ -132,6 +145,11 @@ const generateBillNumber = async (prefix = "BILL") => {
 // ✅ UPDATED - Event-driven email dispatcher
 // ======================================================
 export const sendBookingEmails = (booking, statusType) => {
+  const safeSendBooking = (emailPayload) =>
+    safeSend({
+      ...emailPayload,
+      html: addBookingReferenceToEmail(emailPayload.html, booking),
+    });
   console.log("📋 sendBookingEmails called:", {
     bookingId: booking._id,
     statusType,
@@ -171,7 +189,7 @@ export const sendBookingEmails = (booking, statusType) => {
       console.log("📋 Sending DIRECT BOOKING emails to all recipients...");
       
       // Guest email - use paid or free template
-      safeSend({
+      safeSendBooking({
         to: guestEmail,
         subject: isPaid 
           ? "Guest Room Booking Confirmation"
@@ -186,7 +204,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       // Caretaker email - use paid or free template
-      safeSend({
+      safeSendBooking({
         to: caretakerEmail,
         subject: isPaid 
           ? "New Direct Booking Created"
@@ -201,7 +219,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       // Warden email - use paid or free template
-      safeSend({
+      safeSendBooking({
         to: wardenEmail,
         subject: isPaid 
           ? "Caretaker Direct Booking"
@@ -217,7 +235,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
       // Manager email - use paid or free template
       if (MANAGER_EMAIL) {
-        safeSend({
+        safeSendBooking({
           to: MANAGER_EMAIL,
           subject: isPaid 
             ? "Caretaker Direct Booking Notification"
@@ -234,7 +252,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
       // Society email - if provided
       if (societyEmail) {
-        safeSend({
+        safeSendBooking({
           to: societyEmail,
           subject: isPaid 
             ? "Guest Room Booking Notification"
@@ -251,7 +269,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
       // President email - if provided
       if (presidentEmail) {
-        safeSend({
+        safeSendBooking({
           to: presidentEmail,
           subject: isPaid 
             ? "Guest Room Booking Notification"
@@ -273,7 +291,7 @@ export const sendBookingEmails = (booking, statusType) => {
     if (statusType === "approved") {
       console.log("📋 Sending APPROVAL emails to all recipients...");
       
-      safeSend({
+      safeSendBooking({
         to: guestEmail,
         subject: isPaid
           ? "Paid Guest Room Booking Approved"
@@ -287,7 +305,7 @@ export const sendBookingEmails = (booking, statusType) => {
         },
       });
 
-      safeSend({
+      safeSendBooking({
         to: caretakerEmail,
         subject: "New Guest Booking Approved",
         html: isPaid
@@ -299,7 +317,7 @@ export const sendBookingEmails = (booking, statusType) => {
         },
       });
 
-      safeSend({
+      safeSendBooking({
         to: wardenEmail,
         subject: "Guest Booking Approved",
         html: isPaid
@@ -312,7 +330,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       if (MANAGER_EMAIL) {
-        safeSend({
+        safeSendBooking({
           to: MANAGER_EMAIL,
           subject: "Booking Approved Notification",
           html: isPaid
@@ -331,7 +349,7 @@ export const sendBookingEmails = (booking, statusType) => {
     if (statusType === "cancelled") {
       console.log("📋 Sending CANCELLATION emails to all recipients...");
       
-      safeSend({
+      safeSendBooking({
         to: guestEmail,
         subject: "Guest Room Booking Cancelled",
         html: guestBookingCancelled(booking),
@@ -341,7 +359,7 @@ export const sendBookingEmails = (booking, statusType) => {
         },
       });
 
-      safeSend({
+      safeSendBooking({
         to: caretakerEmail,
         subject: "Guest Booking Cancelled",
         html: caretakerBookingCancelled(booking),
@@ -351,7 +369,7 @@ export const sendBookingEmails = (booking, statusType) => {
         },
       });
 
-      safeSend({
+      safeSendBooking({
         to: wardenEmail,
         subject: "Guest Booking Cancelled",
         html: wardenBookingCancelled(booking),
@@ -362,7 +380,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       if (MANAGER_EMAIL) {
-        safeSend({
+        safeSendBooking({
           to: MANAGER_EMAIL,
           subject: "Guest Booking Cancelled",
           html: managerBookingCancelled(booking),
@@ -385,7 +403,7 @@ export const sendBookingEmails = (booking, statusType) => {
         (booking.extensionAmount && booking.extensionAmount > 0);
 
       // Guest email - use paid or free extension template
-      safeSend({
+      safeSendBooking({
         to: guestEmail,
         subject: isExtensionPaid 
           ? "Guest Booking Extended (Payment Required)"
@@ -400,7 +418,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       // Caretaker email - use paid or free extension template
-      safeSend({
+      safeSendBooking({
         to: caretakerEmail,
         subject: isExtensionPaid 
           ? "Booking Extended (Paid)"
@@ -415,7 +433,7 @@ export const sendBookingEmails = (booking, statusType) => {
       });
 
       // Warden email - use paid or free extension template
-      safeSend({
+      safeSendBooking({
         to: wardenEmail,
         subject: isExtensionPaid 
           ? "Booking Extended (Paid)"
@@ -431,7 +449,7 @@ export const sendBookingEmails = (booking, statusType) => {
 
       // Manager email - use paid or free extension template
       if (MANAGER_EMAIL) {
-        safeSend({
+        safeSendBooking({
           to: MANAGER_EMAIL,
           subject: isExtensionPaid 
             ? "Booking Extension Notification (Paid)"
@@ -701,6 +719,8 @@ export const createBooking = async (req, res) => {
 
     // If rebooking requires review, notify all admin-role users.
     if (setupBooking.approvalStatus === "under_review") {
+      // Allocate the public reference before composing the pre-save review email.
+      await setupBooking.validate();
       console.log("⏰ UNDER REVIEW: Sending approval request email...");
       
       try {
@@ -751,6 +771,7 @@ export const createBooking = async (req, res) => {
                     Booking Summary
                   </div>
                   <p style="margin:6px 0;"><strong>Hostel:</strong> ${setupBooking.hostel || "-"}</p>
+                  <p style="margin:6px 0;"><strong>Guest Room Booking ID:</strong> ${getDisplayBookingId(setupBooking) || "-"}</p>
                   <p style="margin:6px 0;"><strong>Room:</strong> ${setupBooking.roomNo || "-"}</p>
                   <p style="margin:6px 0;"><strong>Check-in:</strong> ${setupBooking.from?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkInTime || ""}</p>
                   <p style="margin:6px 0;"><strong>Check-out:</strong> ${setupBooking.to?.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) || "-"} ${setupBooking.checkOutTime || ""}</p>
@@ -812,6 +833,7 @@ export const createBooking = async (req, res) => {
     if (io) {
       io.to('dashboard-room').emit('booking-created', { 
         bookingId: booking._id,
+        displayBookingId: getDisplayBookingId(booking),
         hostel: booking.hostel,
         roomNo: booking.roomNo,
         timestamp: Date.now()
@@ -2617,11 +2639,12 @@ export const downloadBookingsCSV = async (req, res) => {
         status
         files approvalDocuments paymentAttachments extensionAttachments
         comments
-        createdAt updatedAt
+        bookingId createdAt updatedAt
       `)
       .lean();
 
     const rows = bookings.map((b) => ({
+      "Booking ID": b.bookingId || b._id?.toString?.() || "",
       Name: b.guest || "",
       "RollNo/EmpID": b.rollno || "",
       Hostel: b.hostel || "",

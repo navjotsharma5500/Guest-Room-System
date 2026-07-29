@@ -475,7 +475,7 @@ export default function MainContent(props) {
         rows.push({
           // Basic Info
           Type: "Booking",
-          BookingID: b._id || b.id || "",
+          BookingID: b.bookingId || b._id || b.id || "",
           Guest: b.guest || "",
           Hostel: b.hostel || "",
           RoomNo: b.roomNo || "",

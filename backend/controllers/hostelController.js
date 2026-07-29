@@ -77,6 +77,7 @@ export const getAllHostelsWithBookings = async (req, res) => {
             bookings: roomBookings.map((b) => ({
               id: b._id,
               _id: b._id,
+              bookingId: b.bookingId,
               guest: b.guest || b.guestName || "Guest",
               contact: b.contact,
               email: b.email,

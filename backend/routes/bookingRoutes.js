@@ -133,6 +133,9 @@ router.post("/:id/attachments", protect, async (req, res) => {
 ============================================================= */
 const normalizeBooking = (b) => ({
   id: b._id,
+  // Public reference used by dashboards, downloads, emails and receipts.
+  // `id` remains the MongoDB key used by existing API actions.
+  bookingId: b.bookingId || undefined,
 
   // 👤 Guest identity (GUARANTEED)
   guest: b.guest || b.guestName || "",

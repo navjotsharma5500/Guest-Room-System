@@ -161,6 +161,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
           b.rollno?.toLowerCase().includes(query) ||
           b.city?.toLowerCase().includes(query) ||
           b.state?.toLowerCase().includes(query) ||
+          b.bookingId?.toLowerCase().includes(query) ||
           b._id?.toLowerCase().includes(query)
       );
     }
@@ -221,7 +222,7 @@ export default function BookingsPage({ onBack, theme = "light" }) {
     ];
 
     const rows = filteredBookings.map((b) => [
-      b._id || "",
+      b.bookingId || b._id || "",
       b.guest || "",
       b.email || "",
       b.contact || "",
@@ -835,7 +836,7 @@ function BookingCard({ booking, index, theme }) {
           )}
 
           <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'}`}>
-            ID: {booking._id?.slice(-8).toUpperCase()}
+            Booking ID: {booking.bookingId || booking._id || "—"}
           </div>
         </div>
       </div>

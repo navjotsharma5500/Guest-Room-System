@@ -671,6 +671,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       doc.setTextColor(220, 38, 38);
       doc.setFont("helvetica", "bold");
       doc.text("GUEST PROFILE REPORT", 105, yPos, { align: "center" });
+      doc.setFontSize(9);
+      doc.setTextColor(75, 85, 99);
+      doc.text(`Booking ID: ${b.bookingId || b._id || b.id || "N/A"}`, 105, yPos + 6, { align: "center" });
 
       // ============================================
       // GUEST PROFILE SECTION - FIXED
@@ -1287,6 +1290,12 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 </button>
               </div>
             )}
+          </div>
+          <div className={`mb-5 rounded-lg px-4 py-3 ${
+            theme === "dark" ? "bg-gray-700 text-gray-100" : "bg-red-50 text-gray-800"
+          }`}>
+            <span className="text-sm font-medium">Guest Room Booking ID: </span>
+            <span className="font-bold">{b.bookingId || b._id || b.id || "—"}</span>
           </div>
           
           <div className="grid grid-cols-2 gap-x-16 gap-y-5">

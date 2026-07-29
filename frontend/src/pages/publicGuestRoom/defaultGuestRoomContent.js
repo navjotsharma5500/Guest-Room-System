@@ -120,6 +120,7 @@ export const defaultGuestRoomContent = {
       rules: { enabled: true, eyebrow: "Important Rules", heading: "", description: "" },
       bankDetails: { enabled: true, eyebrow: "Bank Details", heading: "Official Payment Account", description: "" },
     },
+    categoryLabel: "Category",
     tariffValueLabel: "Tariff for Stay",
     rows: [
       ["Thapar Students / Parents", "Rs. 850 per day"],

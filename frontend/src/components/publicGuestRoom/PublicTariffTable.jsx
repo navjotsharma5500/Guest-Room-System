@@ -1,15 +1,16 @@
 import React from "react";
 
-export default function PublicTariffTable({ rows = [], tariffLabel = "Tariff for Stay" }) {
-  const label = String(tariffLabel || "Tariff for Stay").trim();
+export default function PublicTariffTable({ rows = [], column1Header = "Category", column2Header = "Tariff for Stay" }) {
+  const firstLabel = String(column1Header || "").trim();
+  const secondLabel = String(column2Header || "").trim();
 
   return (
     <div className="guest-card overflow-hidden rounded-[2rem]">
       <table className="w-full border-collapse text-left">
         <thead className="bg-[#efe4d5] text-[var(--guest-blue)]">
           <tr>
-            <th className="px-5 py-4 font-semibold">Category</th>
-            <th className="px-5 py-4 font-semibold">{label}</th>
+            <th className="px-5 py-4 font-semibold">{firstLabel}</th>
+            <th className="px-5 py-4 font-semibold">{secondLabel}</th>
           </tr>
         </thead>
         <tbody>

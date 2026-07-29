@@ -688,6 +688,7 @@ export const approveEnquiry = async (req, res) => {
       io.to('dashboard-room').emit('enquiry-approved', { 
         enquiryId: enquiry._id,
         bookingId: booking._id,
+        displayBookingId: booking.bookingId || booking._id.toString(),
         hostel: booking.hostel,
         roomNo: booking.roomNo,
         timestamp: Date.now()

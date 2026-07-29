@@ -1,8 +1,27 @@
 // models/Booking.js - COMPLETE FIXED VERSION
 import mongoose from "mongoose";
+import BookingCounter from "./BookingCounter.js";
+
+const getBookingDateKey = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type) => parts.find((part) => part.type === type)?.value;
+  return `${value("year")}${value("month")}${value("day")}`;
+};
 
 const BookingSchema = new mongoose.Schema(
   {
+    // Human-readable identifier. `_id` remains the internal relation/API key.
+    bookingId: {
+      type: String,
+      trim: true,
+      immutable: true,
+      match: /^GR-\d{8,}$/,
+    },
     // =========================
     // BASIC GUEST INFO
     // =========================
@@ -358,11 +377,28 @@ BookingSchema.virtual('waveOff').get(function() {
 BookingSchema.set('toJSON', { virtuals: true });
 BookingSchema.set('toObject', { virtuals: true });
 
+// Allocate the number atomically so concurrent bookings cannot receive the same ID.
+BookingSchema.pre("validate", async function generateBookingId() {
+  if (!this.isNew || this.bookingId) return;
+
+  const dateKey = getBookingDateKey();
+  const counter = await BookingCounter.findOneAndUpdate(
+    { _id: dateKey },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
+  this.bookingId = `GR-${dateKey}${String(counter.sequence).padStart(2, "0")}`;
+});
+
 // Add index for faster queries
 BookingSchema.index({ hostel: 1, roomNo: 1 });
 BookingSchema.index({ contact: 1 });
 BookingSchema.index({ email: 1 });
 BookingSchema.index({ status: 1 });
 BookingSchema.index({ reportedStatus: 1 });
+BookingSchema.index(
+  { bookingId: 1 },
+  { unique: true, partialFilterExpression: { bookingId: { $type: "string" } } }
+);
 
 export default mongoose.model("Booking", BookingSchema);
