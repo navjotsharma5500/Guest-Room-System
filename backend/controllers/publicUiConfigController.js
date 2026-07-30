@@ -40,15 +40,21 @@ const DEFAULT_PUBLIC_UI_CONFIG = {
     accentColor: "#c62828",
     cardOrder: [...ALLOWED_CARD_IDS],
     cards: [
-      { id: "guest-booking", enabled: true, locked: false, lockMessage: "", title: "Hostel Guest Room Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/guest-room", features: ["Single & Double Occupancy Rooms", "Online Booking System", "Guest Registration & Verification", "Advance Booking up to 30 Days"], order: 0 },
-      { id: "venue-booking", enabled: true, locked: false, lockMessage: "", title: "Event Venue Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/venue-enquiry", features: ["Auditorium & Seminar Hall Booking", "Open Air & Outdoor Spaces", "Equipment & AV Support Request", "Multi-day Event Scheduling"], order: 1 },
+      { id: "guest-booking", enabled: true, locked: false, lockMessage: "", title: "Hostel GuestRoom Booking Form", subtitle: "Booking Form", description: "Book and manage campus guest-room stays.", destination: "https://campusconnect.thapar.edu/guest-room", features: ["Single & Double Occupancy Rooms", "Online Booking System", "Guest Registration & Verification", "Advance Booking up to 30 Days"], order: 0 },
+      { id: "venue-booking", enabled: true, locked: false, lockMessage: "", title: "Event Venue Booking Form", subtitle: "Booking Form", description: "Request campus venues for events and activities.", destination: "https://campusconnect.thapar.edu/venue-enquiry", features: ["Auditorium & Seminar Hall Booking", "Open Air & Outdoor Spaces", "Equipment & AV Support Request", "Multi-day Event Scheduling"], order: 1 },
       { id: "event-calendar", enabled: true, locked: false, lockMessage: "", title: "Event Calendar", subtitle: "Campus-wide schedule", description: "", destination: "https://campusconnect.thapar.edu/event-calendar", features: ["Upcoming Fests & Competitions", "Department & Club Events", "Venue Availability Overview", "Monthly & Weekly View"], order: 2 },
       { id: "library-pass", enabled: true, locked: false, lockMessage: "", title: "Library Night Pass", subtitle: "2 pass categories", description: "", destination: "https://permissions.thapar.edu/", features: ["Overnight Study Access", "Research & Project Work", "Barcode Scanning", "Digital Pass on Mobile"], order: 3 },
       { id: "society-pass", enabled: true, locked: false, lockMessage: "", title: "Society Night Pass", subtitle: "Coming soon", description: "", destination: "", features: ["Late-Night Society Activities", "Cultural & Technical Clubs", "Coordinator Approval Flow", "Security Gate Integration"], order: 4 },
       { id: "lost-found", enabled: true, locked: false, lockMessage: "", title: "Lost & Found", subtitle: "Online Portal", description: "", destination: "https://campusconnect.thapar.edu/lostnfound", features: ["Report Lost Items Online", "Browse Found Item Listings", "Photo Upload & Description", "Claim & Handover Process"], order: 5 },
-      { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Community & Feedback", subtitle: "Public forum", description: "", destination: "/community-feedback", features: ["Share Suggestions & Ideas", "Report Issues & Problems", "Ask Questions Publicly", "Like, Comment & Engage with Posts"], order: 6 },
+      { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Community Service", subtitle: "Public forum", description: "Connect, share feedback and engage with campus.", destination: "/community-feedback", features: ["Share Suggestions & Ideas", "Report Issues & Problems", "Ask Questions Publicly", "Like, Comment & Engage with Posts"], order: 6 },
     ],
   },
+  timeline: [
+    { id: "launch", year: "Feb 2026", title: "Launch", description: "Full platform live with 6 integrated services", enabled: true },
+    { id: "testing", year: "Jan 2026", title: "Testing", description: "Beta launched with Guest Room & Venue modules", enabled: true },
+    { id: "development", year: "Nov 2025", title: "Development", description: "Core team assembled, tech stack finalized", enabled: true },
+    { id: "idea", year: "Oct 2025", title: "Idea", description: "Conceptualized by Dr. Meenakshi Rana, DoSA", enabled: true },
+  ],
 };
 
 const DB_MANAGED_FIELDS = new Set(["_id", "__v", "createdAt", "updatedAt"]);
@@ -103,6 +109,11 @@ const sanitizeCard = (inputCard = {}, fallbackCard = {}, index = 0) => ({
   title: cleanText(inputCard.title, fallbackCard.title),
   subtitle: cleanText(inputCard.subtitle ?? inputCard.sub, fallbackCard.subtitle),
   description: cleanText(inputCard.description, fallbackCard.description),
+  shortDescription: cleanText(inputCard.shortDescription ?? inputCard.description, fallbackCard.shortDescription ?? fallbackCard.description),
+  detailedDescription: cleanText(inputCard.detailedDescription ?? inputCard.working ?? inputCard.description, fallbackCard.detailedDescription ?? fallbackCard.working ?? fallbackCard.description),
+  image: inputCard.image ? sanitizeDestination(inputCard.image) : "",
+  status: cleanText(inputCard.status === "Live" ? "Active" : inputCard.status, fallbackCard.status || (fallbackCard.comingSoon ? "Coming Soon" : "Active")),
+  working: cleanText(inputCard.working, fallbackCard.working),
   destination: sanitizeDestination(inputCard.destination ?? inputCard.href ?? fallbackCard.destination),
   action: cleanText(inputCard.action, fallbackCard.action),
   icon: cleanText(inputCard.icon, fallbackCard.icon),
@@ -121,7 +132,7 @@ const sanitizeCmsTree = (value) => {
   if (Array.isArray(value)) return value.map((item) => sanitizeCmsTree(item));
   if (!isObject(value)) return value;
   return Object.keys(value).reduce((acc, key) => {
-    if (["destination", "href", "loginDestination", "backgroundUrl", "logoUrl"].includes(key)) {
+    if (["destination", "href", "loginDestination", "backgroundUrl", "logoUrl", "image", "photo", "linkedin", "github", "portfolio"].includes(key)) {
       const raw = cleanText(value[key]);
       acc[key] = raw ? sanitizeDestination(raw) : "";
     } else {

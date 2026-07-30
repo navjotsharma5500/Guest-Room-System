@@ -128,6 +128,53 @@ const PublicUiCustomizerPage = () => {
     });
   };
 
+  const updateMilestone = (id, patch) => {
+    setConfig((prev) => ({
+      ...prev,
+      timeline: (prev.timeline || []).map((item) => item.id === id ? { ...item, ...patch } : item),
+    }));
+  };
+
+  const addMilestone = () => {
+    const id = `milestone-${Date.now()}`;
+    setConfig((prev) => ({
+      ...prev,
+      timeline: [...(prev.timeline || []), { id, year: "", title: "New Milestone", description: "", enabled: true }],
+    }));
+  };
+
+  const deleteMilestone = (id) => {
+    setConfig((prev) => ({ ...prev, timeline: (prev.timeline || []).filter((item) => item.id !== id) }));
+  };
+
+  const moveMilestone = (index, direction) => {
+    setConfig((prev) => {
+      const timeline = [...(prev.timeline || [])];
+      const nextIndex = direction === "up" ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= timeline.length) return prev;
+      [timeline[index], timeline[nextIndex]] = [timeline[nextIndex], timeline[index]];
+      return { ...prev, timeline };
+    });
+  };
+
+  const updateDeveloper = (id, patch) => {
+    setConfig((prev) => ({ ...prev, developers: (prev.developers || []).map((developer) => developer.id === id ? { ...developer, ...patch } : developer) }));
+  };
+  const addDeveloper = () => {
+    const id = `developer-${Date.now()}`;
+    setConfig((prev) => ({ ...prev, developers: [...(prev.developers || []), { id, name: "New Developer", role: "", photo: "", description: "", email: "", linkedin: "", github: "", portfolio: "", contribution: "", tags: [], order: (prev.developers || []).length, enabled: true }] }));
+  };
+  const deleteDeveloper = (id) => setConfig((prev) => ({ ...prev, developers: (prev.developers || []).filter((developer) => developer.id !== id) }));
+  const moveDeveloper = (index, direction) => {
+    setConfig((prev) => {
+      const developers = [...(prev.developers || [])];
+      const nextIndex = direction === "up" ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= developers.length) return prev;
+      [developers[index], developers[nextIndex]] = [developers[nextIndex], developers[index]];
+      return { ...prev, developers: developers.map((developer, order) => ({ ...developer, order })) };
+    });
+  };
+
   const onSave = async () => {
     setSaving(true);
     setError("");
@@ -240,7 +287,7 @@ const PublicUiCustomizerPage = () => {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">Header Actions</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Admin Login Button</h2>
             <div className="space-y-3">
               <label className="text-sm font-medium text-slate-700 block">
                 Admin Login Button Link
@@ -321,7 +368,39 @@ const PublicUiCustomizerPage = () => {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Button Cards</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Our Journey</h2>
+              <p className="text-xs text-slate-500">Milestones appear publicly in this saved order, latest first.</p>
+            </div>
+            <button type="button" onClick={addMilestone} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm">Add Milestone</button>
+          </div>
+          <div className="space-y-4">
+            {(config.timeline || []).map((milestone, index) => (
+              <div key={milestone.id} className="border border-slate-200 rounded-xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" checked={milestone.enabled !== false} onChange={(e) => updateMilestone(milestone.id, { enabled: e.target.checked })} />
+                    Enabled
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" disabled={index === 0} onClick={() => moveMilestone(index, "up")} className="px-2 py-1 rounded border border-slate-300 disabled:opacity-40"><ArrowUp className="w-4 h-4" /></button>
+                    <button type="button" disabled={index === config.timeline.length - 1} onClick={() => moveMilestone(index, "down")} className="px-2 py-1 rounded border border-slate-300 disabled:opacity-40"><ArrowDown className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => deleteMilestone(milestone.id)} className="px-3 py-1 rounded border border-red-300 text-red-700 text-sm">Delete</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <label className="text-sm font-medium text-slate-700">Year / Date<input value={milestone.year || ""} onChange={(e) => updateMilestone(milestone.id, { year: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300" /></label>
+                  <label className="text-sm font-medium text-slate-700">Title<input value={milestone.title || milestone.label || ""} onChange={(e) => updateMilestone(milestone.id, { title: e.target.value, label: undefined })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300" /></label>
+                  <label className="text-sm font-medium text-slate-700 md:col-span-2">Description<textarea value={milestone.description || milestone.desc || ""} onChange={(e) => updateMilestone(milestone.id, { description: e.target.value, desc: undefined })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[72px]" /></label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900">Platform Applications</h2>
           <div className="space-y-4">
             {cards.map((card, index) => (
               <div key={card.id} className="border border-slate-200 rounded-xl p-4">
@@ -387,20 +466,29 @@ const PublicUiCustomizerPage = () => {
                     />
                   </label>
                   <label className="text-sm font-medium text-slate-700 block md:col-span-2">
-                    Card Description
+                    Short Description
                     <textarea
-                      value={card.description || ""}
-                      onChange={(e) => updateCard(card.id, { description: e.target.value })}
+                      value={card.shortDescription ?? card.description ?? ""}
+                      onChange={(e) => updateCard(card.id, { shortDescription: e.target.value, description: e.target.value })}
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[78px]"
                       placeholder="Short text shown inside this public homepage card."
                     />
                   </label>
                   <label className="text-sm font-medium text-slate-700 block">
+                    Status
+                    <select value={card.status || (card.comingSoon ? "Coming Soon" : "Active")} onChange={(e) => updateCard(card.id, { status: e.target.value, comingSoon: e.target.value === "Coming Soon" })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"><option value="Active">Active</option><option value="Coming Soon">Coming Soon</option></select>
+                  </label>
+                  <label className="text-sm font-medium text-slate-700 block md:col-span-2">
+                    Detailed Description
+                    <textarea value={card.detailedDescription ?? card.working ?? ""} onChange={(e) => updateCard(card.id, { detailedDescription: e.target.value, working: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[90px]" placeholder="Detailed content shown in the Learn More modal." />
+                  </label>
+                  <label className="text-sm font-medium text-slate-700 block md:col-span-2">Optional Image URL<input value={card.image || ""} onChange={(e) => updateCard(card.id, { image: e.target.value })} placeholder="https://..." className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300" /></label>
+                  <label className="text-sm font-medium text-slate-700 block">
                     Icon Key
                     <input
                       value={card.icon || ""}
                       onChange={(e) => updateCard(card.id, { icon: e.target.value })}
-                      placeholder="building, calendar, moon, sparkles, search, message"
+                      placeholder="Any Lucide icon name, e.g. Hotel, Search, CalendarDays"
                       className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
                     />
                   </label>
@@ -424,6 +512,36 @@ const PublicUiCustomizerPage = () => {
                     placeholder="This service is currently unavailable."
                   />
                 </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div><h2 className="text-lg font-semibold text-slate-900">Developers Team</h2><p className="text-xs text-slate-500">Manage the public Developers Team section.</p></div>
+            <button type="button" onClick={addDeveloper} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm">Add Developer</button>
+          </div>
+          <div className="space-y-4">
+            {(config.developers || []).map((developer, index) => (
+              <div key={developer.id} className="border border-slate-200 rounded-xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={developer.enabled !== false} onChange={(e) => updateDeveloper(developer.id, { enabled: e.target.checked })} />Enabled</label>
+                  <div className="flex gap-2">
+                    <button type="button" disabled={index === 0} onClick={() => moveDeveloper(index, "up")} className="px-2 py-1 rounded border border-slate-300 disabled:opacity-40"><ArrowUp className="w-4 h-4" /></button>
+                    <button type="button" disabled={index === config.developers.length - 1} onClick={() => moveDeveloper(index, "down")} className="px-2 py-1 rounded border border-slate-300 disabled:opacity-40"><ArrowDown className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => deleteDeveloper(developer.id)} className="px-3 py-1 rounded border border-red-300 text-red-700 text-sm">Delete</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  {[
+                    ["Name", "name"], ["Role", "role"], ["Photo URL", "photo"], ["Email", "email"],
+                    ["LinkedIn URL", "linkedin"], ["GitHub URL", "github"], ["Portfolio URL", "portfolio"],
+                  ].map(([label, field]) => <label key={field} className="text-sm font-medium text-slate-700">{label}<input value={developer[field] || ""} onChange={(e) => updateDeveloper(developer.id, { [field]: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300" /></label>)}
+                  <label className="text-sm font-medium text-slate-700 md:col-span-2">Description<textarea value={developer.description || ""} onChange={(e) => updateDeveloper(developer.id, { description: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[72px]" /></label>
+                  <label className="text-sm font-medium text-slate-700 md:col-span-2">Work Tags<input value={(developer.tags || []).join(", ")} onChange={(e) => updateDeveloper(developer.id, { tags: e.target.value.split(",").map((tag) => tag.trim()).filter(Boolean) })} placeholder="GuestRoom Portal, Venue Booking, Library Night Pass" className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300" /><span className="block mt-1 text-xs font-normal text-slate-500">Separate multiple tags with commas.</span></label>
+                  <label className="text-sm font-medium text-slate-700 md:col-span-2">Contribution<textarea value={developer.contribution || ""} onChange={(e) => updateDeveloper(developer.id, { contribution: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 min-h-[90px]" /></label>
+                </div>
               </div>
             ))}
           </div>

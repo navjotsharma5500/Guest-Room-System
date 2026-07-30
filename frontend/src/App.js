@@ -28,7 +28,6 @@ import {
 // PAGE IMPORTS
 // ============================================================================
 import Login from "./pages/Login";
-import PublicDashboardSelector from "./pages/PublicDashboardSelector";
 import InstallApp from "./pages/InstallApp";
 import AboutUsPage from "./pages/AboutUsPage";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
@@ -37,6 +36,7 @@ import VenueBookingDashboard from "./VenueBookingDashboard";
 import VenueGuestEnquiryPage from "./pages/VenueGuestEnquiryPage";
 import PublicEventCalendar from "./pages/PublicEventCalendar";
 import PublicAllEventsPage from "./pages/PublicAllEventsPage";
+import PublicUpcomingEventsPage from "./pages/PublicUpcomingEventsPage";
 import EventCalendarAdminPage from "./pages/EventCalendarAdminPage";
 import GuestRoomPublicLayout from "./pages/publicGuestRoom/GuestRoomPublicLayout";
 import GuestRoomHome from "./pages/publicGuestRoom/GuestRoomHome";
@@ -266,7 +266,7 @@ export default function App() {
           {/* ================================================================
               PUBLIC DASHBOARD (Landing Page)
               ================================================================ */}
-          <Route path="/" element={<PublicDashboardSelector />} />
+          <Route path="/" element={<AboutUsPage />} />
 
           {/* ================================================================
               LOGIN WITH AUTO-REDIRECT
@@ -419,6 +419,7 @@ export default function App() {
           <Route path="/ic"                   element={<PublicEventCalendar />} />
           <Route path="/tc"                   element={<PublicEventCalendar />} />
           <Route path="/event-calendar/all-events" element={<PublicAllEventsPage />} />
+          <Route path="/event-calendar/upcoming" element={<PublicUpcomingEventsPage />} />
           <Route path="/event-calendar/admin" element={<EventCalendarAdminPage />} />
           <Route path="/event-calendar/admin/login" element={<EventCalendarAdminPage />} />
           <Route path="/admin"                element={<Navigate to="/event-calendar/admin" replace />} />

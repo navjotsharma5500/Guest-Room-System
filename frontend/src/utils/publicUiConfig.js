@@ -100,7 +100,12 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     { id: "footer", title: "Footer", enabled: true, order: 2 },
     { id: "echo", title: "Echo AI", enabled: true, order: 3 },
   ],
-  timeline: [],
+  timeline: [
+    { id: "launch", year: "Feb 2026", title: "Launch", description: "Full platform live with 6 integrated services", enabled: true },
+    { id: "testing", year: "Jan 2026", title: "Testing", description: "Beta launched with Guest Room & Venue modules", enabled: true },
+    { id: "development", year: "Nov 2025", title: "Development", description: "Core team assembled, tech stack finalized", enabled: true },
+    { id: "idea", year: "Oct 2025", title: "Idea", description: "Conceptualized by Dr. Meenakshi Rana, DoSA", enabled: true },
+  ],
   echo: {
     defaultReply: "I'm here to help with campus operations.",
     responses: [
@@ -187,15 +192,22 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     glassLevel: "medium",
     cardOrder: [...PUBLIC_CARD_IDS],
     cards: [
-      { id: "guest-booking", enabled: true, locked: false, lockMessage: "", title: "Hostel Guest Room Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/guest-room", icon: "building", badge: "", comingSoon: false, accentColor: "#c62828", cardColor: "#ffffff", features: ["Single & Double Occupancy Rooms", "Online Booking System", "Guest Registration & Verification", "Advance Booking up to 30 Days"], order: 0 },
-      { id: "venue-booking", enabled: true, locked: false, lockMessage: "", title: "Event Venue Booking", subtitle: "Booking Form", description: "", destination: "https://campusconnect.thapar.edu/venue-enquiry", icon: "calendar", badge: "", comingSoon: false, accentColor: "#1a56db", cardColor: "#ffffff", features: ["Auditorium & Seminar Hall Booking", "Open Air & Outdoor Spaces", "Equipment & AV Support Request", "Multi-day Event Scheduling"], order: 1 },
+      { id: "guest-booking", enabled: true, locked: false, lockMessage: "", title: "Hostel GuestRoom Booking Form", subtitle: "Booking Form", status: "Live", description: "Fully operational and available to all students.", working: "Book and manage campus guest-room stays.", destination: "https://campusconnect.thapar.edu/guest-room", icon: "building", badge: "", comingSoon: false, accentColor: "#c62828", cardColor: "#ffffff", features: ["Single & Double Occupancy Rooms", "Online Booking System", "Guest Registration & Verification", "Advance Booking up to 30 Days"], order: 0 },
+      { id: "venue-booking", enabled: true, locked: false, lockMessage: "", title: "Event Venue Booking Form", subtitle: "Booking Form", description: "Request campus venues for events and activities.", destination: "https://campusconnect.thapar.edu/venue-enquiry", icon: "calendar", badge: "", comingSoon: false, accentColor: "#1a56db", cardColor: "#ffffff", features: ["Auditorium & Seminar Hall Booking", "Open Air & Outdoor Spaces", "Equipment & AV Support Request", "Multi-day Event Scheduling"], order: 1 },
       { id: "event-calendar", enabled: true, locked: false, lockMessage: "", title: "Event Calendar", subtitle: "Campus-wide schedule", description: "", destination: "https://campusconnect.thapar.edu/event-calendar", icon: "calendar", badge: "", comingSoon: false, accentColor: "#0d7a4e", cardColor: "#ffffff", features: ["Upcoming Fests & Competitions", "Department & Club Events", "Venue Availability Overview", "Monthly & Weekly View"], order: 2 },
       { id: "library-pass", enabled: true, locked: false, lockMessage: "", title: "Library Night Pass", subtitle: "2 pass categories", description: "", destination: "https://permissions.thapar.edu/", icon: "moon", badge: "", comingSoon: false, accentColor: "#6d28d9", cardColor: "#ffffff", features: ["Overnight Study Access", "Research & Project Work", "Barcode Scanning", "Digital Pass on Mobile"], order: 3 },
       { id: "society-pass", enabled: true, locked: false, lockMessage: "", title: "Society Night Pass", subtitle: "Coming soon", description: "", destination: "", action: "cs", icon: "sparkles", badge: "Coming Soon", comingSoon: true, accentColor: "#b45309", cardColor: "#ffffff", features: ["Late-Night Society Activities", "Cultural & Technical Clubs", "Coordinator Approval Flow", "Security Gate Integration"], order: 4 },
       { id: "lost-found", enabled: true, locked: false, lockMessage: "", title: "Lost & Found", subtitle: "Online Portal", description: "", destination: "https://campusconnect.thapar.edu/lostnfound", icon: "search", badge: "", comingSoon: false, accentColor: "#c2410c", cardColor: "#ffffff", features: ["Report Lost Items Online", "Browse Found Item Listings", "Photo Upload & Description", "Claim & Handover Process"], order: 5 },
-      { id: "community-feedback", enabled: false, locked: false, lockMessage: "", title: "Community & Feedback", subtitle: "Public forum", description: "", destination: "/community-feedback", action: "community", icon: "message", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
+      { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Community Service", subtitle: "Public forum", description: "Connect, share feedback and engage with campus.", destination: "/community-feedback", action: "community", icon: "message", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
     ],
   },
+  developers: [
+    { id: "navjot-sharma", name: "Navjot Sharma", role: "Lead Full Stack Developer", photo: "https://ik.imagekit.io/7khjnlfow/email-assets/ChatGPT%20Image%20Mar%2013,%202026,%2002_52_10%20AM.png?updatedAt=1773433334832", description: "Associate IT, DoSA Office", email: "", linkedin: "https://www.linkedin.com/in/navjot-sharma-0bb7143b1", github: "https://github.com/navjotsharma5500", portfolio: "", contribution: "Architected and developed the core platform infrastructure and key booking modules.", tags: ["GuestRoom Portal", "Venue Booking", "Library Night Pass", "Event Calendar"], order: 0, enabled: true },
+    { id: "aman-kapoor", name: "Aman Kapoor", role: "Core Developer", photo: "https://ik.imagekit.io/7khjnlfow/email-assets/1725703687306.jpg?updatedAt=1773176346179", description: "AIML, 2nd Year", email: "", linkedin: "https://www.linkedin.com/in/aman-kapoor201/", github: "", portfolio: "", contribution: "Implemented the backend architecture for the Library Night Pass module.", tags: ["Library Night Pass"], order: 1, enabled: true },
+    { id: "sagarika-wankhede", name: "Sagarika Wankhede", role: "Frontend Developer", photo: "https://ik.imagekit.io/7khjnlfow/email-assets/1753485244517.jpg?updatedAt=1773176346191", description: "COE, 2nd Year", email: "", linkedin: "https://www.linkedin.com/in/sagarikawankhede/", github: "", portfolio: "", contribution: "Designed and implemented the Library Night Pass user interface.", tags: ["Library Night Pass"], order: 2, enabled: true },
+    { id: "surya-kant-tiwari", name: "Surya Kant Tiwari", role: "Lost & Found Lead Dev", photo: "https://ik.imagekit.io/7khjnlfow/email-assets/157281664.png", description: "COE, 3rd Year", email: "", linkedin: "https://www.linkedin.com/in/surya-kant-tiwari-0707a52a9/", github: "https://github.com/navjotsharma5500/softwareProject", portfolio: "", contribution: "Led development of the Lost & Found portal and its claim workflow.", tags: ["Lost & Found Portal"], order: 3, enabled: true },
+    { id: "akshat-kakkar", name: "Akshat Kakkar", role: "Product & Strategy Lead", photo: "https://ik.imagekit.io/7khjnlfow/email-assets/215835845.jpg", description: "COE, 3rd Year", email: "", linkedin: "https://www.linkedin.com/in/akshat-kakkar-452b13342/", github: "", portfolio: "", contribution: "Led product strategy and UX research for the platform.", tags: ["Lost & Found Portal"], order: 4, enabled: true },
+  ],
 };
 
 const DB_MANAGED_FIELDS = new Set(["_id", "__v", "createdAt", "updatedAt"]);
@@ -234,18 +246,35 @@ const sortEnabled = (items = []) =>
 
 export const normalizePublicUiConfig = (config) => {
   const merged = mergeDefaults(DEFAULT_PUBLIC_UI_CONFIG, stripDatabaseFields(config || {}));
+  const timelineSource = Array.isArray(merged.timeline) && merged.timeline.length
+    ? merged.timeline
+    : DEFAULT_PUBLIC_UI_CONFIG.timeline;
   const cardOrder = Array.isArray(merged.selector?.cardOrder)
     ? merged.selector.cardOrder
     : DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder;
   const cards = Array.isArray(merged.selector?.cards)
-    ? merged.selector.cards.map((card, index) => ({ ...card, id: card.id || `card-${index}`, order: Number.isFinite(Number(card.order)) ? Number(card.order) : index }))
+    ? merged.selector.cards.map((card, index) => ({ ...card, id: card.id || `card-${index}`, shortDescription: card.shortDescription ?? card.description ?? "", detailedDescription: card.detailedDescription ?? card.working ?? card.description ?? "", status: card.status === "Live" ? "Active" : (card.status || (card.comingSoon ? "Coming Soon" : "Active")), order: Number.isFinite(Number(card.order)) ? Number(card.order) : index }))
     : DEFAULT_PUBLIC_UI_CONFIG.selector.cards;
+  const developerDefaults = new Map(DEFAULT_PUBLIC_UI_CONFIG.developers.map((developer) => [developer.id, developer]));
 
   return stripDatabaseFields({
     ...merged,
     navigation: Array.isArray(merged.navigation) ? merged.navigation : [],
     sections: Array.isArray(merged.sections) ? merged.sections : [],
-    timeline: Array.isArray(merged.timeline) ? merged.timeline : [],
+    timeline: timelineSource.map((item, index) => ({
+      ...item,
+      id: item.id || `milestone-${index}`,
+      title: item.title || item.label || "",
+      description: item.description || item.desc || "",
+      enabled: item.enabled !== false,
+    })),
+    developers: (Array.isArray(merged.developers) && merged.developers.length ? merged.developers : DEFAULT_PUBLIC_UI_CONFIG.developers).map((developer, index) => ({
+      ...(developerDefaults.get(developer.id) || {}),
+      ...developer,
+      id: developer.id || `developer-${index}`,
+      order: Number.isFinite(Number(developer.order)) ? Number(developer.order) : index,
+      enabled: developer.enabled !== false,
+    })),
     modals: isObject(merged.modals) ? merged.modals : {},
     selector: {
       ...merged.selector,

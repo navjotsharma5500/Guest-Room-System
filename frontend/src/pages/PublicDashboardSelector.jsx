@@ -7,6 +7,7 @@ import {
   Package, Bell, LogIn, Home, Users,
   MessageSquare, Send, Bot, Lock,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import EchoOrb from "../components/EchoOrb";
 import {
   DEFAULT_PUBLIC_UI_CONFIG,
@@ -25,17 +26,14 @@ const THEME_BG = {
   slate: "linear-gradient(135deg,#f1f5f9,#e2e8f0)",
 };
 
-const ICONS = {
-  building: Building2,
-  calendar: CalendarDays,
-  moon: Moon,
-  sparkles: Sparkles,
-  search: Search,
-  message: MessageSquare,
-  package: Package,
-  login: LogIn,
-  home: Home,
-  users: Users,
+const resolveIcon = (iconKey) => {
+  const rawKey = String(iconKey || "").trim();
+  const pascalKey = rawKey
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join("");
+  return LucideIcons[rawKey] || LucideIcons[pascalKey] || LucideIcons.Sparkles;
 };
 
 const CARD_VISUALS = {
@@ -146,10 +144,19 @@ function DropMenu({ items, onAction }) {
 function NavItem({ item, onAction }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const closeTimer = useRef(null);
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  };
   useEffect(() => {
-    const h = e => { if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
   }, []);
   const base = { background:"none", border:"none", cursor:"pointer", fontSize:13.5,
                  fontWeight:500, color:"#374151", padding:"4px 0", fontFamily:"inherit",
@@ -164,7 +171,7 @@ function NavItem({ item, onAction }) {
   );
   return (
     <div ref={ref} style={{ position:"relative" }}
-      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      onMouseEnter={openMenu} onMouseLeave={scheduleClose}>
       <button style={base}
         onMouseEnter={e=>e.currentTarget.style.color="#c62828"}
         onMouseLeave={e=>e.currentTarget.style.color="#374151"}>
@@ -425,7 +432,7 @@ export default function ThaparPublicDashboard() {
         const base = { id, title: "", sub: "", bullets: [] };
         const saved = cardConfigMap.get(id) || {};
         const visual = CARD_VISUALS[id] || {
-          Icon: ICONS[saved.icon] || Sparkles,
+          Icon: resolveIcon(saved.icon) || Sparkles,
           iconBg: "#f3f4f6",
           iconColor: saved.accentColor || accentColor,
           dot: saved.accentColor || accentColor,
@@ -433,7 +440,7 @@ export default function ThaparPublicDashboard() {
         return {
           ...base,
           ...saved,
-          Icon: ICONS[saved.icon] || visual.Icon,
+          Icon: resolveIcon(saved.icon) || visual.Icon,
           iconBg: saved.iconBg || visual.iconBg,
           iconColor: saved.accentColor || saved.iconColor || visual.iconColor,
           dot: saved.accentColor || saved.dot || visual.dot,
@@ -442,7 +449,7 @@ export default function ThaparPublicDashboard() {
           bullets: Array.isArray(saved.features) ? saved.features : base.bullets,
         };
       })
-      .filter(card => card.id !== "community-feedback" && card.enabled !== false);
+      .filter(card => card.id !== "community-feedback" && card.enabled === true);
   }, [selectorConfig.cardOrder, cardConfigMap, accentColor]);
 
   // ── grid cols from layoutStyle ──

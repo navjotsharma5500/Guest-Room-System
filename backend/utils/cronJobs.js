@@ -277,6 +277,19 @@ export const startAutoUnblockCronJob = (io) => {
   console.log("✅ Auto-unblock cron job started - runs daily at midnight");
 };
 
+const getBookingCheckoutDateTimeIST = (booking) => {
+  const checkoutDate = new Date(booking?.to);
+  if (Number.isNaN(checkoutDate.getTime())) return null;
+
+  const datePart = checkoutDate.toISOString().slice(0, 10);
+  const checkoutTime = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(booking?.checkOutTime || ""))
+    ? booking.checkOutTime
+    : "23:59";
+
+  const checkoutDateTime = new Date(`${datePart}T${checkoutTime}:00+05:30`);
+  return Number.isNaN(checkoutDateTime.getTime()) ? null : checkoutDateTime;
+};
+
 // ✅ NEW: Auto-cancel expired or clashing extension requests (runs every hour)
 export const startExtensionAutoCancelCronJob = (io) => {
   console.log("🟢 Starting extension request auto-reject cron job...");
@@ -291,13 +304,6 @@ export const startExtensionAutoCancelCronJob = (io) => {
       const { sendEmailAdvanced } = await import("../emails/sendEmail.js");
       const extensionRejectedTemplate = (await import("../emails/templates/extensionRejected.js")).default;
 
-      // ✅ Date-only comparison (consistent with extension creation logic)
-      const toDateOnly = (d) => {
-        const dt = new Date(d);
-        return Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
-      };
-      const todayDateOnly = toDateOnly(now);
-
       // Find all pending requests
       const pendingRequests = await ExtensionRequest.find({ status: "pending" }).populate("bookingId");
       
@@ -309,14 +315,14 @@ export const startExtensionAutoCancelCronJob = (io) => {
         let shouldReject = false;
         let reason = "";
 
-        // ✅ FIXED: Check if guest has already checked out (current date >= booking's checkout date)
+        // Check the exact checkout date and time in Asia/Kolkata.
         // Once the guest checks out, extending is meaningless. We must auto-reject to prevent
         // approving extensions AFTER the guest has already left the room.
-        const bookingCheckoutDateOnly = toDateOnly(req.bookingId.to);
-        if (todayDateOnly >= bookingCheckoutDateOnly) {
+        const bookingCheckoutDateTime = getBookingCheckoutDateTimeIST(req.bookingId);
+        if (bookingCheckoutDateTime && now >= bookingCheckoutDateTime) {
             shouldReject = true;
-            reason = "Extension request expired (guest checkout date has passed)";
-            console.log(`📅 Request ${req._id}: Guest checkout date (${bookingCheckoutDateOnly}) passed`);
+            reason = "Extension request expired (guest checkout date and time have passed)";
+            console.log(`📅 Request ${req._id}: Guest checkout datetime (${bookingCheckoutDateTime.toISOString()}) passed`);
         }
 
         // Condition 2: Another booking created that clashes with requestedCheckout
@@ -448,8 +454,9 @@ export const startExtensionReminderCronJob = (io) => {
       for (const req of pendingRequests) {
         if (!req.bookingId) continue; // Skip if booking deleted
 
-        const checkoutTime = new Date(req.bookingId.to);
-        const timeUntilCheckout = Math.round((checkoutTime - now) / (1000 * 60)); // minutes
+        const checkoutDateTime = getBookingCheckoutDateTimeIST(req.bookingId);
+        if (!checkoutDateTime) continue;
+        const timeUntilCheckout = Math.round((checkoutDateTime - now) / (1000 * 60)); // minutes
 
         // Send reminder if checkout is within 45-120 minutes (roughly 1 hour window)
         if (timeUntilCheckout > 0 && timeUntilCheckout <= 120) {
