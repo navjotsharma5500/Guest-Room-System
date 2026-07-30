@@ -8,6 +8,9 @@ export const PUBLIC_CARD_IDS = [
   "society-pass",
   "lost-found",
   "community-feedback",
+  "institute-calendar",
+  "student-calendar",
+  "student-society-portal",
 ];
 
 export const DEFAULT_PUBLIC_UI_CONFIG = {
@@ -199,6 +202,9 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       { id: "society-pass", enabled: true, locked: false, lockMessage: "", title: "Society Night Pass", subtitle: "Coming soon", description: "", destination: "", action: "cs", icon: "sparkles", badge: "Coming Soon", comingSoon: true, accentColor: "#b45309", cardColor: "#ffffff", features: ["Late-Night Society Activities", "Cultural & Technical Clubs", "Coordinator Approval Flow", "Security Gate Integration"], order: 4 },
       { id: "lost-found", enabled: true, locked: false, lockMessage: "", title: "Lost & Found", subtitle: "Online Portal", description: "", destination: "https://campusconnect.thapar.edu/lostnfound", icon: "search", badge: "", comingSoon: false, accentColor: "#c2410c", cardColor: "#ffffff", features: ["Report Lost Items Online", "Browse Found Item Listings", "Photo Upload & Description", "Claim & Handover Process"], order: 5 },
       { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Community Service", subtitle: "Public forum", description: "Connect, share feedback and engage with campus.", destination: "/community-feedback", action: "community", icon: "message", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
+      { id: "institute-calendar", enabled: true, title: "Institute Calendar", shortDescription: "View institute-wide academic dates, holidays and schedules.", detailedDescription: "Stay updated with official institute dates, holidays, teaching days and important academic schedules.", destination: "/ic", icon: "CalendarRange", image: "", status: "Active", comingSoon: false, accentColor: "#2563eb", order: 7 },
+      { id: "student-calendar", enabled: true, title: "Student Calendar", shortDescription: "Explore student events and campus activities.", detailedDescription: "Discover student-focused events, activities and schedules across the campus community.", destination: "/tc", icon: "CalendarDays", image: "", status: "Active", comingSoon: false, accentColor: "#0f766e", order: 8 },
+      { id: "student-society-portal", enabled: true, title: "Student Society Portal", shortDescription: "Connect with student societies, clubs and chapters.", detailedDescription: "A unified portal for discovering and engaging with student societies, clubs and chapters.", destination: "", icon: "UsersRound", image: "", status: "Coming Soon", comingSoon: true, accentColor: "#7c3aed", order: 9 },
     ],
   },
   developers: [

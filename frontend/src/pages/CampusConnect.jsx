@@ -4,7 +4,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Building2, LogIn,
   Target,
-  Eye, Heart, Zap, Users, CheckCircle, Linkedin, Home, Package, MessageSquare, ChevronDown,
+  Eye, Heart, Zap, Users, CheckCircle, Linkedin, Home, Package, MessageSquare, ChevronDown, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
   fetchPublicUiConfig,
   normalizePublicUiConfig,
 } from "../utils/publicUiConfig";
+import PublicPageWidgets from "../components/PublicPageWidgets";
 
 /* ─────────────────────────────────────────
    ANIMATION HELPER
@@ -92,6 +93,101 @@ function HeaderNavItem({ item, onOpen }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function PlatformCarousel({ apps, onOpen }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const count = apps.length;
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (paused || count < 2) return undefined;
+    const timer = setInterval(() => setActiveIndex((index) => (index + 1) % count), 3200);
+    return () => clearInterval(timer);
+  }, [paused, count]);
+
+  useEffect(() => {
+    if (activeIndex >= count) setActiveIndex(0);
+  }, [activeIndex, count]);
+
+  if (!count) return null;
+  const activeApp = apps[activeIndex] || apps[0];
+  const visibleDistance = viewportWidth < 640 ? 1 : viewportWidth < 980 ? 2 : 3;
+  const step = viewportWidth < 640 ? 126 : viewportWidth < 980 ? 155 : 185;
+  const move = (direction) => setActiveIndex((index) => (index + direction + count) % count);
+  const relativePosition = (index) => {
+    let position = (index - activeIndex + count) % count;
+    if (position > count / 2) position -= count;
+    return position;
+  };
+  const isComingSoon = (app) => app.comingSoon || app.status === "Coming Soon" || !app.destination;
+
+  return (
+    <div className="platform-carousel" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <motion.div
+        className="platform-carousel-stage"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.16}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -45 || info.velocity.x < -350) move(1);
+          else if (info.offset.x > 45 || info.velocity.x > 350) move(-1);
+        }}
+      >
+        {apps.map((app, index) => {
+          const position = relativePosition(index);
+          const distance = Math.abs(position);
+          const isActive = position === 0;
+          const Icon = app.icon;
+          return (
+            <motion.button
+              type="button"
+              key={app.id}
+              className={`platform-orbit-card ${isActive ? "active" : ""}`}
+              animate={{
+                x: position * step,
+                y: distance * 23,
+                scale: isActive ? 1.16 : Math.max(.7, 1 - distance * .12),
+                rotate: position * -6,
+                opacity: distance <= visibleDistance ? (isActive ? 1 : Math.max(.3, .82 - distance * .17)) : 0,
+                zIndex: 20 - distance,
+              }}
+              transition={{ type: "spring", stiffness: 155, damping: 24, mass: .8 }}
+              onClick={() => {
+                if (!isActive) setActiveIndex(index);
+                else if (!isComingSoon(app)) onOpen(app);
+              }}
+              disabled={isActive && isComingSoon(app)}
+              aria-label={`${app.title}${isComingSoon(app) ? " — Coming Soon" : ""}`}
+            >
+              {app.image ? <img src={app.image} alt="" /> : <span className="platform-orbit-icon" style={{ background: app.color, color: app.ic }}><Icon size={isActive ? 38 : 30} /></span>}
+              {isComingSoon(app) && <span className="platform-orbit-soon">Coming Soon</span>}
+            </motion.button>
+          );
+        })}
+      </motion.div>
+      <div className="platform-carousel-controls">
+        <button type="button" onClick={() => move(-1)} aria-label="Previous application"><ChevronLeft size={18} /></button>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeApp.id} initial={{ opacity: 0, y: 9 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -9 }} transition={{ duration: .25 }} className="platform-active-copy">
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 9 }}>
+              <h3>{activeApp.title}</h3>
+              {isComingSoon(activeApp) && <span>Coming Soon</span>}
+            </div>
+            <p>{activeApp.description}</p>
+          </motion.div>
+        </AnimatePresence>
+        <button type="button" onClick={() => move(1)} aria-label="Next application"><ChevronRight size={18} /></button>
+      </div>
     </div>
   );
 }
@@ -190,7 +286,7 @@ function StickyNav({ active }) {
 /* ─────────────────────────────────────────
    MAIN PAGE
 ───────────────────────────────────────── */
-export default function AboutUsPage() {
+export default function CampusConnect() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("About");
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -270,8 +366,24 @@ export default function AboutUsPage() {
         .about-footer-grid { max-width:1040px; margin:0 auto; padding:48px 24px 40px; display:grid; grid-template-columns:1fr 1fr; gap:64px; }
         .about-footer-links-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px 28px; }
         .about-footer-link { display:flex; align-items:center; gap:9px; padding:8px 0; border:0; background:none; color:#4b5563; cursor:pointer; font-family:inherit; font-size:14px; }
+        .platform-carousel { margin-top:48px; overflow:hidden; padding:26px 0 4px; }
+        .platform-carousel-stage { position:relative; height:310px; display:flex; align-items:flex-start; justify-content:center; touch-action:pan-y; cursor:grab; }
+        .platform-carousel-stage:active { cursor:grabbing; }
+        .platform-orbit-card { position:absolute; top:20px; width:168px; height:190px; display:grid; place-items:center; overflow:hidden; padding:18px; border:1px solid #e4e7ec; border-radius:28px; background:linear-gradient(145deg,#fff,#f8fafc); box-shadow:0 16px 42px rgba(15,23,42,.1); cursor:pointer; transform-origin:center bottom; }
+        .platform-orbit-card.active { border-color:#d0d5dd; box-shadow:0 26px 60px rgba(15,23,42,.16); }
+        .platform-orbit-card:disabled { cursor:default; }
+        .platform-orbit-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+        .platform-orbit-icon { width:76px; height:76px; display:grid; place-items:center; border-radius:23px; }
+        .platform-orbit-soon { position:absolute; right:10px; bottom:10px; padding:4px 8px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:9px; font-weight:700; }
+        .platform-carousel-controls { max-width:690px; margin:-10px auto 0; display:grid; grid-template-columns:42px 1fr 42px; align-items:center; gap:20px; }
+        .platform-carousel-controls > button { width:42px; height:42px; display:grid; place-items:center; border:1px solid #e4e7ec; border-radius:50%; background:#fff; color:#344054; cursor:pointer; box-shadow:0 6px 18px rgba(15,23,42,.06); transition:transform .2s,box-shadow .2s; }
+        .platform-carousel-controls > button:hover { transform:translateY(-2px); box-shadow:0 9px 22px rgba(15,23,42,.11); }
+        .platform-active-copy { min-height:86px; text-align:center; }
+        .platform-active-copy h3 { color:#101828; font-size:22px; font-weight:700; }
+        .platform-active-copy span { padding:4px 8px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:9px; font-weight:700; }
+        .platform-active-copy p { max-width:540px; margin:9px auto 0; color:#667085; font-size:13.5px; line-height:1.65; }
         @media(max-width:900px) { .about-public-nav { display:none; } }
-        @media(max-width:650px) { .about-public-header { min-height:auto; padding:12px 16px; align-items:flex-start; flex-wrap:wrap; } .about-footer-grid { grid-template-columns:1fr; gap:34px; } .about-footer-links-grid { grid-template-columns:1fr; gap:4px; } }
+        @media(max-width:650px) { .about-public-header { min-height:auto; padding:12px 16px; align-items:flex-start; flex-wrap:wrap; } .about-footer-grid { grid-template-columns:1fr; gap:34px; } .about-footer-links-grid { grid-template-columns:1fr; gap:4px; } .platform-carousel { margin-left:-24px; margin-right:-24px; } .platform-carousel-stage { height:260px; } .platform-orbit-card { width:136px; height:158px; border-radius:23px; } .platform-orbit-icon { width:64px; height:64px; border-radius:19px; } .platform-carousel-controls { grid-template-columns:36px 1fr 36px; gap:9px; padding:0 16px; } .platform-carousel-controls > button { width:36px; height:36px; } .platform-active-copy h3 { font-size:18px; } .platform-active-copy p { font-size:12.5px; } }
       `}</style>
 
       <PublicHeader config={publicConfig} onOpen={openItem} />
@@ -411,6 +523,22 @@ export default function AboutUsPage() {
               </div>
             </div>
           </FadeUp>
+        </div>
+      </section>
+
+      <section style={{ background: "#f7f8fa", padding: "96px 24px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <FadeUp>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#c62828", letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 12 }}>Platform Showcase</p>
+            <h2 className="garamond" style={{ fontSize: "clamp(2.2rem,4.8vw,3.8rem)", fontWeight: 700, color: "#111", lineHeight: 1.08, maxWidth: 760 }}>
+              Everything You Need, One Campus Platform
+            </h2>
+            <p style={{ marginTop: 18, maxWidth: 760, color: "#667085", fontSize: 15, lineHeight: 1.75 }}>
+              Access every major Campus Connect application from one unified platform.<br />
+              Designed to simplify the digital experience for students, faculty, staff and visitors.
+            </p>
+          </FadeUp>
+          <PlatformCarousel apps={applicationCards} onOpen={openItem} />
         </div>
       </section>
 
@@ -781,6 +909,7 @@ export default function AboutUsPage() {
       </AnimatePresence>
 
       <PublicQuickLinks config={publicConfig} onOpen={openItem} />
+      <PublicPageWidgets hideFooter />
     </>
   );
 }

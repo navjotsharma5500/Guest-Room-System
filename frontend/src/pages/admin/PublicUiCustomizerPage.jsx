@@ -16,6 +16,9 @@ const CARD_LABELS = {
   "society-pass": "Society Night Pass",
   "lost-found": "Lost & Found",
   "community-feedback": "Community & Feedback",
+  "institute-calendar": "Institute Calendar",
+  "student-calendar": "Student Calendar",
+  "student-society-portal": "Student Society Portal",
 };
 
 const LAYOUT_OPTIONS = [

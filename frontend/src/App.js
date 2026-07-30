@@ -29,7 +29,7 @@ import {
 // ============================================================================
 import Login from "./pages/Login";
 import InstallApp from "./pages/InstallApp";
-import AboutUsPage from "./pages/AboutUsPage";
+import CampusConnect from "./pages/CampusConnect";
 import DashboardSelectorGlass from "./pages/admin/DashboardSelector";
 import GuestRoomDashboard from "./GuestRoomDashboard";
 import VenueBookingDashboard from "./VenueBookingDashboard";
@@ -266,7 +266,7 @@ export default function App() {
           {/* ================================================================
               PUBLIC DASHBOARD (Landing Page)
               ================================================================ */}
-          <Route path="/" element={<AboutUsPage />} />
+          <Route path="/" element={<CampusConnect />} />
 
           {/* ================================================================
               LOGIN WITH AUTO-REDIRECT
@@ -427,7 +427,7 @@ export default function App() {
           <Route path="/guest-feedback"       element={<PublicGuestFeedback />} />
           <Route path="/guest-support/:hostelId/:roomId" element={<GuestSupportPortal />} />
           <Route path="/install-app"          element={<InstallApp />} />
-          <Route path="/about-us"             element={<AboutUsPage />} />
+          <Route path="/about-us"             element={<CampusConnect />} />
           <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />
           <Route path="/venue-calendar"       element={<PublicVenueCalendar />} />
           <Route path="/license"              element={<LicensePage />}  />
