@@ -62,6 +62,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
+import CampusFeedbackAdminPage from "./pages/admin/CampusFeedbackAdminPage";
 import StudentNoticesPage from "./pages/StudentNoticesPage";
 import StudentNoticesAdminPage from "./pages/admin/StudentNoticesAdminPage";
 import PublicVenueCalendar from "./pages/PublicVenueCalendar";
@@ -433,6 +434,15 @@ export default function App() {
           <Route
             path="/student-notices/admin"
             element={<StudentNoticesAdminPage />}
+          />
+
+          <Route
+            path="/admin/campus-feedback"
+            element={
+              currentUser && role === "admin"
+                ? <CampusFeedbackAdminPage />
+                : <Navigate to={currentUser ? "/admin/dashboard-selector" : "/login"} replace />
+            }
           />
           <Route path="/community-feedback" element={<Navigate to="/student-notices" replace />} />
           <Route path="/venue-calendar"       element={<PublicVenueCalendar />} />

@@ -26,8 +26,27 @@ const campusFeedbackSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    rejectedAt: { type: Date, default: null },
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    submissionFingerprint: { type: String, default: null },
+    submissionWindow: { type: Number, default: null },
   },
   { timestamps: true }
+);
+
+campusFeedbackSchema.index(
+  { userId: 1, submissionFingerprint: 1, submissionWindow: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      submissionFingerprint: { $type: "string" },
+      submissionWindow: { $type: "number" },
+    },
+  }
 );
 
 export default mongoose.model("CampusFeedback", campusFeedbackSchema);

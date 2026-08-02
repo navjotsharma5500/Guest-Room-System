@@ -964,6 +964,21 @@ const DashboardSelector = () => {
       };
     });
 
+  if (isAdmin) {
+    dashboards.push({
+      id: "campus-feedback",
+      title: "Campus Connect Feedback",
+      description: "Review and moderate feedback submitted from Campus Connect",
+      icon: MessageSquare,
+      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+      available: true,
+      features: ["Pending Reviews", "Approve or Reject", "Public Appreciation"],
+      onClick: () => navigate("/admin/campus-feedback"),
+    });
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {

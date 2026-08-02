@@ -74,7 +74,7 @@ function AppreciationCarousel({ reviews }) {
 }
 
 export default function CampusFeedbackSection() {
-  const { currentUser, googleLogin } = useAuth();
+  const { currentUser, googleLogin, logout } = useAuth();
   const submissionLockRef = useRef(false);
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -88,7 +88,7 @@ export default function CampusFeedbackSection() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/campus-feedback/public", { credentials: "include" })
+    const refresh = () => fetch("/api/campus-feedback/public", { credentials: "include" })
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) throw new Error(data.message || "Unable to load feedback.");
@@ -97,7 +97,9 @@ export default function CampusFeedbackSection() {
       .catch(() => {
         if (active) setReviews([]);
       });
-    return () => { active = false; };
+    refresh();
+    const interval = setInterval(refresh, 60 * 1000);
+    return () => { active = false; clearInterval(interval); };
   }, []);
 
   const validate = () => {
@@ -128,6 +130,11 @@ export default function CampusFeedbackSection() {
         body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        await logout();
+        setPendingFeedback(payload);
+        throw new Error("Authentication required");
+      }
       if (!response.ok || data.success === false) throw new Error(data.message || "Unable to submit feedback.");
       setRating(0);
       setDescription("");
