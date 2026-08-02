@@ -1,0 +1,135 @@
+name: Deploy Frontend to EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+
+concurrency:
+  group: campusconnect-frontend-production
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Verify build output
+        run: |
+          test -f build/index.html
+          test -d build/static
+          echo "Frontend build verified"
+
+      - name: Create deployment archive
+        run: tar -czf ../campusconnect-frontend.tar.gz -C build .
+
+      - name: Configure SSH
+        working-directory: .
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload frontend archive
+        working-directory: .
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+            campusconnect-frontend.tar.gz \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/"
+
+      - name: Deploy frontend on EC2
+        working-directory: .
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+              set -euo pipefail
+
+              DEPLOY_DIR="/var/www/campusconnect"
+              NEW_DIR="/tmp/campusconnect-new"
+              BACKUP_DIR="/var/www/campusconnect-previous"
+              ARCHIVE="/home/ubuntu/campusconnect-frontend.tar.gz"
+
+              echo "Preparing deployment directory..."
+              rm -rf "$NEW_DIR"
+              mkdir -p "$NEW_DIR"
+
+              echo "Extracting new frontend..."
+              tar -xzf "$ARCHIVE" -C "$NEW_DIR"
+
+              test -f "$NEW_DIR/index.html"
+
+              echo "Creating rollback backup..."
+              sudo rm -rf "$BACKUP_DIR"
+
+              if [ -d "$DEPLOY_DIR" ]; then
+                sudo cp -a "$DEPLOY_DIR" "$BACKUP_DIR"
+              fi
+
+              echo "Deploying new frontend..."
+              sudo mkdir -p "$DEPLOY_DIR"
+              sudo find "$DEPLOY_DIR" \
+                -mindepth 1 \
+                -maxdepth 1 \
+                -exec rm -rf {} +
+
+              sudo cp -a "$NEW_DIR"/. "$DEPLOY_DIR"/
+              sudo chown -R www-data:www-data "$DEPLOY_DIR"
+
+              echo "Testing Nginx..."
+              sudo nginx -t
+
+              echo "Reloading Nginx..."
+              sudo systemctl reload nginx
+
+              echo "Cleaning temporary files..."
+              rm -rf "$NEW_DIR"
+              rm -f "$ARCHIVE"
+
+              echo "Checking deployed frontend..."
+              test -f "$DEPLOY_DIR/index.html"
+
+              curl --fail --silent --show-error \
+                https://campusconnect.thapar.edu/ \
+                > /dev/null
+
+              echo "Frontend deployment successful"
+          EOF
+
+      - name: Final public health check
+        working-directory: .
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://campusconnect.thapar.edu/)
+
+          if [ "$STATUS" != "200" ]; then
+            echo "Frontend health check failed: HTTP $STATUS"
+            exit 1
+          fi
+
+          echo "Campus Connect frontend is reachable: HTTP 200"
