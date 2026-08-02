@@ -2,19 +2,45 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XCircle, Info } from "lucide-react";
-import { IKContext, IKUpload } from "imagekitio-react";
 import { useToast } from "../context/ToastContext";
-import {
-  IMAGEKIT_PUBLIC_KEY,
-  IMAGEKIT_URL_ENDPOINT,
-  IMAGEKIT_AUTH_ENDPOINT,
-} from "../utils/apiConfig";
+import { IMAGEKIT_AUTH_ENDPOINT } from "../utils/apiConfig";
 
 const authenticator = async () => {
   const r = await fetch(IMAGEKIT_AUTH_ENDPOINT, { method: "GET" });
-  if (!r.ok) throw new Error(`Auth failed ${r.status}`);
+  if (!r.ok) {
+    const body = await r.json().catch(() => null);
+    throw new Error(body?.message || `Upload authentication failed (${r.status})`);
+  }
   const data = await r.json();
-  return { signature: data.signature, expire: data.expire, token: data.token, publicKey: data.publicKey };
+  if (!data.signature || !data.expire || !data.token || !data.publicKey) {
+    throw new Error("Upload authentication response is incomplete");
+  }
+  return data;
+};
+
+const uploadAttachment = async (file) => {
+  const auth = await authenticator();
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("fileName", `cancel_consent_${Date.now()}_${file.name}`);
+  formData.append("folder", "/cancel-attachments");
+  formData.append("useUniqueFileName", "true");
+  formData.append("tags", "cancel,consent");
+  formData.append("publicKey", auth.publicKey);
+  formData.append("signature", auth.signature);
+  formData.append("expire", String(auth.expire));
+  formData.append("token", auth.token);
+
+  const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+    method: "POST",
+    body: formData,
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(result?.message || `Upload failed (${response.status})`);
+  }
+  if (!result?.url) throw new Error("Upload completed without a file URL");
+  return result.url;
 };
 
 export default function CancelModal({ modal, remarksText, setRemarksText, onClose, onDone }) {
@@ -31,26 +57,29 @@ export default function CancelModal({ modal, remarksText, setRemarksText, onClos
   if (!modal) return null;
 
   // ── ImageKit handlers ──────────────────────────────────────────────
-  const handleUploadSuccess = (response) => {
-    const url =
-      response.url ||
-      (response.filePath ? `${IMAGEKIT_URL_ENDPOINT}${response.filePath}` : null) ||
-      response?.data?.url ||
-      null;
-
-    if (!url) {
-      showToast("❌ Upload failed: no URL received", "error");
-      setUploading(false);
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (attachments.length >= 5) {
+      showToast("⚠️ Maximum 5 attachments allowed", "warning");
       return;
     }
-    setAttachments((prev) => [...prev, url]);
-    setUploading(false);
-  };
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("⚠️ File size must be under 5MB", "warning");
+      return;
+    }
 
-  const handleUploadError = (err) => {
-    console.error("ImageKit upload error:", err);
-    showToast("❌ Upload failed. Please try again.", "error");
-    setUploading(false);
+    setUploading(true);
+    try {
+      const url = await uploadAttachment(file);
+      setAttachments((prev) => [...prev, url]);
+    } catch (err) {
+      console.error("ImageKit upload error:", err);
+      showToast(`❌ ${err.message || "Upload failed. Please try again."}`, "error");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeAttachment = (index) => {
@@ -152,35 +181,12 @@ export default function CancelModal({ modal, remarksText, setRemarksText, onClos
               </div>
             </div>
 
-            <IKContext
-              publicKey={IMAGEKIT_PUBLIC_KEY}
-              urlEndpoint={IMAGEKIT_URL_ENDPOINT}
-              authenticator={authenticator}
-            >
-              <IKUpload
-                fileName={`cancel_consent_${Date.now()}`}
-                folder="/cancel-attachments"
-                useUniqueFileName={true}
-                isPrivateFile={false}
-                tags={["cancel", "consent"]}
-                onUploadStart={() => setUploading(true)}
-                onSuccess={handleUploadSuccess}
-                onError={handleUploadError}
-                validateFile={(file) => {
-                  if (attachments.length >= 5) {
-                    showToast("⚠️ Maximum 5 attachments allowed", "warning");
-                    return false;
-                  }
-                  if (file.size > 5 * 1024 * 1024) {
-                    showToast("⚠️ File size must be under 5MB", "warning");
-                    return false;
-                  }
-                  return true;
-                }}
-                className="text-sm border border-dashed border-gray-300 p-2 rounded-lg w-full cursor-pointer hover:border-red-400 transition"
-                disabled={attachments.length >= 5}
-              />
-            </IKContext>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="text-sm border border-dashed border-gray-300 p-2 rounded-lg w-full cursor-pointer hover:border-red-400 transition disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={attachments.length >= 5 || uploading}
+            />
 
             {uploading && (
               <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">

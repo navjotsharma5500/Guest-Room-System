@@ -15,7 +15,6 @@ export const getFrontendUrl = () => {
     return process.env.REACT_APP_FRONTEND_URL;
   }
 
-  console.warn("⚠️ REACT_APP_FRONTEND_URL not set, using window.location.origin");
   return window.location.origin;
 };
 
@@ -27,23 +26,16 @@ export const GUEST_FEEDBACK_PATH = "/guest-feedback";
 // Full public feedback URL (used for QR codes, emails, etc.)
 export const GUEST_FEEDBACK_URL = `${FRONTEND_URL}${GUEST_FEEDBACK_PATH}`;
 
-// ✅ ImageKit Configuration - ALL from environment variables
+// ImageKit's public key and URL endpoint are safe to expose in a browser bundle.
+// Keep deployment environment overrides, with production defaults so uploads do
+// not break when a hosting platform builds the frontend without CRA env values.
 export const IMAGEKIT_PUBLIC_KEY = 
-  process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "";
+  process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || "public_D/IvtqR075bhEwQyEOFWMa15N28=";
 
 export const IMAGEKIT_URL_ENDPOINT = 
-  process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT || "";
+  process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT || "https://ik.imagekit.io/7khjnlfow";
 
 export const IMAGEKIT_AUTH_ENDPOINT = `${BACKEND_URL}/api/imagekit/auth`;
-
-// Validation
-if (!IMAGEKIT_PUBLIC_KEY) {
-  console.error("❌ REACT_APP_IMAGEKIT_PUBLIC_KEY is not set in .env file!");
-}
-
-if (!IMAGEKIT_URL_ENDPOINT) {
-  console.error("❌ REACT_APP_IMAGEKIT_URL_ENDPOINT is not set in .env file!");
-}
 
 // Legacy aliases
 export const API_URL = BACKEND_URL;
