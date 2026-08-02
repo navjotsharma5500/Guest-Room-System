@@ -15,7 +15,7 @@ const CARD_LABELS = {
   "library-pass": "Library Night Pass",
   "society-pass": "Society Night Pass",
   "lost-found": "Lost & Found",
-  "community-feedback": "Community & Feedback",
+  "community-feedback": "Student Notices",
   "institute-calendar": "Institute Calendar",
   "student-calendar": "Student Calendar",
   "student-society-portal": "Student Society Portal",

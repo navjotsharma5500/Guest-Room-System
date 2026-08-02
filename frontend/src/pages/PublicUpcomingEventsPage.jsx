@@ -84,7 +84,7 @@ export default function PublicUpcomingEventsPage() {
     if (destination?.startsWith("/")) navigate(destination);
     else if (/^https?:\/\//i.test(destination || "")) window.open(destination, "_blank", "noopener,noreferrer");
     else if (item?.action === "home" || item?.action === "about") navigate("/");
-    else if (item?.action === "community") navigate("/community-feedback");
+    else if (item?.action === "community") navigate("/student-notices");
   };
 
   const upcomingEvents = useMemo(() => {

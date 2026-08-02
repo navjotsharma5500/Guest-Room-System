@@ -62,7 +62,8 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import AdvancedAnalyticsPage from "./pages/admin/AdvancedAnalyticsPage";
 import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
-import CommunityFeedbackPage from "./pages/CommunityFeedbackPage";
+import StudentNoticesPage from "./pages/StudentNoticesPage";
+import StudentNoticesAdminPage from "./pages/admin/StudentNoticesAdminPage";
 import PublicVenueCalendar from "./pages/PublicVenueCalendar";
 
 // ============================================================================
@@ -428,7 +429,12 @@ export default function App() {
           <Route path="/guest-support/:hostelId/:roomId" element={<GuestSupportPortal />} />
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<CampusConnect />} />
-          <Route path="/community-feedback"   element={<CommunityFeedbackPage />} />
+          <Route path="/student-notices" element={<StudentNoticesPage />} />
+          <Route
+            path="/student-notices/admin"
+            element={<StudentNoticesAdminPage />}
+          />
+          <Route path="/community-feedback" element={<Navigate to="/student-notices" replace />} />
           <Route path="/venue-calendar"       element={<PublicVenueCalendar />} />
           <Route path="/license"              element={<LicensePage />}  />
           <Route path="/policies"             element={<PoliciesPage />} />

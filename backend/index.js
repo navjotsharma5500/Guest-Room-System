@@ -50,7 +50,6 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import awsAnalyticsRoutes from "./routes/awsAnalyticsRoutes.js";
 import publicUiConfigRoutes from "./routes/publicUiConfigRoutes.js";
-import communityRoutes from "./routes/communityRoutes.js";
 import societyBudgetRoutes from "./routes/societyBudgetRoutes.js";
 import broadcastRoutes from "./routes/broadcastRoutes.js";
 import { startBroadcastScheduler } from "./services/broadcastScheduler.js";
@@ -60,6 +59,9 @@ import guestSupportRoutes from "./routes/guestSupportRoutes.js";
 import guestFlagRoutes from "./routes/guestFlagRoutes.js";
 import websiteContentRoutes from "./routes/websiteContentRoutes.js";
 import publicGuestRoomRoutes from "./routes/publicGuestRoomRoutes.js";
+import campusFeedbackRoutes from "./routes/campusFeedbackRoutes.js";
+import studentNoticeRoutes from "./routes/studentNoticeRoutes.js";
+import venueIntegrationRoutes from "./routes/venueIntegrationRoutes.js";
 
 const app = express();
 
@@ -433,7 +435,6 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use("/api/analytics", awsAnalyticsRoutes);
 app.use("/api/public-ui", publicUiConfigRoutes);
-app.use("/api/community", communityRoutes);
 app.use("/api/societies", societyBudgetRoutes);
 app.use("/api/broadcasts", broadcastRoutes);
 app.use("/api/cleaning", cleaningRoutes);
@@ -441,19 +442,14 @@ app.use("/api/guest-support", guestSupportRoutes);
 app.use("/api/guest-flags", guestFlagRoutes);
 app.use("/api/website-content", websiteContentRoutes);
 app.use("/api/public/guest-room", publicGuestRoomRoutes);
+app.use("/api/campus-feedback", campusFeedbackRoutes);
+app.use("/api/student-notices", studentNoticeRoutes);
+app.use("/api/integration", venueIntegrationRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");
 console.log('✅ Guest room routes registered at /api/bookings (isolated)');
 console.log('✅ Unified booking routes registered at /api/unified-bookings (optional)');
-console.log('✅ Community routes mounted at /api/community');
-
-// Verify community routes are properly loaded
-if (!communityRoutes || typeof communityRoutes !== 'object') {
-  console.error('❌ CRITICAL: Community routes failed to load properly');
-} else {
-  console.log('✅ Community routes loaded successfully:', typeof communityRoutes);
-}
 
 /* =========================================================
    SOCKET.IO HANDLER
@@ -553,7 +549,7 @@ app.use((req, res, next) => {
       success: false,
       message: `API endpoint not found: ${req.method} ${req.path}`,
       availableEndpoints: {
-        community: "/api/community/posts, /api/community/auth/google, etc.",
+        studentNotices: "/api/student-notices",
         auth: "/api/auth/*",
         bookings: "/api/bookings/*",
         enquiry: "/api/enquiry/*",

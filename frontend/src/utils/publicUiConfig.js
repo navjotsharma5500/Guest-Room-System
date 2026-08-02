@@ -65,10 +65,17 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       ],
     },
     {
+      id: "student-notices",
+      title: "Student Notices",
+      destination: "/student-notices",
+      enabled: true,
+      order: 4,
+    },
+    {
       id: "services",
       title: "Services",
       enabled: true,
-      order: 4,
+      order: 5,
       items: [
         { id: "lost-found", title: "Lost & Found", destination: "https://campusconnect.thapar.edu/lostnfound", target: "_blank", enabled: true },
       ],
@@ -77,7 +84,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       id: "support",
       title: "Support",
       enabled: true,
-      order: 5,
+      order: 6,
       items: [
         { id: "queries", title: "Any Queries", action: "q1", enabled: true },
         { id: "reach", title: "Reach Out To Us", action: "q2", enabled: true },
@@ -158,7 +165,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     enabled: true,
     quickLinksTitle: "Quick Links",
     contactTitle: "Contact Us",
-    copyright: "© 2026 TIET",
+    copyright: "© 2026 TIET. All rights reserved.",
     legalLinks: [
       { id: "license", title: "License", destination: "/license", enabled: true },
       { id: "policies", title: "Policies", destination: "/policies", enabled: true },
@@ -168,7 +175,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       { id: "home", title: "Home", action: "home", enabled: true },
       { id: "install", title: "How to Install", destination: "/install-app", enabled: true },
       { id: "signin", title: "Sign In", destination: "https://campusconnect.thapar.edu/login", target: "_blank", enabled: true },
-      { id: "community", title: "Community Feedback", destination: "https://campusconnect.thapar.edu/community-feedback", target: "_blank", enabled: true },
+      { id: "community", title: "Student Notices", destination: "/student-notices", enabled: true },
       { id: "ic", title: "Institute Calendar", destination: "https://campusconnect.thapar.edu/ic", target: "_blank", enabled: true },
       { id: "tc", title: "Student Calendar", destination: "https://campusconnect.thapar.edu/tc", target: "_blank", enabled: true },
       { id: "societies", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/", target: "_blank", enabled: true },
@@ -201,7 +208,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
       { id: "library-pass", enabled: true, locked: false, lockMessage: "", title: "Library Night Pass", subtitle: "2 pass categories", description: "", destination: "https://permissions.thapar.edu/", icon: "moon", badge: "", comingSoon: false, accentColor: "#6d28d9", cardColor: "#ffffff", features: ["Overnight Study Access", "Research & Project Work", "Barcode Scanning", "Digital Pass on Mobile"], order: 3 },
       { id: "society-pass", enabled: true, locked: false, lockMessage: "", title: "Society Night Pass", subtitle: "Coming soon", description: "", destination: "", action: "cs", icon: "sparkles", badge: "Coming Soon", comingSoon: true, accentColor: "#b45309", cardColor: "#ffffff", features: ["Late-Night Society Activities", "Cultural & Technical Clubs", "Coordinator Approval Flow", "Security Gate Integration"], order: 4 },
       { id: "lost-found", enabled: true, locked: false, lockMessage: "", title: "Lost & Found", subtitle: "Online Portal", description: "", destination: "https://campusconnect.thapar.edu/lostnfound", icon: "search", badge: "", comingSoon: false, accentColor: "#c2410c", cardColor: "#ffffff", features: ["Report Lost Items Online", "Browse Found Item Listings", "Photo Upload & Description", "Claim & Handover Process"], order: 5 },
-      { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Community Service", subtitle: "Public forum", description: "Connect, share feedback and engage with campus.", destination: "/community-feedback", action: "community", icon: "message", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
+      { id: "community-feedback", enabled: true, locked: false, lockMessage: "", title: "Student Notices", subtitle: "Official campus communication", description: "Find official announcements, circulars and important updates from departments across TIET.", destination: "/student-notices", icon: "Megaphone", badge: "", comingSoon: false, accentColor: "#2e7d32", cardColor: "#ffffff", features: [], order: 6 },
       { id: "institute-calendar", enabled: true, title: "Institute Calendar", shortDescription: "View institute-wide academic dates, holidays and schedules.", detailedDescription: "Stay updated with official institute dates, holidays, teaching days and important academic schedules.", destination: "/ic", icon: "CalendarRange", image: "", status: "Active", comingSoon: false, accentColor: "#2563eb", order: 7 },
       { id: "student-calendar", enabled: true, title: "Student Calendar", shortDescription: "Explore student events and campus activities.", detailedDescription: "Discover student-focused events, activities and schedules across the campus community.", destination: "/tc", icon: "CalendarDays", image: "", status: "Active", comingSoon: false, accentColor: "#0f766e", order: 8 },
       { id: "student-society-portal", enabled: true, title: "Student Society Portal", shortDescription: "Connect with student societies, clubs and chapters.", detailedDescription: "A unified portal for discovering and engaging with student societies, clubs and chapters.", destination: "", icon: "UsersRound", image: "", status: "Coming Soon", comingSoon: true, accentColor: "#7c3aed", order: 9 },
@@ -259,13 +266,38 @@ export const normalizePublicUiConfig = (config) => {
     ? merged.selector.cardOrder
     : DEFAULT_PUBLIC_UI_CONFIG.selector.cardOrder;
   const cards = Array.isArray(merged.selector?.cards)
-    ? merged.selector.cards.map((card, index) => ({ ...card, id: card.id || `card-${index}`, shortDescription: card.shortDescription ?? card.description ?? "", detailedDescription: card.detailedDescription ?? card.working ?? card.description ?? "", status: card.status === "Live" ? "Active" : (card.status || (card.comingSoon ? "Coming Soon" : "Active")), order: Number.isFinite(Number(card.order)) ? Number(card.order) : index }))
+    ? merged.selector.cards.map((card, index) => {
+      const isStudentNotices = card.id === "community-feedback";
+      const title = isStudentNotices && ["Community Service", "Community Feedback"].includes(card.title) ? "Student Notices" : card.title;
+      const description = isStudentNotices && card.description === "Connect, share feedback and engage with campus." ? "Find official announcements, circulars and important updates from departments across TIET." : card.description;
+      const shortDescription = isStudentNotices && ["Connect, share feedback and engage with campus.", "Public forum"].includes(card.shortDescription) ? "Find official announcements, circulars and important updates from departments across TIET." : (card.shortDescription ?? description ?? "");
+      return { ...card, title, description, destination: isStudentNotices && card.destination === "/community-feedback" ? "/student-notices" : card.destination, icon: isStudentNotices && ["message", "MessageSquare"].includes(card.icon) ? "Megaphone" : card.icon, id: card.id || `card-${index}`, shortDescription, detailedDescription: card.detailedDescription ?? card.working ?? description ?? "", status: card.status === "Live" ? "Active" : (card.status || (card.comingSoon ? "Coming Soon" : "Active")), order: Number.isFinite(Number(card.order)) ? Number(card.order) : index };
+    })
     : DEFAULT_PUBLIC_UI_CONFIG.selector.cards;
   const developerDefaults = new Map(DEFAULT_PUBLIC_UI_CONFIG.developers.map((developer) => [developer.id, developer]));
+  const savedNavigation = Array.isArray(merged.navigation) ? merged.navigation : [];
+  const navigation = savedNavigation
+    .filter((item) => item.id !== "community-feedback")
+    .map((item) => item.id === "services" ? {
+      ...item,
+      order: Math.max(5, Number(item.order) || 0),
+      items: (item.items || []).filter((child) => child.id !== "community-feedback" && child.id !== "student-notices" && child.destination !== "/community-feedback" && child.destination !== "/student-notices"),
+    } : item.id === "support" ? { ...item, order: Math.max(6, Number(item.order) || 0) } : item);
+  const existingNoticeTab = navigation.find((item) => item.id === "student-notices" || item.destination === "/student-notices");
+  if (existingNoticeTab) {
+    Object.assign(existingNoticeTab, { id: "student-notices", title: "Student Notices", destination: "/student-notices", action: undefined, items: undefined, order: 4 });
+  } else {
+    navigation.push({ id: "student-notices", title: "Student Notices", destination: "/student-notices", enabled: true, order: 4 });
+  }
+  const footer = {
+    ...merged.footer,
+    quickLinks: (merged.footer?.quickLinks || []).map((item) => item.id === "community" || item.destination === "/community-feedback" ? { ...item, title: "Student Notices", destination: "/student-notices", action: undefined, target: undefined } : item),
+  };
 
   return stripDatabaseFields({
     ...merged,
-    navigation: Array.isArray(merged.navigation) ? merged.navigation : [],
+    navigation,
+    footer,
     sections: Array.isArray(merged.sections) ? merged.sections : [],
     timeline: timelineSource.map((item, index) => ({
       ...item,
