@@ -964,21 +964,6 @@ const DashboardSelector = () => {
       };
     });
 
-  if (isAdmin) {
-    dashboards.push({
-      id: "campus-feedback",
-      title: "Campus Connect Feedback",
-      description: "Review and moderate feedback submitted from Campus Connect",
-      icon: MessageSquare,
-      gradient: "from-emerald-600 via-teal-500 to-cyan-500",
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
-      available: true,
-      features: ["Pending Reviews", "Approve or Reject", "Public Appreciation"],
-      onClick: () => navigate("/admin/campus-feedback"),
-    });
-  }
-
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -1077,7 +1062,7 @@ const DashboardSelector = () => {
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-semibold">Back</span>
             </motion.button>
-            {isAdmin && (
+            {isAdmin && <>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -1087,7 +1072,16 @@ const DashboardSelector = () => {
                 <Settings className="w-4 h-4" />
                 <span className="text-xs font-semibold">Public UI</span>
               </motion.button>
-            )}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/admin/campus-feedback")}
+                className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-emerald-100 rounded-xl shadow-sm text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="text-xs font-semibold">Feedback</span>
+              </motion.button>
+            </>}
           </div>
 
           {/* Admin Analytics Button - Top Right */}
@@ -1164,7 +1158,7 @@ const DashboardSelector = () => {
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm font-semibold">Back to Dashboard</span>
               </button>
-              {isAdmin && (
+              {isAdmin && <>
                 <button
                   onClick={() => navigate("/admin/public-ui-customizer")}
                   className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-red-100 rounded-xl shadow-sm text-red-600 hover:text-red-700"
@@ -1172,7 +1166,14 @@ const DashboardSelector = () => {
                   <Settings className="w-4 h-4" />
                   <span className="text-sm font-semibold">Public UI</span>
                 </button>
-              )}
+                <button
+                  onClick={() => navigate("/admin/campus-feedback")}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-emerald-100 rounded-xl shadow-sm text-emerald-600 hover:text-emerald-700"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Feedback</span>
+                </button>
+              </>}
             </div>
           </div>
 
