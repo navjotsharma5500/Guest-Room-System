@@ -1,21 +1,77 @@
-# ENV FILES
+# ==========================
+# Environment Files
+# ==========================
 .env
-.env.local
-.env.production
-.env.staging
-.env.dev
+.env.*
+!.env.example
 
-# DEPENDENCIES
+# ==========================
+# Dependencies
+# ==========================
 node_modules/
 
-# LOGS & TEMP
-*.log
+# ==========================
+# Build Output
+# ==========================
+build/
+dist/
+.next/
+out/
+
+# ==========================
+# Cache
+# ==========================
+.cache/
+.parcel-cache/
+.eslintcache
+.vite/
+
+# ==========================
+# Logs & Temporary Files
+# ==========================
 logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 tmp/
 temp/
+*.log
+*.out
+*.err
 
-# OS / IDE
+# ==========================
+# Coverage
+# ==========================
+coverage/
+.nyc_output/
+
+# ==========================
+# Operating System Files
+# ==========================
 .DS_Store
 Thumbs.db
+
+# ==========================
+# IDE / Editor
+# ==========================
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# ==========================
+# Android (Capacitor / Android Studio)
+# ==========================
+android/.gradle/
+android/local.properties
+android/**/build/
+android/.cxx/
+
+# ==========================
+# Miscellaneous
+# ==========================
+*.pid
+*.seed
+*.pid.lock
