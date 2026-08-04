@@ -19,14 +19,12 @@ import {
 } from "../utils/apiConfig";
 import { getEnabledVenueFormOptions } from "../config/venueRoomsConfig";
 import { VENUE_DEPARTMENTS } from "../config/venueDepartments"; // Re-import this
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import PublicPageWidgets from "../components/PublicPageWidgets";
 import useVenueConfig from "../hooks/useVenueConfig";
 
 const API = BACKEND_URL;
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
-
 const INITIAL_FORM_STATE = {
   name: "",
   email: "",
@@ -492,7 +490,6 @@ export default function VenueGuestEnquiryPage() {
   };
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <IKContext
       publicKey={IMAGEKIT_CONFIG.PUBLIC_KEY}
       urlEndpoint={IMAGEKIT_CONFIG.URL_ENDPOINT}
@@ -1132,6 +1129,5 @@ export default function VenueGuestEnquiryPage() {
         />
       </div>
     </IKContext>
-    </GoogleOAuthProvider>
   );
 }

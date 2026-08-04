@@ -37,7 +37,6 @@ yarn-error.log*
 pnpm-debug.log*
 tmp/
 temp/
-*.log
 *.out
 *.err
 

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { DEFAULT_SYSTEM_SETTINGS } from "../hooks/useSystemSettings";
 import { getDashboardPath, resolveDashboardAccess } from "../utils/dashboardAccess";
 
@@ -17,7 +17,6 @@ import bg4 from "../assets/Login2 (4).png";
 
 export default function Login() {
   const { login, googleLogin } = useAuth();
-  const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   // STATES
   const [email, setEmail] = useState("");
@@ -165,7 +164,6 @@ export default function Login() {
   };
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
 
       {/* BACKGROUND SLIDESHOW */}
@@ -390,6 +388,5 @@ export default function Login() {
       </AnimatePresence>
 
     </div>
-    </GoogleOAuthProvider>
   );
 }
