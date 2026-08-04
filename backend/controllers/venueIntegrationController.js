@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import VenueBooking from "../models/VenueBooking.js";
 import VenueConfig from "../models/VenueConfig.js";
 import VenueEnquiry from "../models/VenueEnquiry.js";
@@ -13,6 +14,7 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const normalize = (value) => String(value || "").trim();
 const normalizeKey = (value) => normalize(value).toLocaleLowerCase("en-IN");
+const createIntegrationRequestId = () => crypto.randomUUID();
 
 const parseDate = (value) => {
   if (!DATE_PATTERN.test(value)) return null;
@@ -169,6 +171,7 @@ export const createVenueBookingRequest = async (req, res) => {
     }
 
     const enquiry = await VenueEnquiry.create({
+      requestId: createIntegrationRequestId(),
       name: payload.studentName,
       email: payload.studentEmail,
       contact: payload.contactNumber,
@@ -197,10 +200,49 @@ export const createVenueBookingRequest = async (req, res) => {
       success: true,
       message: "Venue enquiry submitted successfully",
       enquiryId: enquiry._id,
+      requestId: enquiry.requestId,
       status: enquiry.status,
     });
   } catch (error) {
-    console.error("Venue integration booking request error:", error.message);
-    return res.status(500).json({ success: false, message: "Failed to submit venue enquiry" });
+    console.error("Venue integration booking request error:", error);
+
+    const isRequestIdConflict =
+      error?.code === 11000 &&
+      (error?.keyPattern?.requestId ||
+        error?.keyValue?.requestId ||
+        /requestId_1/.test(error?.message || ""));
+    if (isRequestIdConflict) {
+      return res.status(409).json({
+        success: false,
+        message: "Could not allocate a unique requestId. Please retry the request.",
+      });
+    }
+
+    if (error?.name === "ValidationError") {
+      const message = Object.values(error.errors || {})
+        .map((validationError) => validationError.message)
+        .filter(Boolean)
+        .join(", ");
+      return res.status(400).json({
+        success: false,
+        message: message || "Venue enquiry data failed validation",
+      });
+    }
+
+    if (
+      error?.name === "MongooseServerSelectionError" ||
+      error?.name === "MongoNetworkError" ||
+      error?.name === "MongoServerSelectionError"
+    ) {
+      return res.status(503).json({
+        success: false,
+        message: "Venue enquiry service is temporarily unavailable. Please try again later.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred while submitting the venue enquiry",
+    });
   }
 };
