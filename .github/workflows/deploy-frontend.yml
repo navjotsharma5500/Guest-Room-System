@@ -41,6 +41,7 @@ jobs:
         run: npm run build
         env:
           CI: "false"
+          REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
 
       - name: Verify build output
         run: |
