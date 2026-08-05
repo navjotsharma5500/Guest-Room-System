@@ -114,7 +114,7 @@ function PlatformCarousel({ apps, onOpen }) {
 
   useEffect(() => {
     if (paused || count < 2) return undefined;
-    const timer = setInterval(() => setActiveIndex((index) => (index + 1) % count), 3200);
+    const timer = setInterval(() => setActiveIndex((index) => (index + 1) % count), 1600);
     return () => clearInterval(timer);
   }, [paused, count]);
 
@@ -801,6 +801,12 @@ export default function CampusConnect() {
       <section id="section-team" className="premium-section" style={{ background: "radial-gradient(circle at 50% 0%,rgba(198,40,40,.07),transparent 30%),#fff", padding: "96px 24px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <FadeUp>
+            <h2 className="garamond" style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 700, color: "#111", marginBottom: 12 }}>
+              Built With Dedication By
+            </h2>
+            <p style={{ fontSize: "clamp(12px,1.25vw,14.5px)", color: "#6b7280", marginBottom: 18, lineHeight: 1.7, whiteSpace: "nowrap" }}>
+              A passionate team of developers and strategists working under the DoSA Office, TIET.
+            </p>
             <motion.button
               type="button"
               onClick={() => setDevelopersOpen((open) => !open)}
@@ -808,17 +814,11 @@ export default function CampusConnect() {
               whileTap={{ scale: .98 }}
               className="premium-modal-button"
               aria-expanded={developersOpen}
-              style={{ display: "inline-flex", alignItems: "center", gap: 9, marginBottom: 18, padding: "11px 17px", borderRadius: 999, border: "1px solid rgba(198,40,40,.18)", background: "rgba(255,255,255,.8)", color: "#c62828", fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", cursor: "pointer", boxShadow: "0 8px 26px rgba(198,40,40,.08)", backdropFilter: "blur(12px)" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 9, marginBottom: 52, padding: "11px 17px", borderRadius: 999, border: "1px solid rgba(198,40,40,.18)", background: "rgba(255,255,255,.8)", color: "#c62828", fontSize: 12, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", cursor: "pointer", boxShadow: "0 8px 26px rgba(198,40,40,.08)", backdropFilter: "blur(12px)" }}
             >
               <Users size={15} /> Meet the Developers
               <ChevronDown size={15} style={{ transform: developersOpen ? "rotate(180deg)" : "none", transition: "transform .3s" }} />
             </motion.button>
-            <h2 className="garamond" style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 700, color: "#111", marginBottom: 12 }}>
-              Built With Dedication By
-            </h2>
-            <p style={{ fontSize: 14.5, color: "#6b7280", marginBottom: 52, maxWidth: 540, lineHeight: 1.7 }}>
-              A passionate team of developers and strategists working under the DoSA Office, TIET.
-            </p>
           </FadeUp>
 
           <AnimatePresence initial={false}>
