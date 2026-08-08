@@ -1,11 +1,6 @@
-import crypto from "crypto";
 import VenueBooking from "../models/VenueBooking.js";
 import VenueConfig from "../models/VenueConfig.js";
-import VenueEnquiry from "../models/VenueEnquiry.js";
-import { sendEnquirySubmittedEmail } from "../emails/venueEmailService.js";
-import { asyncSendEmails } from "../utils/asyncEmail.js";
 import { cloneDefaultVenueConfig } from "../utils/defaultVenueConfig.js";
-import { getSocketIO } from "../utils/socket.js";
 import { isDailySlotOverlapping } from "../utils/venueConflictChecker.js";
 
 const ACTIVE_BOOKING_STATUSES = ["booked", "checked_in"];
@@ -14,7 +9,6 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const normalize = (value) => String(value || "").trim();
 const normalizeKey = (value) => normalize(value).toLocaleLowerCase("en-IN");
-const createIntegrationRequestId = () => crypto.randomUUID();
 
 const parseDate = (value) => {
   if (!DATE_PATTERN.test(value)) return null;
@@ -111,138 +105,5 @@ export const getVenueAvailability = async (req, res) => {
   } catch (error) {
     console.error("Venue integration availability error:", error.message);
     return res.status(500).json({ success: false, message: "Failed to check venue availability" });
-  }
-};
-
-export const createVenueBookingRequest = async (req, res) => {
-  try {
-    const payload = {
-      venueName: normalize(req.body.venueName),
-      fromDate: normalize(req.body.fromDate),
-      toDate: normalize(req.body.toDate),
-      startTime: normalize(req.body.startTime),
-      endTime: normalize(req.body.endTime),
-      societyName: normalize(req.body.societyName),
-      eventName: normalize(req.body.eventName),
-      studentName: normalize(req.body.studentName),
-      studentEmail: normalize(req.body.studentEmail).toLowerCase(),
-      contactNumber: normalize(req.body.contactNumber),
-    };
-
-    const requiredFields = Object.entries(payload).filter(([, value]) => !value).map(([key]) => key);
-    if (requiredFields.length) {
-      return res.status(400).json({
-        success: false,
-        message: `Missing required fields: ${requiredFields.join(", ")}`,
-      });
-    }
-
-    const validationError = validateSlot(payload);
-    if (validationError) {
-      return res.status(400).json({ success: false, message: validationError });
-    }
-    if (!/^\S+@\S+\.\S+$/.test(payload.studentEmail)) {
-      return res.status(400).json({ success: false, message: "studentEmail must be a valid email address" });
-    }
-    if (!/^\d{10}$/.test(payload.contactNumber)) {
-      return res.status(400).json({ success: false, message: "contactNumber must contain exactly 10 digits" });
-    }
-
-    const venues = await getVenueEntries();
-    const matches = venues.filter(
-      (venue) => venue.enabled && normalizeKey(venue.venueName) === normalizeKey(payload.venueName)
-    );
-    if (!matches.length) {
-      return res.status(404).json({ success: false, message: "Venue not found or unavailable" });
-    }
-    if (matches.length > 1) {
-      return res.status(409).json({ success: false, message: "Venue name is ambiguous" });
-    }
-
-    const venue = matches[0];
-    const bookings = await VenueBooking.find({
-      status: { $in: ACTIVE_BOOKING_STATUSES },
-      checkInDate: { $lte: payload.toDate },
-      checkOutDate: { $gte: payload.fromDate },
-    }).lean();
-
-    if (hasConflict(payload, venue, bookings)) {
-      return res.status(409).json({ success: false, message: "Venue is unavailable for the requested slot" });
-    }
-
-    const enquiry = await VenueEnquiry.create({
-      requestId: createIntegrationRequestId(),
-      name: payload.studentName,
-      email: payload.studentEmail,
-      contact: payload.contactNumber,
-      hall: venue.hall,
-      roomNo: venue.roomNo,
-      societyName: payload.societyName,
-      eventName: payload.eventName,
-      description: `Submitted through Society Night Pass for ${payload.eventName}`,
-      purpose: payload.eventName,
-      checkInDate: payload.fromDate,
-      checkInTime: payload.startTime,
-      checkOutDate: payload.toDate,
-      checkOutTime: payload.endTime,
-      status: "pending",
-      submittedAt: new Date(),
-    });
-
-    try {
-      getSocketIO().to("dashboard-room").emit("venue-enquiry-created", { enquiry });
-    } catch (socketError) {
-      console.error("Venue integration socket notification failed:", socketError.message);
-    }
-    asyncSendEmails(() => sendEnquirySubmittedEmail(enquiry));
-
-    return res.status(201).json({
-      success: true,
-      message: "Venue enquiry submitted successfully",
-      enquiryId: enquiry._id,
-      requestId: enquiry.requestId,
-      status: enquiry.status,
-    });
-  } catch (error) {
-    console.error("Venue integration booking request error:", error);
-
-    const isRequestIdConflict =
-      error?.code === 11000 &&
-      (error?.keyPattern?.requestId ||
-        error?.keyValue?.requestId ||
-        /requestId_1/.test(error?.message || ""));
-    if (isRequestIdConflict) {
-      return res.status(409).json({
-        success: false,
-        message: "Could not allocate a unique requestId. Please retry the request.",
-      });
-    }
-
-    if (error?.name === "ValidationError") {
-      const message = Object.values(error.errors || {})
-        .map((validationError) => validationError.message)
-        .filter(Boolean)
-        .join(", ");
-      return res.status(400).json({
-        success: false,
-        message: message || "Venue enquiry data failed validation",
-      });
-    }
-
-    if (
-      error?.name === "MongooseServerSelectionError" ||
-      error?.name === "MongoNetworkError" ||
-      error?.name === "MongoServerSelectionError"
-    ) {
-      return res.status(503).json({
-        success: false,
-        message: "Venue enquiry service is temporarily unavailable. Please try again later.",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "An unexpected error occurred while submitting the venue enquiry",
-    });
   }
 };
