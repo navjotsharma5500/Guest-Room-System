@@ -456,7 +456,7 @@ const AdminAnalyticsDashboard = ({ userName }) => {
             {/* GA4 Chart tabs */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/80 shadow-sm overflow-hidden">
               <div className="flex border-b border-slate-100 overflow-x-auto">
-                {[{ id:"daily",label:"📅 Daily Traffic"},{id:"sources",label:"🔗 Traffic Sources"},{id:"pages",label:"📄 Top Pages"},{id:"geo",label:"🌍 Geography"},{id:"browser",label:"🌐 Browser / OS"}].map(tab => (
+                {[{ id:"daily",label:"📅 Daily Traffic"},{id:"domains",label:"🌐 Traffic by Domain"},{id:"pages",label:"📄 Top 10 Pages"},{id:"sources",label:"🔗 Traffic Sources"},{id:"geo",label:"🌍 Geography"},{id:"browser",label:"🌐 Browser / OS"}].map(tab => (
                   <button key={tab.id} onClick={() => setActiveTraffic(tab.id)}
                     className={`px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all ${activeTraffic === tab.id ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-slate-500 hover:text-slate-700"}`}>
                     {tab.label}
@@ -496,15 +496,42 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                     })}
                   </div>
                 )}
+                {activeTraffic === "domains" && (
+                  <div className="space-y-3">
+                    {(ga4.domains || []).map((d, i) => {
+                      const totalSessions = (ga4.domains || []).reduce((sum, item) => sum + item.sessions, 0);
+                      const pct = totalSessions > 0 ? (d.sessions / totalSessions) * 100 : 0;
+                      const colors = [PC.blue, PC.purple];
+                      return (
+                        <div key={d.domain} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <span className="text-xs font-semibold text-slate-700 truncate">{d.domain}</span>
+                            <span className="text-xs font-bold text-slate-800">{d.sessions.toLocaleString()} sessions</span>
+                          </div>
+                          <div className="bg-slate-200/70 rounded-full h-2 overflow-hidden">
+                            <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{delay:i*0.08,duration:0.6}} className="h-full rounded-full" style={{backgroundColor:colors[i%colors.length]}} />
+                          </div>
+                          <div className="flex gap-4 mt-2 text-[11px] text-slate-500">
+                            <span>{pct.toFixed(1)}% of sessions</span>
+                            <span>{d.users.toLocaleString()} users</span>
+                            <span>{d.pageViews.toLocaleString()} page views</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 {activeTraffic === "pages" && (
                   <div className="space-y-2">
                     <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">
-                      <span className="col-span-1">#</span><span className="col-span-7">Page</span><span className="col-span-2 text-right">Views</span><span className="col-span-2 text-right">Avg Time</span>
+                      <span className="col-span-1">#</span><span className="col-span-7">Domain / Page</span><span className="col-span-2 text-right">Views</span><span className="col-span-2 text-right">Avg Time</span>
                     </div>
                     {(ga4.topPages||[]).map((p, i) => (
                       <div key={i} className="grid grid-cols-12 gap-2 text-xs py-2 border-b border-slate-50 hover:bg-slate-50/50 rounded-lg px-1 transition">
                         <span className="col-span-1 text-slate-400 font-bold">{i+1}</span>
-                        <span className="col-span-7 text-slate-700 truncate font-medium">{p.page||"/"}</span>
+                        <span className="col-span-7 text-slate-700 truncate font-medium" title={`${p.domain}${p.page || "/"}`}>
+                          <span className="text-slate-400">{p.domain}</span>{p.page||"/"}
+                        </span>
                         <span className="col-span-2 text-right font-semibold text-slate-800">{p.views.toLocaleString()}</span>
                         <span className="col-span-2 text-right text-slate-400">{Math.floor(p.avgDuration/60)}m {Math.round(p.avgDuration%60)}s</span>
                       </div>

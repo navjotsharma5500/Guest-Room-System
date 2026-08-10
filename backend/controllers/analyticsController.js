@@ -12,6 +12,25 @@ import {
 const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID; // e.g. "properties/123456789"
 const GA4_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY; // full JSON string
 
+// This GA4 property is shared by several products. Keep every report scoped to
+// the two active React ecosystems and, in particular, never include the
+// unrelated permissions.thapar.edu application.
+const INCLUDED_GA4_HOSTS = [
+  'campusconnect.thapar.edu',
+  'studentsocieties.thapar.edu',
+];
+
+const includedHostsFilter = {
+  orGroup: {
+    expressions: INCLUDED_GA4_HOSTS.map(host => ({
+      filter: {
+        fieldName: 'hostName',
+        stringFilter: { matchType: 'EXACT', value: host, caseSensitive: false },
+      },
+    })),
+  },
+};
+
 // ── Get Google OAuth2 access token from service account ──────────────────────
 async function getGoogleAccessToken() {
   if (!GA4_SERVICE_ACCOUNT_KEY) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY not set in environment');
@@ -71,7 +90,14 @@ async function runGA4Report(accessToken, body) {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type':  'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        // Enforce the product scope centrally so newly-added reports cannot
+        // accidentally include another hostname from the shared property.
+        dimensionFilter: body.dimensionFilter
+          ? { andGroup: { expressions: [includedHostsFilter, body.dimensionFilter] } }
+          : includedHostsFilter,
+      }),
     }
   );
   const data = await res.json();
@@ -112,6 +138,7 @@ export const getGA4Analytics = async (req, res) => {
     const [
       overviewReport,
       overviewPrevReport,
+      domainReport,
       pageViewsReport,
       sourceReport,
       deviceReport,
@@ -145,10 +172,23 @@ export const getGA4Analytics = async (req, res) => {
         ],
       }),
 
-      // Top pages
+      // Traffic split across the included domains.
       runGA4Report(accessToken, {
         dateRanges: [dateRange],
-        dimensions: [{ name: 'pagePath' }],
+        dimensions: [{ name: 'hostName' }],
+        metrics: [
+          { name: 'sessions' },
+          { name: 'totalUsers' },
+          { name: 'screenPageViews' },
+        ],
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      }),
+
+      // Top pages across all included domains. Hostname disambiguates identical
+      // paths such as "/" on the two ecosystems.
+      runGA4Report(accessToken, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: 'hostName' }, { name: 'pagePath' }],
         metrics: [{ name: 'screenPageViews' }, { name: 'averageSessionDuration' }],
         orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
         limit: 10,
@@ -232,7 +272,8 @@ export const getGA4Analytics = async (req, res) => {
     };
 
     // ── Parse other sections ──────────────────────────────────────────────────
-    const topPages    = parseRows(pageViewsReport,  ['page'],    ['views', 'avgDuration']);
+    const domains     = parseRows(domainReport,     ['domain'],  ['sessions', 'users', 'pageViews']);
+    const topPages    = parseRows(pageViewsReport,  ['domain', 'page'], ['views', 'avgDuration']);
     const sources     = parseRows(sourceReport,     ['source'],  ['sessions', 'users']);
     const devices     = parseRows(deviceReport,     ['device'],  ['sessions', 'users']);
     const browsers    = parseRows(browserReport,    ['browser'], ['sessions']);
@@ -257,6 +298,8 @@ export const getGA4Analytics = async (req, res) => {
       fetchedAt: new Date().toISOString(),
       overview,
       peakHour: peakHourObj?.hour || '—',
+      includedDomains: INCLUDED_GA4_HOSTS,
+      domains,
       topPages,
       sources,
       devices,
