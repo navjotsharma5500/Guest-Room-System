@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BACKEND_URL } from "../utils/apiConfig";
 import {
   getEnabledVenueRoomsConfig,
@@ -19,6 +19,10 @@ export default function useVenueConfig() {
   const [venueConfig, setVenueConfig] = useState(venueRoomsConfig);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [source, setSource] = useState("loading");
+  const mountedRef = useRef(false);
+  const requestGenerationRef = useRef(0);
+  const activeRequestRef = useRef(null);
 
   const applyConfig = useCallback((payload) => {
     const normalized = normalizeVenueConfig(readTabs(payload));
@@ -27,10 +31,16 @@ export default function useVenueConfig() {
   }, []);
 
   const refresh = useCallback(async () => {
+    const generation = ++requestGenerationRef.current;
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+
     try {
-      setLoading(true);
+      if (mountedRef.current) setLoading(true);
       const response = await fetch(`${API}/api/venue-config`, {
         credentials: "include",
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -38,25 +48,45 @@ export default function useVenueConfig() {
       }
 
       const data = await response.json();
+      if (!mountedRef.current || generation !== requestGenerationRef.current) return;
       applyConfig(data);
       setError(null);
+      setSource("dynamic");
     } catch (err) {
+      if (err?.name === "AbortError" || !mountedRef.current || generation !== requestGenerationRef.current) {
+        return;
+      }
       console.warn("Falling back to static venue config:", err);
       applyConfig(venueRoomsConfig);
       setError(err.message || "Failed to fetch venue config");
+      setSource("fallback");
     } finally {
-      setLoading(false);
+      if (mountedRef.current && generation === requestGenerationRef.current) {
+        setLoading(false);
+        if (activeRequestRef.current === controller) activeRequestRef.current = null;
+      }
     }
   }, [applyConfig]);
 
   useEffect(() => {
+    mountedRef.current = true;
     refresh();
+    return () => {
+      mountedRef.current = false;
+      requestGenerationRef.current += 1;
+      activeRequestRef.current?.abort();
+    };
   }, [refresh]);
 
   useEffect(() => {
     const handleVenueConfigUpdated = (event) => {
       if (event?.detail?.mainTabs) {
+        requestGenerationRef.current += 1;
+        activeRequestRef.current?.abort();
         applyConfig(event.detail.mainTabs);
+        setError(null);
+        setSource("dynamic");
+        setLoading(false);
         return;
       }
       refresh();
@@ -81,7 +111,13 @@ export default function useVenueConfig() {
         throw new Error(data.message || "Venue config update failed");
       }
 
+      requestGenerationRef.current += 1;
+      activeRequestRef.current?.abort();
+      if (!mountedRef.current) return normalizeVenueConfig(readTabs(data));
       const normalized = applyConfig(data);
+      setError(null);
+      setSource("dynamic");
+      setLoading(false);
       window.dispatchEvent(
         new CustomEvent(VENUE_CONFIG_UPDATED_EVENT, {
           detail: { mainTabs: normalized },
@@ -137,6 +173,9 @@ export default function useVenueConfig() {
     venueConfig,
     enabledVenueConfig,
     loading,
+    loaded: !loading,
+    source,
+    isDynamic: source === "dynamic",
     error,
     refresh,
     addTab,

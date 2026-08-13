@@ -38,7 +38,10 @@ const validateSlot = ({ fromDate, toDate, startTime, endTime }) => {
 };
 
 const getVenueEntries = async () => {
-  const config = await VenueConfig.findOne().sort({ updatedAt: -1 }).lean();
+  const config = await VenueConfig.findOne({ key: "global" }).lean()
+    || await VenueConfig.findOne({
+      $or: [{ key: { $exists: false } }, { key: null }, { key: "" }],
+    }).sort({ updatedAt: -1 }).lean();
   const tabs = Array.isArray(config?.mainTabs) && config.mainTabs.length
     ? config.mainTabs
     : cloneDefaultVenueConfig();

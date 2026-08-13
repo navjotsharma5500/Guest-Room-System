@@ -2,6 +2,7 @@ import VenueConfig from "../models/VenueConfig.js";
 import { cloneDefaultVenueConfig } from "../utils/defaultVenueConfig.js";
 
 const cloneTabs = (tabs = []) => JSON.parse(JSON.stringify(tabs));
+const GLOBAL_CONFIG_KEY = "global";
 
 const normalizeTabs = (tabs = []) =>
   cloneTabs(Array.isArray(tabs) && tabs.length ? tabs : cloneDefaultVenueConfig());
@@ -25,10 +26,44 @@ const makeUniqueId = (baseLabel, existingIds = new Set()) => {
 };
 
 const getConfigDocument = async () => {
-  let doc = await VenueConfig.findOne().sort({ updatedAt: -1 });
+  let doc = await VenueConfig.findOne({ key: GLOBAL_CONFIG_KEY });
+
   if (!doc) {
-    doc = await VenueConfig.create({ mainTabs: cloneDefaultVenueConfig() });
-  } else if (!Array.isArray(doc.mainTabs) || doc.mainTabs.length === 0) {
+    const legacyDoc = await VenueConfig.findOne({
+      $or: [{ key: { $exists: false } }, { key: null }, { key: "" }],
+    }).sort({ updatedAt: -1 });
+
+    if (legacyDoc) {
+      try {
+        const adopted = await VenueConfig.findOneAndUpdate(
+          {
+            _id: legacyDoc._id,
+            $or: [{ key: { $exists: false } }, { key: null }, { key: "" }],
+          },
+          { $set: { key: GLOBAL_CONFIG_KEY } },
+          { new: true }
+        );
+        doc = adopted || await VenueConfig.findOne({ key: GLOBAL_CONFIG_KEY });
+      } catch (error) {
+        if (error?.code !== 11000) throw error;
+        doc = await VenueConfig.findOne({ key: GLOBAL_CONFIG_KEY });
+      }
+    }
+  }
+
+  if (!doc) {
+    try {
+      doc = await VenueConfig.create({
+        key: GLOBAL_CONFIG_KEY,
+        mainTabs: cloneDefaultVenueConfig(),
+      });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      doc = await VenueConfig.findOne({ key: GLOBAL_CONFIG_KEY });
+    }
+  }
+
+  if (!Array.isArray(doc.mainTabs) || doc.mainTabs.length === 0) {
     doc.mainTabs = cloneDefaultVenueConfig();
     await doc.save();
   }
@@ -66,7 +101,7 @@ const saveAndRespond = async (doc, res) => {
 };
 
 export const getVenueConfig = async (_req, res) => {
-  const doc = await VenueConfig.findOne().sort({ updatedAt: -1 }).lean();
+  const doc = await getConfigDocument();
   return res.json({
     success: true,
     mainTabs: normalizeTabs(doc?.mainTabs),

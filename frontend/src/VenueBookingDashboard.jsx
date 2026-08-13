@@ -50,6 +50,7 @@ export default function VenueBookingDashboard() {
   const {
     venueConfig,
     enabledVenueConfig,
+    loaded: venueConfigLoaded,
   } = useVenueConfig();
 
   const { 
@@ -59,7 +60,7 @@ export default function VenueBookingDashboard() {
     error: venueError,
     connected,
     refresh: refreshVenueData 
-  } = useVenueDataPolling({}, enabledVenueConfig);
+  } = useVenueDataPolling({}, enabledVenueConfig, { enabled: venueConfigLoaded });
 
   // ✅ NEW: Fetch venue enquiries for NotificationBell
   const { 
@@ -276,7 +277,7 @@ export default function VenueBookingDashboard() {
     return null;
   }
 
-  if (venueLoading && !hasData) {
+  if (!venueConfigLoaded || (venueLoading && !hasData)) {
     return (
       <main className={`
         flex flex-col items-center justify-center h-screen gap-4

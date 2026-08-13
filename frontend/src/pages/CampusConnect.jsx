@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, Building2, LogIn,
+  ArrowRight, Building2,
   Target,
   Eye, Heart, Zap, Users, CheckCircle, Linkedin, Home, Package, MessageSquare, ChevronDown, ChevronLeft, ChevronRight,
   Mail, Copy, Check, Clock3, Landmark,
@@ -218,7 +218,6 @@ export function PublicHeader({ config, onOpen, applications }) {
         <nav className="about-public-nav">
           {navigation.map((item) => <HeaderNavItem key={item.id || item.title} item={item} onOpen={onOpen} />)}
         </nav>
-        <a href={header.loginDestination || "/login"} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 6, background: "#c62828", color: "#fff", textDecoration: "none", fontSize: 12.5, fontWeight: 600 }}><LogIn size={13} />{header.loginText || "Admin Login"}</a>
       </div>
     </header>
   );

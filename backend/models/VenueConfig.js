@@ -31,6 +31,7 @@ const venueMainTabSchema = new mongoose.Schema(
 
 const venueConfigSchema = new mongoose.Schema(
   {
+    key: { type: String, trim: true, unique: true, sparse: true },
     mainTabs: { type: [venueMainTabSchema], default: [] },
   },
   {

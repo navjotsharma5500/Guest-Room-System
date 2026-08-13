@@ -7,6 +7,20 @@ import { getEnabledVenueDataTemplate } from "../config/venueRoomsConfig";
 
 const API = BACKEND_URL;
 
+export const buildVenueStructure = (venueConfig) => {
+  const hallMap = {};
+  if (!Array.isArray(venueConfig)) return hallMap;
+
+  const venueStructure = getEnabledVenueDataTemplate(venueConfig);
+  Object.keys(venueStructure).forEach((hallName) => {
+    hallMap[hallName] = {
+      name: hallName,
+      rooms: venueStructure[hallName].rooms.map((roomNo) => ({ roomNo, bookings: [] })),
+    };
+  });
+  return hallMap;
+};
+
 const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
 const findHallName = (hallMap, hallName) => {
@@ -27,7 +41,7 @@ const findRoom = (hall, roomNo) => {
 };
 
 // ✅ CHANGED: Default export instead of named export
-export default function useVenueDataPolling(initialData = {}, venueConfig) {
+export default function useVenueDataPolling(initialData = {}, venueConfig, { enabled = true } = {}) {
   const [hallData, setHallData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
@@ -35,19 +49,19 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [connected, setConnected] = useState(false);
 
-  const isFetchingRef = useRef(false);
   const mountedRef = useRef(false);
+  const activeRequestRef = useRef(null);
+  const requestGenerationRef = useRef(0);
 
   /**
    * Core fetch function for venue bookings
    */
   const fetchVenueData = useCallback(async (silent = false) => {
-    if (isFetchingRef.current) {
-      console.log("⏳ Venue fetch already in progress, skipping...");
-      return;
-    }
-
-    isFetchingRef.current = true;
+    if (!enabled || !Array.isArray(venueConfig)) return;
+    const generation = ++requestGenerationRef.current;
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
 
     if (!silent && mountedRef.current) {
       setLoading(true);
@@ -63,6 +77,7 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -73,20 +88,7 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
       console.log("📦 Raw venue bookings:", bookings);
 
       /* -------------------- 2️⃣ Build venue structure -------------------- */
-      const hallMap = {};
-      const venueStructure = getEnabledVenueDataTemplate(venueConfig);
-
-      // Initialize enabled venues/rooms from config
-      Object.keys(venueStructure).forEach((hallName) => {
-        const config = venueStructure[hallName];
-        hallMap[hallName] = {
-          name: hallName,
-          rooms: config.rooms.map((roomNo) => ({
-            roomNo,
-            bookings: [],
-          })),
-        };
-      });
+      const hallMap = buildVenueStructure(venueConfig);
 
       /* -------------------- 3️⃣ Map bookings to rooms -------------------- */
       if (Array.isArray(bookings)) {
@@ -199,7 +201,7 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
       });
 
       /* -------------------- 5️⃣ Commit state -------------------- */
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === requestGenerationRef.current) {
         setHallData(hallMap);
         setHasData(true);
         setLastUpdate(Date.now());
@@ -207,21 +209,35 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
         console.log("✅ Venue data refreshed successfully:", hallMap);
       }
     } catch (err) {
+      if (err?.name === "AbortError") return;
       console.error("🔥 Venue polling error:", err);
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === requestGenerationRef.current) {
         setError(err.message || "Failed to fetch venue data");
       }
     } finally {
-      isFetchingRef.current = false;
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === requestGenerationRef.current) {
         setLoading(false);
+        if (activeRequestRef.current === controller) activeRequestRef.current = null;
       }
     }
-  }, [venueConfig]);
+  }, [enabled, venueConfig]);
 
   /* -------------------- Socket.IO listeners -------------------- */
   useEffect(() => {
     mountedRef.current = true;
+
+    if (!enabled || !Array.isArray(venueConfig)) {
+      setLoading(true);
+      return () => {
+        mountedRef.current = false;
+        requestGenerationRef.current += 1;
+        activeRequestRef.current?.abort();
+      };
+    }
+
+    // Publish the newest configured rooms immediately, including rooms with no bookings.
+    setHallData(buildVenueStructure(venueConfig));
+    setHasData(true);
 
     // Initial fetch
     fetchVenueData(false);
@@ -284,6 +300,8 @@ export default function useVenueDataPolling(initialData = {}, venueConfig) {
 
     return () => {
       mountedRef.current = false;
+      requestGenerationRef.current += 1;
+      activeRequestRef.current?.abort();
       clearInterval(interval);
 
       socket.off("connect", handleConnect);

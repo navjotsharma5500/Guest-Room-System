@@ -27,8 +27,6 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     logoAlt: "Thapar",
     title: "Thapar Institute of Engineering and Technology",
     subtitle: "",
-    loginText: "Admin Login",
-    loginDestination: "https://campusconnect.thapar.edu/login",
     announcement: "",
     topNotice: "",
     navigationVisible: true,
