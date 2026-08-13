@@ -1,5 +1,4 @@
 // controllers/enquiryController.js - PRODUCTION READY WITH EVENT-DRIVEN EMAILS
-import mongoose from "mongoose";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
@@ -620,53 +619,43 @@ export const approveEnquiry = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
-    let booking;
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const freshEnquiry = await Enquiry.findById(id).session(session);
-        if (!freshEnquiry) {
-          const error = new Error("Enquiry not found");
-          error.statusCode = 404;
-          throw error;
-        }
-        if (["booked", "rejected", "approved"].includes(freshEnquiry.status)) {
-          const error = new Error("This enquiry is already finalized");
-          error.statusCode = 400;
-          throw error;
-        }
-
-        const finalAvailabilityEnquiry = {
-          ...freshEnquiry.toObject(),
-          hostelName: resolvedHostelName || hostelDoc.name,
-          roomName: resolvedRoomNo,
-        };
-        const finalConflict = await Booking.findOne(buildRequestedRoomConflictQuery(finalAvailabilityEnquiry))
-          .session(session)
-          .select("_id guest status from to")
-          .lean();
-        if (finalConflict) {
-          const error = new Error("Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.");
-          error.statusCode = 409;
-          error.conflict = finalConflict;
-          throw error;
-        }
-
-        const createdBookings = await Booking.create([bookingData], { session });
-        booking = createdBookings[0];
-
-        freshEnquiry.status = "booked";
-        freshEnquiry.approvedAt = new Date();
-        freshEnquiry.approvedBy = req.user?._id || null;
-        await freshEnquiry.save({ session });
-
-        enquiry.status = freshEnquiry.status;
-        enquiry.approvedAt = freshEnquiry.approvedAt;
-        enquiry.approvedBy = freshEnquiry.approvedBy;
-      });
-    } finally {
-      await session.endSession();
+    const freshEnquiry = await Enquiry.findById(id);
+    if (!freshEnquiry) {
+      const error = new Error("Enquiry not found");
+      error.statusCode = 404;
+      throw error;
     }
+    if (["booked", "rejected", "approved"].includes(freshEnquiry.status)) {
+      const error = new Error("This enquiry is already finalized");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const finalAvailabilityEnquiry = {
+      ...freshEnquiry.toObject(),
+      hostelName: resolvedHostelName || hostelDoc.name,
+      roomName: resolvedRoomNo,
+    };
+    const finalConflict = await Booking.findOne(buildRequestedRoomConflictQuery(finalAvailabilityEnquiry))
+      .select("_id guest status from to")
+      .lean();
+    if (finalConflict) {
+      const error = new Error("Selected Guest Room is already occupied during requested dates. Please edit the enquiry dates or choose another room.");
+      error.statusCode = 409;
+      error.conflict = finalConflict;
+      throw error;
+    }
+
+    const booking = await Booking.create(bookingData);
+
+    freshEnquiry.status = "booked";
+    freshEnquiry.approvedAt = new Date();
+    freshEnquiry.approvedBy = req.user?._id || null;
+    await freshEnquiry.save();
+
+    enquiry.status = freshEnquiry.status;
+    enquiry.approvedAt = freshEnquiry.approvedAt;
+    enquiry.approvedBy = freshEnquiry.approvedBy;
 
     console.log("✅ Enquiry approved, sending emails...");
     console.log("📧 Email recipients for approval:", {
