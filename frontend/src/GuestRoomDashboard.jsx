@@ -599,15 +599,45 @@ export default function GuestRoomDashboard() {
     }
 
     // Validate room exists
-    const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo) || null;
-    if (!currentRoom) {
+    let currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo) || null;
+    if (!currentRoom && !isDirectExtension) {
       showToast("❌ Room not found", "error");
       setExtensionModal(null);
       return;
     }
 
+    let validationBooking = booking;
+    if (isDirectExtension) {
+      try {
+        const latestResponse = await fetch(`${API}/api/bookings/all`, {
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        const latestData = await latestResponse.json();
+        if (!latestResponse.ok || !latestData?.success) {
+          throw new Error(latestData?.message || "Failed to refresh room bookings");
+        }
+
+        const latestHostel = (latestData.hostels || []).find((item) => item.name === hostel);
+        currentRoom = latestHostel?.rooms?.find((item) => item.roomNo === roomNo) || null;
+        const bookingId = booking._id || booking.id;
+        validationBooking = currentRoom?.bookings?.find(
+          (item) => String(item._id || item.id) === String(bookingId)
+        ) || booking;
+      } catch (error) {
+        console.error("❌ Failed to refresh room before direct extension:", error);
+        showToast("❌ Could not refresh current room bookings. Please retry.", "error");
+        return false;
+      }
+    }
+
+    if (!currentRoom) {
+      showToast("❌ Room not found", "error");
+      return false;
+    }
+
     // ✅ VALIDATE: New date must be after current checkout
-    const currentTo = new Date(booking.to);
+    const currentTo = new Date(validationBooking.to);
     const newTo = new Date(newToDate);
 
     if (newTo <= currentTo) {
@@ -616,13 +646,12 @@ export default function GuestRoomDashboard() {
     }
 
     // ✅ CHECK FOR CONFLICTS (exclude cancelled/completed bookings)
-    const bookingFrom = new Date(booking.from);
+    const bookingFrom = new Date(validationBooking.from);
     
     const hasFutureConflict = (currentRoom.bookings || []).some((b) => {
       // Skip the current booking
       const sameBooking =
-        (b.id && booking.id && b.id === booking.id) ||
-        (b._id && booking._id && b._id === booking._id);
+        String(b.id || b._id) === String(validationBooking.id || validationBooking._id);
       if (sameBooking) return false;
 
       // ✅ CRITICAL FIX: Skip cancelled, checked_out, and no_show bookings

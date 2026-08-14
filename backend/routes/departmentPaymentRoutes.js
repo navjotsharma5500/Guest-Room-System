@@ -17,8 +17,8 @@ router.get(
 
       let query = {
         paymentResponsibility: "DEPARTMENT",
-        paymentStatus: { $in: ["UNPAID", "PARTIALLY_PAID"] },
-        status: "checked_out"
+        status: "checked_out",
+        balanceAmount: { $gt: 0 }
       };
 
       // âœ… CRITICAL: Role-based filtering
@@ -29,7 +29,6 @@ router.get(
       }
 
       const pendingPayments = await Booking.find(query)
-        .populate("createdBy", "name email")
         .select('+totalAmount +paidAmount +balanceAmount +discount') // âœ… Ensure all payment fields are returned
         .sort({ checkedOutAt: -1 })
         .lean();

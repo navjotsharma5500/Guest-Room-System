@@ -93,7 +93,7 @@ async function runEmailTests() {
   try {
     console.log('📨 Test 1: Enquiry Received (DD Office – LT-201)');
     await sendEnquirySubmittedEmail(testEnquiryDD);
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
     await sleep(3000);
 
     console.log('📨 Test 2: Enquiry Received (DoSA Office)');
@@ -106,27 +106,27 @@ async function runEmailTests() {
       ...testEnquiryDD,
       rejectionReason: 'Room not available',
     });
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
     await sleep(3000);
 
     console.log('📨 Test 4: Enquiry Approved (DD Office)');
     await sendEnquiryApprovedEmail(testEnquiryDD, testBooking);
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
     await sleep(3000);
 
     console.log('📨 Test 5: Direct Booking (DD Office)');
     await sendDirectBookingEmail(testBooking);
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
     await sleep(3000);
 
     console.log('📨 Test 6: Booking Extended (DD Office)');
     await sendBookingExtendedEmail(testBooking);
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
     await sleep(3000);
 
     console.log('📨 Test 7: Booking Cancelled (DD Office)');
     await sendBookingCancelledEmail(testBooking);
-    console.log('✅ Sent! Check your inbox for email from Queries_studentaffairs@thapar.edu\n');
+    console.log('✅ Sent! Check your inbox for email from hostel.support@thapar.edu\n');
 
     console.log('\n✅ All venue email tests completed');
     console.log('📬 Check navjot.sharma@thapar.edu inbox (and spam)\n');

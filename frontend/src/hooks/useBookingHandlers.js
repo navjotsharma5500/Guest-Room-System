@@ -598,16 +598,44 @@ export default function useBookingHandlers({
       }
 
       // Validation (Overlap check)
-      const currentHostel = hostelData[hostel];
+      let validationHostelData = hostelData;
+      let validationBooking = booking;
+
+      if (isDirectExtension) {
+        try {
+          const latestResponse = await fetch(`${API}/api/bookings/all`, {
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+          });
+          const latestData = await latestResponse.json();
+          if (!latestResponse.ok || !latestData?.success) {
+            throw new Error(latestData?.message || "Failed to refresh room bookings");
+          }
+
+          validationHostelData = Object.fromEntries(
+            (latestData.hostels || []).map((item) => [item.name, item])
+          );
+          const latestRoom = validationHostelData[hostel]?.rooms?.find((item) => item.roomNo === roomNo);
+          validationBooking = latestRoom?.bookings?.find(
+            (item) => String(item._id || item.id) === String(mongoId)
+          ) || booking;
+        } catch (error) {
+          console.error("❌ Failed to refresh room before direct extension:", error);
+          showToast("❌ Could not refresh current room bookings. Please retry.", "error");
+          return false;
+        }
+      }
+
+      const currentHostel = validationHostelData[hostel];
       if (currentHostel) {
         const currentRoom = currentHostel.rooms?.find((r) => r.roomNo === roomNo);
         if (currentRoom) {
-          const originalTo = booking._originalTo || booking.to;
-          const extensionStart = combineDateAndTime(originalTo, booking.checkOutTime || "23:59");
-          const extensionEnd = combineDateAndTime(newToDate, booking.checkOutTime || "23:59");
+          const originalTo = validationBooking._originalTo || validationBooking.to;
+          const extensionStart = combineDateAndTime(originalTo, validationBooking.checkOutTime || "23:59");
+          const extensionEnd = combineDateAndTime(newToDate, validationBooking.checkOutTime || "23:59");
 
           const hasOverlap = (currentRoom.bookings || []).some((b) => {
-            if (b.id === booking.id || b._id === booking._id) return false;
+            if (String(b.id || b._id) === String(validationBooking.id || validationBooking._id)) return false;
             if (["cancelled", "checked_out", "no_show"].includes(b.status)) return false;
             const otherFrom = combineDateAndTime(b.from, b.checkInTime || "00:00");
             const otherTo = combineDateAndTime(b.to, b.checkOutTime || "23:59");
@@ -664,6 +692,9 @@ export default function useBookingHandlers({
           window.dispatchEvent(new CustomEvent("extensionRequested", { 
             detail: { bookingId: mongoId, requestId: responseData.request?._id } 
           }));
+        } else if (typeof setHostelData === "function") {
+          // The dashboard's existing setter callback performs a fresh backend reload.
+          setHostelData((currentHostelData) => currentHostelData);
         }
 
         return true;
@@ -674,7 +705,7 @@ export default function useBookingHandlers({
         return false;
       }
     },
-    [hostelData, showToast, setExtensionModal, API]
+    [hostelData, showToast, setExtensionModal, setHostelData, API]
   );
 
   // ✅ FIXED: Return all handlers

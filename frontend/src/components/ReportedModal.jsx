@@ -18,6 +18,18 @@ import EarlyCheckInPaymentModal from "./EarlyCheckInPaymentModal";
 
 const API = BACKEND_URL;
 
+const getLocalDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
 export default function ReportedModal({
   booking,
   open,
@@ -28,12 +40,8 @@ export default function ReportedModal({
   const [loading, setLoading] = useState(false);
   const [idVerified, setIdVerified] = useState(false);
   const [actualCheckInDate, setActualCheckInDate] = useState(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-    });
+    return getLocalDateKey();
+  });
   const [actualCheckInTime, setActualCheckInTime] = useState(
     new Date().toTimeString().slice(0, 5)
   );
@@ -49,6 +57,21 @@ export default function ReportedModal({
   const [alertModal, setAlertModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [showEarlyCheckInPaymentModal, setShowEarlyCheckInPaymentModal] = useState(false);
+
+  const todayDateKey = getLocalDateKey();
+  const originalCheckInDateKey = booking?.from ? getLocalDateKey(booking.from) : "";
+  const canUseOriginalCheckInDate = Boolean(
+    originalCheckInDateKey && originalCheckInDateKey < todayDateKey
+  );
+  const isAllowedReportingDate = (dateKey) =>
+    dateKey === todayDateKey ||
+    (canUseOriginalCheckInDate && dateKey === originalCheckInDateKey);
+
+  useEffect(() => {
+    if (open) {
+      setActualCheckInDate(getLocalDateKey());
+    }
+  }, [open, booking?._id]);
 
   useEffect(() => {
     if (open && !isAlreadyReported && !isNotReported && !isNoShow && actualCheckInDate) {
@@ -306,6 +329,12 @@ export default function ReportedModal({
       setLoading(true);
       setError("");
 
+      if (!isAllowedReportingDate(actualCheckInDate)) {
+        setError("❌ Reporting date must be today or the original check-in date when it is earlier than today.");
+        setLoading(false);
+        return;
+      }
+
       const headers = { "Content-Type": "application/json" };
 
       // Check for previous pending bills
@@ -371,18 +400,6 @@ export default function ReportedModal({
       
       if (roomOccupied && currentOccupant) {
         setError("❌ Cannot report guest. Room is currently occupied by another guest.");
-        setLoading(false);
-        return;
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const selectedDate = new Date(actualCheckInDate);
-      selectedDate.setHours(0, 0, 0, 0);
-
-      if (selectedDate > today) {
-        setError("❌ Cannot report a guest for a future date. Please select today or an earlier date.");
         setLoading(false);
         return;
       }
@@ -836,13 +853,19 @@ export default function ReportedModal({
                       <Calendar className="w-4 h-4 text-blue-600" />
                       Actual Check-in Date
                     </label>
-                    <motion.input
-                      type="date"
+                    <motion.select
                       value={actualCheckInDate}
                       onChange={(e) => setActualCheckInDate(e.target.value)}
                       className="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       whileFocus={{ scale: 1.01 }}
-                    />
+                    >
+                      <option value={todayDateKey}>Today ({formatDate(todayDateKey)})</option>
+                      {canUseOriginalCheckInDate && (
+                        <option value={originalCheckInDateKey}>
+                          Original Check-in Date ({formatDate(originalCheckInDateKey)})
+                        </option>
+                      )}
+                    </motion.select>
                   </div>
 
                   <div>

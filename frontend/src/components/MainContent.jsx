@@ -1494,9 +1494,9 @@ export default function MainContent(props) {
                             )}
                           </h3>
 
-                          {(h.rooms || []).map((room) => (
+                          {(h.rooms || []).map((room, roomIndex) => (
                             <RoomCard
-                              key={room.roomNo}
+                              key={`${name}-${room.roomNo || `room-${roomIndex}`}`}
                               hostel={activeHostel}
                               room={room}
                               onSelect={setRightPanelToRoom}
@@ -1632,9 +1632,9 @@ export default function MainContent(props) {
 
                     {/* Room List Content */}
                     <div className="p-6 overflow-y-auto max-h-[calc(100vh-350px)]">
-                      {(hostelData[activeHostel]?.rooms || []).map((room) => (
+                      {(hostelData[activeHostel]?.rooms || []).map((room, roomIndex) => (
                         <RoomCard
-                          key={room.roomNo}
+                          key={`${activeHostel || "hostel"}-${room.roomNo || `room-${roomIndex}`}`}
                           hostel={activeHostel}
                           room={room}
                           onSelect={setRightPanelToRoom}

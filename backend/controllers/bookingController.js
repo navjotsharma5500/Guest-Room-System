@@ -1,7 +1,6 @@
 // bookingController.js
 import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
-import mongoose from "mongoose";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { Parser } from "json2csv";
 import Hostel from "../models/Hostel.js";
@@ -912,6 +911,32 @@ export const markReported = async (req, res) => {
       });
     }
 
+    const dateKeyInIndia = (value) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date(value));
+      const part = (type) => parts.find((item) => item.type === type)?.value;
+      return `${part("year")}-${part("month")}-${part("day")}`;
+    };
+    const requestedReportDateKey = /^\d{4}-\d{2}-\d{2}$/.test(String(actualCheckInDate || ""))
+      ? String(actualCheckInDate)
+      : "";
+    const todayDateKey = dateKeyInIndia(new Date());
+    const originalCheckInDateKey = dateKeyInIndia(booking.from);
+    const isAllowedReportingDate =
+      requestedReportDateKey === todayDateKey ||
+      (originalCheckInDateKey < todayDateKey && requestedReportDateKey === originalCheckInDateKey);
+
+    if (!isAllowedReportingDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Reporting date must be today or the original check-in date when it is earlier than today.",
+      });
+    }
+
     await assertGuestNotBlocked(
       { email: booking.email, contact: booking.contact },
       { allowOverride: req.user?.role === "admin" && req.body?.adminOverride === true }
@@ -1541,8 +1566,6 @@ export const requestExtension = async (req, res) => {
 // DIRECT EXTENSION (CARETAKER AUTHORITY <= 3 DAYS)
 // ======================================================
 export const directExtendBooking = async (req, res) => {
-  const session = await mongoose.startSession();
-
   try {
     const settings = await getSystemSettings();
     const { id } = req.params;
@@ -1605,26 +1628,20 @@ export const directExtendBooking = async (req, res) => {
       });
     }
 
-    session.startTransaction();
-
-    const booking = await Booking.findById(id).session(session);
+    const booking = await Booking.findById(id);
     if (!booking) {
-      await session.abortTransaction();
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
     if (!["booked", "checked_in"].includes(booking.status)) {
-      await session.abortTransaction();
       return res.status(400).json({ success: false, message: "Only active bookings can be directly extended" });
     }
 
     if (booking.approvalStatus && booking.approvalStatus !== "auto_approved") {
-      await session.abortTransaction();
       return res.status(400).json({ success: false, message: "Direct extension is not allowed while booking approval is pending" });
     }
 
     if (booking.directExtension?.used) {
-      await session.abortTransaction();
       return res.status(400).json({ success: false, message: "Direct extension has already been used for this booking" });
     }
 
@@ -1634,14 +1651,12 @@ export const directExtendBooking = async (req, res) => {
     console.log("OLD CHECKOUT:", oldCheckout);
     console.log("NEW CHECKOUT:", requestedCheckout);
     if (requestedCheckout <= oldCheckout) {
-      await session.abortTransaction();
       return res.status(400).json({ success: false, message: "New checkout must be after the current checkout date" });
     }
 
     const currentTotalDays = calculateContinuousStayDays(booking.from, booking.to);
 
     if (currentTotalDays >= caretakerLimit) {
-      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: `Caretaker extension authority has already reached the ${caretakerLimit}-day limit`,
@@ -1652,7 +1667,6 @@ export const directExtendBooking = async (req, res) => {
     const newTotalDays = calculateContinuousStayDays(directExtensionStartDate, requestedCheckout);
 
     if (newTotalDays > caretakerLimit) {
-      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: `Direct extension exceeds caretaker authority. Maximum allowed continuous stay is ${caretakerLimit} days.`,
@@ -1718,9 +1732,16 @@ export const directExtendBooking = async (req, res) => {
       booking.paymentStatus = booking.paidAmount > 0 ? "PARTIALLY_PAID" : "UNPAID";
     }
 
-    const billNumber = await generateBillNumber("DEXT");
-    await Bill.create(
-      [{
+    const existingDirectExtensionBill = await Bill.findOne({
+      bookingId: booking._id,
+      billType: "DIRECT_EXTENSION",
+      from: oldCheckout,
+      to: requestedCheckout,
+    }).lean();
+
+    if (!existingDirectExtensionBill) {
+      const billNumber = await generateBillNumber("DEXT");
+      await Bill.create({
         bookingId: booking._id,
         guestName: booking.guest,
         guestEmail: booking.email,
@@ -1742,12 +1763,10 @@ export const directExtendBooking = async (req, res) => {
         paymentProof: normalizedPaymentAttachments,
         remarks: paymentRemarks || remarks || "Direct extension",
         createdBy: req.user?._id || null,
-      }],
-      { session }
-    );
+      });
+    }
 
-    await booking.save({ session });
-    await session.commitTransaction();
+    await booking.save();
     console.log("UPDATED BOOKING:", booking.to);
     console.log("DIRECT EXTENSION SAVED");
 
@@ -1773,11 +1792,8 @@ export const directExtendBooking = async (req, res) => {
     const emailBooking = await refreshBookingEmails(booking);
     asyncSendEmails(() => sendBookingEmails(emailBooking, "extended"));
   } catch (err) {
-    await session.abortTransaction().catch(() => {});
     console.error("❌ Direct extension error:", err);
     res.status(500).json({ success: false, message: err.message || "Failed to process direct extension" });
-  } finally {
-    await session.endSession();
   }
 };
 

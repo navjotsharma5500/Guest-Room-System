@@ -132,7 +132,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     q1: {
       title: "Any Queries?",
       description: "Contact us for any assistance:",
-      emails: ["Queries_studentaffairs@thapar.edu"],
+      emails: ["hostel.support@thapar.edu"],
       blocks: [
         { id: "technical", label: "Technical Support", lines: [], emails: ["itmh@thapar.edu"], enabled: true },
       ],
@@ -181,7 +181,7 @@ export const DEFAULT_PUBLIC_UI_CONFIG = {
     ],
     contactBlocks: [
       { id: "timings", label: "Timings", lines: ["9:00 AM to 5:30 PM", "Monday to Friday"], enabled: true },
-      { id: "general", label: "Any General Query or Assistance", lines: ["Email:"], emails: ["dosa.office@thapar.edu", "Queries_studentaffairs@thapar.edu"], enabled: true },
+      { id: "general", label: "Any General Query or Assistance", lines: ["Email:"], emails: ["dosa.office@thapar.edu", "hostel.support@thapar.edu"], enabled: true },
       { id: "technical", label: "Technical Support", lines: ["Email:"], emails: ["itmh@thapar.edu"], enabled: true },
     ],
   },

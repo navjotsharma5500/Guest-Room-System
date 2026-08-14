@@ -871,7 +871,7 @@ export default function PublicEventCalendar() {
                 <a href="mailto:dosa.office@thapar.edu">dosa.office@thapar.edu</a>
               </div>
               <div>
-                <a href="mailto:Queries_studentaffairs@thapar.edu">Queries_studentaffairs@thapar.edu</a>
+                <a href="mailto:hostel.support@thapar.edu">hostel.support@thapar.edu</a>
               </div>
               <div>
                 <p className="footer-label">Technical Support</p>

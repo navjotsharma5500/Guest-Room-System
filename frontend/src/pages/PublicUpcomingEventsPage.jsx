@@ -164,7 +164,7 @@ export default function PublicUpcomingEventsPage() {
             <div className="space-y-5 text-xs sm:text-sm leading-relaxed text-gray-600">
               <div><p className="footer-label">Timings</p><p>9:00 AM to 5:30 PM</p><p>Monday to Friday</p></div>
               <div><p className="footer-label">Any General Query or Assistance</p><p>Email:</p><a href="mailto:dosa.office@thapar.edu">dosa.office@thapar.edu</a></div>
-              <div><a href="mailto:Queries_studentaffairs@thapar.edu">Queries_studentaffairs@thapar.edu</a></div>
+              <div><a href="mailto:hostel.support@thapar.edu">hostel.support@thapar.edu</a></div>
               <div><p className="footer-label">Technical Support</p><p>Email:</p><a href="mailto:itmh@thapar.edu">itmh@thapar.edu</a></div>
             </div>
             <div className="student-footer-credit"><p>Powered by Thapar Institute of Engineering &amp; Technology</p><p>Created and Maintained by DoSA Office</p></div>

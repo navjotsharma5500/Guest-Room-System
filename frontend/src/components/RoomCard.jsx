@@ -726,11 +726,12 @@ const RoomCard = memo(function RoomCard({
                     .filter((b) => !isPastBooking(b))
                     .map((b, idx) => {
                       const bookingId = b._id || b.id;
+                      const renderKey = bookingId || `${room.roomNo}-${b.from || "unknown-from"}-${b.to || "unknown-to"}-${idx}`;
                       const isActive = isActiveBooking(b);
 
                       return (
                         <motion.div
-                          key={bookingId}
+                          key={renderKey}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.05 }}
@@ -989,13 +990,14 @@ const RoomCard = memo(function RoomCard({
               <div className="p-4 space-y-2.5 max-h-96 overflow-y-auto">
                 {activeBookings
                   .filter((b) => !isPastBooking(b))
-                  .map((b) => {
+                  .map((b, idx) => {
                     const bookingId = b._id || b.id;
+                    const renderKey = bookingId || `${room.roomNo}-${b.from || "unknown-from"}-${b.to || "unknown-to"}-${idx}`;
                     const isActive = isActiveBooking(b);
 
                     return (
                       <div
-                        key={bookingId}
+                        key={renderKey}
                         onClick={() => handleBookingSelect(bookingId)}
                         className={`relative rounded-xl p-3 cursor-pointer transition-all border-2 ${
                           isActive

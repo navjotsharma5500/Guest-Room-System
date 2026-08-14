@@ -202,7 +202,7 @@ export const DEFAULT_WEBSITE_CONTENT = {
     location: "Thapar Institute of Engineering & Technology, Patiala, Punjab",
     office: "Office of Dean Student Affairs",
     dosaOfficeAddress: "DoSA Office, TIET Patiala",
-    emails: ["dosa.office@thapar.edu", "Queries_studentaffairs@thapar.edu", "itmh@thapar.edu"],
+    emails: ["dosa.office@thapar.edu", "hostel.support@thapar.edu", "itmh@thapar.edu"],
     phones: [],
     hours: "9:00 AM to 5:30 PM, Monday to Friday",
     assistanceText: "For any further assistance, contact the DoSA Office.",
