@@ -22,7 +22,9 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
+import { trackPageView } from "./utils/analytics";
 
 // ============================================================================
 // PAGE IMPORTS
@@ -88,6 +90,14 @@ import {
 // Admin always sees it regardless. Change here to toggle globally.
 // ══════════════════════════════════════════════════════════════════════════════
 const DASHBOARD_SELECTOR_ENABLED = true;
+
+function AnalyticsRouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView();
+  }, [location.pathname, location.search, location.hash]);
+  return null;
+}
 
 // ============================================================================
 // MAIN APP
@@ -263,6 +273,7 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Router>
+        <AnalyticsRouteTracker />
         <Routes>
 
           {/* ================================================================

@@ -35,7 +35,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   const [ga4, setGa4]             = useState(null);
   const [awsStats, setAwsStats]   = useState(null);
   const [awsLoading, setAwsLoading] = useState(true);
-  const [ga4Days, setGa4Days]     = useState(30);
+  const [ga4Period, setGa4Period] = useState("30");
+  const [ga4Realtime, setGa4Realtime] = useState(null);
   const [loading, setLoading]     = useState(true);
   const [ga4Loading, setGa4Loading] = useState(true);
   const [error, setError]         = useState(null);
@@ -69,13 +70,19 @@ const AdminAnalyticsDashboard = ({ userName }) => {
     finally { setLoading(false); }
   }, []);
 
-  const fetchGA4 = useCallback(async (days = 30) => {
+  const fetchGA4 = useCallback(async (period = "30") => {
     setGa4Loading(true);
     try {
-      const res = await fetch(`${API}/api/analytics/ga4?days=${days}`, {
-        credentials: "include",
-      });
-      setGa4(await res.json());
+      const query = period === "yesterday" || period === "today"
+        ? `period=${period}`
+        : `days=${period}`;
+      const requests = [fetch(`${API}/api/analytics/ga4?${query}`, { credentials: "include" })];
+      if (period === "today") {
+        requests.push(fetch(`${API}/api/analytics/ga4/realtime`, { credentials: "include" }));
+      }
+      const [standardRes, realtimeRes] = await Promise.all(requests);
+      setGa4(await standardRes.json());
+      setGa4Realtime(realtimeRes ? await realtimeRes.json() : null);
     } catch { setGa4({ configured: false, message: "Failed to connect to analytics" }); }
     finally { setGa4Loading(false); }
   }, []);
@@ -98,11 +105,11 @@ const AdminAnalyticsDashboard = ({ userName }) => {
 
   useEffect(() => {
     fetchData();
-    fetchGA4(ga4Days);
+    fetchGA4("30");
     fetchAWS();
   }, [fetchData, fetchGA4, fetchAWS]);
 
-  const handleGa4Days = (d) => { setGa4Days(d); fetchGA4(d); };
+  const handleGa4Period = (period) => { setGa4Period(period); fetchGA4(period); };
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const total      = bookings.length;
@@ -307,13 +314,19 @@ const AdminAnalyticsDashboard = ({ userName }) => {
           </h2>
           {ga4?.configured && (
             <div className="flex items-center gap-1.5">
-              {[7, 30, 90].map(d => (
-                <button key={d} onClick={() => handleGa4Days(d)}
+              {[
+                { value: "yesterday", label: "Yesterday" },
+                { value: "7", label: "7 Days" },
+                { value: "30", label: "30 Days" },
+                { value: "90", label: "90 Days" },
+                { value: "today", label: "Today Live" },
+              ].map(option => (
+                <button key={option.value} onClick={() => handleGa4Period(option.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    ga4Days === d ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}>{d}d</button>
+                    ga4Period === option.value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}>{option.label}</button>
               ))}
-              <button onClick={() => fetchGA4(ga4Days)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition">
+              <button onClick={() => fetchGA4(ga4Period)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition">
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${ga4Loading ? "animate-spin" : ""}`} />
               </button>
             </div>
@@ -343,13 +356,16 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                   <p>{`GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}`}</p>
                 </div>
                 <p className="text-[11px] text-orange-500 mt-2">
-                  Your GA4 tracking script (G-Z8GK8ESCM1) is already installed on the frontend ✅ — only the backend service account is missing.
+                  GA4 frontend tracking is installed ✅ — only the backend service account configuration is missing.
                 </p>
               </div>
             </div>
           </div>
         ) : (
           <>
+            {ga4Period === "today" && (
+              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Today So Far</p>
+            )}
             {/* GA4 KPI row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
@@ -392,6 +408,46 @@ const AdminAnalyticsDashboard = ({ userName }) => {
               ))}
             </div>
 
+            {ga4Period === "today" && (
+              <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" /></span>
+                  <h3 className="text-sm font-bold text-slate-800">Live Now</h3>
+                </div>
+                {!ga4Realtime?.configured ? (
+                  <p className="text-xs text-slate-500">Live data is currently unavailable{ga4Realtime?.message ? `: ${ga4Realtime.message}` : "."}</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <p className="text-xs text-slate-500">Active Users Now</p>
+                      <p className="text-4xl font-bold text-emerald-700 my-1">{ga4Realtime.activeUsers.toLocaleString()}</p>
+                      <div className="mt-3 space-y-2">
+                        {(ga4Realtime.activeUsersByHostname || []).map(item => (
+                          <div key={item.domain} className="flex justify-between gap-3 text-xs">
+                            <span className="text-slate-600 truncate">{item.domain}</span>
+                            <span className="font-bold text-slate-800">{item.activeUsers.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-600 mb-2">Top active pages right now</p>
+                      {(ga4Realtime.activePages || []).length === 0 ? <p className="text-xs text-slate-400">No active pages reported.</p> : (
+                        <div className="space-y-2">
+                          {(ga4Realtime.activePages || []).map((page, index) => (
+                            <div key={`${page.domain}-${page.page}-${index}`} className="flex justify-between gap-3 text-xs">
+                              <span className="text-slate-600 truncate" title={`${page.domain}${page.page || "/"}`}>{page.domain}{page.page || "/"}</span>
+                              <span className="font-bold text-emerald-700">{page.activeUsers.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* New vs Returning / Peak Hour / Devices */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
@@ -416,7 +472,7 @@ const AdminAnalyticsDashboard = ({ userName }) => {
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
                 <p className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Peak Traffic Hour</p>
                 <p className="text-3xl font-bold text-blue-700">{ga4.peakHour}</p>
-                <p className="text-xs text-slate-400 mt-1">Most active hour in last {ga4Days} days</p>
+                <p className="text-xs text-slate-400 mt-1">Most active hour for the selected period</p>
                 <div className="mt-3 flex gap-1 flex-wrap">
                   {(ga4.hourly || []).filter((_, i) => i % 3 === 0).slice(0, 8).map((h, i) => {
                     const max = Math.max(...(ga4.hourly || []).map(x => x.sessions));

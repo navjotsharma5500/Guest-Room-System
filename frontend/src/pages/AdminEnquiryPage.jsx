@@ -245,6 +245,62 @@ export default function AdminEnquiryPage({ setActiveTab }) {
     if (!selected) return;
 
     if (status === "approved") {
+      // ✅ RESTORED: Faculty/Staff enquiries never carry a hostel/room at
+      // enquiry time, so they must NOT go through the ParentStudent
+      // approval-payment modal / PUT /api/enquiry/:id/approved path below.
+      // This reinstates the pre-0231c2c behavior: prepare a room-selection
+      // prefill and hand off to AllHostelsPortal without touching backend
+      // approval status yet.
+      if (selected.bookingCategory === "FacultyStaff") {
+        // Don't update backend status yet - just prepare for room selection
+
+        // Store the enquiry in localStorage for AllHostelsPortal
+        const approvedGuest = {
+          id: "b_" + Date.now(),
+          enquiryId: selected._id,
+          name: selected.name,
+          guest: selected.name,
+          rollno: selected.rollno || "",
+          department: selected.department || "",
+          numGuests: Number(selected.guests || selected.numGuests || 1),
+          females: selected.females || 0,
+          males: selected.males || 0,
+          contact: selected.contact || "",
+          email: selected.email || "",
+          gender: selected.gender || "",
+          state: selected.state || "",
+          city: selected.city || "",
+          purpose: selected.purpose || "",
+          reference: selected.reference || "",
+          checkInTime: selected.checkInTime || "00:00",
+          checkOutTime: selected.checkOutTime || "23:59",
+          files: selected.files || [],
+          enquiryAttachments: selected.files || [],
+          paymentType: "Pending",
+          amount: 0,
+          from: selected.from,
+          to: selected.to,
+          status: "pending-room-selection",
+        };
+
+        localStorage.setItem("lastApprovedGuest", JSON.stringify(approvedGuest));
+        window.dispatchEvent(new Event("lastApprovedGuestChanged"));
+
+        showToast("Please select a guest room to complete approval", "blue");
+
+        // Navigate to AllHostelsPortal
+        if (typeof setActiveTab === "function") {
+          const container = document.querySelector(".admin-page-container");
+          if (container) container.classList.add("fade-out");
+          setTimeout(() => {
+            setActiveTab("AllHostelsPortal");
+            if (container) container.classList.remove("fade-out");
+          }, 300);
+        }
+
+        return;
+      }
+
       if (selected.hostelId && selected.roomId) {
         try {
           await axios.get(`${API}/api/enquiry/${selected._id}/availability`, { withCredentials: true });

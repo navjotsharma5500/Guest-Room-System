@@ -105,6 +105,49 @@ async function runGA4Report(accessToken, body) {
   return data;
 }
 
+async function runGA4RealtimeReport(accessToken, body, dimensionFilter) {
+  if (!GA4_PROPERTY_ID) throw new Error('GA4_PROPERTY_ID not set in environment');
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/${GA4_PROPERTY_ID}:runRealtimeReport`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...body, dimensionFilter }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(`GA4 Realtime API error: ${JSON.stringify(data.error || data)}`);
+  return data;
+}
+
+function resolveAnalyticsPeriod(query) {
+  const requestedPeriod = String(query.period || '').toLowerCase();
+  if (requestedPeriod === 'yesterday') {
+    return {
+      period: 'yesterday', days: null,
+      dateRange: { startDate: 'yesterday', endDate: 'yesterday' },
+      prevRange: { startDate: '2daysAgo', endDate: '2daysAgo' },
+    };
+  }
+  if (requestedPeriod === 'today') {
+    return {
+      period: 'today', days: null,
+      dateRange: { startDate: 'today', endDate: 'today' },
+      prevRange: { startDate: 'yesterday', endDate: 'yesterday' },
+    };
+  }
+  const parsedDays = Number.parseInt(query.days || '30', 10);
+  const days = [7, 30, 90].includes(parsedDays) ? parsedDays : 30;
+  return {
+    period: `${days}days`, days,
+    dateRange: { startDate: `${days}daysAgo`, endDate: 'today' },
+    prevRange: { startDate: `${days * 2}daysAgo`, endDate: `${days + 1}daysAgo` },
+  };
+}
+
 // ── Parse GA4 report rows into simple objects ─────────────────────────────────
 function parseRows(report, dimKeys, metKeys) {
   if (!report?.rows) return [];
@@ -130,9 +173,7 @@ export const getGA4Analytics = async (req, res) => {
     }
 
     const accessToken = await getGoogleAccessToken();
-    const days = parseInt(req.query.days || '30', 10);
-    const dateRange = { startDate: `${days}daysAgo`, endDate: 'today' };
-    const prevRange = { startDate: `${days * 2}daysAgo`, endDate: `${days + 1}daysAgo` };
+    const { period, days, dateRange, prevRange } = resolveAnalyticsPeriod(req.query);
 
     // Run all reports in parallel
     const [
@@ -294,6 +335,7 @@ export const getGA4Analytics = async (req, res) => {
 
     return res.json({
       configured: true,
+      period,
       days,
       fetchedAt: new Date().toISOString(),
       overview,
@@ -312,6 +354,73 @@ export const getGA4Analytics = async (req, res) => {
 
   } catch (err) {
     console.error('GA4 Analytics error:', err.message);
+    return res.status(500).json({ configured: false, message: err.message });
+  }
+};
+
+// GET /api/analytics/ga4/realtime — genuine GA4 Realtime API data.
+export const getGA4Realtime = async (req, res) => {
+  try {
+    if (!GA4_PROPERTY_ID || !GA4_SERVICE_ACCOUNT_KEY) {
+      return res.status(503).json({
+        configured: false,
+        message: 'GA4 not configured. Set GA4_PROPERTY_ID and GOOGLE_SERVICE_ACCOUNT_KEY in .env',
+      });
+    }
+
+    const accessToken = await getGoogleAccessToken();
+    // Realtime supports unifiedScreenName (page title), but not hostName or
+    // pagePath. Frontends therefore send a non-sensitive "hostname/path"
+    // page title, allowing the same strict two-host filter in realtime.
+    const realtimeHostFilter = host => ({
+      filter: {
+        fieldName: 'unifiedScreenName',
+        stringFilter: { matchType: 'BEGINS_WITH', value: host, caseSensitive: false },
+      },
+    });
+    const realtimeIncludedHostsFilter = {
+      orGroup: { expressions: INCLUDED_GA4_HOSTS.map(realtimeHostFilter) },
+    };
+
+    const [totalReport, ...hostAndPageReports] = await Promise.all([
+      runGA4RealtimeReport(accessToken, { metrics: [{ name: 'activeUsers' }] }, realtimeIncludedHostsFilter),
+      ...INCLUDED_GA4_HOSTS.map(host => runGA4RealtimeReport(
+        accessToken,
+        { metrics: [{ name: 'activeUsers' }] },
+        realtimeHostFilter(host)
+      )),
+      runGA4RealtimeReport(accessToken, {
+        dimensions: [{ name: 'unifiedScreenName' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        limit: 20,
+      }, realtimeIncludedHostsFilter),
+    ]);
+
+    const totalValues = totalReport?.totals?.[0]?.metricValues || totalReport?.rows?.[0]?.metricValues || [];
+    const activePagesReport = hostAndPageReports[hostAndPageReports.length - 1];
+    const activeUsersByHostname = INCLUDED_GA4_HOSTS.map((domain, index) => ({
+      domain,
+      activeUsers: Number(
+        hostAndPageReports[index]?.totals?.[0]?.metricValues?.[0]?.value ||
+        hostAndPageReports[index]?.rows?.[0]?.metricValues?.[0]?.value || 0
+      ),
+    }));
+    const activePages = parseRows(activePagesReport, ['screenName'], ['activeUsers']).map(row => {
+      const domain = INCLUDED_GA4_HOSTS.find(host => row.screenName.startsWith(host)) || '';
+      return { domain, page: row.screenName.slice(domain.length) || '/', activeUsers: row.activeUsers };
+    });
+
+    return res.json({
+      configured: true,
+      fetchedAt: new Date().toISOString(),
+      includedDomains: INCLUDED_GA4_HOSTS,
+      activeUsers: Number(totalValues[0]?.value || 0),
+      activeUsersByHostname,
+      activePages,
+    });
+  } catch (err) {
+    console.error('GA4 Realtime Analytics error:', err.message);
     return res.status(500).json({ configured: false, message: err.message });
   }
 };
