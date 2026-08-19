@@ -923,34 +923,36 @@ export default function AdminEnquiryPage({ setActiveTab }) {
                   {/* Show Approve/Reject buttons ONLY if status is "pending" (initial state) */}
                   {[undefined, "pending", "pending-approval"].includes(selected.status) && (
                     <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4 mt-6 sm:mt-8">
-                      {editMode ? (
-                        <>
+                      {selected.bookingCategory !== "FacultyStaff" && (
+                        editMode ? (
+                          <>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={handleSaveSchedule}
+                              className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-semibold text-sm sm:text-base"
+                            >
+                              Save Schedule
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setEditMode(false)}
+                              className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold text-sm sm:text-base"
+                            >
+                              Cancel Edit
+                            </motion.button>
+                          </>
+                        ) : (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={handleSaveSchedule}
+                            onClick={() => setEditMode(true)}
                             className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-semibold text-sm sm:text-base"
                           >
-                            Save Schedule
+                            Edit
                           </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setEditMode(false)}
-                            className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all font-semibold text-sm sm:text-base"
-                          >
-                            Cancel Edit
-                          </motion.button>
-                        </>
-                      ) : (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setEditMode(true)}
-                          className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-semibold text-sm sm:text-base"
-                        >
-                          Edit
-                        </motion.button>
+                        )
                       )}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
