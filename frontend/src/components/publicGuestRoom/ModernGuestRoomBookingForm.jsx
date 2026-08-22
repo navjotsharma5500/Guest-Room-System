@@ -34,6 +34,8 @@ const initialForm = {
 
 const CATEGORY_PARENT = "parents_students";
 const CATEGORY_FACULTY = "faculty_staff";
+const ACTIVE_PARENT_STUDENT_ENQUIRY_MESSAGE =
+  "Your previous Guest Room request is still under process. Please wait for its approval or rejection before submitting another request.";
 
 const normalizeNumber = (value) => {
   if (value === "") return "";
@@ -110,6 +112,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
 
   const [category, setCategory] = useState("");
   const [googleUser, setGoogleUser] = useState(null);
+  const [googleCredential, setGoogleCredential] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [form, setForm] = useState(initialForm);
   const [terms, setTerms] = useState(false);
@@ -273,6 +276,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
 
       setGoogleError("");
       setGoogleUser({ name: decoded.name || "", email });
+      setGoogleCredential(credentialResponse.credential);
       setForm((prev) => ({
         ...prev,
         email,
@@ -289,6 +293,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
   const resetFlow = () => {
     setCategory("");
     setGoogleUser(null);
+    setGoogleCredential("");
     setGoogleError("");
     setForm(initialForm);
     setTerms(false);
@@ -319,6 +324,7 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
     return {
       guestName: form.name.trim(),
       guestEmail: googleUser.email,
+      ...(isParentStudent ? { googleCredential } : {}),
       guestPhone: form.contact.trim(),
       message: form.purpose.trim(),
       fullData: {
@@ -371,7 +377,11 @@ export default function ModernGuestRoomBookingForm({ content = {} }) {
       setPreview(false);
       showToast("Guest room request submitted", "success");
     } catch (err) {
-      showToast(err.response?.data?.message || "Submission failed", "error");
+      const responseData = err.response?.data;
+      const message = responseData?.code === "ACTIVE_PARENT_STUDENT_ENQUIRY_EXISTS"
+        ? ACTIVE_PARENT_STUDENT_ENQUIRY_MESSAGE
+        : responseData?.message || "Submission failed";
+      showToast(message, "error");
     } finally {
       setSubmitting(false);
     }

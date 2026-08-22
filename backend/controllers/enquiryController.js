@@ -2,6 +2,7 @@
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
+import { OAuth2Client } from "google-auth-library";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import EmailLog from "../models/EmailLog.js";
@@ -19,6 +20,30 @@ import { sendBookingEmails } from "./bookingController.js";
 // ======================================================
 const safeSend = (emailPayload) => {
   return baseSafeSend(emailPayload, EmailLog);
+};
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const ACTIVE_PARENT_STUDENT_ENQUIRY_STATUSES = ["pending", "pending-approval"];
+const ACTIVE_PARENT_STUDENT_ENQUIRY_MESSAGE =
+  "Your previous guest room request is still under process. Please wait for its approval or rejection before submitting another request.";
+
+const normalizeEmail = (email = "") => String(email || "").trim().toLowerCase();
+
+const verifyParentStudentGoogleEmail = async (credential) => {
+  if (!credential) throw new Error("Google authentication is required");
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+  const payload = ticket.getPayload();
+  const email = normalizeEmail(payload?.email);
+
+  if (!email || payload?.email_verified === false) {
+    throw new Error("A verified Google email is required");
+  }
+
+  return email;
 };
 
 const normalizeRole = (role = "") => String(role).toLowerCase();
@@ -84,9 +109,11 @@ export const createEnquiry = async (req, res) => {
   try {
     const settings = await getSystemSettings();
     console.log("📩 ========== ENQUIRY CREATE STARTED ==========");
-    console.log("📦 RAW req.body:", JSON.stringify(req.body, null, 2));
-
     const body = req.body;
+    console.log("📦 RAW req.body:", JSON.stringify({
+      ...body,
+      ...(body.googleCredential ? { googleCredential: "[REDACTED]" } : {}),
+    }, null, 2));
     
     let fullData = body.fullData;
     
@@ -96,6 +123,22 @@ export const createEnquiry = async (req, res) => {
     }
 
     console.log("✅ fullData after parse:", fullData);
+
+    const bookingCategory = fullData.bookingCategory || "";
+    let authenticatedParentStudentEmail = "";
+
+    if (bookingCategory === "ParentStudent") {
+      try {
+        authenticatedParentStudentEmail = await verifyParentStudentGoogleEmail(body.googleCredential);
+      } catch (error) {
+        console.warn("⚠️ Parent / Student Google verification failed:", error.message);
+        return res.status(401).json({
+          success: false,
+          code: "PARENT_STUDENT_GOOGLE_AUTH_REQUIRED",
+          message: "Please sign in with Google again before submitting your guest room request.",
+        });
+      }
+    }
 
     const fileUrls = Array.isArray(fullData.files) ? fullData.files : [];
     console.log("📂 File URLs:", fileUrls);
@@ -131,7 +174,9 @@ export const createEnquiry = async (req, res) => {
 
     const enquiryData = {
       name: body.guestName || "",
-      email: body.guestEmail || "",
+      email: bookingCategory === "ParentStudent"
+        ? authenticatedParentStudentEmail
+        : body.guestEmail || "",
       contact: body.guestPhone || "",
       purpose: body.message || "",
 
@@ -156,7 +201,7 @@ export const createEnquiry = async (req, res) => {
       roomId: selectedRoom?._id || fullData.roomId || null,
       hostelName: selectedHostel?.name || fullData.hostelName || "",
       roomName: selectedRoom?.roomNo || fullData.roomName || "",
-      bookingCategory: fullData.bookingCategory || "",
+      bookingCategory,
       
       files: fileUrls,
       status: "pending",
@@ -182,6 +227,33 @@ export const createEnquiry = async (req, res) => {
         success: false,
         message: `${isParentStudentRequest ? "Parent / Student" : "Faculty / Staff"} enquiry cannot exceed ${maxGuestRequestDays} day(s)`,
       });
+    }
+
+    if (isParentStudentRequest) {
+      const activeEnquiry = await Enquiry.findOne({
+        bookingCategory: "ParentStudent",
+        status: { $in: ACTIVE_PARENT_STUDENT_ENQUIRY_STATUSES },
+        $expr: {
+          $eq: [
+            {
+              $toLower: {
+                $trim: { input: { $ifNull: ["$email", ""] } },
+              },
+            },
+            authenticatedParentStudentEmail,
+          ],
+        },
+      })
+        .select("_id status")
+        .lean();
+
+      if (activeEnquiry) {
+        return res.status(409).json({
+          success: false,
+          code: "ACTIVE_PARENT_STUDENT_ENQUIRY_EXISTS",
+          message: ACTIVE_PARENT_STUDENT_ENQUIRY_MESSAGE,
+        });
+      }
     }
 
     console.log("📋 ENQUIRY DATA TO SAVE:", enquiryData);
