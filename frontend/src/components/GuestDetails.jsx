@@ -19,6 +19,8 @@ import GuestActions from "./GuestDetails/GuestActions";
 import FlagGuestModal from "./Flags/FlagGuestModal";
 import GuestFlagBanner from "./Flags/GuestFlagBanner";
 import GuestFlagHistory from "./Flags/GuestFlagHistory";
+import TransferGuestModal from "./TransferGuestModal";
+import TransferHistory from "./GuestDetails/TransferHistory";
 import thaparLogo from "../assets/thapar_logo.png";
 import BillHistoryModal from "./BillHistoryModal";
 import {
@@ -80,6 +82,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const deptPayIkRef = useRef(null);
   const isDepartmentPayment = booking?.paymentResponsibility === "DEPARTMENT";
   const [showFlagGuestModal, setShowFlagGuestModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [guestFlagInfo, setGuestFlagInfo] = useState({ flags: [], risk: null });
 
   // ✅ FIXED: Close Guest Details panel on checkout
@@ -287,11 +290,28 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       }
     };
 
+    const handleBookingTransferred = (event) => {
+      const { bookingId } = event.detail || {};
+      const currentBookingId = booking?._id || booking?.id;
+      if (String(bookingId) !== String(currentBookingId)) return;
+
+      fetch(`${API}/api/bookings/${bookingId}`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success && data.booking) setBooking(normalizeBooking(data.booking));
+        })
+        .catch((err) => console.error("Failed to refresh transferred booking:", err));
+    };
+
     // Register event listeners
     window.addEventListener("bookingCancelled", handleBookingCancelled);
     window.addEventListener("bookingExtended", handleBookingExtended);
     window.addEventListener("paymentUpdated", handlePaymentUpdated);
     window.addEventListener("guestReported", handleGuestReported); // ✅ ADD THIS
+    window.addEventListener("bookingTransferred", handleBookingTransferred);
 
     // Cleanup
     return () => {
@@ -299,6 +319,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       window.removeEventListener("bookingExtended", handleBookingExtended);
       window.removeEventListener("paymentUpdated", handlePaymentUpdated);
       window.removeEventListener("guestReported", handleGuestReported); // ✅ ADD THIS
+      window.removeEventListener("bookingTransferred", handleBookingTransferred);
     };
   }, [booking, activeRoomRef, token]);
 
@@ -1149,6 +1170,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
                 handleRejoinBooking();
               }}
               onFlagGuest={() => setShowFlagGuestModal(true)}
+              onTransferGuest={() => setShowTransferModal(true)}
               onCancelBooking={() => setShowCancelModal(true)} 
               onPaymentWaiver={() => setShowPaymentWaiverModal(true)}
               userRole={userRole}
@@ -1193,6 +1215,8 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           canOverride={canOverrideGuestFlags}
           onOverride={handleOverrideGuestFlag}
         />
+
+        <TransferHistory history={b.transferHistory} theme={theme} />
 
         {/* 2. BOOKING INFO SECTION */}
         <div className={`p-6 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
@@ -1749,6 +1773,19 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           onSuccess={async () => {
             await refreshGuestFlags(b._id || b.id);
             showToast("✅ Guest flagged successfully", "success");
+          }}
+        />
+      )}
+
+      {showTransferModal && (
+        <TransferGuestModal
+          booking={b}
+          theme={theme}
+          onClose={() => setShowTransferModal(false)}
+          onSuccess={(updatedBooking, message) => {
+            setBooking(normalizeBooking(updatedBooking));
+            setShowTransferModal(false);
+            showToast(message || "Guest transferred successfully", "success");
           }}
         />
       )}

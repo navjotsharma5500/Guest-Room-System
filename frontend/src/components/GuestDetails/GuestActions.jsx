@@ -1,6 +1,6 @@
 // GuestActions.jsx - UPDATED: Added Payment Waiver button for Admin/Manager
 import React from "react";
-import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag } from "lucide-react";
+import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag, ArrowRightLeft } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import useSystemSettings from "../../hooks/useSystemSettings";
@@ -20,6 +20,7 @@ export default function GuestActions({
   onCancelBooking,
   onRejoinBooking,
   onFlagGuest,
+  onTransferGuest,
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
@@ -71,7 +72,11 @@ export default function GuestActions({
   const canFlagGuest =
     onFlagGuest &&
     booking &&
-    !["checked_out", "no_show"].includes(booking?.status) &&
+    booking?.status !== "no_show" &&
+    ["admin", "manager", "caretaker", "warden", "Warden", "co_warden", "adosa"].includes(userRole);
+  const canTransferGuest =
+    onTransferGuest &&
+    ["booked", "checked_in"].includes(booking?.status) &&
     ["admin", "manager", "caretaker", "warden", "Warden", "co_warden", "adosa"].includes(userRole);
 
   // ✅ WhatsApp and Email handlers
@@ -212,6 +217,19 @@ export default function GuestActions({
                     }}
                     theme={theme}
                     danger
+                  />
+                )}
+
+                {canTransferGuest && (
+                  <ActionButton
+                    icon={<ArrowRightLeft className="w-4 h-4" />}
+                    label="Transfer"
+                    onClick={() => {
+                      onTransferGuest();
+                      setShowActionsDropdown(false);
+                    }}
+                    theme={theme}
+                    highlight
                   />
                 )}
 

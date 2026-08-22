@@ -61,6 +61,10 @@ socket.on("guest-checked-out", (data) => {
   window.dispatchEvent(new CustomEvent("guestCheckedOut", { detail: data }));
 });
 
+socket.on("booking-transferred", (data) => {
+  window.dispatchEvent(new CustomEvent("bookingTransferred", { detail: data }));
+});
+
 // Enquiry events
 socket.on("enquiry-created", (data) => {
   window.dispatchEvent(new CustomEvent("enquiryCreated", { detail: data }));

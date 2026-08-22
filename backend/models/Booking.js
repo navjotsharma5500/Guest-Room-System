@@ -2,6 +2,40 @@
 import mongoose from "mongoose";
 import BookingCounter from "./BookingCounter.js";
 
+const TransferHistorySchema = new mongoose.Schema(
+  {
+    fromHostel: { type: String, required: true },
+    fromRoomNo: { type: String, required: true },
+    toHostel: { type: String, required: true },
+    toRoomNo: { type: String, required: true },
+    transferDate: { type: Date, required: true },
+    transferTime: { type: String, required: true },
+    segmentFrom: { type: Date, required: true },
+    segmentTo: { type: Date, required: true },
+    sourceStatus: { type: String, required: true },
+    sourceReportedStatus: { type: String, required: true },
+    sourceActualCheckInDate: { type: Date, default: null },
+    sourceActualCheckInTime: { type: String, default: "" },
+    sourceReportedAt: { type: Date, default: null },
+    sourceReportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    sourceIdVerified: { type: Boolean, default: false },
+    transferredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    transferredByName: { type: String, default: "" },
+    transferredByEmail: { type: String, default: "" },
+    remarks: { type: String, default: "" },
+    transferredAt: { type: Date, required: true },
+  },
+  { _id: false }
+);
+
 const getBookingDateKey = (date = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -44,6 +78,14 @@ const BookingSchema = new mongoose.Schema(
     // =========================
     hostel: { type: String, required: true },
     roomNo: { type: String, required: true },
+
+    transferHistory: { type: [TransferHistorySchema], default: [] },
+    lastTransferredAt: { type: Date, default: null },
+    lastTransferredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
     // =========================
     // STAY DATES & TIME

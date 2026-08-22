@@ -39,7 +39,8 @@ import {
   rejectExtension,
   getExtensionRequests,
   approveRebooking,
-  rejectRebooking
+  rejectRebooking,
+  transferBooking
 } from "../controllers/bookingController.js";
 
 router.get("/list", protect, getAllBookingsFlat);
@@ -53,6 +54,7 @@ router.post("/:id/approve", protect, authorizeRoles("admin"), approveRebooking);
 router.post("/:id/reject", protect, authorizeRoles("admin"), rejectRebooking);
 
 router.put("/:id/details", protect, updateBookingDetails);
+router.put("/:id/transfer", protect, transferBooking);
 
 const handleCancel = async (req, res) => { 
   await cancelBooking(req, res); 
@@ -136,6 +138,11 @@ const normalizeBooking = (b) => ({
   // Public reference used by dashboards, downloads, emails and receipts.
   // `id` remains the MongoDB key used by existing API actions.
   bookingId: b.bookingId || undefined,
+  hostel: b.hostel || "",
+  roomNo: b.roomNo || "",
+  transferHistory: Array.isArray(b.transferHistory) ? b.transferHistory : [],
+  lastTransferredAt: b.lastTransferredAt || null,
+  lastTransferredBy: b.lastTransferredBy || null,
 
   // 👤 Guest identity (GUARANTEED)
   guest: b.guest || b.guestName || "",

@@ -228,6 +228,11 @@ export function useHostelDataPolling(initialData = {}) {
       fetchData(true);
     };
 
+    const handleBookingTransferred = () => {
+      console.log("📋 Guest transferred - refreshing...");
+      fetchData(true);
+    };
+
     const handleBookingApproved = () => {
       console.log("📋 Booking approved - refreshing...");
       fetchData(true);
@@ -276,6 +281,7 @@ export function useHostelDataPolling(initialData = {}) {
     socket.on("enquiry-created", handleEnquiryCreated);
     socket.on("enquiry-updated", handleEnquiryUpdated);
     socket.on("guest-checked-out", handleGuestCheckedOut);
+    socket.on("booking-transferred", handleBookingTransferred);
     socket.on("booking-approved", handleBookingApproved);
     socket.on("booking-rejected", handleBookingRejected);
     socket.on("room-auto-unblocked", handleRoomAutoUnblocked);
@@ -300,6 +306,7 @@ export function useHostelDataPolling(initialData = {}) {
       socket.off("enquiry-created", handleEnquiryCreated);
       socket.off("enquiry-updated", handleEnquiryUpdated);
       socket.off("guest-checked-out", handleGuestCheckedOut);
+      socket.off("booking-transferred", handleBookingTransferred);
       socket.off("booking-approved", handleBookingApproved);
       socket.off("booking-rejected", handleBookingRejected);
       socket.off("room-auto-unblocked", handleRoomAutoUnblocked);

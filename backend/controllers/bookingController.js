@@ -21,6 +21,12 @@ import { asyncSendEmails } from "../utils/asyncEmail.js";
 import { getRequiredExtensionApprovalLevel, getSystemSettings } from "../utils/systemSettings.js";
 import { setRoomCleaningPending } from "../utils/roomCleaningState.js";
 import { assertGuestNotBlocked } from "../utils/guestFlagging.js";
+import {
+  bookingIntervalsOverlap,
+  combineIndiaDateAndTime,
+  getBookingFinalCheckout,
+  getCurrentSegmentStart,
+} from "../utils/bookingTransfer.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -1147,6 +1153,228 @@ export const markNotReported = async (req, res) => {
   }
 };
 
+// ================================
+// TRANSFER GUEST TO ANOTHER GUEST ROOM
+// ================================
+export const transferBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    const role = String(req.user?.role || "").toLowerCase();
+    const allowedRoles = new Set([
+      "admin",
+      "manager",
+      "adosa",
+      "co_warden",
+      "caretaker",
+      "warden",
+    ]);
+    if (!allowedRoles.has(role)) {
+      return res.status(403).json({ success: false, message: "You are not authorized to transfer guests" });
+    }
+
+    if (["caretaker", "warden"].includes(role)) {
+      const assignedHostel = req.user?.assignedHostel || req.user?.hostel;
+      if (!assignedHostel || assignedHostel !== booking.hostel) {
+        return res.status(403).json({
+          success: false,
+          message: "You can transfer guests only from your assigned hostel",
+        });
+      }
+    }
+
+    if (!["booked", "checked_in"].includes(booking.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Only booked or checked-in guests can be transferred",
+      });
+    }
+
+    const toHostel = String(req.body?.toHostel || "").trim();
+    const toRoomNo = String(req.body?.toRoomNo || "").trim();
+    const transferDate = String(req.body?.transferDate || "").trim();
+    const transferTime = String(req.body?.transferTime || "").trim();
+    const remarks = String(req.body?.remarks || "").trim();
+
+    if (!toHostel || !toRoomNo || !transferDate || !transferTime) {
+      return res.status(400).json({
+        success: false,
+        message: "Destination hostel, room, transfer date, and transfer time are required",
+      });
+    }
+
+    if (booking.hostel === toHostel && booking.roomNo === toRoomNo) {
+      return res.status(400).json({
+        success: false,
+        message: "Destination must be different from the current hostel and room",
+      });
+    }
+
+    const transferAt = combineIndiaDateAndTime(transferDate, transferTime);
+    if (!transferAt) {
+      return res.status(400).json({ success: false, message: "Invalid transfer date or time" });
+    }
+
+    const now = new Date();
+    if (transferAt > now) {
+      return res.status(400).json({ success: false, message: "Transfer date and time cannot be in the future" });
+    }
+
+    const segmentFrom = getCurrentSegmentStart(booking);
+    const finalCheckout = getBookingFinalCheckout(booking);
+    if (!segmentFrom || !finalCheckout) {
+      return res.status(400).json({ success: false, message: "Booking stay dates are invalid" });
+    }
+    if (transferAt < segmentFrom) {
+      return res.status(400).json({
+        success: false,
+        message: "Transfer cannot be before the current room segment started",
+      });
+    }
+    if (transferAt >= finalCheckout) {
+      return res.status(400).json({
+        success: false,
+        message: "Transfer must be before the final checkout date and time",
+      });
+    }
+    if (now >= finalCheckout) {
+      return res.status(400).json({
+        success: false,
+        message: "This booking has no remaining stay to transfer",
+      });
+    }
+
+    const destinationHostel = await Hostel.findOne({ name: toHostel });
+    if (!destinationHostel || destinationHostel.active === false) {
+      return res.status(400).json({ success: false, message: "Destination hostel is not enabled" });
+    }
+
+    const destinationRoom = destinationHostel.rooms?.find(
+      (room) => String(room.roomNo) === toRoomNo
+    );
+    if (!destinationRoom || destinationRoom.guestRoom === false) {
+      return res.status(400).json({ success: false, message: "Destination guest room is not enabled" });
+    }
+    if (destinationRoom.isBlocked || destinationRoom.roomState === "maintenance_blocked") {
+      return res.status(409).json({ success: false, message: "Destination room is blocked" });
+    }
+    if (destinationRoom.roomState === "cleaning_pending") {
+      return res.status(409).json({ success: false, message: "Destination room is pending cleaning" });
+    }
+
+    const destinationBookings = await Booking.find({
+      _id: { $ne: booking._id },
+      hostel: toHostel,
+      roomNo: toRoomNo,
+      status: { $in: ["booked", "checked_in"] },
+    }).select("from to checkInTime checkOutTime transferHistory guest bookingId");
+
+    const conflictingBooking = destinationBookings.find((candidate) => {
+      const candidateStart = getCurrentSegmentStart(candidate);
+      const candidateEnd = getBookingFinalCheckout(candidate);
+      return candidateStart && candidateEnd && bookingIntervalsOverlap(
+        transferAt,
+        finalCheckout,
+        candidateStart,
+        candidateEnd
+      );
+    });
+
+    if (conflictingBooking) {
+      return res.status(409).json({
+        success: false,
+        message: "Destination room is already booked during the remaining stay",
+        conflictingBookingId: conflictingBooking.bookingId || conflictingBooking._id,
+      });
+    }
+
+    const fromHostel = booking.hostel;
+    const fromRoomNo = booking.roomNo;
+    const sourceStatus = booking.status;
+    const sourceReportedStatus = booking.reportedStatus;
+    const transferredAt = new Date();
+
+    booking.transferHistory.push({
+      fromHostel,
+      fromRoomNo,
+      toHostel,
+      toRoomNo,
+      transferDate: transferAt,
+      transferTime,
+      segmentFrom,
+      segmentTo: transferAt,
+      sourceStatus,
+      sourceReportedStatus,
+      sourceActualCheckInDate: booking.actualCheckInDate || null,
+      sourceActualCheckInTime: booking.actualCheckInTime || "",
+      sourceReportedAt: booking.reportedAt || null,
+      sourceReportedBy: booking.reportedBy || null,
+      sourceIdVerified: Boolean(booking.idVerified),
+      transferredBy: req.user?._id || null,
+      transferredByName: req.user?.name || "",
+      transferredByEmail: req.user?.email || "",
+      remarks,
+      transferredAt,
+    });
+
+    booking.hostel = toHostel;
+    booking.roomNo = toRoomNo;
+    booking.caretakerEmail = destinationHostel.caretakerEmail || "";
+    booking.wardenEmail = destinationHostel.wardenEmail || "";
+    booking.status = "booked";
+    booking.reportedStatus = "pending";
+    booking.reportedAt = null;
+    booking.reportedBy = null;
+    booking.actualCheckInDate = null;
+    booking.actualCheckInTime = null;
+    booking.idVerified = false;
+    booking.noShowMarkedAt = null;
+    booking.lastTransferredAt = transferredAt;
+    booking.lastTransferredBy = req.user?._id || null;
+
+    await booking.save();
+    await createLog("guest_transferred", req.user?._id, {
+      bookingId: booking._id,
+      fromHostel,
+      fromRoomNo,
+      toHostel,
+      toRoomNo,
+      transferAt,
+      sourceStatus,
+      sourceReportedStatus,
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to("dashboard-room").emit("booking-transferred", {
+        bookingId: booking._id,
+        fromHostel,
+        fromRoomNo,
+        toHostel,
+        toRoomNo,
+        status: booking.status,
+        reportedStatus: booking.reportedStatus,
+        timestamp: Date.now(),
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Guest transferred successfully and is awaiting Report In at the destination",
+      booking,
+    });
+  } catch (error) {
+    console.error("Guest transfer error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to transfer guest",
+    });
+  }
+};
+
 const toDateOnly = (value) => {
   if (!value) return null;
   if (value instanceof Date) {
@@ -1206,7 +1434,12 @@ export const checkOutGuest = async (req, res) => {
     const checkoutTimestamp = actualCheckOutTime ? new Date(actualCheckOutTime) : new Date();
     const effectiveActualCheckoutDate = toDateOnly(actualCheckoutDate) || toDateOnly(checkoutTimestamp) || new Date();
     const plannedCheckoutDate = toDateOnly(booking.to);
-    const effectiveActualCheckInDate = toDateOnly(booking.actualCheckInDate || booking.from) || toDateOnly(booking.from) || effectiveActualCheckoutDate;
+    const firstReportedSegment = (booking.transferHistory || []).find(
+      (segment) => segment.sourceActualCheckInDate
+    );
+    const effectiveActualCheckInDate = toDateOnly(
+      firstReportedSegment?.sourceActualCheckInDate || booking.actualCheckInDate || booking.from
+    ) || toDateOnly(booking.from) || effectiveActualCheckoutDate;
 
     let resolvedCheckoutType = requestedCheckoutType || "NORMAL";
     if (plannedCheckoutDate && effectiveActualCheckoutDate < plannedCheckoutDate) {
@@ -2742,7 +2975,7 @@ export const autoCancelNoShows = async () => {
     // Find bookings that:
     // 1. Are still "booked" status
     // 2. Have reportedStatus "pending"
-    // 3. Check-in time was more than 10 hours ago
+    // 3. The current room segment started more than 23 hours ago
     const noShowBookings = await Booking.find({
       status: "booked",
       reportedStatus: "pending",
@@ -2752,13 +2985,11 @@ export const autoCancelNoShows = async () => {
     console.log(`📋 Found ${noShowBookings.length} no-show bookings`);
 
     for (const booking of noShowBookings) {
-      // Calculate exact check-in datetime
-      const checkInDateTime = new Date(booking.from);
-      const [hours, minutes] = (booking.checkInTime || "00:00").split(":");
-      checkInDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // A transfer resets destination reporting, so use the latest location
+      // segment rather than the original financial booking start.
+      const checkInDateTime = getCurrentSegmentStart(booking);
 
-      // Check if 10 hours have passed since check-in time
-      if (checkInDateTime < twentyThreeHoursAgo) {
+      if (checkInDateTime && checkInDateTime < twentyThreeHoursAgo) {
         booking.status = "cancelled";
         booking.reportedStatus = "not_reported";
         booking.cancelDate = new Date();
