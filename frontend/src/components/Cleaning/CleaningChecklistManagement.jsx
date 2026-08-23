@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -8,14 +8,27 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
   const assignedHostel = currentUser?.assignedHostel || currentUser?.hostel || "";
   const isAdmin = role === "admin";
   const [items, setItems] = useState([]);
-  const [settings, setSettings] = useState({
-    enableCleaningChecklist: true,
-    enableCleaningRequests: false,
-  });
+  const [itemsError, setItemsError] = useState("");
+  // Single source of truth: operations.enableCleaningWorkflow (System Controls
+  // → Enterprise Feature Switches → "Enable Cleaning Workflow"). This is NOT a
+  // second boolean — toggling it here writes the same canonical setting.
+  const [workflowEnabled, setWorkflowEnabled] = useState(true);
+  // Independent Guest Support setting: cleaning.enableCleaningRequests.
+  const [cleaningRequestsEnabled, setCleaningRequestsEnabled] = useState(true);
   const [label, setLabel] = useState("");
   const [scope, setScope] = useState(isAdmin ? "universal" : "hostel");
   const [hostel, setHostel] = useState(assignedHostel);
   const [loading, setLoading] = useState(false);
+
+  // Keep showToast current without making `load` depend on it — the parent
+  // (SettingsPage) passes a new showToast function on every render, and
+  // depending on it here previously re-triggered the fetch effect on every
+  // parent re-render, including the re-renders caused by the fetch's own
+  // error toast — producing a request loop against a 403 endpoint.
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
 
   const hostelOptions = useMemo(
     () => Array.from(new Set(items.filter((item) => item.hostel).map((item) => item.hostel))).sort(),
@@ -24,48 +37,82 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [itemsRes, settingsRes] = await Promise.all([
-        fetch("/api/cleaning/checklist-items", { credentials: "include" }),
-        fetch("/api/cleaning/settings", { credentials: "include" }),
-      ]);
-      const [itemsData, settingsData] = await Promise.all([itemsRes.json(), settingsRes.json()]);
-      if (!itemsRes.ok) throw new Error(itemsData.message || "Failed to load checklist items");
-      setItems(itemsData.items || []);
-      if (settingsData?.cleaning) setSettings(settingsData.cleaning);
-    } catch (err) {
-      showToast(err.message, "error");
-    } finally {
-      setLoading(false);
+    setItemsError("");
+
+    const [itemsResult, workflowResult, cleaningResult] = await Promise.allSettled([
+      fetch("/api/cleaning/checklist-items", { credentials: "include" }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || "Failed to load checklist items");
+        return data;
+      }),
+      fetch("/api/system-settings/public", { credentials: "include" }).then((res) => res.json()),
+      fetch("/api/cleaning/settings", { credentials: "include" }).then((res) => res.json()),
+    ]);
+
+    if (itemsResult.status === "fulfilled") {
+      setItems(itemsResult.value.items || []);
+    } else {
+      const message = itemsResult.reason?.message || "Failed to load checklist items";
+      setItemsError(message);
+      showToastRef.current(message, "error");
     }
-  }, [showToast]);
+
+    if (workflowResult.status === "fulfilled" && workflowResult.value?.success) {
+      setWorkflowEnabled(workflowResult.value.settings?.operations?.enableCleaningWorkflow !== false);
+    }
+
+    if (cleaningResult.status === "fulfilled" && cleaningResult.value?.success) {
+      setCleaningRequestsEnabled(cleaningResult.value.cleaning?.enableCleaningRequests === true);
+    }
+
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const saveSettings = async (patch) => {
-    const next = { ...settings, ...patch };
-    setSettings(next);
+  const saveWorkflowEnabled = async (checked) => {
+    const previous = workflowEnabled;
+    setWorkflowEnabled(checked);
+    try {
+      const res = await fetch("/api/system-settings", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operations: { enableCleaningWorkflow: checked } }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to update cleaning workflow");
+      showToastRef.current("Cleaning workflow updated", "success");
+    } catch (err) {
+      setWorkflowEnabled(previous);
+      showToastRef.current(err.message, "error");
+    }
+  };
+
+  const saveCleaningRequestsEnabled = async (checked) => {
+    const previous = cleaningRequestsEnabled;
+    setCleaningRequestsEnabled(checked);
     try {
       const res = await fetch("/api/cleaning/settings", {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify({ enableCleaningRequests: checked }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save settings");
-      showToast("Cleaning settings updated", "success");
+      if (!res.ok) throw new Error(data.message || "Failed to update cleaning requests setting");
+      showToastRef.current("Cleaning settings updated", "success");
     } catch (err) {
-      showToast(err.message, "error");
-      load();
+      setCleaningRequestsEnabled(previous);
+      showToastRef.current(err.message, "error");
     }
   };
 
   const addItem = async () => {
     if (!label.trim()) {
-      showToast("Enter checklist item name", "warning");
+      showToastRef.current("Enter checklist item name", "warning");
       return;
     }
 
@@ -83,10 +130,10 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to add item");
       setLabel("");
-      showToast("Checklist item added", "success");
+      showToastRef.current("Checklist item added", "success");
       load();
     } catch (err) {
-      showToast(err.message, "error");
+      showToastRef.current(err.message, "error");
     }
   };
 
@@ -99,10 +146,10 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to delete item");
-      showToast("Checklist item deleted", "success");
+      showToastRef.current("Checklist item deleted", "success");
       load();
     } catch (err) {
-      showToast(err.message, "error");
+      showToastRef.current(err.message, "error");
     }
   };
 
@@ -114,8 +161,8 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
             <span className="font-semibold text-slate-700">Enable Cleaning Checklist</span>
             <input
               type="checkbox"
-              checked={settings.enableCleaningChecklist}
-              onChange={(event) => saveSettings({ enableCleaningChecklist: event.target.checked })}
+              checked={workflowEnabled}
+              onChange={(event) => saveWorkflowEnabled(event.target.checked)}
               className="w-5 h-5"
             />
           </label>
@@ -123,8 +170,8 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
             <span className="font-semibold text-slate-700">Enable Cleaning Requests</span>
             <input
               type="checkbox"
-              checked={settings.enableCleaningRequests}
-              onChange={(event) => saveSettings({ enableCleaningRequests: event.target.checked })}
+              checked={cleaningRequestsEnabled}
+              onChange={(event) => saveCleaningRequestsEnabled(event.target.checked)}
               className="w-5 h-5"
             />
           </label>
@@ -171,6 +218,9 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
           Checklist Items {loading ? "(Loading...)" : ""}
         </div>
         <div className="divide-y max-h-[420px] overflow-y-auto">
+          {itemsError && !loading && (
+            <div className="px-4 py-3 text-sm text-red-600 bg-red-50">{itemsError}</div>
+          )}
           {items.map((item) => (
             <div key={item._id} className="px-4 py-3 flex items-center justify-between gap-3">
               <div>
@@ -189,7 +239,7 @@ export default function CleaningChecklistManagement({ showToast = () => {} }) {
               )}
             </div>
           ))}
-          {items.length === 0 && (
+          {!loading && !itemsError && items.length === 0 && (
             <div className="px-4 py-8 text-center text-slate-500">No checklist items found.</div>
           )}
         </div>

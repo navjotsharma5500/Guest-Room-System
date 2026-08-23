@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { Bold, CalendarClock, Italic, List, Paperclip, Send, Save, X } from "lucide-react";
 import {
@@ -64,6 +64,20 @@ export default function BroadcastComposerModal({ onClose, onSaved }) {
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
+  const [hostels, setHostels] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/hostels", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setHostels(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const hasSpecificHostel = form.recipientGroups.includes("specific_hostel");
   const hasCustomEmails = form.recipientGroups.includes("custom");
@@ -275,12 +289,20 @@ export default function BroadcastComposerModal({ onClose, onSaved }) {
               {hasSpecificHostel && (
                 <label className="space-y-2">
                   <span className="text-sm font-bold text-slate-700">Hostel Name</span>
-                  <input
+                  <select
                     value={form.specificHostel}
                     onChange={(event) => updateField("specificHostel", event.target.value)}
                     className="w-full border rounded-xl px-4 py-3"
-                    placeholder="Example: Tejas Hall (J)"
-                  />
+                    required
+                  >
+                    <option value="">Select hostel...</option>
+                    {hostels.map((hostel) => (
+                      <option key={hostel._id} value={hostel.name}>{hostel.name}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-slate-500">
+                    Sends only to that hostel's caretaker and warden.
+                  </span>
                 </label>
               )}
 

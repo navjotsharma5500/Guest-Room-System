@@ -6,10 +6,10 @@ export const setRoomCleaningPending = async ({ hostel, roomNo, bookingId, io = n
   if (!hostel || !roomNo) return null;
 
   const settings = await getSystemSettings();
-  if (
-    settings?.operations?.enableCleaningWorkflow === false ||
-    settings?.cleaning?.enableCleaningChecklist === false
-  ) {
+  // operations.enableCleaningWorkflow is the single canonical master switch
+  // for the post-checkout workflow (kept in sync with System Controls and
+  // Cleaning Checklist Management — see CleaningChecklistManagement.jsx).
+  if (settings?.operations?.enableCleaningWorkflow === false) {
     return null;
   }
 

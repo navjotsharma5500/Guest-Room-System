@@ -31,17 +31,21 @@ export const requireBroadcastAccess = async (req, res, next) => {
   next();
 };
 
-const normalizeEmails = (emails = []) => {
-  if (Array.isArray(emails)) {
-    return emails
-      .map((email) => String(email || "").trim().toLowerCase())
-      .filter(Boolean);
-  }
+// Same format check used elsewhere in the app (e.g. guestFeedbackController,
+// DirectBookingModal) — reused here rather than inventing a new validator.
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  return String(emails || "")
-    .split(/[\n,;]/)
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+export const normalizeEmails = (emails = []) => {
+  const raw = Array.isArray(emails) ? emails : String(emails || "").split(/[\n,;]/);
+
+  const deduped = new Set(
+    raw
+      .map((email) => String(email || "").trim().toLowerCase())
+      .filter(Boolean)
+      .filter((email) => EMAIL_FORMAT.test(email))
+  );
+
+  return Array.from(deduped);
 };
 
 const isNoticeType = (type) => ["general", "emergency"].includes(type);

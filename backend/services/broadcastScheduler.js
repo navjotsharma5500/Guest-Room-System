@@ -2,6 +2,7 @@ import BroadcastMessage from "../models/BroadcastMessage.js";
 import BroadcastDeliveryLog from "../models/BroadcastDeliveryLog.js";
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
+import Hostel from "../models/Hostel.js";
 import { sendEmailAdvanced } from "../emails/sendEmail.js";
 import masterTemplate from "../emails/templates/masterTemplate.js";
 import { getSystemSettings } from "../utils/systemSettings.js";
@@ -10,6 +11,19 @@ let schedulerStarted = false;
 let schedulerTimer = null;
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const escapeRegExp = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Canonical "active defaulter" definition — must match defaulterController.js's
+// getDefaulters default query exactly (department-paid and free bookings are
+// never defaulters; only guests who have actually checked in/out count).
+const DEFAULTER_QUERY = {
+  paymentType: { $ne: "Free" },
+  status: { $in: ["checked_in", "checked_out"] },
+  paymentResponsibility: { $ne: "DEPARTMENT" },
+  balanceAmount: { $gt: 0 },
+  email: { $exists: true, $ne: "" },
+};
 
 const stripHtml = (html = "") =>
   String(html)
@@ -98,11 +112,9 @@ export const resolveBroadcastRecipients = async (message) => {
   }
 
   if (groups.includes("all_defaulters")) {
-    const bookings = await Booking.find({
-      balanceAmount: { $gt: 0 },
-      status: { $nin: ["cancelled", "checked_out", "no_show"] },
-      email: { $exists: true, $ne: "" },
-    }).select("guest email status hostel roomNo balanceAmount");
+    const bookings = await Booking.find(DEFAULTER_QUERY).select(
+      "guest email status hostel roomNo balanceAmount"
+    );
 
     bookings.forEach((booking) =>
       addRecipient(recipients, {
@@ -114,39 +126,53 @@ export const resolveBroadcastRecipients = async (message) => {
     );
   }
 
+  // Specific Hostel targets ONLY that hostel's caretaker + warden — never
+  // guests. The canonical hostel-to-staff assignment lives on the Hostel
+  // document itself (required caretakerEmail/wardenEmail, the same fields
+  // every other booking notification in this app already emails), which we
+  // resolve by exact hostel name instead of matching free text. We also fold
+  // in any active User accounts explicitly assigned to that same resolved
+  // hostel, in case a hostel has additional caretaker/warden dashboard staff
+  // beyond the single canonical contact email.
   if (groups.includes("specific_hostel") && message.specificHostel) {
-    const hostelRegex = new RegExp(`^${String(message.specificHostel).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+    const hostelDoc = await Hostel.findOne({
+      name: { $regex: `^${escapeRegExp(message.specificHostel)}$`, $options: "i" },
+    }).select("name caretakerEmail wardenEmail");
 
-    const hostelUsers = await User.find({
-      role: { $in: [/^caretaker$/i, /^warden$/i] },
-      isActive: { $ne: false },
-      email: { $exists: true, $ne: "" },
-      $or: [{ assignedHostel: hostelRegex }, { hostel: hostelRegex }],
-    }).select("name email role assignedHostel hostel");
+    if (hostelDoc) {
+      if (hostelDoc.caretakerEmail) {
+        addRecipient(recipients, {
+          email: hostelDoc.caretakerEmail,
+          name: "Caretaker",
+          role: "caretaker",
+          group: "specific_hostel",
+        });
+      }
+      if (hostelDoc.wardenEmail) {
+        addRecipient(recipients, {
+          email: hostelDoc.wardenEmail,
+          name: "Warden",
+          role: "Warden",
+          group: "specific_hostel",
+        });
+      }
 
-    hostelUsers.forEach((user) =>
-      addRecipient(recipients, {
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        group: "specific_hostel",
-      })
-    );
+      const hostelStaff = await User.find({
+        role: { $in: [/^caretaker$/i, /^warden$/i] },
+        isActive: { $ne: false },
+        email: { $exists: true, $ne: "" },
+        $or: [{ assignedHostel: hostelDoc.name }, { hostel: hostelDoc.name }],
+      }).select("name email role");
 
-    const hostelGuests = await Booking.find({
-      hostel: hostelRegex,
-      status: { $in: ["booked", "checked_in"] },
-      email: { $exists: true, $ne: "" },
-    }).select("guest email status hostel roomNo");
-
-    hostelGuests.forEach((booking) =>
-      addRecipient(recipients, {
-        email: booking.email,
-        name: booking.guest,
-        role: "guest",
-        group: "specific_hostel",
-      })
-    );
+      hostelStaff.forEach((user) =>
+        addRecipient(recipients, {
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          group: "specific_hostel",
+        })
+      );
+    }
   }
 
   if (groups.includes("custom")) {

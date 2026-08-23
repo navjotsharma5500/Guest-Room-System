@@ -76,9 +76,10 @@ export const updateCleaningSettings = async (req, res) => {
 };
 
 export const getChecklistItems = async (req, res) => {
-  const settings = await ensureCleaningEnabled(res);
-  if (!settings) return;
-
+  // Admin/caretaker configuration surface — must stay reachable even while
+  // the runtime post-checkout workflow (operations.enableCleaningWorkflow)
+  // is switched off, otherwise the checklist can never be reconfigured or
+  // re-enabled. Runtime endpoints below still call ensureCleaningEnabled.
   await ensureDefaultChecklistItems();
 
   const role = roleOf(req.user);
@@ -108,9 +109,7 @@ export const getChecklistItems = async (req, res) => {
 };
 
 export const addChecklistItem = async (req, res) => {
-  const settings = await ensureCleaningEnabled(res);
-  if (!settings) return;
-
+  // Configuration endpoint — see note on getChecklistItems above.
   const label = String(req.body?.label || "").trim();
   const role = roleOf(req.user);
   const requestedScope = String(req.body?.scope || "hostel").toLowerCase();
@@ -151,9 +150,7 @@ export const addChecklistItem = async (req, res) => {
 };
 
 export const deleteChecklistItem = async (req, res) => {
-  const settings = await ensureCleaningEnabled(res);
-  if (!settings) return;
-
+  // Configuration endpoint — see note on getChecklistItems above.
   const item = await ChecklistItem.findById(req.params.id);
   if (!item) {
     return res.status(404).json({ success: false, message: "Checklist item not found" });
