@@ -1,18 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
-  Building2, Calendar, Moon, Globe, Search, Sparkles, Lock,
-  X, ArrowRight, LayoutDashboard, Settings, IndianRupee, LogOut,
-  Package, Users, AlertCircle, ExternalLink, Send,
-  BrainCircuit, QrCode, MessageSquare, CalendarDays,
-  FileText, HelpCircle, BarChart3, Star, ChevronRight, Home,
-  Grid, Eye, TrendingUp, TrendingDown, Activity, Clock,
+  Building2, Globe, IndianRupee, Users, AlertCircle, MessageSquare,
+  FileText, Star, Eye, TrendingUp, TrendingDown, Activity, Clock,
   Wifi, Monitor, Smartphone, CheckCircle, XCircle, RefreshCw,
-  Database, Zap, Globe2, MousePointer,
+  Database, Zap, Globe2,
 } from "lucide-react";
-import CreatorProfile from "../../components/CreatorProfile";
-import { useAuth } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../utils/apiConfig";
 import { parseISO, format, getQuarter, getYear, subDays, isAfter } from "date-fns";
 import {
@@ -22,23 +15,72 @@ import {
 
 const API = BACKEND_URL;
 
-const DASHBOARD_SELECTOR_ENABLED = true;
-
 const PC = {
   red:    "#DC2626", blue:   "#3B82F6", green:  "#10B981", amber:  "#F59E0B",
   purple: "#8B5CF6", teal:   "#14B8A6", pink:   "#EC4899", gray:   "#6B7280",
 };
 
-const AdminAnalyticsDashboard = ({ userName }) => {
+const GA_PERIODS = [
+  { value: "today", label: "Today Live" },
+  { value: "7", label: "7 Days" },
+  { value: "30", label: "30 Days" },
+  { value: "90", label: "90 Days" },
+];
+
+const GA_SCOPES = [
+  { value: "overall", label: "Overall" },
+  { value: "campusconnect", label: "Campus Connect" },
+  { value: "societies", label: "Student Societies" },
+  { value: "permissions", label: "Society Night Permission" },
+];
+
+const GA_TABS = [
+  { id: "daily", label: "📅 Daily Traffic" },
+  { id: "applications", label: "🌐 Traffic by Application" },
+  { id: "pages", label: "📄 Top Pages" },
+  { id: "sources", label: "🔗 Traffic Sources" },
+  { id: "geo", label: "🌍 Geography" },
+  { id: "browser", label: "🌐 Browser / OS" },
+];
+
+const analyticsErrorDetails = (response, payload) => {
+  const errorType = payload?.errorType || (response?.status === 503 ? "not_configured" : "permission_or_api");
+  const messages = {
+    not_configured: {
+      title: "GA4 is not configured",
+      message: payload?.message || "The backend analytics configuration is incomplete.",
+    },
+    permission_or_api: {
+      title: "GA4 permission or API failure",
+      message: payload?.message || "Google Analytics rejected the reporting request.",
+    },
+    network: {
+      title: "Analytics network error",
+      message: payload?.message || "The analytics service could not be reached.",
+    },
+    invalid_scope: {
+      title: "Invalid analytics scope",
+      message: payload?.message || "The selected application scope is not supported.",
+    },
+  };
+  return messages[errorType] || {
+    title: "Analytics unavailable",
+    message: payload?.message || `Analytics request failed${response?.status ? ` (${response.status})` : ""}.`,
+  };
+};
+
+const AdvancedAnalyticsPage = () => {
   const [bookings, setBookings]   = useState([]);
   const [dashStats, setDashStats] = useState(null);
   const [ga4, setGa4]             = useState(null);
   const [awsStats, setAwsStats]   = useState(null);
   const [awsLoading, setAwsLoading] = useState(true);
   const [ga4Period, setGa4Period] = useState("30");
+  const [ga4Scope, setGa4Scope] = useState("overall");
   const [ga4Realtime, setGa4Realtime] = useState(null);
   const [loading, setLoading]     = useState(true);
   const [ga4Loading, setGa4Loading] = useState(true);
+  const [ga4Error, setGa4Error] = useState(null);
   const [error, setError]         = useState(null);
   const [range, setRange]         = useState("Monthly");
   const [activeChart, setActiveChart]   = useState("trend");
@@ -70,20 +112,35 @@ const AdminAnalyticsDashboard = ({ userName }) => {
     finally { setLoading(false); }
   }, []);
 
-  const fetchGA4 = useCallback(async (period = "30") => {
+  const fetchGA4 = useCallback(async (period = "30", scope = "overall") => {
     setGa4Loading(true);
+    setGa4Error(null);
     try {
-      const query = period === "yesterday" || period === "today"
-        ? `period=${period}`
-        : `days=${period}`;
-      const requests = [fetch(`${API}/api/analytics/ga4?${query}`, { credentials: "include" })];
-      if (period === "today") {
-        requests.push(fetch(`${API}/api/analytics/ga4/realtime`, { credentials: "include" }));
+      const endpoint = period === "today"
+        ? `${API}/api/analytics/ga4/realtime?scope=${encodeURIComponent(scope)}`
+        : `${API}/api/analytics/ga4?days=${encodeURIComponent(period)}&scope=${encodeURIComponent(scope)}`;
+      const response = await fetch(endpoint, { credentials: "include" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.configured) {
+        setGa4Error(analyticsErrorDetails(response, payload));
+        if (period === "today") setGa4Realtime(null);
+        else setGa4(null);
+        return;
       }
-      const [standardRes, realtimeRes] = await Promise.all(requests);
-      setGa4(await standardRes.json());
-      setGa4Realtime(realtimeRes ? await realtimeRes.json() : null);
-    } catch { setGa4({ configured: false, message: "Failed to connect to analytics" }); }
+      if (period === "today") {
+        setGa4Realtime(payload);
+      } else {
+        setGa4(payload);
+        setGa4Realtime(null);
+      }
+    } catch (error) {
+      setGa4Error({
+        title: "Analytics network error",
+        message: error?.message || "The analytics service could not be reached.",
+      });
+      if (period === "today") setGa4Realtime(null);
+      else setGa4(null);
+    }
     finally { setGa4Loading(false); }
   }, []);
 
@@ -105,11 +162,12 @@ const AdminAnalyticsDashboard = ({ userName }) => {
 
   useEffect(() => {
     fetchData();
-    fetchGA4("30");
+    fetchGA4("30", "overall");
     fetchAWS();
   }, [fetchData, fetchGA4, fetchAWS]);
 
-  const handleGa4Period = (period) => { setGa4Period(period); fetchGA4(period); };
+  const handleGa4Period = (period) => { setGa4Period(period); fetchGA4(period, ga4Scope); };
+  const handleGa4Scope = (scope) => { setGa4Scope(scope); fetchGA4(ga4Period, scope); };
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const total      = bookings.length;
@@ -192,6 +250,43 @@ const AdminAnalyticsDashboard = ({ userName }) => {
     { id: "status",     label: "⚡ Status" },
     { id: "payment",    label: "💳 Payment" },
   ];
+
+  const isRealtime = ga4Period === "today";
+  const gaData = isRealtime ? ga4Realtime : ga4;
+  const overallTraffic = gaData?.overall || (isRealtime ? null : gaData ? {
+    overview: gaData.overview,
+    peakHour: gaData.peakHour,
+    devices: gaData.devices,
+    hourly: gaData.hourly,
+  } : null);
+  const selectedScopeLabel = GA_SCOPES.find(scope => scope.value === ga4Scope)?.label || "Overall";
+  const overallKpis = isRealtime && overallTraffic ? [
+    { label: "Active Users Now", value: overallTraffic.activeUsers.toLocaleString(), sub: "genuine GA4 realtime users", icon: Activity, iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
+    { label: "Page Views", value: overallTraffic.pageViews.toLocaleString(), sub: "views in the realtime window", icon: Eye, iconBg: "bg-purple-100", iconColor: "text-purple-600" },
+    { label: "Events", value: overallTraffic.eventCount.toLocaleString(), sub: "events in the realtime window", icon: Zap, iconBg: "bg-blue-100", iconColor: "text-blue-600" },
+    { label: "Key Events", value: overallTraffic.keyEvents.toLocaleString(), sub: "GA4 key events in realtime", icon: Star, iconBg: "bg-amber-100", iconColor: "text-amber-600" },
+  ] : overallTraffic?.overview ? [
+    { label: "Total Sessions", value: overallTraffic.overview.sessions.toLocaleString(),
+      sub: `vs ${overallTraffic.overview.prevSessions.toLocaleString()} prev period`,
+      icon: Activity, iconBg: "bg-blue-100", iconColor: "text-blue-600",
+      trendUp: overallTraffic.overview.sessions >= overallTraffic.overview.prevSessions,
+      trend: overallTraffic.overview.prevSessions > 0 ? `${overallTraffic.overview.sessions >= overallTraffic.overview.prevSessions ? "+" : ""}${Math.round(((overallTraffic.overview.sessions - overallTraffic.overview.prevSessions) / overallTraffic.overview.prevSessions) * 100)}%` : null },
+    { label: "Total Users", value: overallTraffic.overview.totalUsers.toLocaleString(),
+      sub: `${overallTraffic.overview.newUsers.toLocaleString()} new · ${overallTraffic.overview.returningUsers.toLocaleString()} returning`,
+      icon: Users, iconBg: "bg-green-100", iconColor: "text-green-600",
+      trendUp: overallTraffic.overview.totalUsers >= overallTraffic.overview.prevUsers,
+      trend: overallTraffic.overview.prevUsers > 0 ? `${overallTraffic.overview.totalUsers >= overallTraffic.overview.prevUsers ? "+" : ""}${Math.round(((overallTraffic.overview.totalUsers - overallTraffic.overview.prevUsers) / overallTraffic.overview.prevUsers) * 100)}% vs prev` : null },
+    { label: "Page Views", value: overallTraffic.overview.pageViews.toLocaleString(),
+      sub: `${overallTraffic.overview.sessions > 0 ? (overallTraffic.overview.pageViews / overallTraffic.overview.sessions).toFixed(1) : 0} pages/session`,
+      icon: Eye, iconBg: "bg-purple-100", iconColor: "text-purple-600",
+      trendUp: overallTraffic.overview.pageViews >= overallTraffic.overview.prevPageViews,
+      trend: overallTraffic.overview.prevPageViews > 0 ? `${overallTraffic.overview.pageViews >= overallTraffic.overview.prevPageViews ? "+" : ""}${Math.round(((overallTraffic.overview.pageViews - overallTraffic.overview.prevPageViews) / overallTraffic.overview.prevPageViews) * 100)}% vs prev` : null },
+    { label: "Bounce Rate", value: `${overallTraffic.overview.bounceRate}%`,
+      sub: `avg ${Math.floor(overallTraffic.overview.avgSessionDuration / 60)}m ${overallTraffic.overview.avgSessionDuration % 60}s session`,
+      icon: TrendingDown, iconBg: "bg-amber-100", iconColor: "text-amber-600",
+      trendUp: overallTraffic.overview.bounceRate < 50,
+      trend: overallTraffic.overview.bounceRate < 50 ? "Good bounce rate" : "High bounce rate" },
+  ] : [];
 
   const KpiCard = ({ label, value, sub, color = "text-slate-900", icon: Icon, iconBg = "bg-slate-100", iconColor = "text-slate-600", trend, trendUp, accent }) => (
     <div className={`relative overflow-hidden rounded-2xl p-4 border shadow-sm hover:shadow-lg transition-all group ${
@@ -312,25 +407,17 @@ const AdminAnalyticsDashboard = ({ userName }) => {
             <Globe2 className="w-4 h-4 text-blue-600" /> Website Traffic
             <span className="text-xs font-normal text-slate-400 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">Google Analytics 4</span>
           </h2>
-          {ga4?.configured && (
-            <div className="flex items-center gap-1.5">
-              {[
-                { value: "yesterday", label: "Yesterday" },
-                { value: "7", label: "7 Days" },
-                { value: "30", label: "30 Days" },
-                { value: "90", label: "90 Days" },
-                { value: "today", label: "Today Live" },
-              ].map(option => (
+          <div className="flex items-center gap-1.5 flex-wrap">
+              {GA_PERIODS.map(option => (
                 <button key={option.value} onClick={() => handleGa4Period(option.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     ga4Period === option.value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}>{option.label}</button>
               ))}
-              <button onClick={() => fetchGA4(ga4Period)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition">
+              <button onClick={() => fetchGA4(ga4Period, ga4Scope)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition" aria-label="Refresh Google Analytics">
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${ga4Loading ? "animate-spin" : ""}`} />
               </button>
-            </div>
-          )}
+          </div>
         </div>
 
         {ga4Loading ? (
@@ -340,56 +427,33 @@ const AdminAnalyticsDashboard = ({ userName }) => {
               <p className="text-xs text-slate-400">Loading traffic data…</p>
             </div>
           </div>
-        ) : !ga4?.configured ? (
+        ) : ga4Error ? (
           <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-5">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-4 h-4 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm font-bold text-orange-800 mb-1">GA4 Backend Not Configured</p>
+                <p className="text-sm font-bold text-orange-800 mb-1">{ga4Error.title}</p>
                 <p className="text-xs text-orange-600 mb-3 leading-relaxed">
-                  {ga4?.message || "Set GA4_PROPERTY_ID and GOOGLE_SERVICE_ACCOUNT_KEY in your backend .env file."}
-                </p>
-                <div className="bg-orange-900/10 rounded-xl p-3 font-mono text-[11px] text-orange-800 space-y-1">
-                  <p>GA4_PROPERTY_ID=properties/YOUR_NUMERIC_ID</p>
-                  <p>{`GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}`}</p>
-                </div>
-                <p className="text-[11px] text-orange-500 mt-2">
-                  GA4 frontend tracking is installed ✅ — only the backend service account configuration is missing.
+                  {ga4Error.message}
                 </p>
               </div>
             </div>
           </div>
+        ) : !gaData?.configured ? (
+          <div className="rounded-2xl border border-slate-200 bg-white/70 p-6 text-sm text-slate-500">
+            Analytics returned no usable response.
+          </div>
         ) : (
           <>
-            {ga4Period === "today" && (
-              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Today So Far</p>
-            )}
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Overall Traffic</p>
+              {isRealtime && <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Live now</span>}
+            </div>
             {/* GA4 KPI row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: "Total Sessions", value: ga4.overview.sessions.toLocaleString(),
-                  sub: `vs ${ga4.overview.prevSessions.toLocaleString()} prev period`,
-                  icon: Activity, iconBg: "bg-blue-100", iconColor: "text-blue-600",
-                  trendUp: ga4.overview.sessions >= ga4.overview.prevSessions,
-                  trend: ga4.overview.prevSessions > 0 ? `${ga4.overview.sessions >= ga4.overview.prevSessions ? "+" : ""}${Math.round(((ga4.overview.sessions - ga4.overview.prevSessions) / ga4.overview.prevSessions) * 100)}%` : null },
-                { label: "Total Users", value: ga4.overview.totalUsers.toLocaleString(),
-                  sub: `${ga4.overview.newUsers.toLocaleString()} new · ${ga4.overview.returningUsers.toLocaleString()} returning`,
-                  icon: Users, iconBg: "bg-green-100", iconColor: "text-green-600",
-                  trendUp: ga4.overview.totalUsers >= ga4.overview.prevUsers,
-                  trend: ga4.overview.prevUsers > 0 ? `${ga4.overview.totalUsers >= ga4.overview.prevUsers ? "+" : ""}${Math.round(((ga4.overview.totalUsers - ga4.overview.prevUsers) / ga4.overview.prevUsers) * 100)}% vs prev` : null },
-                { label: "Page Views", value: ga4.overview.pageViews.toLocaleString(),
-                  sub: `${ga4.overview.sessions > 0 ? (ga4.overview.pageViews / ga4.overview.sessions).toFixed(1) : 0} pages/session`,
-                  icon: Eye, iconBg: "bg-purple-100", iconColor: "text-purple-600",
-                  trendUp: ga4.overview.pageViews >= ga4.overview.prevPageViews,
-                  trend: ga4.overview.prevPageViews > 0 ? `${ga4.overview.pageViews >= ga4.overview.prevPageViews ? "+" : ""}${Math.round(((ga4.overview.pageViews - ga4.overview.prevPageViews) / ga4.overview.prevPageViews) * 100)}% vs prev` : null },
-                { label: "Bounce Rate", value: `${ga4.overview.bounceRate}%`,
-                  sub: `avg ${Math.floor(ga4.overview.avgSessionDuration / 60)}m ${ga4.overview.avgSessionDuration % 60}s session`,
-                  icon: TrendingDown, iconBg: "bg-amber-100", iconColor: "text-amber-600",
-                  trendUp: ga4.overview.bounceRate < 50,
-                  trend: ga4.overview.bounceRate < 50 ? "Good bounce rate" : "High bounce rate" },
-              ].map((k, i) => (
+              {overallKpis.map((k, i) => (
                 <div key={i} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <p className="text-xs text-slate-500 font-medium">{k.label}</p>
@@ -408,53 +472,14 @@ const AdminAnalyticsDashboard = ({ userName }) => {
               ))}
             </div>
 
-            {ga4Period === "today" && (
-              <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" /></span>
-                  <h3 className="text-sm font-bold text-slate-800">Live Now</h3>
-                </div>
-                {!ga4Realtime?.configured ? (
-                  <p className="text-xs text-slate-500">Live data is currently unavailable{ga4Realtime?.message ? `: ${ga4Realtime.message}` : "."}</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                      <p className="text-xs text-slate-500">Active Users Now</p>
-                      <p className="text-4xl font-bold text-emerald-700 my-1">{ga4Realtime.activeUsers.toLocaleString()}</p>
-                      <div className="mt-3 space-y-2">
-                        {(ga4Realtime.activeUsersByHostname || []).map(item => (
-                          <div key={item.domain} className="flex justify-between gap-3 text-xs">
-                            <span className="text-slate-600 truncate">{item.domain}</span>
-                            <span className="font-bold text-slate-800">{item.activeUsers.toLocaleString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-600 mb-2">Top active pages right now</p>
-                      {(ga4Realtime.activePages || []).length === 0 ? <p className="text-xs text-slate-400">No active pages reported.</p> : (
-                        <div className="space-y-2">
-                          {(ga4Realtime.activePages || []).map((page, index) => (
-                            <div key={`${page.domain}-${page.page}-${index}`} className="flex justify-between gap-3 text-xs">
-                              <span className="text-slate-600 truncate" title={`${page.domain}${page.page || "/"}`}>{page.domain}{page.page || "/"}</span>
-                              <span className="font-bold text-emerald-700">{page.activeUsers.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* New vs Returning / Peak Hour / Devices */}
+            {/* Historical Overall details */}
+            {!isRealtime && overallTraffic?.overview && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
                 <p className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> New vs Returning</p>
-                {[{ label: "New Users", value: ga4.overview.newUsers, color: "bg-blue-500" },
-                  { label: "Returning", value: ga4.overview.returningUsers, color: "bg-green-500" }].map((u, i) => {
-                  const pct = ga4.overview.totalUsers > 0 ? (u.value / ga4.overview.totalUsers) * 100 : 0;
+                {[{ label: "New Users", value: overallTraffic.overview.newUsers, color: "bg-blue-500" },
+                  { label: "Returning", value: overallTraffic.overview.returningUsers, color: "bg-green-500" }].map((u, i) => {
+                  const pct = overallTraffic.overview.totalUsers > 0 ? (u.value / overallTraffic.overview.totalUsers) * 100 : 0;
                   return (
                     <div key={i} className="mb-2">
                       <div className="flex justify-between text-xs mb-1">
@@ -471,11 +496,11 @@ const AdminAnalyticsDashboard = ({ userName }) => {
 
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
                 <p className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Peak Traffic Hour</p>
-                <p className="text-3xl font-bold text-blue-700">{ga4.peakHour}</p>
-                <p className="text-xs text-slate-400 mt-1">Most active hour for the selected period</p>
+                <p className="text-3xl font-bold text-blue-700">{overallTraffic.peakHour}</p>
+                <p className="text-xs text-slate-400 mt-1">Most active hour across all applications</p>
                 <div className="mt-3 flex gap-1 flex-wrap">
-                  {(ga4.hourly || []).filter((_, i) => i % 3 === 0).slice(0, 8).map((h, i) => {
-                    const max = Math.max(...(ga4.hourly || []).map(x => x.sessions));
+                  {(overallTraffic.hourly || []).filter((_, i) => i % 3 === 0).slice(0, 8).map((h, i) => {
+                    const max = Math.max(...(overallTraffic.hourly || []).map(x => x.sessions));
                     const pct = max > 0 ? (h.sessions / max) * 100 : 0;
                     return (
                       <div key={i} className="flex flex-col items-center gap-0.5">
@@ -491,8 +516,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
 
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/80 shadow-sm">
                 <p className="text-xs font-bold text-slate-600 mb-3 flex items-center gap-1.5"><Monitor className="w-3.5 h-3.5" /> Devices</p>
-                {(ga4.devices || []).map((d, i) => {
-                  const tot = (ga4.devices || []).reduce((s, x) => s + x.sessions, 0);
+                {(overallTraffic.devices || []).map((d, i) => {
+                  const tot = (overallTraffic.devices || []).reduce((s, x) => s + x.sessions, 0);
                   const pct = tot > 0 ? (d.sessions / tot) * 100 : 0;
                   const DevIcon = d.device === "mobile" || d.device === "tablet" ? Smartphone : Monitor;
                   return (
@@ -508,11 +533,35 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                 })}
               </div>
             </div>
+            )}
+
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">Application scope</span>
+                {GA_SCOPES.map(scope => (
+                  <button key={scope.value} onClick={() => handleGa4Scope(scope.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      ga4Scope === scope.value ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-200 hover:border-blue-300"
+                    }`}>
+                    {scope.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                Detail panels are filtered to {selectedScopeLabel}. Overall Traffic cards above always remain combined.
+              </p>
+            </div>
+
+            {!gaData.hasData && (
+              <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 text-sm text-slate-500">
+                No Google Analytics data was returned for {selectedScopeLabel} in this period.
+              </div>
+            )}
 
             {/* GA4 Chart tabs */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/80 shadow-sm overflow-hidden">
               <div className="flex border-b border-slate-100 overflow-x-auto">
-                {[{ id:"daily",label:"📅 Daily Traffic"},{id:"domains",label:"🌐 Traffic by Domain"},{id:"pages",label:"📄 Top 10 Pages"},{id:"sources",label:"🔗 Traffic Sources"},{id:"geo",label:"🌍 Geography"},{id:"browser",label:"🌐 Browser / OS"}].map(tab => (
+                {GA_TABS.map(tab => (
                   <button key={tab.id} onClick={() => setActiveTraffic(tab.id)}
                     className={`px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all ${activeTraffic === tab.id ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-slate-500 hover:text-slate-700"}`}>
                     {tab.label}
@@ -520,24 +569,33 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                 ))}
               </div>
               <div className="p-5">
-                {activeTraffic === "daily" && (ga4.daily || []).length > 0 && (
+                {activeTraffic === "daily" && (isRealtime ? (gaData.activity || []).length > 0 : (gaData.daily || []).length > 0) && (
                   <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={ga4.daily}>
+                    <AreaChart data={isRealtime
+                      ? (gaData.activity || []).map(item => ({ ...item, date: item.minutesAgo === 0 ? "Now" : `${item.minutesAgo}m ago`, sessions: item.activeUsers }))
+                      : gaData.daily}>
                       <defs>
                         <linearGradient id="sG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15}/><stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/></linearGradient>
                         <linearGradient id="uG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.12}/><stop offset="95%" stopColor="#10B981" stopOpacity={0}/></linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" /><XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} /><YAxis tick={{ fontSize: 11 }} /><Tooltip />
-                      <Area type="monotone" dataKey="sessions"  stroke="#3B82F6" fill="url(#sG)" strokeWidth={2} name="Sessions" />
-                      <Area type="monotone" dataKey="users"     stroke="#10B981" fill="url(#uG)" strokeWidth={2} name="Users" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" /><XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => isRealtime ? d : d.slice(5)} /><YAxis tick={{ fontSize: 11 }} /><Tooltip />
+                      <Area type="monotone" dataKey="sessions"  stroke="#3B82F6" fill="url(#sG)" strokeWidth={2} name={isRealtime ? "Active Users" : "Sessions"} />
+                      {!isRealtime && <Area type="monotone" dataKey="users" stroke="#10B981" fill="url(#uG)" strokeWidth={2} name="Users" />}
                       <Area type="monotone" dataKey="pageViews" stroke="#8B5CF6" fill="none" strokeWidth={1.5} strokeDasharray="4 2" name="Page Views" />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
+                {activeTraffic === "daily" && (isRealtime ? (gaData.activity || []).length === 0 : (gaData.daily || []).length === 0) && (
+                  <p className="text-sm text-slate-400">No traffic trend data is available for {selectedScopeLabel}.</p>
+                )}
                 {activeTraffic === "sources" && (
-                  <div className="space-y-3">
-                    {(ga4.sources || []).map((s, i) => {
-                      const max = Math.max(...(ga4.sources||[]).map(x=>x.sessions));
+                  isRealtime ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                      Traffic-source dimensions are not supported by the GA4 Realtime API. Select 7, 30, or 90 Days for acquisition data.
+                    </div>
+                  ) : <div className="space-y-3">
+                    {(gaData.sources || []).map((s, i) => {
+                      const max = Math.max(...(gaData.sources||[]).map(x=>x.sessions));
                       const pct = max > 0 ? (s.sessions/max)*100 : 0;
                       const colors = [PC.blue,PC.green,PC.amber,PC.purple,PC.red,PC.teal,PC.pink,PC.gray];
                       return (
@@ -552,25 +610,29 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                     })}
                   </div>
                 )}
-                {activeTraffic === "domains" && (
+                {activeTraffic === "applications" && (
                   <div className="space-y-3">
-                    {(ga4.domains || []).map((d, i) => {
-                      const totalSessions = (ga4.domains || []).reduce((sum, item) => sum + item.sessions, 0);
-                      const pct = totalSessions > 0 ? (d.sessions / totalSessions) * 100 : 0;
-                      const colors = [PC.blue, PC.purple];
+                    {(gaData.applications || []).map((application, i) => {
+                      const metricValue = isRealtime ? application.activeUsers : application.sessions;
+                      const totalMetric = (gaData.applications || []).reduce(
+                        (sum, item) => sum + (isRealtime ? item.activeUsers : item.sessions),
+                        0
+                      );
+                      const pct = totalMetric > 0 ? (metricValue / totalMetric) * 100 : 0;
+                      const colors = [PC.blue, PC.purple, PC.amber];
                       return (
-                        <div key={d.domain} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                        <div key={application.key} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
                           <div className="flex items-center justify-between gap-3 mb-2">
-                            <span className="text-xs font-semibold text-slate-700 truncate">{d.domain}</span>
-                            <span className="text-xs font-bold text-slate-800">{d.sessions.toLocaleString()} sessions</span>
+                            <span className="text-xs font-semibold text-slate-700 truncate">{application.label}</span>
+                            <span className="text-xs font-bold text-slate-800">{metricValue.toLocaleString()} {isRealtime ? "active users" : "sessions"}</span>
                           </div>
                           <div className="bg-slate-200/70 rounded-full h-2 overflow-hidden">
                             <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{delay:i*0.08,duration:0.6}} className="h-full rounded-full" style={{backgroundColor:colors[i%colors.length]}} />
                           </div>
                           <div className="flex gap-4 mt-2 text-[11px] text-slate-500">
-                            <span>{pct.toFixed(1)}% of sessions</span>
-                            <span>{d.users.toLocaleString()} users</span>
-                            <span>{d.pageViews.toLocaleString()} page views</span>
+                            <span>{pct.toFixed(1)}% of {isRealtime ? "active users" : "sessions"}</span>
+                            {!isRealtime && <span>{application.users.toLocaleString()} users</span>}
+                            <span>{application.pageViews.toLocaleString()} page views</span>
                           </div>
                         </div>
                       );
@@ -580,25 +642,29 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                 {activeTraffic === "pages" && (
                   <div className="space-y-2">
                     <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">
-                      <span className="col-span-1">#</span><span className="col-span-7">Domain / Page</span><span className="col-span-2 text-right">Views</span><span className="col-span-2 text-right">Avg Time</span>
+                      <span className="col-span-1">#</span><span className="col-span-7">Application | Page</span><span className="col-span-2 text-right">{isRealtime ? "Active" : "Views"}</span><span className="col-span-2 text-right">{isRealtime ? "Views" : "Avg Time"}</span>
                     </div>
-                    {(ga4.topPages||[]).map((p, i) => (
+                    {((isRealtime ? gaData.activePages : gaData.topPages) || []).map((p, i) => (
                       <div key={i} className="grid grid-cols-12 gap-2 text-xs py-2 border-b border-slate-50 hover:bg-slate-50/50 rounded-lg px-1 transition">
                         <span className="col-span-1 text-slate-400 font-bold">{i+1}</span>
-                        <span className="col-span-7 text-slate-700 truncate font-medium" title={`${p.domain}${p.page || "/"}`}>
-                          <span className="text-slate-400">{p.domain}</span>{p.page||"/"}
+                        <span className="col-span-7 text-slate-700 truncate font-medium" title={`${p.application || p.domain} | ${p.page || "/"}`}>
+                          <span className="text-slate-400">{p.application || p.domain} | </span>{p.page||"/"}
                         </span>
-                        <span className="col-span-2 text-right font-semibold text-slate-800">{p.views.toLocaleString()}</span>
-                        <span className="col-span-2 text-right text-slate-400">{Math.floor(p.avgDuration/60)}m {Math.round(p.avgDuration%60)}s</span>
+                        <span className="col-span-2 text-right font-semibold text-slate-800">{(isRealtime ? p.activeUsers : p.views).toLocaleString()}</span>
+                        <span className="col-span-2 text-right text-slate-400">{isRealtime ? p.pageViews.toLocaleString() : `${Math.floor(p.avgDuration/60)}m ${Math.round(p.avgDuration%60)}s`}</span>
                       </div>
                     ))}
+                    {((isRealtime ? gaData.activePages : gaData.topPages) || []).length === 0 && (
+                      <p className="text-sm text-slate-400 py-3">No pages were reported for {selectedScopeLabel}.</p>
+                    )}
                   </div>
                 )}
                 {activeTraffic === "geo" && (
                   <div className="space-y-2">
-                    {(ga4.countries||[]).map((c, i) => {
-                      const max = Math.max(...(ga4.countries||[]).map(x=>x.sessions));
-                      const pct = max > 0 ? (c.sessions/max)*100 : 0;
+                    {(gaData.countries||[]).map((c, i) => {
+                      const metricValue = isRealtime ? c.activeUsers : c.sessions;
+                      const max = Math.max(...(gaData.countries||[]).map(x => isRealtime ? x.activeUsers : x.sessions));
+                      const pct = max > 0 ? (metricValue/max)*100 : 0;
                       return (
                         <div key={i} className="flex items-center gap-3">
                           <span className="text-xs font-bold text-slate-400 w-5 text-right">{i+1}</span>
@@ -606,18 +672,34 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                           <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
                             <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{delay:i*0.05,duration:0.6}} className="h-full rounded-full bg-teal-500" />
                           </div>
-                          <span className="text-xs font-semibold text-slate-700 w-24 text-right">{c.sessions.toLocaleString()} sessions</span>
+                          <span className="text-xs font-semibold text-slate-700 w-24 text-right">{metricValue.toLocaleString()} {isRealtime ? "active" : "sessions"}</span>
                         </div>
                       );
                     })}
                   </div>
                 )}
                 {activeTraffic === "browser" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  isRealtime ? (
+                    <div>
+                      <p className="text-xs font-bold text-slate-600 mb-3">📱 Device Categories</p>
+                      {(gaData.devices || []).map((device, index) => {
+                        const max = Math.max(...(gaData.devices || []).map(item => item.activeUsers));
+                        const pct = max > 0 ? (device.activeUsers / max) * 100 : 0;
+                        return (
+                          <div key={device.device} className="flex items-center gap-2 mb-2">
+                            <span className="text-xs text-slate-600 capitalize w-24 truncate">{device.device}</span>
+                            <div className="flex-1 bg-slate-100 rounded-full h-2"><motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{delay:index*0.05}} className="h-full rounded-full bg-blue-500" /></div>
+                            <span className="text-xs font-semibold text-slate-700 w-16 text-right">{device.activeUsers.toLocaleString()} active</span>
+                          </div>
+                        );
+                      })}
+                      <p className="text-[11px] text-slate-400 mt-3">Browser and operating-system dimensions are not supported by the GA4 Realtime API; realtime device category is shown instead.</p>
+                    </div>
+                  ) : <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <p className="text-xs font-bold text-slate-600 mb-3">🌐 Browsers</p>
-                      {(ga4.browsers||[]).map((b,i) => {
-                        const max = Math.max(...(ga4.browsers||[]).map(x=>x.sessions));
+                      {(gaData.browsers||[]).map((b,i) => {
+                        const max = Math.max(...(gaData.browsers||[]).map(x=>x.sessions));
                         const pct = max>0?(b.sessions/max)*100:0;
                         const colors=[PC.blue,PC.red,PC.green,PC.amber,PC.purple,PC.teal];
                         return (<div key={i} className="flex items-center gap-2 mb-2">
@@ -629,8 +711,8 @@ const AdminAnalyticsDashboard = ({ userName }) => {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-600 mb-3">💻 Operating Systems</p>
-                      {(ga4.oses||[]).map((o,i) => {
-                        const max = Math.max(...(ga4.oses||[]).map(x=>x.sessions));
+                      {(gaData.oses||[]).map((o,i) => {
+                        const max = Math.max(...(gaData.oses||[]).map(x=>x.sessions));
                         const pct = max>0?(o.sessions/max)*100:0;
                         const colors=[PC.purple,PC.blue,PC.green,PC.amber,PC.red,PC.teal];
                         return (<div key={i} className="flex items-center gap-2 mb-2">
@@ -861,4 +943,4 @@ const AdminAnalyticsDashboard = ({ userName }) => {
   );
 };
 
-export default AdminAnalyticsDashboard;
+export default AdvancedAnalyticsPage;

@@ -1,7 +1,7 @@
 // controllers/analyticsController.js
 // Fetches real data from Google Analytics 4 Data API
 // Uses Service Account credentials stored in environment variables
-// GA4 Property ID: G-Z8GK8ESCM1 → numeric property ID from GA console
+// GA4 Data API requests use the numeric property resource from GA4_PROPERTY_ID.
 
 import fetch from 'node-fetch';
 import {
@@ -20,15 +20,105 @@ const INCLUDED_GA4_HOSTS = [
   'studentsocieties.thapar.edu',
 ];
 
-const includedHostsFilter = {
-  orGroup: {
-    expressions: INCLUDED_GA4_HOSTS.map(host => ({
-      filter: {
-        fieldName: 'hostName',
-        stringFilter: { matchType: 'EXACT', value: host, caseSensitive: false },
-      },
-    })),
+const ANALYTICS_SCOPES = {
+  overall: { key: 'overall', label: 'Overall' },
+  campusconnect: { key: 'campusconnect', label: 'Campus Connect' },
+  societies: { key: 'societies', label: 'Student Societies' },
+  permissions: { key: 'permissions', label: 'Society Night Permission' },
+};
+
+const APPLICATION_SCOPES = [
+  ANALYTICS_SCOPES.campusconnect,
+  ANALYTICS_SCOPES.societies,
+  ANALYTICS_SCOPES.permissions,
+];
+
+const CAMPUS_CONNECT_HOST = INCLUDED_GA4_HOSTS[0];
+const STUDENT_SOCIETIES_HOST = INCLUDED_GA4_HOSTS[1];
+const PERMISSIONS_PATH = '/permissions';
+const LEGACY_PERMISSION_SCREEN_NAME = 'NightPermi — Thapar Institute';
+
+const stringFilter = (fieldName, value, matchType = 'EXACT', caseSensitive = false) => ({
+  filter: {
+    fieldName,
+    stringFilter: { matchType, value, caseSensitive },
   },
+});
+
+const andFilters = (...expressions) => ({
+  andGroup: { expressions: expressions.filter(Boolean) },
+});
+
+const orFilters = (...expressions) => ({
+  orGroup: { expressions: expressions.filter(Boolean) },
+});
+
+const permissionPathFilter = () => orFilters(
+  stringFilter('pagePath', PERMISSIONS_PATH, 'EXACT', true),
+  stringFilter('pagePath', `${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true)
+);
+
+const permissionScreenFilter = () => orFilters(
+  stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}`, 'EXACT', true),
+  stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true),
+  stringFilter('unifiedScreenName', LEGACY_PERMISSION_SCREEN_NAME, 'EXACT', true)
+);
+
+export const resolveAnalyticsScope = (query = {}) => {
+  const requestedScope = String(query.scope || 'overall').trim().toLowerCase();
+  const scope = ANALYTICS_SCOPES[requestedScope];
+  if (!scope) {
+    const error = new Error('Invalid analytics scope. Use overall, campusconnect, societies, or permissions.');
+    error.statusCode = 400;
+    error.errorType = 'invalid_scope';
+    throw error;
+  }
+  return scope;
+};
+
+export const buildHistoricalScopeFilter = (scopeKey = 'overall') => {
+  switch (scopeKey) {
+    case 'campusconnect':
+      return stringFilter('hostName', CAMPUS_CONNECT_HOST);
+    case 'societies':
+      return andFilters(
+        stringFilter('hostName', STUDENT_SOCIETIES_HOST),
+        { notExpression: permissionPathFilter() }
+      );
+    case 'permissions':
+      return andFilters(
+        stringFilter('hostName', STUDENT_SOCIETIES_HOST),
+        permissionPathFilter()
+      );
+    case 'overall':
+    default:
+      return orFilters(...INCLUDED_GA4_HOSTS.map(host => stringFilter('hostName', host)));
+  }
+};
+
+export const buildRealtimeScopeFilter = (scopeKey = 'overall') => {
+  const campusFilter = stringFilter('unifiedScreenName', CAMPUS_CONNECT_HOST, 'BEGINS_WITH');
+  const societiesHostFilter = stringFilter('unifiedScreenName', STUDENT_SOCIETIES_HOST, 'BEGINS_WITH');
+
+  switch (scopeKey) {
+    case 'campusconnect':
+      return campusFilter;
+    case 'societies':
+      return andFilters(societiesHostFilter, { notExpression: permissionScreenFilter() });
+    case 'permissions':
+      return permissionScreenFilter();
+    case 'overall':
+    default:
+      // The exact legacy title is a compatibility exception for the existing
+      // permission portal, whose realtime event does not carry hostname/path.
+      return orFilters(campusFilter, societiesHostFilter, stringFilter('unifiedScreenName', LEGACY_PERMISSION_SCREEN_NAME));
+  }
+};
+
+const combineFilters = (...expressions) => {
+  const validExpressions = expressions.filter(Boolean);
+  if (validExpressions.length === 1) return validExpressions[0];
+  return andFilters(...validExpressions);
 };
 
 // ── Get Google OAuth2 access token from service account ──────────────────────
@@ -79,7 +169,7 @@ async function getGoogleAccessToken() {
 }
 
 // ── Run GA4 Data API report ───────────────────────────────────────────────────
-async function runGA4Report(accessToken, body) {
+async function runGA4Report(accessToken, body, scopeFilter) {
   if (!GA4_PROPERTY_ID) throw new Error('GA4_PROPERTY_ID not set in environment');
 
   const res = await fetch(
@@ -92,11 +182,8 @@ async function runGA4Report(accessToken, body) {
       },
       body: JSON.stringify({
         ...body,
-        // Enforce the product scope centrally so newly-added reports cannot
-        // accidentally include another hostname from the shared property.
-        dimensionFilter: body.dimensionFilter
-          ? { andGroup: { expressions: [includedHostsFilter, body.dimensionFilter] } }
-          : includedHostsFilter,
+        // Enforce the validated application scope centrally on every report.
+        dimensionFilter: combineFilters(scopeFilter, body.dimensionFilter),
       }),
     }
   );
@@ -104,6 +191,61 @@ async function runGA4Report(accessToken, body) {
   if (!res.ok) throw new Error(`GA4 API error: ${JSON.stringify(data.error || data)}`);
   return data;
 }
+
+const getReportMetrics = (report, metricCount) => {
+  const values = report?.totals?.[0]?.metricValues || report?.rows?.[0]?.metricValues || [];
+  return Array.from({ length: metricCount }, (_, index) => Number(values[index]?.value || 0));
+};
+
+const getApplicationForPage = (domain, page = '/') => {
+  if (domain === CAMPUS_CONNECT_HOST) return ANALYTICS_SCOPES.campusconnect;
+  if (domain === STUDENT_SOCIETIES_HOST && (page === PERMISSIONS_PATH || page.startsWith(`${PERMISSIONS_PATH}/`))) {
+    return ANALYTICS_SCOPES.permissions;
+  }
+  return ANALYTICS_SCOPES.societies;
+};
+
+const getApplicationForScreenName = (screenName = '') => {
+  if (screenName === LEGACY_PERMISSION_SCREEN_NAME) {
+    return { ...ANALYTICS_SCOPES.permissions, domain: STUDENT_SOCIETIES_HOST, page: PERMISSIONS_PATH };
+  }
+  if (screenName.startsWith(CAMPUS_CONNECT_HOST)) {
+    return {
+      ...ANALYTICS_SCOPES.campusconnect,
+      domain: CAMPUS_CONNECT_HOST,
+      page: screenName.slice(CAMPUS_CONNECT_HOST.length) || '/',
+    };
+  }
+  if (screenName.startsWith(STUDENT_SOCIETIES_HOST)) {
+    const page = screenName.slice(STUDENT_SOCIETIES_HOST.length) || '/';
+    const application = getApplicationForPage(STUDENT_SOCIETIES_HOST, page);
+    return { ...application, domain: STUDENT_SOCIETIES_HOST, page };
+  }
+  return { key: 'unknown', label: 'Unknown', domain: '', page: screenName || '/' };
+};
+
+const classifyGA4Error = (error) => {
+  if (error.statusCode === 400) {
+    return { status: 400, errorType: error.errorType || 'invalid_request' };
+  }
+
+  const message = String(error.message || 'Unknown analytics error');
+  if (/not set in environment|not valid JSON|private.key/i.test(message)) {
+    return { status: 503, errorType: 'not_configured' };
+  }
+  if (/Token error|GA4 API error|GA4 Realtime API error/i.test(message)) {
+    return { status: 502, errorType: 'permission_or_api' };
+  }
+  if (/fetch|network|ENOTFOUND|ECONN|ETIMEDOUT|socket/i.test(message)) {
+    return { status: 502, errorType: 'network' };
+  }
+  return { status: 500, errorType: 'unknown' };
+};
+
+const sendGA4Error = (res, error) => {
+  const { status, errorType } = classifyGA4Error(error);
+  return res.status(status).json({ configured: errorType !== 'not_configured', errorType, message: error.message });
+};
 
 async function runGA4RealtimeReport(accessToken, body, dimensionFilter) {
   if (!GA4_PROPERTY_ID) throw new Error('GA4_PROPERTY_ID not set in environment');
@@ -125,13 +267,6 @@ async function runGA4RealtimeReport(accessToken, body, dimensionFilter) {
 
 function resolveAnalyticsPeriod(query) {
   const requestedPeriod = String(query.period || '').toLowerCase();
-  if (requestedPeriod === 'yesterday') {
-    return {
-      period: 'yesterday', days: null,
-      dateRange: { startDate: 'yesterday', endDate: 'yesterday' },
-      prevRange: { startDate: '2daysAgo', endDate: '2daysAgo' },
-    };
-  }
   if (requestedPeriod === 'today') {
     return {
       period: 'today', days: null,
@@ -143,8 +278,8 @@ function resolveAnalyticsPeriod(query) {
   const days = [7, 30, 90].includes(parsedDays) ? parsedDays : 30;
   return {
     period: `${days}days`, days,
-    dateRange: { startDate: `${days}daysAgo`, endDate: 'today' },
-    prevRange: { startDate: `${days * 2}daysAgo`, endDate: `${days + 1}daysAgo` },
+    dateRange: { startDate: `${days - 1}daysAgo`, endDate: 'today' },
+    prevRange: { startDate: `${days * 2 - 1}daysAgo`, endDate: `${days}daysAgo` },
   };
 }
 
@@ -159,6 +294,32 @@ function parseRows(report, dimKeys, metKeys) {
   });
 }
 
+const parseOverview = (overviewReport, overviewPrevReport) => {
+  const ov = overviewReport?.totals?.[0]?.metricValues || overviewReport?.rows?.[0]?.metricValues || [];
+  const ovPrev = overviewPrevReport?.totals?.[0]?.metricValues || overviewPrevReport?.rows?.[0]?.metricValues || [];
+
+  return {
+    sessions: Number(ov[0]?.value || 0),
+    totalUsers: Number(ov[1]?.value || 0),
+    newUsers: Number(ov[2]?.value || 0),
+    bounceRate: parseFloat((Number(ov[3]?.value || 0) * 100).toFixed(1)),
+    avgSessionDuration: Math.round(Number(ov[4]?.value || 0)),
+    pageViews: Number(ov[5]?.value || 0),
+    returningUsers: Math.max(0, Number(ov[1]?.value || 0) - Number(ov[2]?.value || 0)),
+    prevSessions: Number(ovPrev[0]?.value || 0),
+    prevUsers: Number(ovPrev[1]?.value || 0),
+    prevPageViews: Number(ovPrev[2]?.value || 0),
+  };
+};
+
+const parseHourly = report => parseRows(report, ['hour'], ['sessions'])
+  .map(row => ({ hour: `${row.hour}:00`, sessions: row.sessions }));
+
+const findPeakHour = hourly => hourly.reduce(
+  (best, item) => item.sessions > (best?.sessions || 0) ? item : best,
+  null
+)?.hour || '—';
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN CONTROLLER — GET /api/analytics/ga4
 // Returns all traffic metrics in a single call
@@ -168,11 +329,16 @@ export const getGA4Analytics = async (req, res) => {
     if (!GA4_PROPERTY_ID || !GA4_SERVICE_ACCOUNT_KEY) {
       return res.status(503).json({
         configured: false,
+        errorType: 'not_configured',
         message: 'GA4 not configured. Set GA4_PROPERTY_ID and GOOGLE_SERVICE_ACCOUNT_KEY in .env',
       });
     }
 
+    const scope = resolveAnalyticsScope(req.query);
     const accessToken = await getGoogleAccessToken();
+    const scopeFilter = buildHistoricalScopeFilter(scope.key);
+    const overallFilter = buildHistoricalScopeFilter('overall');
+    const runScopedReport = body => runGA4Report(accessToken, body, scopeFilter);
     const { period, days, dateRange, prevRange } = resolveAnalyticsPeriod(req.query);
 
     // Run all reports in parallel
@@ -191,7 +357,7 @@ export const getGA4Analytics = async (req, res) => {
     ] = await Promise.all([
 
       // Overview: sessions, users, new users, bounce rate, session duration
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         metrics: [
           { name: 'sessions' },
@@ -204,7 +370,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Previous period for trend comparison
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [prevRange],
         metrics: [
           { name: 'sessions' },
@@ -214,7 +380,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Traffic split across the included domains.
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'hostName' }],
         metrics: [
@@ -227,7 +393,7 @@ export const getGA4Analytics = async (req, res) => {
 
       // Top pages across all included domains. Hostname disambiguates identical
       // paths such as "/" on the two ecosystems.
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'hostName' }, { name: 'pagePath' }],
         metrics: [{ name: 'screenPageViews' }, { name: 'averageSessionDuration' }],
@@ -236,7 +402,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Traffic sources
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'sessionDefaultChannelGroup' }],
         metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
@@ -245,14 +411,14 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Device category
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'deviceCategory' }],
         metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
       }),
 
       // Browser
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'browser' }],
         metrics: [{ name: 'sessions' }],
@@ -261,7 +427,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Operating system
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'operatingSystem' }],
         metrics: [{ name: 'sessions' }],
@@ -270,7 +436,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Countries
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'country' }],
         metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
@@ -279,7 +445,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Hour of day (peak time)
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'hour' }],
         metrics: [{ name: 'sessions' }],
@@ -287,7 +453,7 @@ export const getGA4Analytics = async (req, res) => {
       }),
 
       // Daily trend
-      runGA4Report(accessToken, {
+      runScopedReport({
         dateRanges: [dateRange],
         dimensions: [{ name: 'date' }],
         metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'screenPageViews' }],
@@ -295,33 +461,65 @@ export const getGA4Analytics = async (req, res) => {
       }),
     ]);
 
-    // ── Parse overview ────────────────────────────────────────────────────────
-    const ov     = overviewReport?.totals?.[0]?.metricValues || overviewReport?.rows?.[0]?.metricValues || [];
-    const ovPrev = overviewPrevReport?.totals?.[0]?.metricValues || overviewPrevReport?.rows?.[0]?.metricValues || [];
+    const applicationReports = await Promise.all(APPLICATION_SCOPES.map(application =>
+      runScopedReport({
+        dateRanges: [dateRange],
+        metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'screenPageViews' }],
+        dimensionFilter: buildHistoricalScopeFilter(application.key),
+      })
+    ));
 
-    const overview = {
-      sessions:              Number(ov[0]?.value || 0),
-      totalUsers:            Number(ov[1]?.value || 0),
-      newUsers:              Number(ov[2]?.value || 0),
-      bounceRate:            parseFloat((Number(ov[3]?.value || 0) * 100).toFixed(1)),
-      avgSessionDuration:    Math.round(Number(ov[4]?.value || 0)),
-      pageViews:             Number(ov[5]?.value || 0),
-      returningUsers:        Math.max(0, Number(ov[1]?.value || 0) - Number(ov[2]?.value || 0)),
-      prevSessions:          Number(ovPrev[0]?.value || 0),
-      prevUsers:             Number(ovPrev[1]?.value || 0),
-      prevPageViews:         Number(ovPrev[2]?.value || 0),
-    };
+    let overallOverviewReport = overviewReport;
+    let overallOverviewPrevReport = overviewPrevReport;
+    let overallDeviceReport = deviceReport;
+    let overallHourReport = hourReport;
+
+    if (scope.key !== 'overall') {
+      [overallOverviewReport, overallOverviewPrevReport, overallDeviceReport, overallHourReport] = await Promise.all([
+        runGA4Report(accessToken, {
+          dateRanges: [dateRange],
+          metrics: [
+            { name: 'sessions' },
+            { name: 'totalUsers' },
+            { name: 'newUsers' },
+            { name: 'bounceRate' },
+            { name: 'averageSessionDuration' },
+            { name: 'screenPageViews' },
+          ],
+        }, overallFilter),
+        runGA4Report(accessToken, {
+          dateRanges: [prevRange],
+          metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'screenPageViews' }],
+        }, overallFilter),
+        runGA4Report(accessToken, {
+          dateRanges: [dateRange],
+          dimensions: [{ name: 'deviceCategory' }],
+          metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
+        }, overallFilter),
+        runGA4Report(accessToken, {
+          dateRanges: [dateRange],
+          dimensions: [{ name: 'hour' }],
+          metrics: [{ name: 'sessions' }],
+          orderBys: [{ dimension: { dimensionName: 'hour' } }],
+        }, overallFilter),
+      ]);
+    }
+
+    const overview = parseOverview(overviewReport, overviewPrevReport);
 
     // ── Parse other sections ──────────────────────────────────────────────────
     const domains     = parseRows(domainReport,     ['domain'],  ['sessions', 'users', 'pageViews']);
-    const topPages    = parseRows(pageViewsReport,  ['domain', 'page'], ['views', 'avgDuration']);
+    const topPages    = parseRows(pageViewsReport,  ['domain', 'page'], ['views', 'avgDuration'])
+      .map(row => {
+        const application = getApplicationForPage(row.domain, row.page);
+        return { ...row, applicationKey: application.key, application: application.label };
+      });
     const sources     = parseRows(sourceReport,     ['source'],  ['sessions', 'users']);
     const devices     = parseRows(deviceReport,     ['device'],  ['sessions', 'users']);
     const browsers    = parseRows(browserReport,    ['browser'], ['sessions']);
     const oses        = parseRows(osReport,         ['os'],      ['sessions']);
     const countries   = parseRows(countryReport,    ['country'], ['sessions', 'users']);
-    const hourly      = parseRows(hourReport,       ['hour'],    ['sessions'])
-      .map(r => ({ hour: `${r.hour}:00`, sessions: r.sessions }));
+    const hourly      = parseHourly(hourReport);
     const daily       = parseRows(dailyReport,      ['date'],    ['sessions', 'users', 'pageViews'])
       .map(r => ({
         date: `${r.date.slice(0,4)}-${r.date.slice(4,6)}-${r.date.slice(6,8)}`,
@@ -330,18 +528,31 @@ export const getGA4Analytics = async (req, res) => {
         pageViews: r.pageViews,
       }));
 
-    // Peak hour
-    const peakHourObj = hourly.reduce((best, h) => h.sessions > (best?.sessions || 0) ? h : best, null);
+    const applications = applicationReports.map((report, index) => {
+      const [sessions, users, pageViews] = getReportMetrics(report, 3);
+      return { ...APPLICATION_SCOPES[index], sessions, users, pageViews };
+    });
+    const overallHourly = parseHourly(overallHourReport);
+    const overall = {
+      overview: parseOverview(overallOverviewReport, overallOverviewPrevReport),
+      peakHour: findPeakHour(overallHourly),
+      devices: parseRows(overallDeviceReport, ['device'], ['sessions', 'users']),
+      hourly: overallHourly,
+    };
 
     return res.json({
       configured: true,
       period,
       days,
+      scope: scope.key,
+      scopeLabel: scope.label,
       fetchedAt: new Date().toISOString(),
       overview,
-      peakHour: peakHourObj?.hour || '—',
+      peakHour: findPeakHour(hourly),
+      overall,
       includedDomains: INCLUDED_GA4_HOSTS,
       domains,
+      applications,
       topPages,
       sources,
       devices,
@@ -350,11 +561,12 @@ export const getGA4Analytics = async (req, res) => {
       countries,
       hourly,
       daily,
+      hasData: overview.sessions > 0 || overview.totalUsers > 0 || overview.pageViews > 0 || daily.length > 0,
     });
 
   } catch (err) {
     console.error('GA4 Analytics error:', err.message);
-    return res.status(500).json({ configured: false, message: err.message });
+    return sendGA4Error(res, err);
   }
 };
 
@@ -364,64 +576,131 @@ export const getGA4Realtime = async (req, res) => {
     if (!GA4_PROPERTY_ID || !GA4_SERVICE_ACCOUNT_KEY) {
       return res.status(503).json({
         configured: false,
+        errorType: 'not_configured',
         message: 'GA4 not configured. Set GA4_PROPERTY_ID and GOOGLE_SERVICE_ACCOUNT_KEY in .env',
       });
     }
 
+    const scope = resolveAnalyticsScope(req.query);
     const accessToken = await getGoogleAccessToken();
-    // Realtime supports unifiedScreenName (page title), but not hostName or
-    // pagePath. Frontends therefore send a non-sensitive "hostname/path"
-    // page title, allowing the same strict two-host filter in realtime.
-    const realtimeHostFilter = host => ({
-      filter: {
-        fieldName: 'unifiedScreenName',
-        stringFilter: { matchType: 'BEGINS_WITH', value: host, caseSensitive: false },
-      },
-    });
-    const realtimeIncludedHostsFilter = {
-      orGroup: { expressions: INCLUDED_GA4_HOSTS.map(realtimeHostFilter) },
-    };
+    const scopeFilter = buildRealtimeScopeFilter(scope.key);
+    const overallFilter = buildRealtimeScopeFilter('overall');
 
-    const [totalReport, ...hostAndPageReports] = await Promise.all([
-      runGA4RealtimeReport(accessToken, { metrics: [{ name: 'activeUsers' }] }, realtimeIncludedHostsFilter),
-      ...INCLUDED_GA4_HOSTS.map(host => runGA4RealtimeReport(
-        accessToken,
-        { metrics: [{ name: 'activeUsers' }] },
-        realtimeHostFilter(host)
-      )),
+    // Realtime supports unifiedScreenName, but not historical hostName/pagePath.
+    // Current pages emit "hostname/path" titles; the permission scope also
+    // recognizes the exact legacy NightPermi title without changing that app.
+    const [selectedTotalReport, activePagesReport, countryReport, deviceReport, activityReport, ...applicationReports] = await Promise.all([
+      runGA4RealtimeReport(accessToken, {
+        metrics: [
+          { name: 'activeUsers' },
+          { name: 'screenPageViews' },
+          { name: 'eventCount' },
+          { name: 'keyEvents' },
+        ],
+      }, scopeFilter),
       runGA4RealtimeReport(accessToken, {
         dimensions: [{ name: 'unifiedScreenName' }],
-        metrics: [{ name: 'activeUsers' }],
+        metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }],
         orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
         limit: 20,
-      }, realtimeIncludedHostsFilter),
+      }, scopeFilter),
+      runGA4RealtimeReport(accessToken, {
+        dimensions: [{ name: 'country' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        limit: 10,
+      }, scopeFilter),
+      runGA4RealtimeReport(accessToken, {
+        dimensions: [{ name: 'deviceCategory' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+      }, scopeFilter),
+      runGA4RealtimeReport(accessToken, {
+        dimensions: [{ name: 'minutesAgo' }],
+        metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }],
+      }, scopeFilter),
+      ...APPLICATION_SCOPES.map(application => runGA4RealtimeReport(
+        accessToken,
+        { metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }] },
+        combineFilters(scopeFilter, buildRealtimeScopeFilter(application.key))
+      )),
     ]);
 
-    const totalValues = totalReport?.totals?.[0]?.metricValues || totalReport?.rows?.[0]?.metricValues || [];
-    const activePagesReport = hostAndPageReports[hostAndPageReports.length - 1];
-    const activeUsersByHostname = INCLUDED_GA4_HOSTS.map((domain, index) => ({
-      domain,
-      activeUsers: Number(
-        hostAndPageReports[index]?.totals?.[0]?.metricValues?.[0]?.value ||
-        hostAndPageReports[index]?.rows?.[0]?.metricValues?.[0]?.value || 0
-      ),
-    }));
-    const activePages = parseRows(activePagesReport, ['screenName'], ['activeUsers']).map(row => {
-      const domain = INCLUDED_GA4_HOSTS.find(host => row.screenName.startsWith(host)) || '';
-      return { domain, page: row.screenName.slice(domain.length) || '/', activeUsers: row.activeUsers };
+    const overallTotalReport = scope.key === 'overall'
+      ? selectedTotalReport
+      : await runGA4RealtimeReport(accessToken, {
+          metrics: [
+            { name: 'activeUsers' },
+            { name: 'screenPageViews' },
+            { name: 'eventCount' },
+            { name: 'keyEvents' },
+          ],
+        }, overallFilter);
+
+    const [activeUsers, pageViews, eventCount, keyEvents] = getReportMetrics(selectedTotalReport, 4);
+    const [overallActiveUsers, overallPageViews, overallEventCount, overallKeyEvents] = getReportMetrics(overallTotalReport, 4);
+    const applications = applicationReports.map((report, index) => {
+      const [applicationActiveUsers, applicationPageViews] = getReportMetrics(report, 2);
+      return {
+        ...APPLICATION_SCOPES[index],
+        activeUsers: applicationActiveUsers,
+        pageViews: applicationPageViews,
+      };
     });
+    const activePages = parseRows(activePagesReport, ['screenName'], ['activeUsers', 'pageViews']).map(row => {
+      const application = getApplicationForScreenName(row.screenName);
+      return {
+        applicationKey: application.key,
+        application: application.label,
+        domain: application.domain,
+        page: application.page,
+        activeUsers: row.activeUsers,
+        pageViews: row.pageViews,
+      };
+    });
+    const countries = parseRows(countryReport, ['country'], ['activeUsers']);
+    const devices = parseRows(deviceReport, ['device'], ['activeUsers']);
+    const activity = parseRows(activityReport, ['minutesAgo'], ['activeUsers', 'pageViews'])
+      .map(row => ({ ...row, minutesAgo: Number(row.minutesAgo) }))
+      .sort((a, b) => b.minutesAgo - a.minutesAgo);
+    const campusApplication = applications.find(application => application.key === 'campusconnect');
+    const societiesApplication = applications.find(application => application.key === 'societies');
+    const permissionsApplication = applications.find(application => application.key === 'permissions');
+    const activeUsersByHostname = [
+      { domain: CAMPUS_CONNECT_HOST, activeUsers: campusApplication?.activeUsers || 0 },
+      {
+        domain: STUDENT_SOCIETIES_HOST,
+        activeUsers: (societiesApplication?.activeUsers || 0) + (permissionsApplication?.activeUsers || 0),
+      },
+    ];
 
     return res.json({
       configured: true,
+      scope: scope.key,
+      scopeLabel: scope.label,
       fetchedAt: new Date().toISOString(),
       includedDomains: INCLUDED_GA4_HOSTS,
-      activeUsers: Number(totalValues[0]?.value || 0),
+      activeUsers,
+      pageViews,
+      eventCount,
+      keyEvents,
+      overall: {
+        activeUsers: overallActiveUsers,
+        pageViews: overallPageViews,
+        eventCount: overallEventCount,
+        keyEvents: overallKeyEvents,
+      },
+      applications,
       activeUsersByHostname,
       activePages,
+      countries,
+      devices,
+      activity,
+      hasData: activeUsers > 0 || pageViews > 0 || eventCount > 0 || activePages.length > 0,
     });
   } catch (err) {
     console.error('GA4 Realtime Analytics error:', err.message);
-    return res.status(500).json({ configured: false, message: err.message });
+    return sendGA4Error(res, err);
   }
 };
 
