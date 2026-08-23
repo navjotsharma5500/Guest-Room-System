@@ -23,18 +23,21 @@ const INCLUDED_GA4_HOSTS = [
 const ANALYTICS_SCOPES = {
   overall: { key: 'overall', label: 'Overall' },
   campusconnect: { key: 'campusconnect', label: 'Campus Connect' },
+  lostnfound: { key: 'lostnfound', label: 'Lost & Found' },
   societies: { key: 'societies', label: 'Student Societies' },
   permissions: { key: 'permissions', label: 'Society Night Permission' },
 };
 
 const APPLICATION_SCOPES = [
   ANALYTICS_SCOPES.campusconnect,
+  ANALYTICS_SCOPES.lostnfound,
   ANALYTICS_SCOPES.societies,
   ANALYTICS_SCOPES.permissions,
 ];
 
 const CAMPUS_CONNECT_HOST = INCLUDED_GA4_HOSTS[0];
 const STUDENT_SOCIETIES_HOST = INCLUDED_GA4_HOSTS[1];
+const LOST_AND_FOUND_PATH = '/lostnfound';
 const PERMISSIONS_PATH = '/permissions';
 const LEGACY_PERMISSION_SCREEN_NAME = 'NightPermi — Thapar Institute';
 
@@ -58,6 +61,16 @@ const permissionPathFilter = () => orFilters(
   stringFilter('pagePath', `${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true)
 );
 
+const lostAndFoundPathFilter = () => orFilters(
+  stringFilter('pagePath', LOST_AND_FOUND_PATH, 'EXACT', true),
+  stringFilter('pagePath', `${LOST_AND_FOUND_PATH}/`, 'BEGINS_WITH', true)
+);
+
+const lostAndFoundScreenFilter = () => orFilters(
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${LOST_AND_FOUND_PATH}`, 'EXACT', true),
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${LOST_AND_FOUND_PATH}/`, 'BEGINS_WITH', true)
+);
+
 const permissionScreenFilter = () => orFilters(
   stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}`, 'EXACT', true),
   stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true),
@@ -68,7 +81,7 @@ export const resolveAnalyticsScope = (query = {}) => {
   const requestedScope = String(query.scope || 'overall').trim().toLowerCase();
   const scope = ANALYTICS_SCOPES[requestedScope];
   if (!scope) {
-    const error = new Error('Invalid analytics scope. Use overall, campusconnect, societies, or permissions.');
+    const error = new Error('Invalid analytics scope. Use overall, campusconnect, lostnfound, societies, or permissions.');
     error.statusCode = 400;
     error.errorType = 'invalid_scope';
     throw error;
@@ -79,7 +92,15 @@ export const resolveAnalyticsScope = (query = {}) => {
 export const buildHistoricalScopeFilter = (scopeKey = 'overall') => {
   switch (scopeKey) {
     case 'campusconnect':
-      return stringFilter('hostName', CAMPUS_CONNECT_HOST);
+      return andFilters(
+        stringFilter('hostName', CAMPUS_CONNECT_HOST),
+        { notExpression: lostAndFoundPathFilter() }
+      );
+    case 'lostnfound':
+      return andFilters(
+        stringFilter('hostName', CAMPUS_CONNECT_HOST),
+        lostAndFoundPathFilter()
+      );
     case 'societies':
       return andFilters(
         stringFilter('hostName', STUDENT_SOCIETIES_HOST),
@@ -102,7 +123,9 @@ export const buildRealtimeScopeFilter = (scopeKey = 'overall') => {
 
   switch (scopeKey) {
     case 'campusconnect':
-      return campusFilter;
+      return andFilters(campusFilter, { notExpression: lostAndFoundScreenFilter() });
+    case 'lostnfound':
+      return lostAndFoundScreenFilter();
     case 'societies':
       return andFilters(societiesHostFilter, { notExpression: permissionScreenFilter() });
     case 'permissions':
@@ -198,7 +221,12 @@ const getReportMetrics = (report, metricCount) => {
 };
 
 const getApplicationForPage = (domain, page = '/') => {
-  if (domain === CAMPUS_CONNECT_HOST) return ANALYTICS_SCOPES.campusconnect;
+  if (domain === CAMPUS_CONNECT_HOST) {
+    if (page === LOST_AND_FOUND_PATH || page.startsWith(`${LOST_AND_FOUND_PATH}/`)) {
+      return ANALYTICS_SCOPES.lostnfound;
+    }
+    return ANALYTICS_SCOPES.campusconnect;
+  }
   if (domain === STUDENT_SOCIETIES_HOST && (page === PERMISSIONS_PATH || page.startsWith(`${PERMISSIONS_PATH}/`))) {
     return ANALYTICS_SCOPES.permissions;
   }
@@ -210,10 +238,12 @@ const getApplicationForScreenName = (screenName = '') => {
     return { ...ANALYTICS_SCOPES.permissions, domain: STUDENT_SOCIETIES_HOST, page: PERMISSIONS_PATH };
   }
   if (screenName.startsWith(CAMPUS_CONNECT_HOST)) {
+    const page = screenName.slice(CAMPUS_CONNECT_HOST.length) || '/';
+    const application = getApplicationForPage(CAMPUS_CONNECT_HOST, page);
     return {
-      ...ANALYTICS_SCOPES.campusconnect,
+      ...application,
       domain: CAMPUS_CONNECT_HOST,
-      page: screenName.slice(CAMPUS_CONNECT_HOST.length) || '/',
+      page,
     };
   }
   if (screenName.startsWith(STUDENT_SOCIETIES_HOST)) {
@@ -664,10 +694,14 @@ export const getGA4Realtime = async (req, res) => {
       .map(row => ({ ...row, minutesAgo: Number(row.minutesAgo) }))
       .sort((a, b) => b.minutesAgo - a.minutesAgo);
     const campusApplication = applications.find(application => application.key === 'campusconnect');
+    const lostAndFoundApplication = applications.find(application => application.key === 'lostnfound');
     const societiesApplication = applications.find(application => application.key === 'societies');
     const permissionsApplication = applications.find(application => application.key === 'permissions');
     const activeUsersByHostname = [
-      { domain: CAMPUS_CONNECT_HOST, activeUsers: campusApplication?.activeUsers || 0 },
+      {
+        domain: CAMPUS_CONNECT_HOST,
+        activeUsers: (campusApplication?.activeUsers || 0) + (lostAndFoundApplication?.activeUsers || 0),
+      },
       {
         domain: STUDENT_SOCIETIES_HOST,
         activeUsers: (societiesApplication?.activeUsers || 0) + (permissionsApplication?.activeUsers || 0),
