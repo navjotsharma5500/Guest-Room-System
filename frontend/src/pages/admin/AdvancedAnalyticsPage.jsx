@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Building2, Globe, IndianRupee, Users, AlertCircle, MessageSquare,
@@ -69,27 +69,61 @@ const analyticsErrorDetails = (response, payload) => {
   };
 };
 
+const fetchGA4Dataset = async (period, scope, signal) => {
+  const endpoint = period === "today"
+    ? `${API}/api/analytics/ga4/realtime?scope=${encodeURIComponent(scope)}`
+    : `${API}/api/analytics/ga4?days=${encodeURIComponent(period)}&scope=${encodeURIComponent(scope)}`;
+  const response = await fetch(endpoint, {
+    credentials: "include",
+    cache: "no-store",
+    signal,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.configured) {
+    const requestError = new Error(payload?.message || "Analytics request failed");
+    requestError.details = analyticsErrorDetails(response, payload);
+    throw requestError;
+  }
+  const hasMatchingPeriod = period === "today" || Number(payload.days) === Number(period);
+  const hasMatchingScope = payload.scope === scope;
+  if (!hasMatchingPeriod || !hasMatchingScope) {
+    const requestError = new Error("Analytics response did not match the requested period and scope");
+    requestError.details = {
+      title: "Analytics response mismatch",
+      message: "The analytics service returned data for a different period or application scope. Please refresh and try again.",
+    };
+    throw requestError;
+  }
+  return payload;
+};
+
+const getOverallTraffic = (period, payload) => payload?.overall || (period !== "today" && payload ? {
+  overview: payload.overview,
+  peakHour: payload.peakHour,
+  devices: payload.devices,
+  hourly: payload.hourly,
+} : null);
+
 const AdvancedAnalyticsPage = () => {
   const [bookings, setBookings]   = useState([]);
   const [dashStats, setDashStats] = useState(null);
-  const [ga4, setGa4]             = useState(null);
   const [awsStats, setAwsStats]   = useState(null);
   const [awsLoading, setAwsLoading] = useState(true);
   const [ga4Period, setGa4Period] = useState("30");
   const [ga4Scope, setGa4Scope] = useState("overall");
-  const [ga4Realtime, setGa4Realtime] = useState(null);
   const [ga4Overall, setGa4Overall] = useState({ period: null, data: null, payload: null });
+  const [ga4Detail, setGa4Detail] = useState({ period: null, scope: null, payload: null });
+  const [ga4RefreshKey, setGa4RefreshKey] = useState(0);
   const [loading, setLoading]     = useState(true);
-  const [ga4Loading, setGa4Loading] = useState(true);
-  const [ga4Error, setGa4Error] = useState(null);
+  const [ga4OverallLoading, setGa4OverallLoading] = useState(true);
+  const [ga4DetailLoading, setGa4DetailLoading] = useState(false);
+  const [ga4OverallError, setGa4OverallError] = useState(null);
+  const [ga4DetailError, setGa4DetailError] = useState(null);
   const [error, setError]         = useState(null);
   const [range, setRange]         = useState("Monthly");
   const [activeChart, setActiveChart]   = useState("trend");
   const [activeTraffic, setActiveTraffic] = useState("daily");
   const [lastRefresh, setLastRefresh]   = useState(new Date());
-  const ga4DetailRequestId = useRef(0);
-  const ga4OverallRequestId = useRef(0);
-  const ga4PendingRequests = useRef(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
@@ -116,72 +150,6 @@ const AdvancedAnalyticsPage = () => {
     finally { setLoading(false); }
   }, []);
 
-  const fetchGA4 = useCallback(async (period = "30", scope = "overall", refreshOverall = true) => {
-    const detailRequestId = ++ga4DetailRequestId.current;
-    const overallRequestId = refreshOverall ? ++ga4OverallRequestId.current : null;
-    ga4PendingRequests.current += 1;
-    setGa4Loading(true);
-    setGa4Error(null);
-    try {
-      const requestGA4 = async (requestScope) => {
-        const endpoint = period === "today"
-          ? `${API}/api/analytics/ga4/realtime?scope=${encodeURIComponent(requestScope)}`
-          : `${API}/api/analytics/ga4?days=${encodeURIComponent(period)}&scope=${encodeURIComponent(requestScope)}`;
-        const response = await fetch(endpoint, { credentials: "include" });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.configured) {
-          const requestError = new Error(payload?.message || "Analytics request failed");
-          requestError.details = analyticsErrorDetails(response, payload);
-          throw requestError;
-        }
-        return payload;
-      };
-
-      const detailPromise = requestGA4(scope);
-      const overallPromise = refreshOverall
-        ? (scope === "overall" ? detailPromise : requestGA4("overall"))
-        : null;
-      const [detailPayload, overallPayload] = await Promise.all([
-        detailPromise,
-        overallPromise || Promise.resolve(null),
-      ]);
-
-      if (refreshOverall && overallRequestId === ga4OverallRequestId.current) {
-        const overallData = overallPayload?.overall || (period !== "today" && overallPayload ? {
-          overview: overallPayload.overview,
-          peakHour: overallPayload.peakHour,
-          devices: overallPayload.devices,
-          hourly: overallPayload.hourly,
-        } : null);
-        setGa4Overall({ period, data: overallData, payload: overallPayload });
-      }
-
-      if (detailRequestId === ga4DetailRequestId.current) {
-        if (period === "today") {
-          setGa4Realtime(detailPayload);
-        } else {
-          setGa4(detailPayload);
-          setGa4Realtime(null);
-        }
-      }
-    } catch (error) {
-      if (detailRequestId === ga4DetailRequestId.current || overallRequestId === ga4OverallRequestId.current) {
-        setGa4Error(error?.details || {
-          title: "Analytics network error",
-          message: error?.message || "The analytics service could not be reached.",
-        });
-        if (detailRequestId === ga4DetailRequestId.current) {
-          if (period === "today") setGa4Realtime(null);
-          else setGa4(null);
-        }
-      }
-    }
-    finally {
-      ga4PendingRequests.current = Math.max(0, ga4PendingRequests.current - 1);
-      if (ga4PendingRequests.current === 0) setGa4Loading(false);
-    }
-  }, []);
-
   const fetchAWS = useCallback(async () => {
     setAwsLoading(true);
     try {
@@ -200,25 +168,69 @@ const AdvancedAnalyticsPage = () => {
 
   useEffect(() => {
     fetchData();
-    fetchGA4("30", "overall");
     fetchAWS();
-  }, [fetchData, fetchGA4, fetchAWS]);
+  }, [fetchData, fetchAWS]);
 
-  const handleGa4Period = (period) => { setGa4Period(period); fetchGA4(period, ga4Scope, true); };
-  const handleGa4Scope = (scope) => {
-    setGa4Scope(scope);
-    if (scope === "overall" && ga4Overall.period === ga4Period && ga4Overall.payload) {
-      setGa4Error(null);
-      if (ga4Period === "today") {
-        setGa4Realtime(ga4Overall.payload);
-      } else {
-        setGa4(ga4Overall.payload);
-        setGa4Realtime(null);
-      }
-      return;
+  useEffect(() => {
+    const controller = new AbortController();
+    const requestedPeriod = ga4Period;
+    setGa4OverallLoading(true);
+    setGa4OverallError(null);
+
+    fetchGA4Dataset(requestedPeriod, "overall", controller.signal)
+      .then(payload => {
+        if (controller.signal.aborted) return;
+        setGa4Overall({
+          period: requestedPeriod,
+          data: getOverallTraffic(requestedPeriod, payload),
+          payload,
+        });
+      })
+      .catch(requestError => {
+        if (controller.signal.aborted) return;
+        setGa4OverallError(requestError?.details || {
+          title: "Analytics network error",
+          message: requestError?.message || "The analytics service could not be reached.",
+        });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setGa4OverallLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [ga4Period, ga4RefreshKey]);
+
+  useEffect(() => {
+    if (ga4Scope === "overall") {
+      setGa4DetailLoading(false);
+      setGa4DetailError(null);
+      return undefined;
     }
-    fetchGA4(ga4Period, scope, false);
-  };
+
+    const controller = new AbortController();
+    const requestedPeriod = ga4Period;
+    const requestedScope = ga4Scope;
+    setGa4DetailLoading(true);
+    setGa4DetailError(null);
+
+    fetchGA4Dataset(requestedPeriod, requestedScope, controller.signal)
+      .then(payload => {
+        if (controller.signal.aborted) return;
+        setGa4Detail({ period: requestedPeriod, scope: requestedScope, payload });
+      })
+      .catch(requestError => {
+        if (controller.signal.aborted) return;
+        setGa4DetailError(requestError?.details || {
+          title: "Analytics network error",
+          message: requestError?.message || "The analytics service could not be reached.",
+        });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setGa4DetailLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [ga4Period, ga4Scope, ga4RefreshKey]);
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const total      = bookings.length;
@@ -303,8 +315,12 @@ const AdvancedAnalyticsPage = () => {
   ];
 
   const isRealtime = ga4Period === "today";
-  const gaData = isRealtime ? ga4Realtime : ga4;
+  const gaData = ga4Scope === "overall"
+    ? (ga4Overall.period === ga4Period ? ga4Overall.payload : null)
+    : (ga4Detail.period === ga4Period && ga4Detail.scope === ga4Scope ? ga4Detail.payload : null);
   const overallTraffic = ga4Overall.period === ga4Period ? ga4Overall.data : null;
+  const ga4Loading = ga4OverallLoading || (ga4Scope !== "overall" && ga4DetailLoading);
+  const ga4Error = ga4OverallError || (ga4Scope !== "overall" ? ga4DetailError : null);
   const selectedScopeLabel = GA_SCOPES.find(scope => scope.value === ga4Scope)?.label || "Overall";
   const overallKpis = isRealtime && overallTraffic ? [
     { label: "Active Users Now", value: overallTraffic.activeUsers.toLocaleString(), sub: "genuine GA4 realtime users", icon: Activity, iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
@@ -455,12 +471,12 @@ const AdvancedAnalyticsPage = () => {
           </h2>
           <div className="flex items-center gap-1.5 flex-wrap">
               {GA_PERIODS.map(option => (
-                <button key={option.value} onClick={() => handleGa4Period(option.value)}
+                <button key={option.value} onClick={() => setGa4Period(option.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     ga4Period === option.value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}>{option.label}</button>
               ))}
-              <button onClick={() => fetchGA4(ga4Period, ga4Scope)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition" aria-label="Refresh Google Analytics">
+              <button onClick={() => setGa4RefreshKey(key => key + 1)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition" aria-label="Refresh Google Analytics">
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${ga4Loading ? "animate-spin" : ""}`} />
               </button>
           </div>
@@ -585,7 +601,7 @@ const AdvancedAnalyticsPage = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">Application scope</span>
                 {GA_SCOPES.map(scope => (
-                  <button key={scope.value} onClick={() => handleGa4Scope(scope.value)}
+                  <button key={scope.value} onClick={() => setGa4Scope(scope.value)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       ga4Scope === scope.value ? "bg-blue-600 text-white" : "bg-white text-slate-600 border border-slate-200 hover:border-blue-300"
                     }`}>
