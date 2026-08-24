@@ -47,11 +47,21 @@ const getVenueEntries = async () => {
     : cloneDefaultVenueConfig();
 
   return tabs.flatMap((tab) =>
-    (tab.sections || []).flatMap((section) =>
-      (section.rooms || []).map((room) => ({
+    (tab.sections || []).flatMap((section) => {
+      // Every hall label this Section has ever been known by (current +
+      // pre-rename aliases from renameVenueSection), so a legacy booking
+      // stored under an old section label still reports this venue as
+      // unavailable instead of silently allowing a double-booking after a
+      // Section rename.
+      const hallAliasNames = Array.from(
+        new Set([section.label, ...(section.previousNames || [])].filter(Boolean).map(normalize))
+      );
+
+      return (section.rooms || []).map((room) => ({
         venueName: normalize(room.name),
         hall: normalize(section.label),
         roomNo: normalize(room.name),
+        hallAliasNames,
         // Every name this room has ever been known by (current + pre-rename
         // aliases), so a legacy booking stored under an old name still
         // reports this venue as unavailable instead of silently allowing a
@@ -60,15 +70,17 @@ const getVenueEntries = async () => {
           new Set([room.name, ...(room.previousNames || [])].filter(Boolean).map(normalize))
         ),
         enabled: tab.enabled !== false && section.enabled !== false && room.enabled !== false,
-      }))
-    )
+      }));
+    })
   );
 };
 
 const hasConflict = (slot, venue, bookings) =>
   bookings.some(
     (booking) =>
-      normalizeKey(booking.hall) === normalizeKey(venue.hall) &&
+      (venue.hallAliasNames || [venue.hall]).some(
+        (aliasHall) => normalizeKey(booking.hall) === normalizeKey(aliasHall)
+      ) &&
       (venue.aliasNames || [venue.roomNo]).some(
         (aliasName) => normalizeKey(booking.roomNo) === normalizeKey(aliasName)
       ) &&

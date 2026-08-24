@@ -8,6 +8,7 @@ import {
   getVenueConfig,
   renameVenueMainTab,
   renameVenueRoom,
+  renameVenueSection,
   reorderVenueRooms,
   toggleVenueConfigItem,
 } from "../controllers/venueConfigController.js";
@@ -26,6 +27,7 @@ router.post("/tab", protect, fullVenueAccessOnly, createVenueMainTab);
 router.post("/section", protect, fullVenueAccessOnly, createVenueSection);
 router.post("/room", protect, fullVenueAccessOnly, createVenueRoom);
 router.patch("/tab", protect, fullVenueAccessOnly, renameVenueMainTab);
+router.patch("/section", protect, fullVenueAccessOnly, renameVenueSection);
 router.patch("/room", protect, fullVenueAccessOnly, renameVenueRoom);
 router.patch("/room-order", protect, fullVenueAccessOnly, reorderVenueRooms);
 router.patch("/toggle", protect, fullVenueAccessOnly, toggleVenueConfigItem);

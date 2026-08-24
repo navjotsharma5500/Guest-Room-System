@@ -99,7 +99,7 @@ const renameRoom = () =>
   request(app)
     .patch("/api/venue-config/room")
     .set("Authorization", `Bearer ${adminToken}`)
-    .send({ roomId: "room-101", sectionId: "lecture-theatre", name: "Room 101-A" });
+    .send({ mainTabId: "rooms", sectionId: "lecture-theatre", roomId: "room-101", name: "Room 101-A" });
 
 const checkConflict = (enquiryId, dates) =>
   request(app)

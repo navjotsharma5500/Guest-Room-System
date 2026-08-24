@@ -222,11 +222,12 @@ const createVenueBookingCore = async (req, res) => {
     const identity = await resolveVenueRoomIdentity(room.hall, room.roomNo);
     roomIdentities.set(room, identity);
 
-    // Match every name this room has ever been known by (see
-    // utils/venueRoomIdentity.js), so a legacy active/upcoming booking made
-    // under a pre-rename name still blocks the same physical room.
+    // Match every hall label and room name this physical room has ever been
+    // known by (see utils/venueRoomIdentity.js), so a legacy active/upcoming
+    // booking made under a pre-rename Section label or Room name still
+    // blocks the same physical room after either has been renamed.
     const overlappingBookings = await VenueBooking.find({
-      hall: room.hall,
+      hall: identity && identity.hallAliasNames.length > 1 ? { $in: identity.hallAliasNames } : room.hall,
       roomNo: identity && identity.aliasNames.length > 1 ? { $in: identity.aliasNames } : room.roomNo,
       status: { $in: ['booked', 'checked_in'] },
     });

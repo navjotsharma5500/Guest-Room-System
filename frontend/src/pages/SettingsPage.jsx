@@ -79,6 +79,7 @@ export default function SettingsPage({
     addRoom,
     toggleItem,
     renameTab,
+    renameSection,
     renameRoom,
     reorderRooms,
   } = useVenueConfig();
@@ -524,7 +525,7 @@ export default function SettingsPage({
     }
   };
 
-  const handleAddVenueRoom = async (sectionId) => {
+  const handleAddVenueRoom = async (mainTabId, sectionId) => {
     const name = String(roomDrafts[sectionId] || "").trim();
     if (!name) {
       showToast("Enter room name", "warning");
@@ -533,7 +534,7 @@ export default function SettingsPage({
 
     try {
       setVenueActionKey(`room-${sectionId}`);
-      await addRoom(sectionId, name);
+      await addRoom(mainTabId, sectionId, name);
       setRoomDrafts((prev) => ({ ...prev, [sectionId]: "" }));
       showToast("Venue room created", "success");
     } catch (error) {
@@ -584,11 +585,26 @@ export default function SettingsPage({
     }
   };
 
-  const handleRenameRoom = async (roomId, name, sectionId) => {
+  const handleRenameSection = async (mainTabId, sectionId, label) => {
+    const actionKey = `rename-section-${sectionId}`;
+    try {
+      setVenueActionKey(actionKey);
+      await renameSection(mainTabId, sectionId, label);
+      showToast("Venue section renamed", "success");
+      return true;
+    } catch (error) {
+      showToast(error.message || "Failed to rename section", "error");
+      return false;
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleRenameRoom = async (mainTabId, sectionId, roomId, name) => {
     const actionKey = `rename-room-${roomId}`;
     try {
       setVenueActionKey(actionKey);
-      await renameRoom(roomId, name, sectionId);
+      await renameRoom(mainTabId, sectionId, roomId, name);
       showToast("Room renamed", "success");
       return true;
     } catch (error) {
@@ -603,7 +619,7 @@ export default function SettingsPage({
   // array position with its previous/next *enabled* sibling. Disabled rooms
   // (hidden from this view) keep their relative position untouched, and the
   // full, persisted array order is always what gets submitted to the API.
-  const handleMoveRoom = async (section, roomId, direction) => {
+  const handleMoveRoom = async (mainTabId, section, roomId, direction) => {
     const allRooms = section.rooms || [];
     const visibleRooms = allRooms.filter((room) => room.enabled !== false);
     const visibleIndex = visibleRooms.findIndex((room) => room.id === roomId);
@@ -626,7 +642,7 @@ export default function SettingsPage({
     const actionKey = `reorder-${roomId}`;
     try {
       setVenueActionKey(actionKey);
-      await reorderRooms(section.id, nextOrder);
+      await reorderRooms(mainTabId, section.id, nextOrder);
     } catch (error) {
       showToast(error.message || "Failed to reorder room", "error");
     } finally {
@@ -1761,14 +1777,33 @@ export default function SettingsPage({
                         </div>
 
                         <div className="p-4 space-y-4">
-                          {(tab.sections || []).length === 0 ? (
-                            <div className={`text-sm ${
-                              theme === "dark" ? "text-gray-400" : "text-gray-500"
-                            }`}>
-                              No sections added yet.
-                            </div>
-                          ) : (
-                            (tab.sections || []).map((section) => {
+                          {(() => {
+                            const allSections = tab.sections || [];
+                            const visibleSections = allSections.filter((section) => section.enabled !== false);
+                            const disabledSectionCount = allSections.length - visibleSections.length;
+
+                            return (
+                              <>
+                                {disabledSectionCount > 0 && (
+                                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setManageVenuesView("disabled")}
+                                      className="underline hover:no-underline"
+                                    >
+                                      {disabledSectionCount} disabled section{disabledSectionCount > 1 ? "s" : ""}
+                                    </button>{" "}
+                                    — see Disabled tab
+                                  </p>
+                                )}
+                                {visibleSections.length === 0 ? (
+                                  <div className={`text-sm ${
+                                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                  }`}>
+                                    {allSections.length === 0 ? "No sections added yet." : "No enabled sections in this tab."}
+                                  </div>
+                                ) : (
+                                  visibleSections.map((section) => {
                               const allRooms = section.rooms || [];
                               const visibleRooms = allRooms.filter((room) => room.enabled !== false);
                               const disabledCount = allRooms.length - visibleRooms.length;
@@ -1784,8 +1819,19 @@ export default function SettingsPage({
                                     theme === "dark" ? "border-gray-700" : "border-gray-200"
                                   }`}>
                                     <div className="flex items-center justify-between gap-3">
-                                      <div>
-                                        <h5 className="font-medium">{section.label}</h5>
+                                      <div className="min-w-0 flex-1">
+                                        <InlineEditableText
+                                          value={section.label}
+                                          onSave={(label) => handleRenameSection(tab.id, section.id, label)}
+                                          disabled={isVenueActionLoading(`rename-section-${section.id}`)}
+                                          theme={theme}
+                                          textClassName="font-medium"
+                                          inputClassName={
+                                            theme === "dark"
+                                              ? "bg-gray-900 border-gray-700 text-gray-100"
+                                              : "bg-white border-gray-300 text-gray-900"
+                                          }
+                                        />
                                         <p className={`text-xs ${
                                           theme === "dark" ? "text-gray-400" : "text-gray-500"
                                         }`}>
@@ -1812,7 +1858,7 @@ export default function SettingsPage({
                                           disabled={isVenueActionLoading(`toggle-section-${section.id}`)}
                                           onChange={(e) =>
                                             handleToggleVenueItem(
-                                              { sectionId: section.id, enabled: e.target.checked },
+                                              { mainTabId: tab.id, sectionId: section.id, enabled: e.target.checked },
                                               `toggle-section-${section.id}`
                                             )
                                           }
@@ -1835,7 +1881,7 @@ export default function SettingsPage({
                                         }`}
                                       />
                                       <button
-                                        onClick={() => handleAddVenueRoom(section.id)}
+                                        onClick={() => handleAddVenueRoom(tab.id, section.id)}
                                         disabled={isVenueActionLoading(`room-${section.id}`)}
                                         className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
                                       >
@@ -1863,12 +1909,12 @@ export default function SettingsPage({
                                             isVenueActionLoading(`toggle-room-${room.id}`) ||
                                             isVenueActionLoading(`rename-room-${room.id}`)
                                           }
-                                          onMoveUp={() => handleMoveRoom(section, room.id, "up")}
-                                          onMoveDown={() => handleMoveRoom(section, room.id, "down")}
-                                          onRename={(name) => handleRenameRoom(room.id, name, section.id)}
+                                          onMoveUp={() => handleMoveRoom(tab.id, section, room.id, "up")}
+                                          onMoveDown={() => handleMoveRoom(tab.id, section, room.id, "down")}
+                                          onRename={(name) => handleRenameRoom(tab.id, section.id, room.id, name)}
                                           onDisable={() =>
                                             handleToggleVenueItem(
-                                              { roomId: room.id, sectionId: section.id, enabled: false },
+                                              { mainTabId: tab.id, roomId: room.id, sectionId: section.id, enabled: false },
                                               `toggle-room-${room.id}`
                                             )
                                           }
@@ -1879,8 +1925,11 @@ export default function SettingsPage({
                                   </div>
                                 </div>
                               );
-                            })
-                          )}
+                                  })
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     ));
@@ -1888,11 +1937,19 @@ export default function SettingsPage({
                 ) : (
                   (() => {
                     const disabledTabs = venueConfig.filter((tab) => tab.enabled === false);
+                    const disabledSectionsInEnabledTabs = [];
                     const disabledRoomsInEnabledTabs = [];
                     venueConfig
                       .filter((tab) => tab.enabled !== false)
                       .forEach((tab) => {
                         (tab.sections || []).forEach((section) => {
+                          if (section.enabled === false) {
+                            // Whole section is disabled — list it once here
+                            // rather than also listing each of its rooms
+                            // separately below (avoids duplicating data).
+                            disabledSectionsInEnabledTabs.push({ tab, section });
+                            return;
+                          }
                           (section.rooms || []).forEach((room) => {
                             if (room.enabled === false) {
                               disabledRoomsInEnabledTabs.push({ tab, section, room });
@@ -1901,7 +1958,11 @@ export default function SettingsPage({
                         });
                       });
 
-                    if (disabledTabs.length === 0 && disabledRoomsInEnabledTabs.length === 0) {
+                    if (
+                      disabledTabs.length === 0 &&
+                      disabledSectionsInEnabledTabs.length === 0 &&
+                      disabledRoomsInEnabledTabs.length === 0
+                    ) {
                       return (
                         <div className="text-center py-10 text-sm text-gray-500">
                           Nothing disabled. Disabled tabs and rooms are archived here instead of being deleted.
@@ -1965,6 +2026,60 @@ export default function SettingsPage({
                           </div>
                         )}
 
+                        {disabledSectionsInEnabledTabs.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className={`text-xs font-semibold uppercase tracking-wide ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-500"
+                            }`}>
+                              Disabled Sections
+                            </h4>
+                            {disabledSectionsInEnabledTabs.map(({ tab, section }) => {
+                              const roomCount = (section.rooms || []).length;
+                              return (
+                                <div
+                                  key={section.id}
+                                  className={`rounded-xl border p-4 flex items-center justify-between gap-3 ${
+                                    theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-white"
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <InlineEditableText
+                                      value={section.label}
+                                      onSave={(label) => handleRenameSection(tab.id, section.id, label)}
+                                      disabled={isVenueActionLoading(`rename-section-${section.id}`)}
+                                      theme={theme}
+                                      textClassName="font-semibold"
+                                      inputClassName={
+                                        theme === "dark"
+                                          ? "bg-gray-900 border-gray-700 text-gray-100"
+                                          : "bg-white border-gray-300 text-gray-900"
+                                      }
+                                    />
+                                    <p className={`text-xs mt-0.5 truncate ${
+                                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                    }`}>
+                                      {tab.label} · {roomCount} room{roomCount === 1 ? "" : "s"}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleToggleVenueItem(
+                                        { mainTabId: tab.id, sectionId: section.id, enabled: true },
+                                        `toggle-section-${section.id}`
+                                      )
+                                    }
+                                    disabled={isVenueActionLoading(`toggle-section-${section.id}`)}
+                                    className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
+                                  >
+                                    Enable
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
                         {disabledRoomsInEnabledTabs.length > 0 && (
                           <div className="space-y-3">
                             <h4 className={`text-xs font-semibold uppercase tracking-wide ${
@@ -1981,10 +2096,10 @@ export default function SettingsPage({
                                   isVenueActionLoading(`toggle-room-${room.id}`) ||
                                   isVenueActionLoading(`rename-room-${room.id}`)
                                 }
-                                onRename={(name) => handleRenameRoom(room.id, name, section.id)}
+                                onRename={(name) => handleRenameRoom(tab.id, section.id, room.id, name)}
                                 onEnable={() =>
                                   handleToggleVenueItem(
-                                    { roomId: room.id, sectionId: section.id, enabled: true },
+                                    { mainTabId: tab.id, roomId: room.id, sectionId: section.id, enabled: true },
                                     `toggle-room-${room.id}`
                                   )
                                 }

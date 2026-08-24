@@ -255,7 +255,11 @@ export const getEnabledVenueSectionLabelById = (
   sectionId = "",
   config = venueRoomsConfig
 ) => {
-  for (const main of normalizeVenueConfig(config)) {
+  // Must only resolve a label for a section that is actually enabled (and
+  // whose parent Main Tab is enabled) — callers use a non-null result to
+  // decide whether a section is navigable/bookable, so a disabled section
+  // must resolve to null here.
+  for (const main of getEnabledVenueRoomsConfig(config)) {
     const section = (main.sections || []).find((item) => item.id === sectionId);
     if (section) return section.label;
   }

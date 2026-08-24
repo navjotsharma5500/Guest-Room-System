@@ -29,7 +29,7 @@ import { useAuth } from "./context/AuthContext.js";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import useIdleTimeout from "./hooks/useIdleTimeout";
 import ScreenSaver from "./components/ScreenSaver";
-import { getEnabledVenueSectionLabelById } from "./config/venueRoomsConfig";
+import { getEnabledVenueRoomsConfig, getEnabledVenueSectionLabelById } from "./config/venueRoomsConfig";
 import { hasVenueDashboardAccess, isDDAssistantRole, isDDOfficeRoom } from "./utils/venueAccessPolicy";
 
 import { BACKEND_URL } from "./utils/apiConfig";
@@ -191,7 +191,10 @@ export default function VenueBookingDashboard() {
   const selectedCategoryName = getEnabledVenueSectionLabelById(activeSection, venueConfig);
   const isCategoryPortal = !!selectedCategoryName;
   const selectedSectionConfig = useMemo(() => {
-    for (const main of venueConfig || []) {
+    // Only resolve a section config when it (and its parent Main Tab) is
+    // enabled — a disabled section must not be reachable via the category
+    // portal even if `activeSection` somehow still points at its id.
+    for (const main of getEnabledVenueRoomsConfig(venueConfig || [])) {
       const section = (main.sections || []).find((item) => item.id === activeSection);
       if (section) return section;
     }

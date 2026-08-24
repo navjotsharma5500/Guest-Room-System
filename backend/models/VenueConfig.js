@@ -19,6 +19,11 @@ const venueSectionSchema = new mongoose.Schema(
     label: { type: String, required: true, trim: true },
     enabled: { type: Boolean, default: true },
     rooms: { type: [venueRoomSchema], default: [] },
+    // Labels this section was known by before a rename, most recent first.
+    // Same purpose as room.previousNames — keeps hall-name-based booking
+    // conflict/availability detection recognizing legacy bookings stored
+    // under an old section label. Never shown in the UI or otherwise acted on.
+    previousNames: { type: [String], default: [] },
   },
   { _id: false }
 );

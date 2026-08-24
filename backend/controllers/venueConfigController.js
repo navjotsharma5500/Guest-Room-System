@@ -73,21 +73,27 @@ const getConfigDocument = async () => {
 const findMainTab = (tabs = [], mainTabId = "") =>
   tabs.find((tab) => tab.id === mainTabId);
 
-const findSection = (tabs = [], sectionId = "") => {
-  for (const tab of tabs) {
-    const section = (tab.sections || []).find((item) => item.id === sectionId);
-    if (section) return { tab, section };
-  }
-  return { tab: null, section: null };
+// Section ids are only generated unique WITHIN their own Main Tab
+// (makeUniqueId's existingIds set is scoped per Main Tab), so two different
+// Main Tabs can legitimately contain a section with the same id. Every
+// section-level mutation must therefore be scoped by mainTabId — never
+// resolved by a global sectionId search — or it risks silently modifying
+// the wrong Main Tab's section.
+const findSectionInMainTab = (tabs = [], mainTabId = "", sectionId = "") => {
+  const tab = findMainTab(tabs, mainTabId);
+  if (!tab) return { tab: null, section: null };
+  const section = (tab.sections || []).find((item) => item.id === sectionId);
+  return { tab, section: section || null };
 };
 
-// Room ids are only generated unique WITHIN their own section (makeUniqueId's
-// existingIds set is scoped per-section), so two different sections can
-// legitimately contain a room with the same id. Every room-level mutation
-// must therefore be scoped by sectionId — never resolved by a global roomId
-// search — or it risks silently modifying the wrong section's room.
-const findRoomInSection = (tabs = [], sectionId = "", roomId = "") => {
-  const { tab, section } = findSection(tabs, sectionId);
+// Room ids are only generated unique WITHIN their own section, and section
+// ids are only unique within their own Main Tab — so the canonical identity
+// for a room is mainTabId + sectionId + roomId. Every room-level mutation
+// must resolve the room via this exact chain (Main Tab -> Section -> Room),
+// never by a global sectionId or roomId scan, or it risks silently
+// modifying the wrong Main Tab/Section's room.
+const findRoomInMainTabSection = (tabs = [], mainTabId = "", sectionId = "", roomId = "") => {
+  const { tab, section } = findSectionInMainTab(tabs, mainTabId, sectionId);
   if (!section) return { tab: null, section: null, room: null };
   const room = (section.rooms || []).find((item) => item.id === roomId);
   return { tab, section, room: room || null };
@@ -161,19 +167,23 @@ export const createVenueSection = async (req, res) => {
 };
 
 export const createVenueRoom = async (req, res) => {
+  const mainTabId = String(req.body?.mainTabId || "").trim();
   const sectionId = String(req.body?.sectionId || "").trim();
   const name = String(req.body?.name || "").trim();
 
-  if (!sectionId || !name) {
-    return res.status(400).json({ message: "sectionId and room name are required" });
+  if (!mainTabId || !sectionId || !name) {
+    return res.status(400).json({ message: "mainTabId, sectionId, and room name are required" });
   }
 
   const doc = await getConfigDocument();
   const tabs = cloneTabs(doc.mainTabs);
-  const { section } = findSection(tabs, sectionId);
+  // Section ids are only unique within their own Main Tab, so locating the
+  // section to add a room to must be scoped by mainTabId — otherwise a
+  // duplicate section id under a different Main Tab could receive the room.
+  const { section } = findSectionInMainTab(tabs, mainTabId, sectionId);
 
   if (!section) {
-    return res.status(404).json({ message: "Section not found" });
+    return res.status(404).json({ message: "Section not found in the given main tab" });
   }
 
   const existingIds = new Set((section.rooms || []).map((room) => room.id));
@@ -211,21 +221,57 @@ export const renameVenueMainTab = async (req, res) => {
   return saveAndRespond(doc, res);
 };
 
-export const renameVenueRoom = async (req, res) => {
-  const roomId = String(req.body?.roomId || "").trim();
+export const renameVenueSection = async (req, res) => {
+  const mainTabId = String(req.body?.mainTabId || "").trim();
   const sectionId = String(req.body?.sectionId || "").trim();
-  const name = String(req.body?.name || "").trim();
+  const label = String(req.body?.label || "").trim();
 
-  if (!sectionId || !roomId || !name) {
-    return res.status(400).json({ message: "sectionId, roomId, and name are required" });
+  if (!mainTabId || !sectionId || !label) {
+    return res.status(400).json({ message: "mainTabId, sectionId, and label are required" });
   }
 
   const doc = await getConfigDocument();
   const tabs = cloneTabs(doc.mainTabs);
-  const { room } = findRoomInSection(tabs, sectionId, roomId);
+  const { section } = findSectionInMainTab(tabs, mainTabId, sectionId);
+
+  if (!section) {
+    return res.status(404).json({ message: "Section not found in the given main tab" });
+  }
+
+  // Record the outgoing label as an alias before overwriting it. Existing
+  // VenueBooking documents store the section's old label as a plain string
+  // in `hall` (no sectionId), so keeping a history of prior labels lets
+  // conflict/availability detection still recognize legacy active/upcoming
+  // bookings after a rename — see utils/venueRoomIdentity.js. The rename
+  // itself only changes `label`; id/enabled/rooms/order are untouched.
+  if (section.label !== label) {
+    const previousNames = new Set(section.previousNames || []);
+    previousNames.add(section.label);
+    previousNames.delete(label);
+    section.previousNames = Array.from(previousNames);
+    section.label = label;
+  }
+
+  doc.mainTabs = tabs;
+  return saveAndRespond(doc, res);
+};
+
+export const renameVenueRoom = async (req, res) => {
+  const mainTabId = String(req.body?.mainTabId || "").trim();
+  const roomId = String(req.body?.roomId || "").trim();
+  const sectionId = String(req.body?.sectionId || "").trim();
+  const name = String(req.body?.name || "").trim();
+
+  if (!mainTabId || !sectionId || !roomId || !name) {
+    return res.status(400).json({ message: "mainTabId, sectionId, roomId, and name are required" });
+  }
+
+  const doc = await getConfigDocument();
+  const tabs = cloneTabs(doc.mainTabs);
+  const { room } = findRoomInMainTabSection(tabs, mainTabId, sectionId, roomId);
 
   if (!room) {
-    return res.status(404).json({ message: "Room not found in the given section" });
+    return res.status(404).json({ message: "Room not found in the given main tab/section" });
   }
 
   // Record the outgoing name as an alias before overwriting it. Existing
@@ -247,11 +293,12 @@ export const renameVenueRoom = async (req, res) => {
 };
 
 export const reorderVenueRooms = async (req, res) => {
+  const mainTabId = String(req.body?.mainTabId || "").trim();
   const sectionId = String(req.body?.sectionId || "").trim();
   const roomIds = req.body?.roomIds;
 
-  if (!sectionId) {
-    return res.status(400).json({ message: "sectionId is required" });
+  if (!mainTabId || !sectionId) {
+    return res.status(400).json({ message: "mainTabId and sectionId are required" });
   }
   if (!Array.isArray(roomIds) || roomIds.length === 0 || !roomIds.every((id) => typeof id === "string" && id.trim())) {
     return res.status(400).json({ message: "roomIds must be a non-empty array of room id strings" });
@@ -259,10 +306,13 @@ export const reorderVenueRooms = async (req, res) => {
 
   const doc = await getConfigDocument();
   const tabs = cloneTabs(doc.mainTabs);
-  const { section } = findSection(tabs, sectionId);
+  // Section ids are only unique within their own Main Tab, so locating the
+  // section to reorder must be scoped by mainTabId — otherwise a duplicate
+  // section id under a different Main Tab could have its rooms reordered.
+  const { section } = findSectionInMainTab(tabs, mainTabId, sectionId);
 
   if (!section) {
-    return res.status(404).json({ message: "Section not found" });
+    return res.status(404).json({ message: "Section not found in the given main tab" });
   }
 
   const currentRooms = section.rooms || [];
@@ -301,21 +351,29 @@ export const toggleVenueConfigItem = async (req, res) => {
   const tabs = cloneTabs(doc.mainTabs);
 
   if (roomId) {
-    // Room ids are only unique within their own section, so a room-level
-    // toggle must be scoped by sectionId — otherwise a duplicate id in
-    // another section could be toggled instead.
-    if (!sectionId) {
-      return res.status(400).json({ message: "sectionId is required together with roomId" });
+    // Room ids are only unique within their own section, and section ids
+    // are only unique within their own Main Tab — so a room-level toggle
+    // must be scoped by both mainTabId and sectionId, otherwise a duplicate
+    // section/room id combination under a different Main Tab could be
+    // toggled instead.
+    if (!mainTabId || !sectionId) {
+      return res.status(400).json({ message: "mainTabId and sectionId are required together with roomId" });
     }
-    const { room } = findRoomInSection(tabs, sectionId, roomId);
+    const { room } = findRoomInMainTabSection(tabs, mainTabId, sectionId, roomId);
     if (!room) {
-      return res.status(404).json({ message: "Room not found in the given section" });
+      return res.status(404).json({ message: "Room not found in the given main tab/section" });
     }
     room.enabled = enabled;
   } else if (sectionId) {
-    const { section } = findSection(tabs, sectionId);
+    // Section ids are only unique within their own Main Tab, so a
+    // section-level toggle must be scoped by mainTabId — otherwise a
+    // duplicate id in another Main Tab could be toggled instead.
+    if (!mainTabId) {
+      return res.status(400).json({ message: "mainTabId is required together with sectionId" });
+    }
+    const { section } = findSectionInMainTab(tabs, mainTabId, sectionId);
     if (!section) {
-      return res.status(404).json({ message: "Section not found" });
+      return res.status(404).json({ message: "Section not found in the given main tab" });
     }
     section.enabled = enabled;
   } else if (mainTabId) {

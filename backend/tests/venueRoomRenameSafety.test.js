@@ -76,7 +76,7 @@ const renameRoom = (name) =>
   request(app)
     .patch("/api/venue-config/room")
     .set("Authorization", `Bearer ${adminToken}`)
-    .send({ roomId: "room-101", sectionId: "lecture-theatre", name });
+    .send({ mainTabId: "rooms", sectionId: "lecture-theatre", roomId: "room-101", name });
 
 const createBooking = (payload) =>
   request(app)

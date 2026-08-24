@@ -47,14 +47,22 @@ export default function VenueSidebar({
     { id: "society-budget",   label: "Society Budget",  icon: Wallet },
   ];
 
+  // This sidebar is new-booking/navigation UI, not the Manage Venues admin
+  // panel (that lives in Settings) — a disabled Main Tab or Section must
+  // never appear here, for any role, so it can't be selected/navigated into.
   const venueTree = useMemo(() => {
     if (!Array.isArray(venueConfig)) return [];
-    return canManageConfig ? venueConfig : venueConfig.filter((main) => main.enabled !== false);
-  }, [canManageConfig, venueConfig]);
+    return venueConfig
+      .filter((main) => main.enabled !== false)
+      .map((main) => ({
+        ...main,
+        sections: (main.sections || []).filter((section) => section.enabled !== false),
+      }));
+  }, [venueConfig]);
 
   // Filter venue tree based on user role
   const filteredVenueTree = useMemo(() => {
-    // If not DD Assistant, show everything
+    // If not DD Assistant, show everything (already enabled-only from venueTree)
     if (!isDDAssistantRole(currentUserRole)) {
       return venueTree;
     }
@@ -64,7 +72,6 @@ export default function VenueSidebar({
       .map((main) => ({
         ...main,
         sections: main.sections
-          .filter((section) => canManageConfig || section.enabled !== false)
           .map((section) => ({
             ...section,
             // Filter the rooms inside the section
@@ -77,7 +84,7 @@ export default function VenueSidebar({
       }))
       // Only keep main categories that have at least one allowed section
       .filter((main) => main.sections.length > 0);
-  }, [canManageConfig, venueTree, currentUserRole]);
+  }, [venueTree, currentUserRole]);
 
   const [openMainGroups, setOpenMainGroups] = useState({});
 
