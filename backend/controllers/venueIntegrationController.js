@@ -52,6 +52,13 @@ const getVenueEntries = async () => {
         venueName: normalize(room.name),
         hall: normalize(section.label),
         roomNo: normalize(room.name),
+        // Every name this room has ever been known by (current + pre-rename
+        // aliases), so a legacy booking stored under an old name still
+        // reports this venue as unavailable instead of silently allowing a
+        // double-booking after a rename.
+        aliasNames: Array.from(
+          new Set([room.name, ...(room.previousNames || [])].filter(Boolean).map(normalize))
+        ),
         enabled: tab.enabled !== false && section.enabled !== false && room.enabled !== false,
       }))
     )
@@ -62,7 +69,9 @@ const hasConflict = (slot, venue, bookings) =>
   bookings.some(
     (booking) =>
       normalizeKey(booking.hall) === normalizeKey(venue.hall) &&
-      normalizeKey(booking.roomNo) === normalizeKey(venue.roomNo) &&
+      (venue.aliasNames || [venue.roomNo]).some(
+        (aliasName) => normalizeKey(booking.roomNo) === normalizeKey(aliasName)
+      ) &&
       isDailySlotOverlapping(
         slot.fromDate,
         slot.toDate,

@@ -1,4 +1,5 @@
 import VenueBooking from "../models/VenueBooking.js";
+import { buildRoomAliasMatch } from "./venueRoomIdentity.js";
 
 /**
  * ❌ DEPRECATED: Old continuous booking model
@@ -147,10 +148,14 @@ export const checkVenueConflict = async (
       throw new Error("End time must be > start time");
     }
 
-    // Query: Find bookings with SAME HALL + SAME ROOM + ACTIVE STATUS
+    // Query: Find bookings for the SAME physical room + ACTIVE STATUS.
+    // Matches every name this room has ever been known by (current name
+    // plus any pre-rename aliases — see utils/venueRoomIdentity.js), so a
+    // legacy booking stored under an old room name still counts as a
+    // conflict for the room's current (renamed) name.
+    const roomMatch = await buildRoomAliasMatch(hall.trim(), roomNo.trim());
     const bookings = await VenueBooking.find({
-      hall: hall.trim(),
-      roomNo: roomNo.trim(),
+      ...roomMatch,
       status: { $in: ["booked", "checked_in"] },
     });
 

@@ -16,6 +16,8 @@ import {
   ClipboardCheck,
   FileText,
   QrCode,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { hasPermission } from "../utils/checkPermission";
 import { useAuth } from "../context/AuthContext";
@@ -49,6 +51,7 @@ export default function SettingsPage({
   const [sectionDrafts, setSectionDrafts] = useState({});
   const [roomDrafts, setRoomDrafts] = useState({});
   const [venueActionKey, setVenueActionKey] = useState("");
+  const [manageVenuesView, setManageVenuesView] = useState("enabled");
 
   // AUTH USER
   const { currentUser } = useAuth();
@@ -75,6 +78,9 @@ export default function SettingsPage({
     addSection,
     addRoom,
     toggleItem,
+    renameTab,
+    renameRoom,
+    reorderRooms,
   } = useVenueConfig();
 
   // PERMISSIONS
@@ -544,6 +550,85 @@ export default function SettingsPage({
       showToast("Venue updated", "success");
     } catch (error) {
       showToast(error.message || "Failed to update venue", "error");
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleDisableTab = async (tab) => {
+    const enabledRoomCount = (tab.sections || []).reduce(
+      (count, section) => count + (section.rooms || []).filter((room) => room.enabled !== false).length,
+      0
+    );
+    if (enabledRoomCount > 0) {
+      const confirmed = window.confirm(
+        `Disabling "${tab.label}" will also hide its ${enabledRoomCount} enabled room(s) from new bookings. Continue?`
+      );
+      if (!confirmed) return;
+    }
+    await handleToggleVenueItem({ mainTabId: tab.id, enabled: false }, `toggle-tab-${tab.id}`);
+  };
+
+  const handleRenameTab = async (mainTabId, label) => {
+    const actionKey = `rename-tab-${mainTabId}`;
+    try {
+      setVenueActionKey(actionKey);
+      await renameTab(mainTabId, label);
+      showToast("Venue tab renamed", "success");
+      return true;
+    } catch (error) {
+      showToast(error.message || "Failed to rename tab", "error");
+      return false;
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  const handleRenameRoom = async (roomId, name, sectionId) => {
+    const actionKey = `rename-room-${roomId}`;
+    try {
+      setVenueActionKey(actionKey);
+      await renameRoom(roomId, name, sectionId);
+      showToast("Room renamed", "success");
+      return true;
+    } catch (error) {
+      showToast(error.message || "Failed to rename room", "error");
+      return false;
+    } finally {
+      setVenueActionKey("");
+    }
+  };
+
+  // Reorders rooms within `section` by swapping the target room's absolute
+  // array position with its previous/next *enabled* sibling. Disabled rooms
+  // (hidden from this view) keep their relative position untouched, and the
+  // full, persisted array order is always what gets submitted to the API.
+  const handleMoveRoom = async (section, roomId, direction) => {
+    const allRooms = section.rooms || [];
+    const visibleRooms = allRooms.filter((room) => room.enabled !== false);
+    const visibleIndex = visibleRooms.findIndex((room) => room.id === roomId);
+    if (visibleIndex === -1) return;
+
+    const targetVisibleIndex = direction === "up" ? visibleIndex - 1 : visibleIndex + 1;
+    if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleRooms.length) return;
+
+    const currentRoomId = visibleRooms[visibleIndex].id;
+    const targetRoomId = visibleRooms[targetVisibleIndex].id;
+    const currentFullIndex = allRooms.findIndex((room) => room.id === currentRoomId);
+    const targetFullIndex = allRooms.findIndex((room) => room.id === targetRoomId);
+
+    const nextOrder = allRooms.map((room) => room.id);
+    [nextOrder[currentFullIndex], nextOrder[targetFullIndex]] = [
+      nextOrder[targetFullIndex],
+      nextOrder[currentFullIndex],
+    ];
+
+    const actionKey = `reorder-${roomId}`;
+    try {
+      setVenueActionKey(actionKey);
+      await reorderRooms(section.id, nextOrder);
+    } catch (error) {
+      showToast(error.message || "Failed to reorder room", "error");
     } finally {
       setVenueActionKey("");
     }
@@ -1567,184 +1652,350 @@ export default function SettingsPage({
                   </div>
                 </div>
 
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setManageVenuesView("enabled")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border ${
+                      manageVenuesView === "enabled"
+                        ? "bg-red-600 border-red-600 text-white"
+                        : theme === "dark"
+                        ? "border-gray-700 text-gray-300 hover:bg-gray-800"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Enabled
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManageVenuesView("disabled")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border ${
+                      manageVenuesView === "disabled"
+                        ? "bg-red-600 border-red-600 text-white"
+                        : theme === "dark"
+                        ? "border-gray-700 text-gray-300 hover:bg-gray-800"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Disabled
+                  </button>
+                </div>
+
                 {venueConfigLoading && venueConfig.length === 0 ? (
                   <div className="text-center py-10 text-sm text-gray-500">Loading venues...</div>
                 ) : venueConfig.length === 0 ? (
                   <div className="text-center py-10 text-sm text-gray-500">No venue tabs found.</div>
-                ) : (
-                  venueConfig.map((tab) => (
-                    <div
-                      key={tab.id}
-                      className={`rounded-xl border ${
-                        theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-white"
-                      }`}
-                    >
-                      <div className={`px-4 py-4 border-b ${
-                        theme === "dark" ? "border-gray-700" : "border-gray-200"
-                      }`}>
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <h4 className="text-base sm:text-lg font-semibold">{tab.label}</h4>
-                            <p className={`text-xs sm:text-sm ${
+                ) : manageVenuesView === "enabled" ? (
+                  (() => {
+                    const enabledTabs = venueConfig.filter((tab) => tab.enabled !== false);
+                    if (enabledTabs.length === 0) {
+                      return (
+                        <div className="text-center py-10 text-sm text-gray-500">
+                          No enabled venue tabs. Switch to Disabled to re-enable one.
+                        </div>
+                      );
+                    }
+
+                    return enabledTabs.map((tab) => (
+                      <div
+                        key={tab.id}
+                        className={`rounded-xl border ${
+                          theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className={`px-4 py-4 border-b ${
+                          theme === "dark" ? "border-gray-700" : "border-gray-200"
+                        }`}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <InlineEditableText
+                                value={tab.label}
+                                onSave={(label) => handleRenameTab(tab.id, label)}
+                                disabled={isVenueActionLoading(`rename-tab-${tab.id}`)}
+                                theme={theme}
+                                textClassName="text-base sm:text-lg font-semibold"
+                                inputClassName={
+                                  theme === "dark"
+                                    ? "bg-gray-900 border-gray-700 text-gray-100"
+                                    : "bg-white border-gray-300 text-gray-900"
+                                }
+                              />
+                              <p className={`text-xs sm:text-sm ${
+                                theme === "dark" ? "text-gray-400" : "text-gray-500"
+                              }`}>
+                                Main tab
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDisableTab(tab)}
+                              disabled={isVenueActionLoading(`toggle-tab-${tab.id}`)}
+                              className="px-3 py-1.5 rounded-lg border border-red-300 text-red-700 text-xs font-medium hover:bg-red-50 disabled:opacity-50 flex-shrink-0"
+                            >
+                              Disable
+                            </button>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                            <input
+                              type="text"
+                              value={sectionDrafts[tab.id] || ""}
+                              onChange={(e) =>
+                                setSectionDrafts((prev) => ({ ...prev, [tab.id]: e.target.value }))
+                              }
+                              placeholder="Enter Section Name"
+                              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                                theme === "dark"
+                                  ? "bg-gray-900 border-gray-700 text-gray-100"
+                                  : "bg-white border-gray-300 text-gray-900"
+                              }`}
+                            />
+                            <button
+                              onClick={() => handleAddVenueSection(tab.id)}
+                              disabled={isVenueActionLoading(`section-${tab.id}`)}
+                              className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {isVenueActionLoading(`section-${tab.id}`) ? "Adding..." : "+ Add Section"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-4">
+                          {(tab.sections || []).length === 0 ? (
+                            <div className={`text-sm ${
                               theme === "dark" ? "text-gray-400" : "text-gray-500"
                             }`}>
-                              Main tab
-                            </p>
-                          </div>
-                          <label className="flex items-center gap-2 text-sm">
-                            <span>{tab.enabled !== false ? "Enabled" : "Disabled"}</span>
-                            <input
-                              type="checkbox"
-                              checked={tab.enabled !== false}
-                              disabled={isVenueActionLoading(`toggle-tab-${tab.id}`)}
-                              onChange={(e) =>
-                                handleToggleVenueItem(
-                                  { mainTabId: tab.id, enabled: e.target.checked },
-                                  `toggle-tab-${tab.id}`
-                                )
-                              }
-                            />
-                          </label>
-                        </div>
+                              No sections added yet.
+                            </div>
+                          ) : (
+                            (tab.sections || []).map((section) => {
+                              const allRooms = section.rooms || [];
+                              const visibleRooms = allRooms.filter((room) => room.enabled !== false);
+                              const disabledCount = allRooms.length - visibleRooms.length;
 
-                        <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                          <input
-                            type="text"
-                            value={sectionDrafts[tab.id] || ""}
-                            onChange={(e) =>
-                              setSectionDrafts((prev) => ({ ...prev, [tab.id]: e.target.value }))
-                            }
-                            placeholder="Enter Section Name"
-                            className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
-                              theme === "dark"
-                                ? "bg-gray-900 border-gray-700 text-gray-100"
-                                : "bg-white border-gray-300 text-gray-900"
-                            }`}
-                          />
-                          <button
-                            onClick={() => handleAddVenueSection(tab.id)}
-                            disabled={isVenueActionLoading(`section-${tab.id}`)}
-                            className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
-                          >
-                            {isVenueActionLoading(`section-${tab.id}`) ? "Adding..." : "+ Add Section"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="p-4 space-y-4">
-                        {(tab.sections || []).length === 0 ? (
-                          <div className={`text-sm ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-500"
-                          }`}>
-                            No sections added yet.
-                          </div>
-                        ) : (
-                          (tab.sections || []).map((section) => (
-                            <div
-                              key={section.id}
-                              className={`rounded-lg border ${
-                                theme === "dark" ? "border-gray-700 bg-gray-900/40" : "border-gray-200 bg-gray-50"
-                              }`}
-                            >
-                              <div className={`px-4 py-3 border-b ${
-                                theme === "dark" ? "border-gray-700" : "border-gray-200"
-                              }`}>
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <h5 className="font-medium">{section.label}</h5>
-                                    <p className={`text-xs ${
-                                      theme === "dark" ? "text-gray-400" : "text-gray-500"
-                                    }`}>
-                                      Section
-                                    </p>
-                                  </div>
-                                  <label className="flex items-center gap-2 text-sm">
-                                    <span>{section.enabled !== false ? "Enabled" : "Disabled"}</span>
-                                    <input
-                                      type="checkbox"
-                                      checked={section.enabled !== false}
-                                      disabled={isVenueActionLoading(`toggle-section-${section.id}`)}
-                                      onChange={(e) =>
-                                        handleToggleVenueItem(
-                                          { sectionId: section.id, enabled: e.target.checked },
-                                          `toggle-section-${section.id}`
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                                  <input
-                                    type="text"
-                                    value={roomDrafts[section.id] || ""}
-                                    onChange={(e) =>
-                                      setRoomDrafts((prev) => ({ ...prev, [section.id]: e.target.value }))
-                                    }
-                                    placeholder="Enter Room Name"
-                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
-                                      theme === "dark"
-                                        ? "bg-gray-900 border-gray-700 text-gray-100"
-                                        : "bg-white border-gray-300 text-gray-900"
-                                    }`}
-                                  />
-                                  <button
-                                    onClick={() => handleAddVenueRoom(section.id)}
-                                    disabled={isVenueActionLoading(`room-${section.id}`)}
-                                    className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
-                                  >
-                                    {isVenueActionLoading(`room-${section.id}`) ? "Adding..." : "+ Add Room"}
-                                  </button>
-                                </div>
-                              </div>
-
-                              <div className="p-4 space-y-2">
-                                {(section.rooms || []).length === 0 ? (
-                                  <div className={`text-sm ${
-                                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                              return (
+                                <div
+                                  key={section.id}
+                                  className={`rounded-lg border ${
+                                    theme === "dark" ? "border-gray-700 bg-gray-900/40" : "border-gray-200 bg-gray-50"
+                                  }`}
+                                >
+                                  <div className={`px-4 py-3 border-b ${
+                                    theme === "dark" ? "border-gray-700" : "border-gray-200"
                                   }`}>
-                                    No rooms added yet.
-                                  </div>
-                                ) : (
-                                  (section.rooms || []).map((room) => (
-                                    <div
-                                      key={room.id}
-                                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                                        theme === "dark" ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
-                                      }`}
-                                    >
+                                    <div className="flex items-center justify-between gap-3">
                                       <div>
-                                        <div className="text-sm font-medium">{room.name}</div>
-                                        <div className={`text-xs ${
+                                        <h5 className="font-medium">{section.label}</h5>
+                                        <p className={`text-xs ${
                                           theme === "dark" ? "text-gray-400" : "text-gray-500"
                                         }`}>
-                                          Room
-                                        </div>
+                                          Section
+                                          {disabledCount > 0 && (
+                                            <>
+                                              {" · "}
+                                              <button
+                                                type="button"
+                                                onClick={() => setManageVenuesView("disabled")}
+                                                className="underline hover:no-underline"
+                                              >
+                                                {disabledCount} disabled room{disabledCount > 1 ? "s" : ""}
+                                              </button>
+                                            </>
+                                          )}
+                                        </p>
                                       </div>
                                       <label className="flex items-center gap-2 text-sm">
-                                        <span>{room.enabled !== false ? "Enabled" : "Disabled"}</span>
+                                        <span>{section.enabled !== false ? "Enabled" : "Disabled"}</span>
                                         <input
                                           type="checkbox"
-                                          checked={room.enabled !== false}
-                                          disabled={isVenueActionLoading(`toggle-room-${room.id}`)}
+                                          checked={section.enabled !== false}
+                                          disabled={isVenueActionLoading(`toggle-section-${section.id}`)}
                                           onChange={(e) =>
                                             handleToggleVenueItem(
-                                              { roomId: room.id, enabled: e.target.checked },
-                                              `toggle-room-${room.id}`
+                                              { sectionId: section.id, enabled: e.target.checked },
+                                              `toggle-section-${section.id}`
                                             )
                                           }
                                         />
                                       </label>
                                     </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
+
+                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                      <input
+                                        type="text"
+                                        value={roomDrafts[section.id] || ""}
+                                        onChange={(e) =>
+                                          setRoomDrafts((prev) => ({ ...prev, [section.id]: e.target.value }))
+                                        }
+                                        placeholder="Enter Room Name"
+                                        className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                                          theme === "dark"
+                                            ? "bg-gray-900 border-gray-700 text-gray-100"
+                                            : "bg-white border-gray-300 text-gray-900"
+                                        }`}
+                                      />
+                                      <button
+                                        onClick={() => handleAddVenueRoom(section.id)}
+                                        disabled={isVenueActionLoading(`room-${section.id}`)}
+                                        className="px-4 py-2 rounded-lg border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+                                      >
+                                        {isVenueActionLoading(`room-${section.id}`) ? "Adding..." : "+ Add Room"}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-4 space-y-2">
+                                    {visibleRooms.length === 0 ? (
+                                      <div className={`text-sm ${
+                                        theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                      }`}>
+                                        {allRooms.length === 0 ? "No rooms added yet." : "No enabled rooms in this section."}
+                                      </div>
+                                    ) : (
+                                      visibleRooms.map((room, index) => (
+                                        <VenueRoomRow
+                                          key={room.id}
+                                          room={room}
+                                          isFirst={index === 0}
+                                          isLast={index === visibleRooms.length - 1}
+                                          disabledActionKey={
+                                            isVenueActionLoading(`reorder-${room.id}`) ||
+                                            isVenueActionLoading(`toggle-room-${room.id}`) ||
+                                            isVenueActionLoading(`rename-room-${room.id}`)
+                                          }
+                                          onMoveUp={() => handleMoveRoom(section, room.id, "up")}
+                                          onMoveDown={() => handleMoveRoom(section, room.id, "down")}
+                                          onRename={(name) => handleRenameRoom(room.id, name, section.id)}
+                                          onDisable={() =>
+                                            handleToggleVenueItem(
+                                              { roomId: room.id, sectionId: section.id, enabled: false },
+                                              `toggle-room-${room.id}`
+                                            )
+                                          }
+                                          theme={theme}
+                                        />
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ));
+                  })()
+                ) : (
+                  (() => {
+                    const disabledTabs = venueConfig.filter((tab) => tab.enabled === false);
+                    const disabledRoomsInEnabledTabs = [];
+                    venueConfig
+                      .filter((tab) => tab.enabled !== false)
+                      .forEach((tab) => {
+                        (tab.sections || []).forEach((section) => {
+                          (section.rooms || []).forEach((room) => {
+                            if (room.enabled === false) {
+                              disabledRoomsInEnabledTabs.push({ tab, section, room });
+                            }
+                          });
+                        });
+                      });
+
+                    if (disabledTabs.length === 0 && disabledRoomsInEnabledTabs.length === 0) {
+                      return (
+                        <div className="text-center py-10 text-sm text-gray-500">
+                          Nothing disabled. Disabled tabs and rooms are archived here instead of being deleted.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {disabledTabs.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className={`text-xs font-semibold uppercase tracking-wide ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-500"
+                            }`}>
+                              Disabled Main Tabs
+                            </h4>
+                            {disabledTabs.map((tab) => {
+                              const roomCount = (tab.sections || []).reduce(
+                                (count, section) => count + (section.rooms || []).length,
+                                0
+                              );
+                              return (
+                                <div
+                                  key={tab.id}
+                                  className={`rounded-xl border p-4 flex items-center justify-between gap-3 ${
+                                    theme === "dark" ? "border-gray-700 bg-gray-800/60" : "border-gray-200 bg-white"
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <InlineEditableText
+                                      value={tab.label}
+                                      onSave={(label) => handleRenameTab(tab.id, label)}
+                                      disabled={isVenueActionLoading(`rename-tab-${tab.id}`)}
+                                      theme={theme}
+                                      textClassName="font-semibold"
+                                      inputClassName={
+                                        theme === "dark"
+                                          ? "bg-gray-900 border-gray-700 text-gray-100"
+                                          : "bg-white border-gray-300 text-gray-900"
+                                      }
+                                    />
+                                    <p className={`text-xs mt-0.5 ${
+                                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                                    }`}>
+                                      {roomCount} room{roomCount === 1 ? "" : "s"} archived with this tab
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleToggleVenueItem({ mainTabId: tab.id, enabled: true }, `toggle-tab-${tab.id}`)
+                                    }
+                                    disabled={isVenueActionLoading(`toggle-tab-${tab.id}`)}
+                                    className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
+                                  >
+                                    Enable
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {disabledRoomsInEnabledTabs.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className={`text-xs font-semibold uppercase tracking-wide ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-500"
+                            }`}>
+                              Disabled Rooms
+                            </h4>
+                            {disabledRoomsInEnabledTabs.map(({ tab, section, room }) => (
+                              <DisabledVenueRoomRow
+                                key={room.id}
+                                room={room}
+                                parentLabel={`${tab.label} / ${section.label}`}
+                                disabledActionKey={
+                                  isVenueActionLoading(`toggle-room-${room.id}`) ||
+                                  isVenueActionLoading(`rename-room-${room.id}`)
+                                }
+                                onRename={(name) => handleRenameRoom(room.id, name, section.id)}
+                                onEnable={() =>
+                                  handleToggleVenueItem(
+                                    { roomId: room.id, sectionId: section.id, enabled: true },
+                                    `toggle-room-${room.id}`
+                                  )
+                                }
+                                theme={theme}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()
                 )}
               </div>
             </motion.div>
@@ -2004,5 +2255,184 @@ export default function SettingsPage({
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// Inline label editor used for both Main Tab and Room names in Manage Venues.
+// Renaming only ever changes the label/name field — id, enabled state, and
+// array order are left untouched by the caller's onSave handler.
+function InlineEditableText({ value, onSave, disabled = false, theme, textClassName = "", inputClassName = "" }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  const handleSave = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === value) {
+      setEditing(false);
+      setDraft(value);
+      return;
+    }
+    const ok = await onSave(trimmed);
+    if (ok) {
+      setEditing(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setDraft(value);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 min-w-0">
+        <input
+          autoFocus
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") handleCancel();
+          }}
+          disabled={disabled}
+          className={`min-w-0 flex-1 rounded-lg border px-2 py-1 text-sm ${inputClassName}`}
+        />
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={disabled}
+          className="text-xs font-medium text-green-700 px-2 py-1 rounded hover:bg-green-500/10 disabled:opacity-50 flex-shrink-0"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={disabled}
+          className={`text-xs font-medium px-2 py-1 rounded flex-shrink-0 ${
+            theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-500 hover:bg-gray-100"
+          }`}
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span className={`truncate ${textClassName}`}>{value}</span>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        disabled={disabled}
+        title="Edit name"
+        className={`p-1 rounded disabled:opacity-40 flex-shrink-0 ${
+          theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
+        }`}
+      >
+        <Edit3 size={13} />
+      </button>
+    </div>
+  );
+}
+
+// A single enabled Room row in the Manage Venues "Enabled" view: move
+// up/down persists the new array order via the room-order API, edit renames
+// in place, disable archives it into the "Disabled" view.
+function VenueRoomRow({ room, isFirst, isLast, disabledActionKey, onMoveUp, onMoveDown, onRename, onDisable, theme }) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+        theme === "dark" ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+      }`}
+    >
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex flex-col flex-shrink-0">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={isFirst || !!disabledActionKey}
+            title="Move up"
+            className={`p-0.5 rounded disabled:opacity-30 ${
+              theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
+            }`}
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={isLast || !!disabledActionKey}
+            title="Move down"
+            className={`p-0.5 rounded disabled:opacity-30 ${
+              theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
+            }`}
+          >
+            <ChevronDown size={14} />
+          </button>
+        </div>
+        <InlineEditableText
+          value={room.name}
+          onSave={onRename}
+          disabled={!!disabledActionKey}
+          theme={theme}
+          textClassName="text-sm font-medium"
+          inputClassName={
+            theme === "dark" ? "bg-gray-900 border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"
+          }
+        />
+      </div>
+      <button
+        type="button"
+        onClick={onDisable}
+        disabled={!!disabledActionKey}
+        className="text-xs px-3 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 flex-shrink-0"
+      >
+        Disable
+      </button>
+    </div>
+  );
+}
+
+// A single disabled Room row in the Manage Venues "Disabled" view. Shows the
+// parent Main Tab / Section so admins can tell where a re-enabled room will
+// reappear.
+function DisabledVenueRoomRow({ room, parentLabel, disabledActionKey, onRename, onEnable, theme }) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+        theme === "dark" ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <InlineEditableText
+          value={room.name}
+          onSave={onRename}
+          disabled={!!disabledActionKey}
+          theme={theme}
+          textClassName="text-sm font-medium"
+          inputClassName={
+            theme === "dark" ? "bg-gray-900 border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"
+          }
+        />
+        <div className={`text-xs mt-0.5 truncate ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+          {parentLabel}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onEnable}
+        disabled={!!disabledActionKey}
+        className="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
+      >
+        Enable
+      </button>
+    </div>
   );
 }

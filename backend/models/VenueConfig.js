@@ -5,6 +5,10 @@ const venueRoomSchema = new mongoose.Schema(
     id: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
     enabled: { type: Boolean, default: true },
+    // Names this room was known by before a rename, most recent first. Used
+    // only to keep booking-conflict detection recognizing legacy bookings
+    // stored under an old name — never shown in the UI or otherwise acted on.
+    previousNames: { type: [String], default: [] },
   },
   { _id: false }
 );

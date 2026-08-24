@@ -25,7 +25,7 @@ test("adopts the newest legacy config as global without replacing dynamic rooms"
       id: "dynamic-section",
       label: "Dynamic Section",
       enabled: true,
-      rooms: [{ id: "new-room", name: "New Room", enabled: true }],
+      rooms: [{ id: "new-room", name: "New Room", enabled: true, previousNames: [] }],
     }],
   }];
   const legacy = await VenueConfig.create({ mainTabs: legacyTabs });

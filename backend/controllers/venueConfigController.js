@@ -81,14 +81,16 @@ const findSection = (tabs = [], sectionId = "") => {
   return { tab: null, section: null };
 };
 
-const findRoom = (tabs = [], roomId = "") => {
-  for (const tab of tabs) {
-    for (const section of tab.sections || []) {
-      const room = (section.rooms || []).find((item) => item.id === roomId);
-      if (room) return { tab, section, room };
-    }
-  }
-  return { tab: null, section: null, room: null };
+// Room ids are only generated unique WITHIN their own section (makeUniqueId's
+// existingIds set is scoped per-section), so two different sections can
+// legitimately contain a room with the same id. Every room-level mutation
+// must therefore be scoped by sectionId — never resolved by a global roomId
+// search — or it risks silently modifying the wrong section's room.
+const findRoomInSection = (tabs = [], sectionId = "", roomId = "") => {
+  const { tab, section } = findSection(tabs, sectionId);
+  if (!section) return { tab: null, section: null, room: null };
+  const room = (section.rooms || []).find((item) => item.id === roomId);
+  return { tab, section, room: room || null };
 };
 
 const saveAndRespond = async (doc, res) => {
@@ -186,6 +188,105 @@ export const createVenueRoom = async (req, res) => {
   return saveAndRespond(doc, res);
 };
 
+export const renameVenueMainTab = async (req, res) => {
+  const mainTabId = String(req.body?.mainTabId || "").trim();
+  const label = String(req.body?.label || "").trim();
+
+  if (!mainTabId || !label) {
+    return res.status(400).json({ message: "mainTabId and label are required" });
+  }
+
+  const doc = await getConfigDocument();
+  const tabs = cloneTabs(doc.mainTabs);
+  const tab = findMainTab(tabs, mainTabId);
+
+  if (!tab) {
+    return res.status(404).json({ message: "Main tab not found" });
+  }
+
+  // Only the label changes — id, enabled, and sections/rooms are untouched,
+  // so historical bookings (which never reference mainTabId) are unaffected.
+  tab.label = label;
+  doc.mainTabs = tabs;
+  return saveAndRespond(doc, res);
+};
+
+export const renameVenueRoom = async (req, res) => {
+  const roomId = String(req.body?.roomId || "").trim();
+  const sectionId = String(req.body?.sectionId || "").trim();
+  const name = String(req.body?.name || "").trim();
+
+  if (!sectionId || !roomId || !name) {
+    return res.status(400).json({ message: "sectionId, roomId, and name are required" });
+  }
+
+  const doc = await getConfigDocument();
+  const tabs = cloneTabs(doc.mainTabs);
+  const { room } = findRoomInSection(tabs, sectionId, roomId);
+
+  if (!room) {
+    return res.status(404).json({ message: "Room not found in the given section" });
+  }
+
+  // Record the outgoing name as an alias before overwriting it. Existing
+  // VenueBooking documents store the room's old name as a plain string (no
+  // roomId), so keeping a history of prior names lets conflict-detection
+  // still recognize legacy active/upcoming bookings after a rename — see
+  // utils/venueRoomIdentity.js. The rename itself only changes `name`;
+  // id/enabled/order are untouched.
+  if (room.name !== name) {
+    const previousNames = new Set(room.previousNames || []);
+    previousNames.add(room.name);
+    previousNames.delete(name);
+    room.previousNames = Array.from(previousNames);
+    room.name = name;
+  }
+
+  doc.mainTabs = tabs;
+  return saveAndRespond(doc, res);
+};
+
+export const reorderVenueRooms = async (req, res) => {
+  const sectionId = String(req.body?.sectionId || "").trim();
+  const roomIds = req.body?.roomIds;
+
+  if (!sectionId) {
+    return res.status(400).json({ message: "sectionId is required" });
+  }
+  if (!Array.isArray(roomIds) || roomIds.length === 0 || !roomIds.every((id) => typeof id === "string" && id.trim())) {
+    return res.status(400).json({ message: "roomIds must be a non-empty array of room id strings" });
+  }
+
+  const doc = await getConfigDocument();
+  const tabs = cloneTabs(doc.mainTabs);
+  const { section } = findSection(tabs, sectionId);
+
+  if (!section) {
+    return res.status(404).json({ message: "Section not found" });
+  }
+
+  const currentRooms = section.rooms || [];
+  const currentIds = currentRooms.map((room) => room.id);
+  const submittedUnique = new Set(roomIds);
+
+  const isExactMatch =
+    roomIds.length === currentIds.length &&
+    submittedUnique.size === roomIds.length &&
+    currentIds.every((id) => submittedUnique.has(id));
+
+  if (!isExactMatch) {
+    return res.status(400).json({
+      message: "roomIds must contain every room currently in this section exactly once — no other section's rooms may be reordered",
+    });
+  }
+
+  const roomsById = new Map(currentRooms.map((room) => [room.id, room]));
+  section.rooms = roomIds.map((id) => roomsById.get(id));
+
+  doc.mainTabs = tabs;
+  return saveAndRespond(doc, res);
+};
+
 export const toggleVenueConfigItem = async (req, res) => {
   const enabled = req.body?.enabled;
   const mainTabId = String(req.body?.mainTabId || "").trim();
@@ -200,9 +301,15 @@ export const toggleVenueConfigItem = async (req, res) => {
   const tabs = cloneTabs(doc.mainTabs);
 
   if (roomId) {
-    const { room } = findRoom(tabs, roomId);
+    // Room ids are only unique within their own section, so a room-level
+    // toggle must be scoped by sectionId — otherwise a duplicate id in
+    // another section could be toggled instead.
+    if (!sectionId) {
+      return res.status(400).json({ message: "sectionId is required together with roomId" });
+    }
+    const { room } = findRoomInSection(tabs, sectionId, roomId);
     if (!room) {
-      return res.status(404).json({ message: "Room not found" });
+      return res.status(404).json({ message: "Room not found in the given section" });
     }
     room.enabled = enabled;
   } else if (sectionId) {

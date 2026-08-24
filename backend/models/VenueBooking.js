@@ -12,6 +12,25 @@ const venueBookingSchema = new mongoose.Schema({
     required: true,
   },
 
+  // Optional stable VenueConfig identity, populated for bookings created or
+  // edited after this field was introduced. Legacy bookings leave these
+  // null and keep matching purely by hall/roomNo (including any pre-rename
+  // aliases recorded in VenueConfig room.previousNames) — see
+  // utils/venueRoomIdentity.js. Never required, so old documents remain
+  // valid and readable exactly as before.
+  venueMainTabId: {
+    type: String,
+    default: null,
+  },
+  venueSectionId: {
+    type: String,
+    default: null,
+  },
+  venueRoomId: {
+    type: String,
+    default: null,
+  },
+
   // Booking Information
   name: {
     type: String,

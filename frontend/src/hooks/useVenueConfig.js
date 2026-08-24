@@ -164,6 +164,33 @@ export default function useVenueConfig() {
     [mutateConfig]
   );
 
+  const renameTab = useCallback(
+    (mainTabId, label) =>
+      mutateConfig("/tab", {
+        method: "PATCH",
+        body: JSON.stringify({ mainTabId, label }),
+      }),
+    [mutateConfig]
+  );
+
+  const renameRoom = useCallback(
+    (roomId, name, sectionId) =>
+      mutateConfig("/room", {
+        method: "PATCH",
+        body: JSON.stringify({ roomId, name, sectionId }),
+      }),
+    [mutateConfig]
+  );
+
+  const reorderRooms = useCallback(
+    (sectionId, roomIds) =>
+      mutateConfig("/room-order", {
+        method: "PATCH",
+        body: JSON.stringify({ sectionId, roomIds }),
+      }),
+    [mutateConfig]
+  );
+
   const enabledVenueConfig = useMemo(
     () => getEnabledVenueRoomsConfig(venueConfig),
     [venueConfig]
@@ -182,5 +209,8 @@ export default function useVenueConfig() {
     addSection,
     addRoom,
     toggleItem,
+    renameTab,
+    renameRoom,
+    reorderRooms,
   };
 }

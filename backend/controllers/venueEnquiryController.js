@@ -2,6 +2,7 @@ import VenueEnquiry from "../models/VenueEnquiry.js";
 import VenueBooking from "../models/VenueBooking.js";
 import { getSocketIO } from "../utils/socket.js";
 import { checkVenueConflict, isDailySlotOverlapping } from "../utils/venueConflictChecker.js";
+import { buildRoomAliasMatch } from "../utils/venueRoomIdentity.js";
 import SocietyNameSuggestion, {
   DEFAULT_SOCIETY_NAMES,
   getDefaultSocietyEmail,
@@ -456,10 +457,13 @@ export const approveVenueEnquiry = async (req, res) => {
 
     const normalizedBookingFor = normalizeBookingFor(bookingFor);
 
-    // Prevent overlap for the requested room before booking
+    // Prevent overlap for the requested room before booking — matches every
+    // name this room has ever been known by, so a legacy booking under a
+    // pre-rename name still blocks approving this enquiry into the same
+    // physical room under its current (renamed) name.
+    const roomMatch = await buildRoomAliasMatch(enquiry.hall, enquiry.roomNo);
     const overlappingBookings = await VenueBooking.find({
-      hall: enquiry.hall,
-      roomNo: enquiry.roomNo,
+      ...roomMatch,
       status: { $in: ["booked", "checked_in"] },
     });
 

@@ -11,6 +11,7 @@ import {
   filterRecordsByVenueRole,
 } from '../utils/venueAccessPolicy.js';
 import { isDailySlotOverlapping } from '../utils/venueConflictChecker.js';
+import { resolveVenueRoomIdentity, buildRoomAliasMatch } from '../utils/venueRoomIdentity.js';
 import {
   sendDirectBookingEmail,
   sendBookingExtendedEmail,
@@ -208,14 +209,25 @@ const createVenueBookingCore = async (req, res) => {
     console.error('⚠️ Suggestion update failed (non-critical):', suggestionError.message);
   }
 
+  // Resolved once per room here and reused below when creating the booking
+  // documents, so a rename that happens between these two loops can't cause
+  // a mismatch between what was conflict-checked and what gets saved.
+  const roomIdentities = new Map();
+
   for (const room of rooms) {
     if (!canAccessVenueRoom(req.user?.role, room.hall, room.roomNo)) {
       return res.status(403).json({ message: `Access denied to room ${room.roomNo}` });
     }
 
+    const identity = await resolveVenueRoomIdentity(room.hall, room.roomNo);
+    roomIdentities.set(room, identity);
+
+    // Match every name this room has ever been known by (see
+    // utils/venueRoomIdentity.js), so a legacy active/upcoming booking made
+    // under a pre-rename name still blocks the same physical room.
     const overlappingBookings = await VenueBooking.find({
       hall: room.hall,
-      roomNo: room.roomNo,
+      roomNo: identity && identity.aliasNames.length > 1 ? { $in: identity.aliasNames } : room.roomNo,
       status: { $in: ['booked', 'checked_in'] },
     });
 
@@ -253,9 +265,13 @@ const createVenueBookingCore = async (req, res) => {
   }
 
   for (const room of rooms) {
+    const identity = roomIdentities.get(room);
     const booking = new VenueBooking({
       hall: room.hall,
       roomNo: room.roomNo,
+      venueMainTabId: identity?.mainTabId || null,
+      venueSectionId: identity?.sectionId || null,
+      venueRoomId: identity?.roomId || null,
       name,
       societyName,
       eventName,
@@ -454,10 +470,13 @@ const updateVenueBookingCore = async (req, res) => {
     return res.status(400).json({ message: 'Daily end time must be after daily start time' });
   }
 
+  // Match every name this room has ever been known by, so a rename can't
+  // let this edit silently start colliding with (or missing) a legacy
+  // booking stored under a pre-rename name.
+  const roomMatch = await buildRoomAliasMatch(merged.hall, merged.roomNo);
   const overlappingBookings = await VenueBooking.find({
     _id: { $ne: booking._id },
-    hall: merged.hall,
-    roomNo: merged.roomNo,
+    ...roomMatch,
     status: { $in: ['booked', 'checked_in'] },
   });
 
@@ -514,6 +533,14 @@ const updateVenueBookingCore = async (req, res) => {
   for (const field of editableVenueBookingFields) {
     booking[field] = merged[field];
   }
+
+  // Opportunistically (re)attach stable VenueConfig identity whenever a
+  // booking is edited — this gradually backfills legacy bookings with no
+  // migration needed, and keeps identity correct if hall/roomNo changed.
+  const updatedIdentity = await resolveVenueRoomIdentity(booking.hall, booking.roomNo);
+  booking.venueMainTabId = updatedIdentity?.mainTabId || null;
+  booking.venueSectionId = updatedIdentity?.sectionId || null;
+  booking.venueRoomId = updatedIdentity?.roomId || null;
 
   booking.bookingFor = normalizeBookingFor(booking.bookingFor);
   booking.lastEditedBy = req.user?._id || null;
@@ -573,10 +600,13 @@ const extendVenueBookingCore = async (req, res) => {
     return res.status(403).json({ message: 'Access denied to this room' });
   }
 
+  // Match every name this room has ever been known by, so extending a
+  // legacy booking still checks against bookings made under the room's
+  // current (post-rename) name too, not just its own stored old name.
+  const roomMatch = await buildRoomAliasMatch(booking.hall, booking.roomNo);
   const overlappingBookings = await VenueBooking.find({
     _id: { $ne: id },
-    hall: booking.hall,
-    roomNo: booking.roomNo,
+    ...roomMatch,
     status: { $in: ['booked', 'checked_in'] },
   });
 
