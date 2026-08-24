@@ -1,9 +1,5 @@
 import { createLog } from "../middleware/logMiddleware.js";
-import {
-  getSystemSettings,
-  updateSystemSettings,
-  validateSystemSettingsPayload,
-} from "../utils/systemSettings.js";
+import { getSystemSettings, updateSystemSettings } from "../utils/systemSettings.js";
 
 export const getSettings = async (_req, res) => {
   try {
@@ -54,7 +50,9 @@ export const getPublicSettings = async (_req, res) => {
 
 export const updateSettings = async (req, res) => {
   try {
-    validateSystemSettingsPayload(req.body || {});
+    // Cross-section validation must occur after partial updates are merged
+    // with persisted settings — updateSystemSettings() merges req.body with
+    // the current DB document and validates the merged result internally.
     const settings = await updateSystemSettings(req.body || {}, req.user?._id || null);
     createLog("system_settings_updated", req.user?._id, {});
     res.json({ success: true, settings });
