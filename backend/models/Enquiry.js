@@ -52,6 +52,9 @@ const enquirySchema = new mongoose.Schema(
     // ✅ Attached documents - ImageKit URLs
     files: { type: [String], default: [] },
 
+    // ✅ Guest profile photo (Google sign-in / ImageKit URL), optional
+    profilePicture: { type: String, default: "" },
+
     // ✅ Enquiry lifecycle
     status: {
       type: String,

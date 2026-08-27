@@ -24,32 +24,23 @@ export default function GuestProfile({
   const b = booking;
 
   useEffect(() => {
-    // Do nothing if profile picture already exists
+    // Booking already has a persisted photo (or one was just uploaded) — nothing to recover.
     if (profilePicture) return;
     if (!b) return;
 
     const guestKey = b.rollNo || b.empId || b.rollOrEmpId || b.email || b.contact;
     if (!guestKey) return;
 
-    const cacheKey = `guest_profile_lookup_done_${guestKey}`;
-    const cacheTsKey = `guest_profile_lookup_ts_${guestKey}`;
-    const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
-
-    // ✅ Only refetch once every 10 days per guest
-    const lastTsRaw = localStorage.getItem(cacheTsKey);
-    const lastTs = lastTsRaw ? Number(lastTsRaw) : 0;
-    if (localStorage.getItem(cacheKey) === "true" && lastTs && Date.now() - lastTs < TEN_DAYS_MS) {
-      return;
-    }
-
     const fetchImage = async () => {
-      // Mark as attempted immediately to prevent repeated calls on re-open
-      localStorage.setItem(cacheKey, "true");
-      localStorage.setItem(cacheTsKey, String(Date.now()));
-
       const candidates = [];
 
-      // 1) Roll/Employee ID search (digits up to 15)
+      // 1) Phone-based google profile filename (matches the enquiry upload convention)
+      const cleanContact = (b.contact || "").toString().replace(/\D/g, "");
+      if (cleanContact.length >= 10) {
+        candidates.push(`${cleanContact.slice(-10)}_google_profile.jpg`);
+      }
+
+      // 2) Roll/Employee ID search (digits up to 15) - legacy ID-card photo convention
       const rollOrEmpId = (b.rollNo || b.empId || b.rollOrEmpId || "").toString();
       const rollDigits = rollOrEmpId.replace(/\D/g, "").slice(0, 15);
       if (rollDigits) {
@@ -57,7 +48,7 @@ export default function GuestProfile({
         candidates.push(rollDigits);
       }
 
-      // 2) Email-based google profile filename
+      // 3) Email-based google profile filename (fallback upload convention)
       const email = (b.email || "").trim().toLowerCase();
       if (email) {
         // itmh_thapar.edu_google_profile.jpg (replace @ with _)
@@ -73,7 +64,6 @@ export default function GuestProfile({
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         for (const fileName of candidates) {
-          console.log("🔍 Searching ImageKit for:", fileName);
           const response = await fetch(
             `${API}/api/imagekit/search?fileName=${encodeURIComponent(fileName)}`,
             { headers, credentials: "include" }
@@ -83,16 +73,25 @@ export default function GuestProfile({
           const data = await response.json();
 
           if (data.success && data.url) {
-            console.log("✅ Found ImageKit profile:", data.url);
             setUploadedProfileUrl(data.url);
+
+            // One-time recovery: persist to the booking so future loads read
+            // Booking.profilePicture directly and never need this search again.
+            const bookingId = b._id ?? b.id;
+            if (bookingId && !String(bookingId).startsWith("b_")) {
+              fetch(`${API}/api/bookings/${bookingId}/profile-picture`, {
+                method: "PUT",
+                credentials: "include",
+                headers,
+                body: JSON.stringify({ profilePicture: data.url }),
+              }).catch((err) => console.error("Failed to persist recovered profile picture:", err));
+            }
             return;
           }
         }
       } catch (err) {
-        console.error("❌ Error searching ImageKit:", err);
+        console.error("Error searching ImageKit:", err);
       }
-
-      console.log("⚠️ No ImageKit profile match found.");
     };
 
     fetchImage();

@@ -204,6 +204,7 @@ export const createEnquiry = async (req, res) => {
       bookingCategory,
       
       files: fileUrls,
+      profilePicture: fullData.profilePicture || "",
       status: "pending",
     };
 
@@ -676,14 +677,17 @@ export const approveEnquiry = async (req, res) => {
       remarks: freeRemarks || "",
       
       approvalDocuments: Array.isArray(approvalDocuments) ? approvalDocuments : [],
-      
+
       enquiryId: enquiry._id,
       status: "booked",
       createdBy: req.user?._id || null,
-      
+
       // ✅ Use emails from database (NO fallback)
       caretakerEmail: caretakerEmail,
       wardenEmail: wardenEmail,
+
+      // ✅ Carry over the guest profile photo captured at enquiry time
+      profilePicture: enquiry.profilePicture || "",
     };
 
     console.log("✅ Creating booking from enquiry with database emails:", {

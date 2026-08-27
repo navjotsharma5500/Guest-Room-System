@@ -49,6 +49,7 @@ const INITIAL_FORM_STATE = {
   reference: "",
   purpose: "",
   files: [],
+  profilePicture: "",
 };
 
 const DEPARTMENTS = [
@@ -124,6 +125,60 @@ const authenticator = async () => {
   } catch (err) {
     console.error("[ERROR] ImageKit authenticator error:", err);
     throw err;
+  }
+};
+
+// Resolves the guest's Google profile photo to a permanently persisted URL.
+// Success -> ImageKit URL. Failure -> "" (never the raw, unstable Google CDN URL).
+// Exported (unchanged behavior) so this rule has direct, isolated test coverage.
+export const resolveGooglePictureUpload = async (picture, contact, email) => {
+  if (!picture) return "";
+  try {
+    console.log("📸 Found Google Picture, attempting upload to ImageKit via URL...");
+
+    // Use ImageKit Auth endpoint to get signature
+    const authData = await authenticator();
+
+    // ✅ Clean contact number for filename (remove non-digits)
+    const cleanContact = contact ? contact.replace(/\D/g, "") : "";
+    const filename = cleanContact && cleanContact.length >= 10
+      ? `${cleanContact.slice(-10)}_google_profile.jpg` // Use last 10 digits
+      : `${email}_google_profile.jpg`; // Fallback to email
+
+    // Construct FormData with URL instead of File object
+    const formData = new FormData();
+    formData.append("file", picture); // ✅ Sending URL directly
+    formData.append("fileName", filename); // ✅ Use Contact Number if available
+    formData.append("folder", IMAGEKIT_CONFIG.GUEST_PICTURE_FOLDER);
+    formData.append("publicKey", IMAGEKIT_CONFIG.PUBLIC_KEY);
+    formData.append("signature", authData.signature);
+    formData.append("expire", authData.expire);
+    formData.append("token", authData.token);
+    formData.append("useUniqueFileName", "false");
+    formData.append("tags", `guest_profile,${email},${cleanContact}`); // ✅ Add contact tag
+
+    // Manually call ImageKit Upload API
+    const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Upload failed: ${uploadRes.status} ${errText}`);
+    }
+
+    const uploadData = await uploadRes.json();
+    if (uploadData && uploadData.url) {
+      console.log("✅ Profile picture uploaded to ImageKit:", uploadData.url);
+      return uploadData.url;
+    }
+    return "";
+  } catch (imgError) {
+    console.error("⚠️ Failed to upload Google picture to ImageKit:", imgError);
+    // Do NOT fall back to the raw Google CDN URL — it is not permanent
+    // and can later fail to load. Leave it empty (default avatar) instead.
+    return "";
   }
 };
 
@@ -782,6 +837,7 @@ export default function GuestEnquiryPage() {
         reference: form.reference,
         files: validFiles,
         enquiryAttachments: validFiles,
+        profilePicture: form.profilePicture || "",
       },
     };
 
@@ -856,60 +912,17 @@ export default function GuestEnquiryPage() {
         return;
       }
 
-      let uploadedPictureUrl = "";
-      if (decoded.picture) {
-        try {
-          console.log("📸 Found Google Picture, attempting upload to ImageKit via URL...");
-          
-          // Use ImageKit Auth endpoint to get signature
-          const authData = await authenticator();
-          
-          // ✅ Clean contact number for filename (remove non-digits)
-          const cleanContact = form.contact ? form.contact.replace(/\D/g, "") : "";
-          const filename = cleanContact && cleanContact.length >= 10 
-            ? `${cleanContact.slice(-10)}_google_profile.jpg` // Use last 10 digits
-            : `${decoded.email}_google_profile.jpg`; // Fallback to email
-
-          // Construct FormData with URL instead of File object
-          const formData = new FormData();
-          formData.append("file", decoded.picture); // ✅ Sending URL directly
-          formData.append("fileName", filename); // ✅ Use Contact Number if available
-          formData.append("folder", IMAGEKIT_CONFIG.GUEST_PICTURE_FOLDER); 
-          formData.append("publicKey", IMAGEKIT_CONFIG.PUBLIC_KEY);
-          formData.append("signature", authData.signature);
-          formData.append("expire", authData.expire);
-          formData.append("token", authData.token);
-          formData.append("useUniqueFileName", "false"); 
-          formData.append("tags", `guest_profile,${decoded.email},${cleanContact}`); // ✅ Add contact tag
-
-          // Manually call ImageKit Upload API
-          const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-            method: "POST",
-            body: formData
-          });
-
-          if (!uploadRes.ok) {
-             const errText = await uploadRes.text();
-             throw new Error(`Upload failed: ${uploadRes.status} ${errText}`);
-          }
-
-          const uploadData = await uploadRes.json();
-          if (uploadData && uploadData.url) {
-             uploadedPictureUrl = uploadData.url;
-             console.log("✅ Profile picture uploaded to ImageKit:", uploadedPictureUrl);
-          }
-        } catch (imgError) {
-          console.error("⚠️ Failed to upload Google picture to ImageKit:", imgError);
-          // Fallback to original Google URL
-          uploadedPictureUrl = decoded.picture;
-        }
-      }
+      const uploadedPictureUrl = await resolveGooglePictureUpload(
+        decoded.picture,
+        form.contact,
+        decoded.email
+      );
 
       setForm(prev => ({
         ...prev,
         email: decoded.email,
         name: decoded.name,
-        profilePicture: uploadedPictureUrl || decoded.picture
+        profilePicture: uploadedPictureUrl
       }));
       setIsAuthenticated(true);
       showToast("Successfully logged in!", "success");
