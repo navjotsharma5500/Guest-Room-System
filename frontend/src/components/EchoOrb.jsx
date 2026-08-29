@@ -196,7 +196,8 @@ const EchoOrb = ({ mode = "floating", onClick, isThinking = false, className = "
   return (
     <motion.button
       onClick={onClick}
-      className={`fixed bottom-6 right-6 z-50 group cursor-pointer focus:outline-none ${className}`}
+      className={`fixed right-4 sm:right-6 z-50 group cursor-pointer focus:outline-none ${className}`}
+      style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       initial={{ y: 20, opacity: 0 }}
@@ -206,7 +207,7 @@ const EchoOrb = ({ mode = "floating", onClick, isThinking = false, className = "
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="relative w-16 h-16"
+        className="relative w-14 h-14 sm:w-16 sm:h-16"
       >
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
@@ -215,7 +216,7 @@ const EchoOrb = ({ mode = "floating", onClick, isThinking = false, className = "
         />
 
         <div className="relative w-full h-full flex items-center justify-center">
-          <div className="w-14 h-14">
+          <div className="w-12 h-12 sm:w-14 sm:h-14">
              <RobotFace eyeColor="white" />
           </div>
         </div>

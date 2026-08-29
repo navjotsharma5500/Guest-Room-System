@@ -92,7 +92,11 @@ function HeaderNavItem({ item, onOpen }) {
         {open && (
           <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} transition={{ duration: .11 }}
             style={{ position: "absolute", top: "calc(100% + 4px)", left: "50%", minWidth: 220, padding: 8, transform: "translateX(-50%)", border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff", boxShadow: "0 16px 40px rgba(0,0,0,.12)" }}>
-            {children.map((child) => <button key={child.id || child.title} onClick={() => { setOpen(false); onOpen(child); }} style={{ display: "block", width: "100%", padding: "10px 12px", border: 0, borderRadius: 8, background: "none", textAlign: "left", cursor: "pointer", color: "#374151" }}>{child.title}</button>)}
+            {children.map((child) => child.documentNavigation ? (
+              <a key={child.id || child.title} href={child.destination} onClick={() => setOpen(false)} style={{ display: "block", width: "100%", padding: "10px 12px", border: 0, borderRadius: 8, background: "none", textAlign: "left", cursor: "pointer", color: "#374151", textDecoration: "none" }}>{child.title}</a>
+            ) : (
+              <button key={child.id || child.title} onClick={() => { setOpen(false); onOpen(child); }} style={{ display: "block", width: "100%", padding: "10px 12px", border: 0, borderRadius: 8, background: "none", textAlign: "left", cursor: "pointer", color: "#374151" }}>{child.title}</button>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -201,12 +205,25 @@ export function PublicHeader({ config, onOpen, applications }) {
   const applicationMap = new Map((applications || []).map((application) => [application.id, application]));
   const navigation = [...(config.navigation || [])]
     .filter((item) => item?.enabled !== false && item?.id !== "about" && item?.action !== "about")
-    .map((item) => item.id === "night-pass" ? {
-      ...item,
-      items: (item.items || [])
+    .map((item) => {
+      if (item.id !== "night-pass") return item;
+      const configuredItems = (item.items || [])
         .map((child) => applicationMap.has(child.id) ? { ...child, ...applicationMap.get(child.id), title: applicationMap.get(child.id).title } : child)
-        .filter((child) => child?.enabled !== false),
-    } : item)
+        .filter((child) => child?.enabled !== false && child?.id !== "society-pass");
+      return {
+        ...item,
+        items: [
+          ...configuredItems,
+          {
+            id: "society-pass",
+            title: "Society Night Pass",
+            destination: "/permissions/",
+            documentNavigation: true,
+            enabled: true,
+          },
+        ],
+      };
+    })
     .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 300, background: "#fff", borderBottom: "1px solid #e5e7eb", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
@@ -232,7 +249,7 @@ export function PublicQuickLinks({ config, onOpen }) {
     { id: "library-pass-service", title: "Library Night Pass", destination: "https://permissions.thapar.edu/" },
     { id: "venue-service", title: "Venue Booking", destination: "/venue-enquiry" },
     { id: "societies-service", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/" },
-    { id: "lost-found-service", title: "Lost & Found", destination: "/lostnfound" },
+    { id: "lost-found-service", title: "Lost & Found", destination: "/lostnfound/", documentNavigation: true },
   ];
   return (
     <>
@@ -245,7 +262,7 @@ export function PublicQuickLinks({ config, onOpen }) {
                 const Icon = iconFor(item.id);
                 return <button key={item.id || item.title} onClick={() => onOpen(item)} className="about-footer-link"><Icon size={15} />{item.title}</button>;
               })}</div>
-              <div>{serviceLinks.map((item) => <button key={item.id} onClick={() => onOpen(item)} className="about-footer-link"><ArrowRight size={15} />{item.title}</button>)}</div>
+              <div>{serviceLinks.map((item) => item.documentNavigation ? <a key={item.id} href={item.destination} className="about-footer-link" style={{ textDecoration: "none" }}><ArrowRight size={15} />{item.title}</a> : <button key={item.id} onClick={() => onOpen(item)} className="about-footer-link"><ArrowRight size={15} />{item.title}</button>)}</div>
             </div>
           </div>
           <div>
@@ -278,7 +295,7 @@ function StickyNav({ active }) {
       backdropFilter: "blur(12px)", borderBottom: "1px solid #e5e7eb",
       boxShadow: "0 1px 4px rgba(0,0,0,.06)",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", gap: 0, overflowX: "auto" }}>
+      <div className="sticky-nav-row" style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 0, overflowX: "auto" }}>
         {NAV_SECTIONS.map(s => (
           <a key={s} href={`#section-${s.toLowerCase().replace(" ", "-")}`}
             style={{
@@ -435,6 +452,56 @@ export default function CampusConnect() {
         .platform-active-copy span { padding:4px 8px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:9px; font-weight:700; }
         .platform-active-copy p { max-width:540px; margin:9px auto 0; color:#667085; font-size:13.5px; line-height:1.65; }
         @media(max-width:650px) { .platform-carousel { margin-left:-24px; margin-right:-24px; } .platform-carousel-stage { height:260px; } .platform-orbit-card { width:136px; height:158px; border-radius:23px; } .platform-orbit-icon { width:64px; height:64px; border-radius:19px; } .platform-carousel-controls { grid-template-columns:36px 1fr 36px; gap:9px; padding:0 16px; } .platform-carousel-controls > button { width:36px; height:36px; } .platform-active-copy h3 { font-size:18px; } .platform-active-copy p { font-size:12.5px; } .journey-row { justify-content:flex-end!important; } .journey-card { width:calc(100% - 42px)!important; } .journey-dot { left:10px!important; } .journey-line { left:10px!important; } }
+
+        /* ── Responsive layout (mobile/tablet) ──────────────── */
+        .sticky-nav-row { padding: 0 24px; scrollbar-width: none; -ms-overflow-style: none; }
+        .sticky-nav-row::-webkit-scrollbar { display: none; }
+
+        .cc-section-pad { padding: 96px 24px; }
+
+        .about-grid { grid-template-columns: 1fr 2fr; gap: 64px; }
+        .about-icon-grid { grid-template-columns: repeat(3,1fr); }
+
+        .vision-grid { grid-template-columns: 1fr 1fr; }
+        .vision-col-left { padding: 72px 48px 72px 24px; border-right: 1px solid #e5e7eb; }
+        .vision-col-right { padding: 72px 24px 72px 48px; }
+        .values-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+
+        .leadership-grid { grid-template-columns: 1fr 1fr; min-height: 500px; }
+        .leadership-photo { height: 100%; min-height: 480px; display: block; }
+        .leadership-content { padding: 60px 48px; }
+
+        .features-grid { grid-template-columns: repeat(3,1fr); gap: 20px; }
+
+        @media (max-width: 1023px) {
+          .about-grid { grid-template-columns: 1fr; gap: 40px; }
+          .vision-grid { grid-template-columns: 1fr; }
+          .vision-col-left { border-right: none; border-bottom: 1px solid #e5e7eb; padding: 56px 24px; }
+          .vision-col-right { padding: 56px 24px; }
+          .leadership-content { padding: 40px 32px; }
+          .features-grid { grid-template-columns: repeat(2,1fr); }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .leadership-grid { grid-template-columns: .8fr 1fr; min-height: 420px; }
+        }
+        @media (max-width: 767px) {
+          .cc-section-pad { padding: 56px 20px; }
+          .about-grid { gap: 32px; }
+          .about-icon-grid { gap: 12px; }
+          .vision-col-left { padding: 48px 20px; }
+          .vision-col-right { padding: 48px 20px; }
+          .leadership-grid { grid-template-columns: 1fr; min-height: auto; }
+          .leadership-photo { height: auto; min-height: 0; aspect-ratio: 4 / 3; object-position: center 20%; }
+          .leadership-content { padding: 32px 20px; }
+          .features-grid { grid-template-columns: 1fr; gap: 16px; }
+          .sticky-nav-row { padding: 0 16px; }
+        }
+        @media (max-width: 480px) {
+          .about-icon-grid { grid-template-columns: repeat(2,1fr); }
+        }
+        @media (max-width: 420px) {
+          .values-grid { grid-template-columns: 1fr; gap: 18px; }
+        }
       `}</style>
 
       <PublicHeader config={publicConfig} onOpen={openItem} applications={universalCards} />
@@ -487,8 +554,8 @@ export default function CampusConnect() {
       {/* ══════════════════════════════════════
           ABOUT — two column (TIET style)
       ══════════════════════════════════════ */}
-      <section id="section-about" className="premium-section" style={{ background: "radial-gradient(circle at 10% 20%,rgba(198,40,40,.055),transparent 34%),#fff", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 2fr", gap: 64, alignItems: "flex-start" }}>
+      <section id="section-about" className="premium-section cc-section-pad" style={{ background: "radial-gradient(circle at 10% 20%,rgba(198,40,40,.055),transparent 34%),#fff" }}>
+        <div className="about-grid" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", alignItems: "flex-start" }}>
           <FadeUp>
             <div>
               <h2 className="garamond" style={{ fontSize: "clamp(3rem,7vw,5.5rem)", fontWeight: 700, color: "#111", lineHeight: 0.95, marginBottom: 20 }}>
@@ -510,7 +577,7 @@ export default function CampusConnect() {
               </p>
 
               {/* icon grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+              <div className="about-icon-grid" style={{ display: "grid", gap: 14 }}>
                 {[
                   { icon: "📅", label: "Event Calendar" },
                   { icon: "🏨", label: "Guest Room" },
@@ -618,12 +685,12 @@ export default function CampusConnect() {
           VISION / MISSION / VALUES (TIET style)
       ══════════════════════════════════════ */}
       <section id="section-vision" className="premium-section" style={{ background: "linear-gradient(135deg,#f3f5ef,#eef2f4)", padding: "0" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+        <div className="vision-grid" style={{ maxWidth: 1200, margin: "0 auto", display: "grid" }}>
           {/* Left: Mission + Vision */}
-          <div style={{ padding: "72px 48px 72px 24px", borderRight: "1px solid #e5e7eb" }}>
+          <div className="vision-col-left">
             <FadeUp>
               <div style={{ marginBottom: 64 }}>
-                <h2 className="garamond" style={{ fontSize: "2.2rem", fontWeight: 700, color: "#111", marginBottom: 24, letterSpacing: "-.01em" }}>
+                <h2 className="garamond" style={{ fontSize: "clamp(1.6rem,5vw,2.2rem)", fontWeight: 700, color: "#111", marginBottom: 24, letterSpacing: "-.01em" }}>
                   MISSION
                 </h2>
                 <div style={{ display: "flex", gap: 20 }}>
@@ -636,7 +703,7 @@ export default function CampusConnect() {
             </FadeUp>
             <FadeUp delay={0.15}>
               <div>
-                <h2 className="garamond" style={{ fontSize: "2.2rem", fontWeight: 700, color: "#111", marginBottom: 24 }}>
+                <h2 className="garamond" style={{ fontSize: "clamp(1.6rem,5vw,2.2rem)", fontWeight: 700, color: "#111", marginBottom: 24 }}>
                   VISION
                 </h2>
                 <div style={{ display: "flex", gap: 20 }}>
@@ -650,13 +717,13 @@ export default function CampusConnect() {
           </div>
 
           {/* Right: Core Values */}
-          <div style={{ padding: "72px 24px 72px 48px" }}>
+          <div className="vision-col-right">
             <FadeUp>
-              <h2 className="garamond" style={{ fontSize: "2.8rem", fontWeight: 700, color: "#111", lineHeight: 1, marginBottom: 40 }}>
+              <h2 className="garamond" style={{ fontSize: "clamp(1.9rem,6vw,2.8rem)", fontWeight: 700, color: "#111", lineHeight: 1, marginBottom: 40 }}>
                 OUR CORE VALUES
               </h2>
             </FadeUp>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+            <div className="values-grid" style={{ display: "grid" }}>
               {VALUES.map((v, i) => {
                 const Icon = v.icon;
                 return (
@@ -688,7 +755,7 @@ export default function CampusConnect() {
             </h2>
           </FadeUp>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: 500 }}>
+          <div className="leadership-grid" style={{ display: "grid" }}>
             {/* Left: photo — large, flush */}
             <motion.div
               initial={{ opacity: 0, scale: 1.04 }}
@@ -698,15 +765,16 @@ export default function CampusConnect() {
               style={{ overflow: "hidden" }}
             >
               <img
+                className="leadership-photo"
                 src="https://ik.imagekit.io/7khjnlfow/email-assets/Dr.MR.JPG"
                 alt="Dr. Meenakshi Rana"
-                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", minHeight: 480 }}
+                style={{ width: "100%", objectFit: "cover", objectPosition: "center top" }}
               />
             </motion.div>
 
             {/* Right: content */}
             <FadeUp delay={0.2}>
-              <div style={{ padding: "60px 48px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div className="leadership-content" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#c62828", letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 16 }}>
                   Inspired by the Vision
                 </p>
@@ -737,7 +805,7 @@ export default function CampusConnect() {
       {/* ══════════════════════════════════════
           FEATURES GRID
       ══════════════════════════════════════ */}
-      <section id="section-features" className="premium-section" style={{ background: "linear-gradient(160deg,#f8fafc,#eef2f7)", padding: "96px 24px" }}>
+      <section id="section-features" className="premium-section cc-section-pad" style={{ background: "linear-gradient(160deg,#f8fafc,#eef2f7)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <FadeUp>
             <p style={{ fontSize: 12, fontWeight: 700, color: "#c62828", letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 10 }}>
@@ -747,7 +815,7 @@ export default function CampusConnect() {
               Platform Features
             </h2>
           </FadeUp>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+          <div className="features-grid" style={{ display: "grid" }}>
             {features.map((f, i) => {
               const Icon = f.icon;
               return (
@@ -803,7 +871,7 @@ export default function CampusConnect() {
             <h2 className="garamond" style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 700, color: "#111", marginBottom: 12 }}>
               Built With Dedication By
             </h2>
-            <p style={{ fontSize: "clamp(12px,1.25vw,14.5px)", color: "#6b7280", marginBottom: 18, lineHeight: 1.7, whiteSpace: "nowrap" }}>
+            <p style={{ fontSize: "clamp(12px,1.25vw,14.5px)", color: "#6b7280", marginBottom: 18, lineHeight: 1.7 }}>
               A passionate team of developers and strategists working under the DoSA Office, TIET.
             </p>
             <motion.button
