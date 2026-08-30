@@ -2,7 +2,7 @@
 import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, User2, CalendarDays, Clock, CheckCircle2, Calendar, X } from "lucide-react";
-import { combineDateAndTime, isDateTimeRangeOverlapping } from "../utils/dateUtils";
+import { combineDateAndTime, isDateTimeRangeOverlapping, doesDateOverlapMaintenanceBlock } from "../utils/dateUtils";
 import { useAuth } from "../context/AuthContext";
 import { BACKEND_URL } from "../utils/apiConfig";
 import CleaningChecklistModal from "./Cleaning/CleaningChecklistModal";
@@ -189,9 +189,19 @@ const RoomCard = memo(function RoomCard({
      CONFLICT DETECTION
   ========================== */
 
+  // ✅ Date-aware: a blocked room only conflicts with prefill dates that
+  // actually overlap the maintenance window. Dates after the block ends
+  // must still be selectable.
+  const blockOverlapsPrefill = useMemo(() => {
+    if (!prefillGuest?.from) return false;
+    return doesDateOverlapMaintenanceBlock(room, prefillGuest.from);
+  }, [room, prefillGuest]);
+
   const hasConflict = useMemo(() => {
     if (!prefillGuest?.from || !prefillGuest?.to) return false;
-    
+
+    if (blockOverlapsPrefill) return true;
+
     // ✅ Use bookingsForConflictCheck to include under_review bookings
     // This prevents new bookings from overlapping with under_review slots
     return bookingsForConflictCheck.some((b) => {
@@ -217,7 +227,7 @@ const RoomCard = memo(function RoomCard({
         prefillGuest.checkOutTime || "23:59"
       );
     });
-  }, [prefillGuest, bookingsForConflictCheck]);
+  }, [prefillGuest, bookingsForConflictCheck, blockOverlapsPrefill]);
 
   const availableForNewDates = prefillGuest && prefillGuest.from && prefillGuest.to
     ? !hasConflict
@@ -283,15 +293,18 @@ const RoomCard = memo(function RoomCard({
   const handleCardClick = () => {
     if (bookingCompleted) return;
 
-    // ✅ BLOCKED ROOM - Show info modal (PRIORITY CHECK)
-    if (room.isBlocked) {
-      console.log("🔒 Blocked room clicked in RoomCard:", { 
-        hostel: currentHostel, 
+    // ✅ BLOCKED ROOM - Show info modal, UNLESS we're picking a room for
+    // specific dates (enquiry/consolidate flow) that fall entirely after the
+    // maintenance block ends — that case should behave like a normal room.
+    const hasDatedContext = Boolean(prefillGuest?.from && prefillGuest?.to);
+    if (room.isBlocked && (!hasDatedContext || blockOverlapsPrefill)) {
+      console.log("🔒 Blocked room clicked in RoomCard:", {
+        hostel: currentHostel,
         roomNo: room.roomNo,
         hasOnBlockedClick: !!onBlockedClick,
-        isAllHostelsView 
+        isAllHostelsView
       });
-      
+
       if (onBlockedClick) {
         onBlockedClick(currentHostel, room.roomNo, {
           blockedTill: room.blockedTill,
@@ -590,21 +603,36 @@ const RoomCard = memo(function RoomCard({
                 >
                   {isCleaningPending ? (
                     "Checklist required"
+                  ) : roomState === "maintenance_blocked" ? (
+                    room.blockedTill ? `Blocked until ${formatShortDate(room.blockedTill)}` : "Blocked"
                   ) : approvalStatus === "under_review" ? (
                     "Under Review"
                   ) : isBooked ? (
-                    activeBookings.length > 1 
-                      ? `${activeBookings.length} Bookings` 
+                    activeBookings.length > 1
+                      ? `${activeBookings.length} Bookings`
                       : "Upcoming booking"
                   ) : "Available - Click to book"}
                 </p>
               </div>
-              
+
               {/* Show multiple bookings indicator */}
               {activeBookings.length > 1 && (
                 <p className="text-xs text-gray-500 italic">
                   Click to view all bookings
                 </p>
+              )}
+
+              {/* ✅ Blocked rooms still accept bookings for dates after the block ends */}
+              {roomState === "maintenance_blocked" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDirectBooking) onDirectBooking(currentHostel, room);
+                  }}
+                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded font-bold"
+                >
+                  Add Booking
+                </button>
               )}
 
               {isCleaningPending && (
@@ -859,7 +887,7 @@ const RoomCard = memo(function RoomCard({
 
           <button
             onClick={handleDirectBooking}
-            disabled={isCleaningPending || room.isBlocked}
+            disabled={isCleaningPending}
             className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CalendarPlus className="w-4 h-4" /> Direct Booking
@@ -871,7 +899,9 @@ const RoomCard = memo(function RoomCard({
           {isCleaningPending ? (
             <span className="font-semibold text-yellow-700">Cleaning Pending</span>
           ) : roomState === "maintenance_blocked" ? (
-            <span className="font-semibold text-gray-700">Maintenance Blocked</span>
+            <span className="font-semibold text-gray-700">
+              Maintenance Blocked{room.blockedTill ? ` (until ${formatShortDate(room.blockedTill)})` : ""}
+            </span>
           ) : approvalStatus === "under_review" ? (
             <span className="font-semibold text-orange-600">Under Review</span>
           ) : hasActive ? (

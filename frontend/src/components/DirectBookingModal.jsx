@@ -3,7 +3,14 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
 import AttachmentGrid from "./AttachmentGrid";
-import { isDateTimeRangeOverlapping, combineDateAndTime, formatTimeWithAMPM } from "../utils/dateUtils";
+import {
+  isDateTimeRangeOverlapping,
+  combineDateAndTime,
+  formatTimeWithAMPM,
+  calculateInclusiveStayDays,
+  doesDateOverlapMaintenanceBlock,
+  getIndiaDateKey,
+} from "../utils/dateUtils";
 import { IndianStates } from "../utils/indianStates";
 import { IKContext, IKUpload } from "imagekitio-react";
 import { useAuth } from "../context/AuthContext";
@@ -99,16 +106,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     return today;
   };
 
-  // ✅ Calculate date difference in days
-  const getDaysDifference = (fromDate, toDate) => {
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
-    from.setHours(0, 0, 0, 0);
-    to.setHours(0, 0, 0, 0);
-    const diffTime = to - from;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  // ✅ Inclusive calendar-day count (both check-in and check-out days counted),
+  // e.g. 2026-09-28 → 2026-10-02 = 5 days. Timezone-safe via India calendar-day
+  // keys — see utils/dateUtils.js. Used consistently for the "Total Booking
+  // Days" display and the maximum-duration validation below.
+  const getDaysDifference = (fromDate, toDate) => calculateInclusiveStayDays(fromDate, toDate);
 
   // ✅ Validate booking dates (no past dates, dynamic max limit)
   const validateBookingDates = (fromDate, toDate) => {
@@ -141,7 +143,18 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       return errors;
     }
 
-    // Validation 2: Maximum booking duration from system settings
+    // Validation 2: Room must not be under maintenance for the selected dates.
+    // A room blocked until a given date can still be booked for stays that
+    // start after the block ends.
+    if (doesDateOverlapMaintenanceBlock(room, fromDate)) {
+      const blockedTillDate = room?.blockedTill ? new Date(room.blockedTill) : null;
+      errors.dates = blockedTillDate
+        ? `❌ This room is under maintenance until ${blockedTillDate.toLocaleDateString()}. Choose a check-in date after that.`
+        : "❌ This room is currently under maintenance.";
+      return errors;
+    }
+
+    // Validation 3: Maximum booking duration from system settings
     const daysDiff = getDaysDifference(fromDate, toDate);
     if (daysDiff > directBookingLimit) {
       errors.dates = `❌ Maximum booking duration is ${directBookingLimit} days. You selected ${daysDiff} days.`;
@@ -334,17 +347,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     if (submitting) return;
 
     if (!validateDateRange()) {
+      const dateErrors = validateBookingDates(from, to);
       showToast(
-        "⚠️ The selected date/time overlaps with an existing booking.",
-        "error"
-      );
-      return;
-    }
-
-    // ✅ ADD THIS CHECK
-    if (room?.isBlocked) {
-      showToast(
-        "❌ This room is currently blocked and cannot be booked.",
+        dateErrors.dates || "⚠️ The selected date/time overlaps with an existing booking.",
         "error"
       );
       return;
@@ -470,6 +475,18 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
   const totalBookingDays =
     from && to ? Math.max(0, getDaysDifference(from, to)) : 0;
 
+  // ✅ Push the earliest selectable check-in date past an active maintenance
+  // block, so blocked dates can't be picked in the first place.
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const minFromDate = (() => {
+    if (!room?.isBlocked || !room?.blockedTill) return todayDateStr;
+    const blockEndKey = getIndiaDateKey(room.blockedTill);
+    if (!blockEndKey) return todayDateStr;
+    const [y, m, d] = blockEndKey.split("-").map(Number);
+    const dayAfterBlock = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().split('T')[0];
+    return dayAfterBlock > todayDateStr ? dayAfterBlock : todayDateStr;
+  })();
+
   /* ------------------ RENDER ------------------ */
   return (
     <IKContext
@@ -506,11 +523,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <input
                     type="date"
                     value={from}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={minFromDate}
                     onChange={(e) => {
                       const newFrom = e.target.value;
                       setFrom(newFrom);
-                      
+
                       // Only validate if both dates are filled
                       if (newFrom && to) {
                         const errors = validateBookingDates(newFrom, to);
@@ -521,6 +538,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                     }}
                     className="border p-2 rounded w-full"
                   />
+                  {room?.isBlocked && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Room is under maintenance until {room?.blockedTill ? new Date(room.blockedTill).toLocaleDateString() : "further notice"}.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -528,7 +550,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <input
                     type="date"
                     value={to}
-                    min={from || new Date().toISOString().split('T')[0]}
+                    min={from || minFromDate}
                     onChange={(e) => {
                       const newTo = e.target.value;
                       setTo(newTo);

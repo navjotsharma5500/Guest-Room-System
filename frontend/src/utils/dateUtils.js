@@ -134,6 +134,68 @@ export const isDailySlotOverlapping = (
 };
 
 /**
+ * ✅ India-timezone-safe calendar-day key ("YYYY-MM-DD"), regardless of the
+ * viewer's browser timezone. Mirrors backend/utils/bookingTransfer.js so
+ * block/booking date comparisons agree between frontend and backend.
+ */
+const INDIA_TIME_ZONE = "Asia/Kolkata";
+
+export const getIndiaDateKey = (value) => {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: INDIA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((p) => p.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
+/**
+ * ✅ Maintenance block overlap check (date-only, inclusive of blockedTill's day).
+ *
+ * A room blocked until a given date/time remains unavailable through the END
+ * of that calendar day (matches the backend's auto-unblock cron, which only
+ * lifts the block once blockedTill's calendar date has fully passed). Any
+ * stay whose check-in falls on/before that date overlaps the block; stays
+ * starting after it are unaffected — regardless of how long they run.
+ */
+export const doesDateOverlapMaintenanceBlock = (room, fromStr) => {
+  if (!room?.isBlocked || !room?.blockedTill) return false;
+  const blockEndKey = getIndiaDateKey(room.blockedTill);
+  const fromKey = getIndiaDateKey(fromStr);
+  if (!blockEndKey || !fromKey) return false;
+  return fromKey <= blockEndKey;
+};
+
+/**
+ * ✅ Inclusive calendar-day count for a date-only stay range (both endpoints
+ * counted, e.g. 2026-09-28 → 2026-10-02 = 5 days). Timezone-safe via India
+ * calendar-day keys. Distinct from nights-based billing/continuous-stay
+ * calculations used elsewhere — this is specifically for the Direct Booking
+ * "maximum duration" rule.
+ */
+export const calculateInclusiveStayDays = (fromStr, toStr) => {
+  const fromKey = getIndiaDateKey(fromStr);
+  const toKey = getIndiaDateKey(toStr);
+  if (!fromKey || !toKey) return 0;
+
+  const toUtcMs = (key) => {
+    const [y, m, d] = key.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+
+  const diffDays = Math.round((toUtcMs(toKey) - toUtcMs(fromKey)) / (24 * 60 * 60 * 1000));
+  return Math.max(1, diffDays + 1);
+};
+
+/**
  * ✅ Format time to HH:MM AM/PM (GuestDetails UI)
  */
 export const formatTimeWithAMPM = (timeStr) => {

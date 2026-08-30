@@ -11,6 +11,7 @@ import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
 import { getSystemSettings } from "../utils/systemSettings.js";
+import { doesRangeOverlapMaintenanceBlock } from "../utils/bookingTransfer.js";
 
 // ✅ Import event-driven email function
 import { sendBookingEmails } from "./bookingController.js";
@@ -433,8 +434,11 @@ const resolveEnquiryRoom = async (enquiry, roomId) => {
   if (selectedRoom.guestRoom === false) {
     throw new Error("Selected room is not enabled as a guest room");
   }
-  if (selectedRoom.isBlocked || selectedRoom.roomState === "maintenance_blocked") {
-    throw new Error("Selected guest room is blocked");
+  // ✅ Date-aware: a room blocked for maintenance is only unavailable for
+  // enquiry dates that actually overlap the block window. Dates entirely
+  // after the block ends must still be assignable.
+  if (doesRangeOverlapMaintenanceBlock(selectedRoom, enquiry.from)) {
+    throw new Error("Selected guest room is blocked for the requested dates");
   }
 
   return { hostel, room: selectedRoom };
@@ -601,10 +605,12 @@ export const approveEnquiry = async (req, res) => {
         message: "Selected guest room is not valid for this hostel",
       });
     }
-    if (selectedRoom.isBlocked || selectedRoom.roomState === "maintenance_blocked") {
+    // ✅ Date-aware: only reject if the enquiry's stay dates actually overlap
+    // the room's active maintenance block. Dates after the block ends are fine.
+    if (doesRangeOverlapMaintenanceBlock(selectedRoom, enquiry.from)) {
       return res.status(400).json({
         success: false,
-        message: "Selected guest room is blocked",
+        message: "Selected guest room is blocked for the requested dates",
       });
     }
 

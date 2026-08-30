@@ -16,6 +16,7 @@ import DirectBookingModal from "../components/DirectBookingModal";
 import CancelModal from "../components/CancelModal";
 import ExtensionModal from "../components/ExtensionModal";
 import { BlockedRoomInfoModal, BlockRoomModal, UnblockRoomModal } from '../components/RoomBlockingModals';
+import { doesDateOverlapMaintenanceBlock } from "../utils/dateUtils";
 
 // Custom Hooks
 import useBookingHandlers from "../hooks/useBookingHandlers";
@@ -293,9 +294,13 @@ export default function AllHostelsPortal({
 
   const handleRoomCardClick = useCallback((hostel, room, bookedAny) => {
     console.log("🎯 Room card clicked:", { hostel, roomNo: room.roomNo, bookedAny, isBlocked: room.isBlocked });
-    
-    // ✅ Check if room is blocked FIRST
-    if (room.isBlocked) {
+
+    const hasDatedContext = Boolean(prefillGuest?.from && prefillGuest?.to);
+    const blockOverlapsPrefill = hasDatedContext && doesDateOverlapMaintenanceBlock(room, prefillGuest.from);
+
+    // ✅ Show the blocked info modal UNLESS we're picking a room for specific
+    // dates that fall entirely after the maintenance block ends.
+    if (room.isBlocked && (!hasDatedContext || blockOverlapsPrefill)) {
       console.log("🔒 Room is blocked, showing info modal with block/unblock options");
       setSelectedBlockedRoom({
         hostelName: hostel,
@@ -311,13 +316,13 @@ export default function AllHostelsPortal({
       setShowBlockedRoomModal(true);
       return;
     }
-    
+
     if (selectionMode && prefillGuest && prefillGuest.from && prefillGuest.to) {
       // In selection mode - toggle room selection
       vacancyHandlers.toggleRoomSelect(hostel, room.roomNo);
       return;
     }
-    
+
     if (bookedAny) {
       // ✅ CRITICAL FIX: Pass bookingHandlers object correctly
       if (bookingHandlers && typeof bookingHandlers.handleBookedRoomClick === 'function') {
@@ -327,7 +332,7 @@ export default function AllHostelsPortal({
         showToast("⚠️ Cannot open booking details", "error");
       }
     } else {
-      // Empty room - open direct booking modal
+      // Empty room (or blocked room with dates clear of the block) - open direct booking modal
       openDirectBookingForVacant({ hostel, room, prefill: null });
     }
   }, [selectionMode, prefillGuest, vacancyHandlers, bookingHandlers, openDirectBookingForVacant, showToast]);

@@ -3,6 +3,7 @@ import {
   combineIndiaDateAndTime,
   getBookingFinalCheckout,
   getCurrentSegmentStart,
+  doesRangeOverlapMaintenanceBlock,
 } from "../utils/bookingTransfer.js";
 
 test("combines Guest Room dates and times in India time", () => {
@@ -55,4 +56,32 @@ test("treats touching room intervals as available and real overlap as a conflict
       new Date("2026-08-24T04:30:00.000Z")
     )
   ).toBe(true);
+});
+
+describe("doesRangeOverlapMaintenanceBlock", () => {
+  const blockedRoom = { isBlocked: true, blockedTill: "2026-09-10T18:00:00.000Z" };
+
+  test("rejects a booking that starts and ends before the block ends", () => {
+    expect(doesRangeOverlapMaintenanceBlock(blockedRoom, "2026-09-05")).toBe(true);
+  });
+
+  test("rejects a booking that starts before and would run past the block end", () => {
+    expect(doesRangeOverlapMaintenanceBlock(blockedRoom, "2026-09-09")).toBe(true);
+  });
+
+  test("rejects a booking that starts exactly on the blocked-through date", () => {
+    expect(doesRangeOverlapMaintenanceBlock(blockedRoom, "2026-09-10")).toBe(true);
+  });
+
+  test("allows a booking that starts the day after the block ends", () => {
+    expect(doesRangeOverlapMaintenanceBlock(blockedRoom, "2026-09-11")).toBe(false);
+  });
+
+  test("allows any booking when the room is not blocked", () => {
+    expect(doesRangeOverlapMaintenanceBlock({ isBlocked: false, blockedTill: "2026-09-10" }, "2026-09-05")).toBe(false);
+  });
+
+  test("allows any booking when isBlocked is true but blockedTill is missing", () => {
+    expect(doesRangeOverlapMaintenanceBlock({ isBlocked: true }, "2026-09-05")).toBe(false);
+  });
 });

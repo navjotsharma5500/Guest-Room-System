@@ -26,7 +26,9 @@ import {
   combineIndiaDateAndTime,
   getBookingFinalCheckout,
   getCurrentSegmentStart,
+  doesRangeOverlapMaintenanceBlock,
 } from "../utils/bookingTransfer.js";
+import { calculateInclusiveStayDays } from "../utils/bookingDuration.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -519,25 +521,24 @@ export const createBooking = async (req, res) => {
       throw new Error(`Room ${payload.roomNo} not found in ${payload.hostel}`);
     }
 
-    // ✅ CRITICAL: Check if room is blocked
-    if (targetRoom.isBlocked && targetRoom.blockedTill) {
-      const now = new Date();
+    // ✅ CRITICAL: Reject only if the REQUESTED stay dates overlap the active
+    // maintenance block. A room blocked until a given date must still accept
+    // bookings that start after the block ends.
+    if (doesRangeOverlapMaintenanceBlock(targetRoom, payload.from)) {
       const blockedUntil = new Date(targetRoom.blockedTill);
-      
-      if (blockedUntil >= now) {
-        console.error("❌ BOOKING BLOCKED:", {
-          hostel: payload.hostel,
-          room: payload.roomNo,
-          blockedTill: targetRoom.blockedTill,
-          reason: targetRoom.blockRemarks
-        });
-        
-        return res.status(400).json({
-          success: false,
-          message: `❌ Room ${payload.roomNo} is currently blocked until ${blockedUntil.toLocaleDateString()}. Reason: ${targetRoom.blockRemarks || 'Not specified'}`,
-          blocked: true
-        });
-      }
+      console.error("❌ BOOKING BLOCKED (maintenance overlap):", {
+        hostel: payload.hostel,
+        room: payload.roomNo,
+        requestedFrom: payload.from,
+        blockedTill: targetRoom.blockedTill,
+        reason: targetRoom.blockRemarks
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: `❌ Room ${payload.roomNo} is under maintenance until ${blockedUntil.toLocaleDateString()}. Reason: ${targetRoom.blockRemarks || 'Not specified'}`,
+        blocked: true
+      });
     }
 
     if (
@@ -646,7 +647,10 @@ export const createBooking = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
-    const bookingStayDays = calculateContinuousStayDays(payload.from, payload.to);
+    // ✅ Inclusive calendar-day count (matches the Direct Booking UI's "Maximum
+    // booking duration" rule) — NOT the nights-based calculateContinuousStayDays,
+    // which is used below for the unrelated continuous-stay/rebooking check.
+    const bookingStayDays = calculateInclusiveStayDays(payload.from, payload.to);
     const managerLimit = Number(settings?.bookingDays?.managerMaxDirectBookingDays || 3);
     const caretakerLimit = Number(settings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
     const applicableDirectLimit =

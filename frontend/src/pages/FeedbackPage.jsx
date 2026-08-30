@@ -412,8 +412,20 @@ function GuestFeedbackCard({ guest, onRate, existingFeedback, theme }) {
 }
 
 // Guest Feedback Item Component (for Guest Feedback tab)
-function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
+function GuestFeedbackItem({ feedback, theme, onStatusUpdate, onDelete }) {
   const ratingConfig = GUEST_RATING_CONFIG[feedback.rating] || GUEST_RATING_CONFIG[3];
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(feedback._id);
+    } finally {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   return (
     <motion.div
@@ -493,14 +505,51 @@ function GuestFeedbackItem({ feedback, theme, onStatusUpdate }) {
             </span>
           </div>
 
-          {onStatusUpdate && feedback.status === 'pending' && (
-            <button
-              onClick={() => onStatusUpdate(feedback._id, 'reviewed')}
-              className="mt-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold text-sm md:text-base hover:from-green-700 hover:to-green-800 transition-all guestroom-primary-btn"
-            >
-              Mark as Reviewed
-            </button>
-          )}
+          <div className="flex flex-col items-start lg:items-end gap-2 mt-2 w-full">
+            {onStatusUpdate && feedback.status === 'pending' && (
+              <button
+                onClick={() => onStatusUpdate(feedback._id, 'reviewed')}
+                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold text-sm md:text-base hover:from-green-700 hover:to-green-800 transition-all guestroom-primary-btn"
+              >
+                Mark as Reviewed
+              </button>
+            )}
+
+            {onDelete && !confirmingDelete && (
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                className="flex items-center gap-1.5 px-4 md:px-6 py-2 md:py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-semibold text-sm md:text-base hover:bg-red-100 transition-all"
+              >
+                <Trash2 size={16} /> Delete
+              </button>
+            )}
+
+            {onDelete && confirmingDelete && (
+              <div
+                className={`p-3 rounded-xl border w-full lg:w-auto ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-red-50 border-red-200'}`}
+              >
+                <p className={`text-xs md:text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-slate-700'}`}>
+                  Delete this feedback permanently?
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
+                    className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    disabled={deleting}
+                    className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete Feedback'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -657,6 +706,23 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
     } catch (err) {
       console.error('Error updating feedback status:', err);
       alert('Failed to update feedback status');
+    }
+  };
+
+  const handleGuestFeedbackDelete = async (feedbackId) => {
+    try {
+      const res = await fetch(`${API}/api/guest-feedback/${feedbackId}`, {
+        method: 'DELETE',
+        credentials: "include"
+      });
+
+      if (!res.ok) throw new Error('Failed to delete feedback');
+
+      setGuestFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
+      alert('Feedback deleted successfully');
+    } catch (err) {
+      console.error('Error deleting feedback:', err);
+      alert('Failed to delete feedback');
     }
   };
 
@@ -1099,6 +1165,7 @@ export default function FeedbackPage({ onBack, theme = 'light' }) {
                     index={index}
                     theme={theme}
                     onStatusUpdate={user?.role === 'admin' || user?.role === 'manager' ? handleGuestFeedbackStatusUpdate : null}
+                    onDelete={user?.role === 'admin' ? handleGuestFeedbackDelete : null}
                   />
                 ))
               )}

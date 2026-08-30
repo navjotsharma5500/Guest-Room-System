@@ -56,3 +56,20 @@ export const getBookingFinalCheckout = (booking) =>
 
 export const bookingIntervalsOverlap = (startA, endA, startB, endB) =>
   startA < endB && endA > startB;
+
+/**
+ * Maintenance block overlap check (date-only, inclusive of blockedTill's day).
+ *
+ * A room blocked until a given date/time remains unavailable through the END
+ * of that calendar day — matches startAutoUnblockCronJob (utils/cronJobs.js),
+ * which only lifts the block once blockedTill's calendar date has fully
+ * passed. Any stay whose check-in falls on/before that date overlaps the
+ * block; stays starting after it are unaffected regardless of how long they run.
+ */
+export const doesRangeOverlapMaintenanceBlock = (room, from) => {
+  if (!room?.isBlocked || !room?.blockedTill) return false;
+  const blockEndKey = getIndiaDateKey(room.blockedTill);
+  const fromKey = getIndiaDateKey(from);
+  if (!blockEndKey || !fromKey) return false;
+  return fromKey <= blockEndKey;
+};
