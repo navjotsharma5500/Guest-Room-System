@@ -153,17 +153,10 @@ describe("Fix 3 — enquiry room assignment is date-aware", () => {
   });
 });
 
-describe("Bug 2 — Direct Booking max-duration uses inclusive calendar days, stays dynamic", () => {
-  // 2026-09-28 -> 2026-10-02 is 5 inclusive calendar days (28,29,30,1,2), but
-  // only 4 nights. The old nights-based calculation would wrongly treat this
-  // as "4 days" and under-count it against the configured limit.
-
-  test("with the configured limit at 4, a 5-inclusive-day booking is flagged for review (proves inclusive counting, not nights)", async () => {
-    // caretakerMaxDirectBookingDays is raised well above the 4-night stay so
-    // the separate continuous-stay/rebooking gate (utils/rebookingUtils.js,
-    // intentionally left untouched — it counts nights for a different,
-    // unrelated purpose) never fires here. That isolates this assertion to
-    // the Direct Booking max-duration check this bug fix actually changed.
+describe("Direct Booking max-duration uses midnight crossings and stays dynamic", () => {
+  test("configured maximum 4 allows a four-midnight cross-month stay", async () => {
+    // Keep the separate continuous-stay/rebooking gate above this stay so this
+    // assertion isolates the Direct Booking maximum-duration rule.
     const settingsRes = await request(app)
       .put("/api/system-settings")
       .set("Authorization", `Bearer ${adminToken}`)
@@ -185,14 +178,17 @@ describe("Bug 2 — Direct Booking max-duration uses inclusive calendar days, st
       }));
 
     expect(res.status).toBe(201);
-    expect(res.body.booking.approvalStatus).toBe("under_review");
+    expect(res.body.booking.approvalStatus).toBe("auto_approved");
   });
 
-  test("raising the configured limit to 5 (dynamic, not hardcoded) allows the same 5-day booking through", async () => {
+  test("configured maximum 3 flags the same four-midnight stay for review", async () => {
     const settingsRes = await request(app)
       .put("/api/system-settings")
       .set("Authorization", `Bearer ${adminToken}`)
-      .send({ bookingDays: { managerMaxDirectBookingDays: 5 } }); // caretakerMaxDirectBookingDays stays 10 from the previous test
+      .send({
+        bookingDays: { managerMaxDirectBookingDays: 3, caretakerMaxDirectBookingDays: 10 },
+        extensionRules: { coWardenLevelDays: 11, adosaLevelDays: 12 },
+      });
     expect(settingsRes.status).toBe(200);
 
     const res = await request(app)
@@ -207,6 +203,6 @@ describe("Bug 2 — Direct Booking max-duration uses inclusive calendar days, st
       }));
 
     expect(res.status).toBe(201);
-    expect(res.body.booking.approvalStatus).toBe("auto_approved");
+    expect(res.body.booking.approvalStatus).toBe("under_review");
   });
 });

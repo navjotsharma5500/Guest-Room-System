@@ -175,13 +175,11 @@ export const doesDateOverlapMaintenanceBlock = (room, fromStr) => {
 };
 
 /**
- * ✅ Inclusive calendar-day count for a date-only stay range (both endpoints
- * counted, e.g. 2026-09-28 → 2026-10-02 = 5 days). Timezone-safe via India
- * calendar-day keys. Distinct from nights-based billing/continuous-stay
- * calculations used elsewhere — this is specifically for the Direct Booking
- * "maximum duration" rule.
+ * ✅ Count the calendar midnights crossed by a Direct Booking stay.
+ * India calendar-day keys are converted to UTC solely for stable date
+ * arithmetic, so clock times never add another day.
  */
-export const calculateInclusiveStayDays = (fromStr, toStr) => {
+export const calculateBookingDurationDays = (fromStr, toStr) => {
   const fromKey = getIndiaDateKey(fromStr);
   const toKey = getIndiaDateKey(toStr);
   if (!fromKey || !toKey) return 0;
@@ -192,7 +190,7 @@ export const calculateInclusiveStayDays = (fromStr, toStr) => {
   };
 
   const diffDays = Math.round((toUtcMs(toKey) - toUtcMs(fromKey)) / (24 * 60 * 60 * 1000));
-  return Math.max(1, diffDays + 1);
+  return Math.max(0, diffDays);
 };
 
 /**

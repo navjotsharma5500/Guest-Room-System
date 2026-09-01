@@ -7,7 +7,7 @@ import {
   isDateTimeRangeOverlapping,
   combineDateAndTime,
   formatTimeWithAMPM,
-  calculateInclusiveStayDays,
+  calculateBookingDurationDays,
   doesDateOverlapMaintenanceBlock,
   getIndiaDateKey,
 } from "../utils/dateUtils";
@@ -106,11 +106,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     return today;
   };
 
-  // ✅ Inclusive calendar-day count (both check-in and check-out days counted),
-  // e.g. 2026-09-28 → 2026-10-02 = 5 days. Timezone-safe via India calendar-day
-  // keys — see utils/dateUtils.js. Used consistently for the "Total Booking
-  // Days" display and the maximum-duration validation below.
-  const getDaysDifference = (fromDate, toDate) => calculateInclusiveStayDays(fromDate, toDate);
+  // ✅ Calendar-midnight count, used consistently by the duration display,
+  // Next validation, and Submit validation.
+  const getDaysDifference = (fromDate, toDate) => calculateBookingDurationDays(fromDate, toDate);
 
   // ✅ Validate booking dates (no past dates, dynamic max limit)
   const validateBookingDates = (fromDate, toDate) => {

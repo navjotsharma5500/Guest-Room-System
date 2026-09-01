@@ -28,7 +28,7 @@ import {
   getCurrentSegmentStart,
   doesRangeOverlapMaintenanceBlock,
 } from "../utils/bookingTransfer.js";
-import { calculateInclusiveStayDays } from "../utils/bookingDuration.js";
+import { calculateBookingDurationDays } from "../utils/bookingDuration.js";
 
 // ================================
 // EMAIL TEMPLATE IMPORTS
@@ -647,10 +647,10 @@ export const createBooking = async (req, res) => {
       wardenEmail: bookingData.wardenEmail
     });
 
-    // ✅ Inclusive calendar-day count (matches the Direct Booking UI's "Maximum
-    // booking duration" rule) — NOT the nights-based calculateContinuousStayDays,
-    // which is used below for the unrelated continuous-stay/rebooking check.
-    const bookingStayDays = calculateInclusiveStayDays(payload.from, payload.to);
+    // ✅ Direct Booking duration is the number of calendar midnights crossed.
+    // This matches the UI and remains separate from the unrelated shared
+    // continuous-stay/rebooking calculation below.
+    const bookingStayDays = calculateBookingDurationDays(payload.from, payload.to);
     const managerLimit = Number(settings?.bookingDays?.managerMaxDirectBookingDays || 3);
     const caretakerLimit = Number(settings?.bookingDays?.caretakerMaxDirectBookingDays || 3);
     const applicableDirectLimit =

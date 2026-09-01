@@ -8,22 +8,18 @@ const toUtcMs = (dateKey) => {
 };
 
 /**
- * Inclusive calendar-day count for a date-only stay range (both endpoints
- * counted, e.g. 2026-09-28 → 2026-10-02 = 5 days). Timezone-safe via India
- * calendar-day keys — avoids off-by-one drift from server/browser timezone
- * or UTC conversion.
+ * Count the calendar midnights crossed by a Direct Booking stay. India
+ * calendar-day keys are converted to UTC solely for stable date arithmetic;
+ * clock times do not contribute to the duration.
  *
- * This is specifically for the Direct Booking "maximum duration" rule.
- * It is intentionally separate from calculateStayDays (utils/rebookingUtils.js),
- * which counts nights (exclusive) for continuous-stay/rebooking/extension logic —
- * changing that shared function's semantics would ripple into unrelated billing
- * and rebooking behavior.
+ * This intentionally remains separate from shared billing, extension, and
+ * continuous-stay helpers so their existing fallback behavior is unchanged.
  */
-export const calculateInclusiveStayDays = (from, to) => {
+export const calculateBookingDurationDays = (from, to) => {
   const fromKey = getIndiaDateKey(from);
   const toKey = getIndiaDateKey(to);
   if (!fromKey || !toKey) return 0;
 
   const diffDays = Math.round((toUtcMs(toKey) - toUtcMs(fromKey)) / DAY_MS);
-  return Math.max(1, diffDays + 1);
+  return Math.max(0, diffDays);
 };
