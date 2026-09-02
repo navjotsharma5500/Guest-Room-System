@@ -25,6 +25,11 @@ import PublicPageWidgets from "../components/PublicPageWidgets";
 import useVenueConfig from "../hooks/useVenueConfig";
 
 const API = BACKEND_URL;
+const isOfficeTypeDepartment = (department) => /\b(?:office|lab)\b/i.test(department);
+const DISPLAY_ORDERED_DEPARTMENTS = [
+  ...VENUE_DEPARTMENTS.filter(isOfficeTypeDepartment),
+  ...VENUE_DEPARTMENTS.filter((department) => !isOfficeTypeDepartment(department)),
+];
 const INITIAL_FORM_STATE = {
   name: "",
   email: "",
@@ -243,11 +248,11 @@ export default function VenueGuestEnquiryPage() {
   useEffect(() => {
     const query = form.department.trim().toLowerCase();
     if (!query) {
-      setDepartmentSuggestions(VENUE_DEPARTMENTS);
+      setDepartmentSuggestions(DISPLAY_ORDERED_DEPARTMENTS);
       return;
     }
 
-    const filtered = VENUE_DEPARTMENTS.filter(dept =>
+    const filtered = DISPLAY_ORDERED_DEPARTMENTS.filter(dept =>
       dept.toLowerCase().includes(query)
     );
     setDepartmentSuggestions(filtered);
@@ -667,6 +672,9 @@ export default function VenueGuestEnquiryPage() {
                             </div>
                           )}
                         </div>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                          Note: Students selecting “Student Societies” are required to choose “DOSA” as the Department.
+                        </p>
                       </div>
                     </div>
   
