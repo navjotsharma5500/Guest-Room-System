@@ -6,7 +6,7 @@ import { OAuth2Client } from "google-auth-library";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import EmailLog from "../models/EmailLog.js";
-import { createLog } from "../middleware/logMiddleware.js";
+import { createAuditEvent, bookingAuditFields, bookingState, enquiryAuditFields } from "../middleware/logMiddleware.js";
 import enquiryNotification from "../emails/templates/enquiryNotification.js";
 import guestEnquiryReceived from "../emails/templates/guestEnquiryReceived.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
@@ -400,6 +400,8 @@ export const getEnquiryById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Not allowed to view this enquiry" });
     }
 
+    res.locals.auditReadContext = enquiryAuditFields(enquiry);
+
     const normalized = {
       ...enquiry,
       checkInTime: enquiry.checkInTime || "00:00",
@@ -747,12 +749,15 @@ export const approveEnquiry = async (req, res) => {
       manager: process.env.MANAGER_EMAIL
     });
 
-    if (req.user?._id) {
-      createLog("enquiry_approved", req.user._id, { 
-        enquiryId: enquiry._id,
-        bookingId: booking._id 
-      });
-    }
+    void createAuditEvent(req, {
+      module: "GUEST_ROOM",
+      action: "BOOKING_CREATED",
+      functionName: "approveEnquiry",
+      ...bookingAuditFields(booking),
+      entityType: "BOOKING",
+      newState: bookingState(booking),
+      details: { enquiryId: String(enquiry._id) },
+    });
 
     const io = req.app.get('io');
     if (io) {

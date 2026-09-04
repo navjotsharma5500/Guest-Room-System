@@ -22,6 +22,7 @@ import {
   startAnalyticsEmailCronJobs
 } from "./utils/cronJobs.js";
 import { setSocketIO } from "./utils/socket.js";
+import { requestIdMiddleware, requestTraceMiddleware } from "./middleware/logMiddleware.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -62,8 +63,11 @@ import publicGuestRoomRoutes from "./routes/publicGuestRoomRoutes.js";
 import campusFeedbackRoutes from "./routes/campusFeedbackRoutes.js";
 import studentNoticeRoutes from "./routes/studentNoticeRoutes.js";
 import venueIntegrationRoutes from "./routes/venueIntegrationRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
+import { trustImmediateProxy } from "./config/trustedProxy.js";
 
 const app = express();
+app.set("trust proxy", trustImmediateProxy);
 
 /* =========================================================
    ALLOWED ORIGINS
@@ -162,7 +166,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, Accept, Cookie, X-Requested-With"
+      "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id"
     );
     res.setHeader(
       "Access-Control-Allow-Methods",
@@ -170,7 +174,7 @@ app.use((req, res, next) => {
     );
     res.setHeader(
       "Access-Control-Expose-Headers",
-      "Content-Disposition, Content-Type, Content-Length"
+      "Content-Disposition, Content-Type, Content-Length, X-Request-Id"
     );
 
     return res.status(204).end();
@@ -189,7 +193,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Accept, Cookie, X-Requested-With"
+    "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id"
   );
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -197,7 +201,7 @@ app.use((req, res, next) => {
   );
   res.setHeader(
     "Access-Control-Expose-Headers",
-    "Content-Disposition, Content-Type, Content-Length"
+    "Content-Disposition, Content-Type, Content-Length, X-Request-Id"
   );
   // Mitigate COOP message from Google OAuth popup to main window in cross-origin contexts.
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
@@ -394,6 +398,8 @@ app.use((req, res, next) => {
 /* =========================================================
    CORE MIDDLEWARE
 ========================================================= */
+app.use(requestIdMiddleware);
+app.use(requestTraceMiddleware);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
@@ -445,6 +451,7 @@ app.use("/api/public/guest-room", publicGuestRoomRoutes);
 app.use("/api/campus-feedback", campusFeedbackRoutes);
 app.use("/api/student-notices", studentNoticeRoutes);
 app.use("/api/integration", venueIntegrationRoutes);
+app.use("/api/admin/audit-logs", auditRoutes);
 
 console.log("✅ Payment routes mounted at /api/payments");
 console.log("✅ Guest feedback routes mounted at /api/guest-feedback");

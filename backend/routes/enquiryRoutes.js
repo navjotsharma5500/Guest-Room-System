@@ -11,6 +11,7 @@ import {
 } from "../controllers/enquiryController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { verifyBookingExists } from "../middleware/bookingSafetyMiddleware.js";
+import { auditAction, selectiveReadTrace } from "../middleware/logMiddleware.js";
 
 const router = express.Router();
 
@@ -19,12 +20,21 @@ router.post("/create", createEnquiry);
 
 // ADMIN
 router.get("/", protect, getAllEnquiries);
-router.get("/:id", protect, getEnquiryById);
+router.get(
+  "/:id",
+  protect,
+  selectiveReadTrace("ENQUIRY", "getEnquiryById", (req, res) => ({
+    entityType: "ENQUIRY",
+    entityId: req.params.id,
+    ...res.locals.auditReadContext,
+  })),
+  getEnquiryById
+);
 router.get("/:id/availability", protect, checkEnquiryRoomAvailability);
 router.patch("/:id/schedule", protect, updateEnquirySchedule);
 
-router.put("/:id/approved", protect, approveEnquiry);
-router.put("/:id/rejected", protect, rejectEnquiry);
+router.put("/:id/approved", protect, auditAction("ENQUIRY_APPROVED", "approveEnquiry", "ENQUIRY", (req) => ({ entityType: "ENQUIRY", entityId: req.params.id })), approveEnquiry);
+router.put("/:id/rejected", protect, auditAction("ENQUIRY_REJECTED", "rejectEnquiry", "ENQUIRY", (req) => ({ entityType: "ENQUIRY", entityId: req.params.id, remarks: req.body?.remarks })), rejectEnquiry);
 router.put("/:id/booked", protect, bookEnquiry);
 
 router.put("/:id/booked", protect, verifyBookingExists, async (req, res) => {

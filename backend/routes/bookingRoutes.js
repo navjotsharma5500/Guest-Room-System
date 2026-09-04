@@ -8,6 +8,7 @@ import { sendBookingEmails } from "../controllers/bookingController.js";
 import Enquiry from "../models/Enquiry.js";
 import Hostel from "../models/Hostel.js";
 import { asyncSendEmails } from "../utils/asyncEmail.js";
+import { auditBookingAction, bookingAuditFields, selectiveReadTrace } from "../middleware/logMiddleware.js";
 
 const router = express.Router();
 
@@ -46,15 +47,15 @@ import {
 router.get("/list", protect, getAllBookingsFlat);
 router.get("/history", protect, getBookingHistory);
 router.get("/extension-requests", protect, getExtensionRequests);
-router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), approveExtension);
-router.post("/extension-requests/reject", protect, authorizeRoles("admin", "adosa", "co_warden"), rejectExtension);
+router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), auditBookingAction("EXTENSION_APPROVED", "approveExtension"), approveExtension);
+router.post("/extension-requests/reject", protect, authorizeRoles("admin", "adosa", "co_warden"), auditBookingAction("EXTENSION_REJECTED", "rejectExtension"), rejectExtension);
 
 // Rebooking approval routes
-router.post("/:id/approve", protect, authorizeRoles("admin"), approveRebooking);
-router.post("/:id/reject", protect, authorizeRoles("admin"), rejectRebooking);
+router.post("/:id/approve", protect, authorizeRoles("admin"), auditBookingAction("REJOIN_APPROVED", "approveRebooking"), approveRebooking);
+router.post("/:id/reject", protect, authorizeRoles("admin"), auditBookingAction("REJOIN_REJECTED", "rejectRebooking"), rejectRebooking);
 
-router.put("/:id/details", protect, updateBookingDetails);
-router.put("/:id/transfer", protect, transferBooking);
+router.put("/:id/details", protect, auditBookingAction("BOOKING_UPDATED", "updateBookingDetails"), updateBookingDetails);
+router.put("/:id/transfer", protect, auditBookingAction("BOOKING_TRANSFERRED", "transferBooking"), transferBooking);
 
 const handleCancel = async (req, res) => { 
   await cancelBooking(req, res); 
@@ -71,16 +72,16 @@ const handleCancel = async (req, res) => {
   } 
 }; 
 
-router.put("/:id/cancel", protect, handleCancel);   // GuestDetails uses PUT 
-router.post("/:id/cancel", protect, handleCancel);  // useBookingHandlers uses POST 
+router.put("/:id/cancel", protect, auditBookingAction("BOOKING_CANCELLED", "cancelBooking"), handleCancel);   // GuestDetails uses PUT
+router.post("/:id/cancel", protect, auditBookingAction("BOOKING_CANCELLED", "cancelBooking"), handleCancel);  // useBookingHandlers uses POST
 
-router.post("/:id/request-extension", protect, requestExtension);
-router.post("/:id/direct-extension", protect, directExtendBooking);
-router.post("/:id/rejoin", protect, rejoinBooking);
+router.post("/:id/request-extension", protect, auditBookingAction("EXTENSION_REQUESTED", "requestExtension"), requestExtension);
+router.post("/:id/direct-extension", protect, auditBookingAction("DIRECT_EXTENSION", "directExtendBooking"), directExtendBooking);
+router.post("/:id/rejoin", protect, auditBookingAction("REJOIN_REQUESTED", "rejoinBooking"), rejoinBooking);
 router.get("/download/csv", protect, downloadBookingsCSV);  
-router.put("/:id/reported", protect, markReported);
-router.put("/:id/not-reported", protect, markNotReported);
-router.put("/:id/checkout", protect, checkOutGuest);
+router.put("/:id/reported", protect, auditBookingAction("GUEST_REPORTED", "markReported"), markReported);
+router.put("/:id/not-reported", protect, auditBookingAction("GUEST_NOT_REPORTED", "markNotReported"), markNotReported);
+router.put("/:id/checkout", protect, auditBookingAction("GUEST_CHECKED_OUT", "checkOutGuest"), checkOutGuest);
 
 router.post("/:id/attachments", protect, async (req, res) => {
   try {
@@ -311,7 +312,7 @@ router.post("/", protect, createBooking);
 // =============================================================
 // PAYMENT UPDATE - ✅ FIXED: Socket.IO inside route handler
 // =============================================================
-router.put("/:id/payment", protect, async (req, res) => {
+router.put("/:id/payment", protect, auditBookingAction("PAYMENT_UPDATED", "updatePaymentDetails"), async (req, res) => {
   try {
     const result = await updatePaymentDetails(req, res);
     
@@ -337,7 +338,7 @@ router.put("/:id/payment", protect, async (req, res) => {
 // =============================================================
 // MARK PAYMENT AS COMPLETED (Caretaker / Admin)
 // =============================================================
-router.put("/:id/mark-paid", protect, async (req, res) => {
+router.put("/:id/mark-paid", protect, auditBookingAction("PAYMENT_UPDATED", "markPaid"), async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
@@ -525,51 +526,62 @@ router.get("/checked-out", protect, async (req, res) => {
 // =============================================================
 // GET SINGLE BOOKING BY ID
 // =============================================================
-router.get("/:id", protect, async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id).lean();
+router.get(
+  "/:id",
+  protect,
+  selectiveReadTrace("GUEST_ROOM", "getBookingById", (req, res) => ({
+    entityType: "BOOKING",
+    entityId: req.params.id,
+    ...res.locals.auditReadContext,
+  })),
+  async (req, res) => {
+    try {
+      const booking = await Booking.findById(req.params.id).lean();
 
-    if (!booking) {
-      return res.status(404).json({
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      res.locals.auditReadContext = bookingAuditFields(booking);
+
+      const hasPendingExtensionRequest = await ExtensionRequest.exists({
+        bookingId: booking._id,
+        status: "pending",
+      });
+
+      res.json({
+        success: true,
+        booking: {
+          ...booking,
+          hasPendingExtensionRequest: Boolean(hasPendingExtensionRequest),
+          rollno: booking.rollno || "",
+          department: booking.department || "",
+          gender: booking.gender || "",
+          reference: booking.reference || "",
+          createdAt: booking.createdAt,
+          updatedAt: booking.updatedAt,
+        },
+      });
+
+    } catch (error) {
+      console.error("❌ Error fetching booking:", error);
+      res.status(500).json({
         success: false,
-        message: "Booking not found",
+        message: "Server error",
+        error: error.message,
       });
     }
-
-    const hasPendingExtensionRequest = await ExtensionRequest.exists({
-      bookingId: booking._id,
-      status: "pending",
-    });
-
-    res.json({
-      success: true,
-      booking: {
-        ...booking,
-        hasPendingExtensionRequest: Boolean(hasPendingExtensionRequest),
-        rollno: booking.rollno || "",
-        department: booking.department || "",
-        gender: booking.gender || "",
-        reference: booking.reference || "",
-        createdAt: booking.createdAt,
-        updatedAt: booking.updatedAt,
-      },
-    });
-
-  } catch (error) {
-    console.error("❌ Error fetching booking:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
   }
-});
+);
 
 
 // =============================================================
 // EXTEND BOOKING - UPDATED FOR EXTENSION PAYMENT + EMAIL
 // =============================================================
-router.put("/:id/extend", protect, async (req, res) => {
+router.put("/:id/extend", protect, auditBookingAction("DIRECT_EXTENSION", "extendBooking"), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -865,7 +877,7 @@ router.put("/:id/checkout", protect, async (req, res) => {
 // =============================================================
 // CARETAKER – MARK REPORTED / NOT REPORTED
 // =============================================================
-router.put("/:id/report-status", protect, async (req, res) => {
+router.put("/:id/report-status", protect, auditBookingAction((req) => req.body?.reported ? "GUEST_REPORTED" : "GUEST_NOT_REPORTED", "updateReportStatus"), async (req, res) => {
   try {
     const { reported, actualCheckIn, idVerified } = req.body;
 
@@ -1118,6 +1130,7 @@ router.get("/debug/payment-fields/:id", protect, async (req, res) => {
 router.patch(
   "/:id/mark-department-pay",
   protect,
+  auditBookingAction("DEPARTMENT_PAY_LATER", "markDepartmentPayLater"),
   async (req, res) => {
     try {
       const { id } = req.params;

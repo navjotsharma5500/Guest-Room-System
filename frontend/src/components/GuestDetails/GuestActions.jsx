@@ -1,5 +1,6 @@
 // GuestActions.jsx - UPDATED: Added Payment Waiver button for Admin/Manager
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag, ArrowRightLeft } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,7 @@ export default function GuestActions({
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
   userRole,
 }) {
+  const navigate = useNavigate();
   const { settings: systemSettings } = useSystemSettings();
   const { showToast } = useToast();
   // Check if booking exists and isn't cancelled/checked out
@@ -184,6 +186,15 @@ export default function GuestActions({
                 )}
 
                 {/* Guest History */}
+                {userRole === "admin" && (
+                  <ActionButton
+                    icon={<History className="w-4 h-4" />}
+                    label="View Activity Log"
+                    onClick={() => navigate(`/audit-activity?bookingId=${encodeURIComponent(booking?.bookingId || booking?._id || booking?.id || "")}`)}
+                    theme={theme}
+                  />
+                )}
+
                 <ActionButton
                   icon={<History className="w-4 h-4" />}
                   label="Guest History"

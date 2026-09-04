@@ -4,7 +4,7 @@ import Bill from "../models/Bill.js";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
 import { Parser } from "json2csv";
 import Hostel from "../models/Hostel.js";
-import { createLog } from "../middleware/logMiddleware.js";
+import { createAuditEvent, createCronEvent, bookingAuditFields, bookingState } from "../middleware/logMiddleware.js";
 import { sendEmail, safeSend as baseSafeSend } from "../emails/sendEmail.js";
 import Enquiry from "../models/Enquiry.js";
 import EmailLog from "../models/EmailLog.js";
@@ -834,9 +834,13 @@ export const createBooking = async (req, res) => {
     console.log("📧 Warden Email:", booking.wardenEmail);
     console.log("================================================================================");
 
-    if (req.user?._id) {
-      createLog("booking_created", req.user._id, { bookingId: booking._id });
-    }
+    void createAuditEvent(req, {
+      module: "GUEST_ROOM",
+      action: "BOOKING_CREATED",
+      functionName: "createBooking",
+      ...bookingAuditFields(booking),
+      newState: bookingState(booking),
+    });
 
     const io = req.app.get('io');
     if (io) {
@@ -1142,10 +1146,6 @@ export const markNotReported = async (req, res) => {
 
     await booking.save();
 
-    createLog("guest_not_reported", req.user._id, {
-      bookingId: booking._id,
-    });
-
     res.json({
       success: true,
       message: "Guest marked as not reported",
@@ -1340,17 +1340,6 @@ export const transferBooking = async (req, res) => {
     booking.lastTransferredBy = req.user?._id || null;
 
     await booking.save();
-    await createLog("guest_transferred", req.user?._id, {
-      bookingId: booking._id,
-      fromHostel,
-      fromRoomNo,
-      toHostel,
-      toRoomNo,
-      transferAt,
-      sourceStatus,
-      sourceReportedStatus,
-    });
-
     const io = req.app.get("io");
     if (io) {
       io.to("dashboard-room").emit("booking-transferred", {
@@ -1510,10 +1499,6 @@ export const checkOutGuest = async (req, res) => {
       io: req.app.get("io"),
     });
 
-    createLog("guest_checked_out", req.user._id, {
-      bookingId: booking._id,
-    });
-
     res.json({
       success: true,
       message: "Guest checked out successfully",
@@ -1588,11 +1573,6 @@ export const updatePaymentDetails = async (req, res) => {
     }
 
     await booking.save();
-
-    createLog("payment_updated", req.user._id, {
-      bookingId: booking._id,
-      paidAmount: booking.paidAmount,
-    });
 
     const io = req.app.get('io');
     if (io) {
@@ -2618,14 +2598,6 @@ export const rejoinBooking = async (req, res) => {
 
     await booking.save();
 
-    if (req.user?._id) {
-      createLog("booking_rejoined", req.user._id, {
-        bookingId: booking._id,
-        hostel: booking.hostel,
-        roomNo: booking.roomNo,
-      });
-    }
-
     const io = req.app.get("io");
     if (io) {
       io.to("dashboard-room").emit("booking-rejoined", {
@@ -2680,10 +2652,6 @@ export const approveRebooking = async (req, res) => {
       approvedAt: booking.reviewedAt
     });
 
-    if (req.user?._id) {
-      createLog("booking_approved", req.user._id, { bookingId: booking._id });
-    }
-
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-approved', {
@@ -2737,10 +2705,6 @@ export const rejectRebooking = async (req, res) => {
       rejectedAt: booking.reviewedAt
     });
 
-    if (req.user?._id) {
-      createLog("booking_rejected", req.user._id, { bookingId: booking._id });
-    }
-
     const io = req.app.get('io');
     if (io) {
       io.to('dashboard-room').emit('booking-rejected', {
@@ -2784,8 +2748,6 @@ export const updateBookingDetails = async (req, res) => {
     });
 
     await booking.save();
-
-    createLog("booking_updated", req.user._id, { bookingId: booking._id });
 
     res.json({
       success: true,
@@ -2994,12 +2956,28 @@ export const autoCancelNoShows = async () => {
       const checkInDateTime = getCurrentSegmentStart(booking);
 
       if (checkInDateTime && checkInDateTime < twentyThreeHoursAgo) {
+        const previousState = bookingState(booking);
         booking.status = "cancelled";
         booking.reportedStatus = "not_reported";
         booking.cancelDate = new Date();
         booking.cancelRemarks = "Auto-cancelled: Guest did not report within 23 hours of check-in time";
 
         await booking.save();
+
+        void createCronEvent({
+          action: "AUTO_NO_SHOW_CANCELLED",
+          functionName: "autoCancelNoShows",
+          jobName: "autoCancelNoShows",
+          ...bookingAuditFields(booking),
+          previousState,
+          newState: bookingState(booking),
+          startedAt: checkInDateTime,
+          finishedAt: now,
+          remarks: "Guest did not report within the configured 23-hour threshold",
+          details: { scheduledCheckIn: checkInDateTime, thresholdHours: 23, executedAt: now },
+          recordsMatched: 1,
+          recordsChanged: 1,
+        });
 
         console.log(`✅ Auto-cancelled booking ${booking._id} for ${booking.guest}`);
 

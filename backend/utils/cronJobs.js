@@ -4,6 +4,7 @@ import { autoCancelNoShows, autoCheckoutOverdueGuests } from "../controllers/boo
 import Hostel from "../models/Hostel.js";
 import User from "../models/User.js";
 import { sendScheduledAnalyticsReport } from "./analyticsEmailReports.js";
+import { createCronEvent } from "../middleware/logMiddleware.js";
 
 export const startNoShowCronJob = (io) => {
   console.log("🟢 Starting no-show auto-cancel cron job...");
@@ -15,6 +16,12 @@ export const startNoShowCronJob = (io) => {
     
     try {
       const result = await autoCancelNoShows();
+      await createCronEvent({
+        action: "CRON_JOB_COMPLETED", functionName: "autoCancelNoShows", jobName: "autoCancelNoShows",
+        startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(),
+        recordsMatched: result.cancelled || 0, recordsChanged: result.cancelled || 0,
+        result: result.success === false ? "FAILED" : "SUCCESS", error: result.error,
+      });
       console.log("✅ Auto-cancel completed:", result);
       
       // ✅ Notify all connected clients
@@ -29,6 +36,7 @@ export const startNoShowCronJob = (io) => {
       
     } catch (error) {
       console.error("❌ Auto-cancel error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "autoCancelNoShows", jobName: "autoCancelNoShows", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), result: "FAILED", error: error.message });
     }
   });
 
@@ -50,6 +58,9 @@ export const startAutoCheckoutCronJob = (io) => {
     
     try {
       const result = await autoCheckoutOverdueGuests();
+      if (result.checkedOut > 0) {
+        await createCronEvent({ action: "AUTO_CHECKOUT_COMPLETED", functionName: "autoCheckoutOverdueGuests", jobName: "autoCheckoutOverdueGuests", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), recordsMatched: result.checkedOut, recordsChanged: result.checkedOut });
+      }
       console.log("✅ Auto-checkout completed:", result);
       
       // ✅ Notify all connected clients
@@ -90,6 +101,7 @@ export const startAutoCheckoutCronJob = (io) => {
       
     } catch (error) {
       console.error("❌ Auto-checkout error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "autoCheckoutOverdueGuests", jobName: "autoCheckoutOverdueGuests", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), result: "FAILED", error: error.message });
     }
   });
 
@@ -220,6 +232,7 @@ export const startAutoUnblockCronJob = (io) => {
   
   cron.schedule("0 0 * * *", async () => {
     const now = new Date();
+    const startedAt = new Date(now);
     console.log(`⏰ [${now.toISOString()}] Running auto-unblock room job...`);
     
     try {
@@ -258,6 +271,7 @@ export const startAutoUnblockCronJob = (io) => {
       }
 
       console.log(`✅ Auto-unblock complete: ${unblocked} room(s) unblocked`);
+      await createCronEvent({ action: "AUTOMATIC_ROOM_UNBLOCK", functionName: "startAutoUnblockCronJob", jobName: "automaticRoomUnblock", startedAt, finishedAt: new Date(), durationMs: Date.now() - startedAt.getTime(), recordsMatched: unblocked, recordsChanged: unblocked });
       
       // ✅ Notify all connected clients
       if (io && unblocked > 0) {
@@ -271,6 +285,7 @@ export const startAutoUnblockCronJob = (io) => {
 
     } catch (error) {
       console.error("❌ Auto-unblock cron error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "startAutoUnblockCronJob", jobName: "automaticRoomUnblock", startedAt, finishedAt: new Date(), durationMs: Date.now() - startedAt.getTime(), result: "FAILED", error: error.message });
     }
   });
 
@@ -416,6 +431,7 @@ export const startExtensionAutoCancelCronJob = (io) => {
 
       if (rejectedCount > 0) {
         console.log(`✅ Auto-rejected ${rejectedCount} extension requests (guest checkout date passed or room clash).`);
+        await createCronEvent({ action: "EXTENSION_AUTO_REJECTED", functionName: "startExtensionAutoCancelCronJob", jobName: "extensionAutoReject", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), recordsMatched: rejectedCount, recordsChanged: rejectedCount });
         if (io) {
             io.emit("extension-requests-updated", { count: rejectedCount, action: "rejected" });
         }
@@ -423,6 +439,7 @@ export const startExtensionAutoCancelCronJob = (io) => {
 
     } catch (error) {
       console.error("❌ Extension auto-reject error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "startExtensionAutoCancelCronJob", jobName: "extensionAutoReject", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), result: "FAILED", error: error.message });
     }
   });
 };
@@ -531,6 +548,7 @@ export const startExtensionReminderCronJob = (io) => {
 
       if (remindersSent > 0) {
         console.log(`✅ Sent ${remindersSent} extension request reminder email(s).`);
+        await createCronEvent({ action: "EXTENSION_REMINDERS_SENT", functionName: "startExtensionReminderCronJob", jobName: "extensionReminder", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), recordsMatched: remindersSent, recordsChanged: remindersSent });
         if (io) {
           io.emit("extension-requests-updated", { count: remindersSent, action: "reminder_sent" });
         }
@@ -538,6 +556,7 @@ export const startExtensionReminderCronJob = (io) => {
 
     } catch (error) {
       console.error("❌ Extension reminder error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "startExtensionReminderCronJob", jobName: "extensionReminder", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), result: "FAILED", error: error.message });
     }
   });
 
@@ -592,6 +611,7 @@ export const startRebookingAutoRejectCronJob = (io) => {
 
       if (rejectedCount > 0) {
         console.log(`✅ Auto-rejected ${rejectedCount} expired rebooking approval(s)`);
+        await createCronEvent({ action: "REBOOKING_AUTO_REJECTED", functionName: "startRebookingAutoRejectCronJob", jobName: "rebookingAutoReject", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), recordsMatched: rejectedCount, recordsChanged: rejectedCount });
         
         if (io) {
           io.emit("rebooking-auto-rejected", {
@@ -605,6 +625,7 @@ export const startRebookingAutoRejectCronJob = (io) => {
 
     } catch (error) {
       console.error("❌ Rebooking auto-reject cron error:", error);
+      await createCronEvent({ action: "CRON_JOB_FAILED", functionName: "startRebookingAutoRejectCronJob", jobName: "rebookingAutoReject", startedAt: now, finishedAt: new Date(), durationMs: Date.now() - now.getTime(), result: "FAILED", error: error.message });
     }
   });
 

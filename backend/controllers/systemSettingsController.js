@@ -1,4 +1,4 @@
-import { createLog } from "../middleware/logMiddleware.js";
+import { createAuditEvent } from "../middleware/logMiddleware.js";
 import { getSystemSettings, updateSystemSettings } from "../utils/systemSettings.js";
 
 export const getSettings = async (_req, res) => {
@@ -54,7 +54,7 @@ export const updateSettings = async (req, res) => {
     // with persisted settings — updateSystemSettings() merges req.body with
     // the current DB document and validates the merged result internally.
     const settings = await updateSystemSettings(req.body || {}, req.user?._id || null);
-    createLog("system_settings_updated", req.user?._id, {});
+    void createAuditEvent(req, { module: "SYSTEM_SETTINGS", action: "SYSTEM_SETTINGS_UPDATED", functionName: "updateSettings" });
     res.json({ success: true, settings });
   } catch (error) {
     console.error("❌ Failed to update system settings:", error);
@@ -78,7 +78,7 @@ export const updateDashboards = async (req, res) => {
       { dashboardRegistry: req.body?.dashboardRegistry || [] },
       req.user?._id || null
     );
-    createLog("dashboard_registry_updated", req.user?._id, {});
+    void createAuditEvent(req, { module: "SYSTEM_SETTINGS", action: "DASHBOARD_REGISTRY_UPDATED", functionName: "updateDashboards" });
     res.json({ success: true, dashboards: settings.dashboardRegistry || [] });
   } catch (error) {
     console.error("❌ Failed to update dashboard registry:", error);

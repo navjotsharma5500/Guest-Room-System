@@ -67,6 +67,7 @@ import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
 import CampusFeedbackAdminPage from "./pages/admin/CampusFeedbackAdminPage";
 import StudentNoticesPage from "./pages/StudentNoticesPage";
 import StudentNoticesAdminPage from "./pages/admin/StudentNoticesAdminPage";
+import AuditActivityPage from "./pages/admin/AuditActivityPage";
 import PublicVenueCalendar from "./pages/PublicVenueCalendar";
 
 // ============================================================================
@@ -445,6 +446,10 @@ export default function App() {
           <Route
             path="/student-notices/admin"
             element={<StudentNoticesAdminPage />}
+          />
+          <Route
+            path="/audit-activity"
+            element={currentUser && role === "admin" ? <AuditActivityPage /> : <Navigate to={currentUser ? "/dashboard" : "/login"} replace />}
           />
 
           <Route

@@ -1,5 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { auditAction } from "../middleware/logMiddleware.js";
 import {
   getAllHostelsWithBookings,
   getPublicHostelOptions,
@@ -36,7 +37,14 @@ router.put("/:id", protect, updateHostel);
 router.delete("/:id", protect, deleteHostel);
 
 // ✅ NEW ROUTES - Block/Unblock Room
-router.put("/:hostelName/rooms/:roomNo/block", protect, blockRoom);
-router.put("/:hostelName/rooms/:roomNo/unblock", protect, unblockRoom);
+const roomFields = (req) => ({
+  entityType: "ROOM",
+  entityId: `${req.params.hostelName}/${req.params.roomNo}`,
+  hostel: req.params.hostelName,
+  roomNo: req.params.roomNo,
+  remarks: req.body?.blockRemarks,
+});
+router.put("/:hostelName/rooms/:roomNo/block", protect, auditAction("ROOM_BLOCKED", "blockRoom", "GUEST_ROOM", roomFields), blockRoom);
+router.put("/:hostelName/rooms/:roomNo/unblock", protect, auditAction("ROOM_UNBLOCKED", "unblockRoom", "GUEST_ROOM", roomFields), unblockRoom);
 
 export default router;

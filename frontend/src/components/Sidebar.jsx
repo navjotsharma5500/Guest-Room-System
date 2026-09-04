@@ -1,7 +1,7 @@
 // src/components/Sidebar.jsx - COMPLETE FIXED VERSION
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle, Megaphone, LifeBuoy } from "lucide-react";
+import { AlertCircle, Star, X, Menu, Building2, FileText, Receipt, CheckCircle, Megaphone, LifeBuoy, ScrollText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext.js";
 import { hasPermission } from "../utils/checkPermission.js";
@@ -159,6 +159,16 @@ export default function Sidebar({
           isEnquiry ? "pointer-events-none opacity-60" : ""
         }`}
       >
+        {roleKey === "admin" && (
+          <motion.button
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+            onClick={() => handleNavigation(() => navigate("/audit-activity"))}
+            className="relative flex w-full items-center gap-3 rounded-xl border border-transparent bg-white/30 px-3 py-2 text-left hover:bg-white/80"
+          >
+            <ScrollText className="h-4 w-4 text-slate-600" />
+            <span className="text-sm">System Audit & Activity</span>
+          </motion.button>
+        )}
         {/* ✅ ALL HOSTELS BUTTON (Admin + Manager only) */}
         {canSeeAllHostels && (
           <motion.button
