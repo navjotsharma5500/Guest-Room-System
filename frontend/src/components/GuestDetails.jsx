@@ -623,6 +623,22 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     showToast("✅ Attachments added successfully", "success");
   };
 
+  const handleReportGuestClick = () => {
+    const isReporting = b.status !== "checked_in";
+    const hasAddressProof =
+      enquiryFiles.length > 0 || (Array.isArray(b.files) && b.files.length > 0);
+
+    if (userRole === "caretaker" && isReporting && !hasAddressProof) {
+      showToast(
+        "Kindly attach the guest address proof under Enquiry Attachments before reporting the guest.",
+        "warning"
+      );
+      return;
+    }
+
+    setShowReportedModal(true);
+  };
+
   const handleOverrideGuestFlag = async (flag) => {
     const remarks = window.prompt("Enter admin override remarks");
     if (!remarks?.trim()) return;
@@ -1696,7 +1712,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
          b.approvalStatus !== "under_review" && (
           <div className="px-6 py-4 border-t">
             <button
-              onClick={() => setShowReportedModal(true)}
+              onClick={handleReportGuestClick}
               className={`px-5 py-2 rounded-lg font-semibold transition ${
                 b.status === "checked_in"
                   ? "bg-purple-600 hover:bg-purple-700 text-white"

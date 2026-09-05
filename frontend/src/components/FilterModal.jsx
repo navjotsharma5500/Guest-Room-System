@@ -20,6 +20,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     guest: "",
     contact: "",
     email: "",
+    bookingId: "",
     paymentType: "",
     status: "",
     bookingStatus: "",
@@ -101,6 +102,11 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
                   !b.email?.toLowerCase().includes(filters.email.toLowerCase()))
                 return false;
 
+              // Public Guest Room Booking ID
+              if (filters.bookingId &&
+                  !String(b.bookingId || "").toLowerCase().includes(filters.bookingId.toLowerCase()))
+                return false;
+
               // Department
               if (filters.department && 
                   !b.department?.toLowerCase().includes(filters.department.toLowerCase()))
@@ -164,7 +170,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     const now = new Date();
     const allBookings = Object.entries(hostelData)
       .filter(([hostel]) => {
-        if (userRole === "caretaker" && assignedHostel) {
+        if (isRestrictedRole && assignedHostel) {
           return hostel === assignedHostel;
         }
         return true;
@@ -185,7 +191,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
     setResults(allBookings);
     showToast(
       `📋 Showing all ${allBookings.length} booking(s)${
-        userRole === "caretaker" ? ` for ${assignedHostel}` : ""
+        isRestrictedRole && assignedHostel ? ` for ${assignedHostel}` : ""
       }`,
       "info"
     );
@@ -233,6 +239,7 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
       guest: "",
       contact: "",
       email: "",
+      bookingId: "",
       paymentType: "",
       status: "",
       bookingStatus: "",
@@ -288,7 +295,18 @@ export default function FilterModal({ hostelData, onSelectBooking, onClose }) {
             <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
               <User className="w-4 h-4" /> Guest Information
             </h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label htmlFor="guest-booking-id" className="text-xs text-gray-600 block mb-1">Guest Room Booking ID</label>
+                <input
+                  id="guest-booking-id"
+                  type="text"
+                  value={filters.bookingId}
+                  onChange={(e) => setFilters({ ...filters, bookingId: e.target.value })}
+                  className="border border-gray-300 p-2 rounded w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g. GR-26090402"
+                />
+              </div>
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Guest Name</label>
                 <input

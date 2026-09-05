@@ -925,6 +925,34 @@ export const markReported = async (req, res) => {
       });
     }
 
+    // Address proof belongs only to the enquiry attachment category.
+    // Validate before any reporting, early check-in, or payment mutations.
+    if (req.user?.role === "caretaker") {
+      const enquiry = booking.enquiryId
+        ? await Enquiry.findById(booking.enquiryId).select("files -_id").lean()
+        : null;
+      const enquiryFiles = [
+        ...(Array.isArray(booking.files) ? booking.files : []),
+        ...(Array.isArray(enquiry?.files) ? enquiry.files : []),
+      ];
+      const hasAddressProof = enquiryFiles.some((file) => {
+        if (typeof file !== "string" || !file.trim()) return false;
+        try {
+          const url = new URL(file.trim());
+          return url.protocol === "https:" || url.protocol === "http:";
+        } catch {
+          return false;
+        }
+      });
+      if (!hasAddressProof) {
+        return res.status(400).json({
+          success: false,
+          code: "GUEST_ADDRESS_PROOF_REQUIRED",
+          message: "Kindly attach the guest address proof under Enquiry Attachments before reporting the guest.",
+        });
+      }
+    }
+
     const dateKeyInIndia = (value) => {
       const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Kolkata",

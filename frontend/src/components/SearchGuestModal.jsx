@@ -56,7 +56,8 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
               (b) =>
                 (b.guest && b.guest.toLowerCase().includes(q)) ||
                 (b.contact && b.contact.toLowerCase().includes(q)) ||
-                (b.email && b.email.toLowerCase().includes(q))
+                (b.email && b.email.toLowerCase().includes(q)) ||
+                String(b.bookingId || "").toLowerCase().includes(q)
             )
             .map((b) => ({
               hostel,
@@ -140,7 +141,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search by name, contact, or email..."
+            placeholder="Search by name, contact, email, or Booking ID..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 border p-2 rounded-lg focus:ring-2 focus:ring-red-400 outline-none"
@@ -158,7 +159,7 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
         <div className="max-h-72 overflow-y-auto space-y-2">
           {results.length === 0 ? (
             <p className="text-gray-500 italic text-sm text-center">
-              No results found. Try searching by name, contact, or email.
+              No results found. Try searching by name, contact, email, or Booking ID.
             </p>
           ) : (
             <>
@@ -202,6 +203,11 @@ export default function SearchGuestModal({ hostelData, onSelectGuest, onClose })
                     <p className="text-sm text-gray-600">
                       ðŸ“ž {r.booking.contact || "No Contact"}
                     </p>
+                    {r.booking.bookingId && (
+                      <p className="text-xs text-gray-500">
+                        Booking ID: {r.booking.bookingId}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 flex items-center gap-1">
                       <CalendarDays className="w-4 h-4 text-gray-400" />
                       {r.hostel} / Room {r.roomNo} â€” {r.booking.from} â†’{" "}
