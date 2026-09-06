@@ -38,10 +38,14 @@ const validateSlot = ({ fromDate, toDate, startTime, endTime }) => {
 };
 
 const getVenueEntries = async () => {
-  const config = await VenueConfig.findOne({ key: "global" }).lean()
-    || await VenueConfig.findOne({
-      $or: [{ key: { $exists: false } }, { key: null }, { key: "" }],
-    }).sort({ updatedAt: -1 }).lean();
+  // Prefer the global document, otherwise the newest legacy config, in one read.
+  const [config] = await VenueConfig.aggregate([
+    { $match: { $or: [{ key: "global" }, { key: { $exists: false } }, { key: null }, { key: "" }] } },
+    { $addFields: { integrationPriority: { $cond: [{ $eq: ["$key", "global"] }, 1, 0] } } },
+    { $sort: { integrationPriority: -1, updatedAt: -1 } },
+    { $limit: 1 },
+    { $project: { mainTabs: 1 } },
+  ]);
   const tabs = Array.isArray(config?.mainTabs) && config.mainTabs.length
     ? config.mainTabs
     : cloneDefaultVenueConfig();
@@ -58,6 +62,12 @@ const getVenueEntries = async () => {
       );
 
       return (section.rooms || []).map((room) => ({
+        venueKey: `${tab.id}:${section.id}:${room.id}`,
+        mainTabId: tab.id,
+        mainTabLabel: normalize(tab.label),
+        sectionId: section.id,
+        sectionLabel: normalize(section.label),
+        roomId: room.id,
         venueName: normalize(room.name),
         hall: normalize(section.label),
         roomNo: normalize(room.name),
@@ -73,6 +83,28 @@ const getVenueEntries = async () => {
       }));
     })
   );
+};
+
+// Explicit public projection keeps alias history and internal fields private.
+const publicVenue = (venue) => ({
+  venueKey: venue.venueKey,
+  mainTabId: venue.mainTabId,
+  mainTabLabel: venue.mainTabLabel,
+  sectionId: venue.sectionId,
+  sectionLabel: venue.sectionLabel,
+  roomId: venue.roomId,
+  venueName: venue.venueName,
+  enabled: venue.enabled,
+});
+
+export const getVenueCatalog = async (_req, res) => {
+  try {
+    const venues = await getVenueEntries();
+    return res.json({ success: true, venues: venues.map(publicVenue) });
+  } catch (error) {
+    console.error("Venue integration catalog error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch venue catalog" });
+  }
 };
 
 const hasConflict = (slot, venue, bookings) =>
@@ -120,12 +152,15 @@ export const getVenueAvailability = async (req, res) => {
         .lean(),
     ]);
 
-    return res.json(
-      venues.map((venue) => ({
-        venueName: venue.venueName,
-        available: venue.enabled && !hasConflict(slot, venue, bookings),
-      }))
-    );
+    return res.json({
+      success: true,
+      slot,
+      venues: venues.map((venue) => {
+        const reason = !venue.enabled ? "DISABLED"
+          : hasConflict(slot, venue, bookings) ? "BOOKED" : null;
+        return { ...publicVenue(venue), available: reason === null, reason };
+      }),
+    });
   } catch (error) {
     console.error("Venue integration availability error:", error.message);
     return res.status(500).json({ success: false, message: "Failed to check venue availability" });

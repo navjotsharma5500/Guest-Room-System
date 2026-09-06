@@ -105,6 +105,17 @@ export const resolveUserDashboardAccess = async (user = {}, settings = null) => 
   };
 };
 
+const STAFF_ROLES_WITH_SHARED_SELECTOR = [
+  "admin",
+  "adosa",
+  "manager",
+  "warden",
+  "caretaker",
+  "assistant",
+  "dd_assistant",
+  "co_warden",
+];
+
 export const getLoginRedirectForUser = async (user = {}, settings = null) => {
   const resolvedSettings = settings || (await getSystemSettings());
   const registryMap = getDashboardRegistryMap(resolvedSettings);
@@ -118,6 +129,14 @@ export const getLoginRedirectForUser = async (user = {}, settings = null) => {
   if (role === "guard") {
     const nightPath = registryMap.get("night")?.path;
     return nightPath || "/dashboard";
+  }
+
+  // Staff roles always land on the shared Dashboard Selector, even with a
+  // single internal dashboard, so they can reach shared staff utility cards
+  // (e.g. Fretbox Resident App). Their dashboardAccess permissions are
+  // unaffected — this only changes the post-login landing page.
+  if (STAFF_ROLES_WITH_SHARED_SELECTOR.includes(role)) {
+    return "/admin/dashboard-selector";
   }
 
   if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {

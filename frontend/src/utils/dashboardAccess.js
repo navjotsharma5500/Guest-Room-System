@@ -3,6 +3,23 @@ import { DEFAULT_SYSTEM_SETTINGS } from "../hooks/useSystemSettings";
 const normalizeRole = (role = "") => String(role || "").trim().toLowerCase();
 const normalizeEmail = (email = "") => String(email || "").trim().toLowerCase();
 
+// Staff roles that must always land on / be able to see the shared Dashboard
+// Selector (for shared utility cards like Fretbox), even when they only have
+// a single internal dashboard. Mirrors backend/utils/dashboardAccess.js.
+export const STAFF_ROLES_WITH_SHARED_SELECTOR = [
+  "admin",
+  "adosa",
+  "manager",
+  "warden",
+  "caretaker",
+  "assistant",
+  "dd_assistant",
+  "co_warden",
+];
+
+export const shouldAlwaysShowDashboardSelector = (role) =>
+  STAFF_ROLES_WITH_SHARED_SELECTOR.includes(normalizeRole(role));
+
 export const getFallbackDashboardAccess = (user = {}) => {
   const role = normalizeRole(user.role || user?.user?.role);
   const email = normalizeEmail(user.email || user?.user?.email);

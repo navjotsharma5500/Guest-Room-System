@@ -84,6 +84,7 @@ import useSystemSettings from "./hooks/useSystemSettings";
 import {
   getDashboardPath,
   resolveDashboardAccess,
+  shouldAlwaysShowDashboardSelector,
 } from "./utils/dashboardAccess";
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -237,6 +238,7 @@ export default function App() {
     ["admin", "manager", "adosa", "assistant", "caretaker", "warden", "co_warden"].includes(role);
   const canSeeSelector =
     role === "admin" ||
+    shouldAlwaysShowDashboardSelector(role) ||
     (DASHBOARD_SELECTOR_ENABLED &&
       dashboardAccess.dashboards.length > 1 &&
       !(
@@ -253,6 +255,10 @@ export default function App() {
     if (role === "student") return "/";
     if (["gen_sec", "president"].includes(role)) return "/night-pass";
     if (role === "guard") return canAccessNight ? (getDashboardPath(settings, "night") || "/night-pass/scan") : "/night-pass/scan";
+
+    // Staff roles always land on the shared Dashboard Selector (shared staff
+    // utility cards live there), even with a single internal dashboard.
+    if (shouldAlwaysShowDashboardSelector(role)) return "/admin/dashboard-selector";
 
     if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {
       return getDashboardPath(settings, dashboardAccess.dashboards[0]);

@@ -6,7 +6,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 import { DEFAULT_SYSTEM_SETTINGS } from "../hooks/useSystemSettings";
-import { getDashboardPath, resolveDashboardAccess } from "../utils/dashboardAccess";
+import {
+  getDashboardPath,
+  resolveDashboardAccess,
+  shouldAlwaysShowDashboardSelector,
+} from "../utils/dashboardAccess";
 
 // Images
 import logo from "../assets/thapar_logo.png";
@@ -40,6 +44,10 @@ export default function Login() {
     if (userRole === "student") return "/society-night-pass";
     if (["gen_sec", "president"].includes(userRole)) return "/night-pass";
     if (userRole === "guard") return "/night-pass/scan";
+
+    // Staff roles always land on the shared Dashboard Selector (shared staff
+    // utility cards live there), even with a single internal dashboard.
+    if (shouldAlwaysShowDashboardSelector(userRole)) return "/admin/dashboard-selector";
 
     const dashboardAccess = resolveDashboardAccess(userData, DEFAULT_SYSTEM_SETTINGS);
     if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {

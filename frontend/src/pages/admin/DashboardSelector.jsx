@@ -6,13 +6,17 @@ import {
   Building2, Calendar, Globe, Sparkles, Lock,
   X, ArrowRight, LayoutDashboard, Settings,
   MessageSquare, CalendarDays, BarChart3,
-  Database, ArrowLeft
+  Database, ArrowLeft, ClipboardList, ExternalLink
 } from "lucide-react";
 import EchoOrb from "../../components/EchoOrb";
 import EchoModal from "../../components/EchoModal";
 import { useAuth } from "../../context/AuthContext";
 import useSystemSettings from "../../hooks/useSystemSettings";
-import { resolveDashboardAccess } from "../../utils/dashboardAccess";
+import {
+  resolveDashboardAccess,
+  shouldAlwaysShowDashboardSelector,
+  STAFF_ROLES_WITH_SHARED_SELECTOR,
+} from "../../utils/dashboardAccess";
 import DashboardFooter from "../../components/DashboardFooter";
 import AdvancedAnalyticsPage from "./AdvancedAnalyticsPage";
 
@@ -145,7 +149,11 @@ const DashboardSelector = () => {
   const { settings } = useSystemSettings();
   const dashboardAccess = resolveDashboardAccess(currentUser || {}, settings);
 
-  if (dashboardAccess.dashboards.length === 1 && dashboardAccess.skipSelectorWhenSingle) {
+  if (
+    dashboardAccess.dashboards.length === 1 &&
+    dashboardAccess.skipSelectorWhenSingle &&
+    !shouldAlwaysShowDashboardSelector(role)
+  ) {
     const onlyDashboard = (settings?.dashboardRegistry || []).find(
       (dashboard) => dashboard.key === dashboardAccess.dashboards[0]
     );
@@ -198,6 +206,60 @@ const DashboardSelector = () => {
         onClick: () => navigate(dashboard.path),
       };
     });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Shared staff utility/application cards — auxiliary tools shown alongside
+  // the internal dashboardRegistry cards above. These are NOT dashboardRegistry
+  // entries and do not affect dashboardAccess permissions.
+  // ────────────────────────────────────────────────────────────────────────
+  const utilityCards = [];
+
+  if (role === "admin") {
+    utilityCards.push({
+      id: "grievance-admin-portal",
+      title: "Student Grievance Admin Portal",
+      description: "Manage student grievances and grievance portal users",
+      icon: ClipboardList,
+      gradient: "from-amber-600 via-amber-500 to-orange-500",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+      available: true,
+      features: ["Grievance Management", "Portal User Access", "Case Tracking"],
+      ctaLabel: "Open Portal",
+      // The Grievance Portal is a separate application on the same CampusConnect
+      // domain and is not part of this SPA's router, so a hard same-tab
+      // navigation (not react-router's navigate) is required to reach it.
+      onClick: () => {
+        window.location.href = "/grievance/admin/users";
+      },
+    });
+  }
+
+  if (STAFF_ROLES_WITH_SHARED_SELECTOR.includes(role)) {
+    utilityCards.push({
+      id: "fretbox-resident-app",
+      title: "Fretbox Resident App",
+      description: "Open the Fretbox resident management portal",
+      icon: Globe,
+      gradient: "from-emerald-600 via-emerald-500 to-teal-500",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+      available: true,
+      features: ["Resident Management", "External Application"],
+      ctaLabel: "Open External Link",
+      ctaIcon: ExternalLink,
+      badge: { bg: "bg-emerald-100", text: "text-emerald-700", label: "External", icon: ExternalLink },
+      onClick: () => {
+        window.open(
+          "https://admin.fretbox.in/account/signin?returnUrl=dashboard",
+          "_blank",
+          "noopener,noreferrer"
+        );
+      },
+    });
+  }
+
+  const allCards = [...dashboards, ...utilityCards];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -448,8 +510,10 @@ const DashboardSelector = () => {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full"
         >
-          {dashboards.map((dashboard, index) => {
+          {allCards.map((dashboard, index) => {
             const Icon = dashboard.icon;
+            const CtaIcon = dashboard.ctaIcon || ArrowRight;
+            const BadgeIcon = dashboard.badge?.icon || Sparkles;
             const isHovered = hoveredCard === dashboard.id;
 
             return (
@@ -510,7 +574,7 @@ const DashboardSelector = () => {
                     {/* Generic badge support */}
                     {dashboard.badge && dashboard.id !== "venue-booking" && (
                       <div className={`${dashboard.badge.bg} ${dashboard.badge.text} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
-                        <Sparkles className="w-3 h-3" />
+                        <BadgeIcon className="w-3 h-3" />
                         {dashboard.badge.label}
                       </div>
                     )}
@@ -551,8 +615,8 @@ const DashboardSelector = () => {
                         bg-gradient-to-r ${dashboard.gradient} bg-clip-text text-transparent
                       `}
                     >
-                      Open Dashboard
-                      <ArrowRight className={`w-4 h-4 text-${dashboard.iconColor.split('-')[1]}-600`} />
+                      {dashboard.ctaLabel || "Open Dashboard"}
+                      <CtaIcon className={`w-4 h-4 text-${dashboard.iconColor.split('-')[1]}-600`} />
                     </motion.div>
                   ) : (
                     <div className="text-sm text-slate-400 font-medium">

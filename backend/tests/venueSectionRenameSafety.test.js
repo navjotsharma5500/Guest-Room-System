@@ -260,7 +260,7 @@ describe("Section rename — public availability safety", () => {
       });
 
     expect(res.status).toBe(200);
-    const entry = res.body.find((v) => v.venueName === "Main Floor");
+    const entry = res.body.venues.find((v) => v.venueName === "Main Floor");
     expect(entry).toBeDefined();
     expect(entry.available).toBe(false);
   });
@@ -281,7 +281,7 @@ describe("Section rename — public availability safety", () => {
       });
 
     expect(res.status).toBe(200);
-    const entry = res.body.find((v) => v.venueName === "Main Floor");
+    const entry = res.body.venues.find((v) => v.venueName === "Main Floor");
     expect(entry.available).toBe(true);
   });
 });
@@ -351,6 +351,6 @@ describe("Section rename — historical data and disabled-section fallback safet
       });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body.venues).toEqual([]);
   });
 });
