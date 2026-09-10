@@ -1,4 +1,6 @@
 // bookingController.js
+import mongoose from "mongoose";
+import { assertRoomStay, assertRoomScope, getReportingOccupancy, safeSharingMember, sharingError, sendRoomError } from "../utils/roomSharing.js";
 import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
 import { parseDateOnlyToUtcDate } from "../utils/billingDates.js";
@@ -490,15 +492,55 @@ export const sendBookingEmails = (booking, statusType) => {
 // ======================================================
 // CREATE BOOKING
 // ======================================================
-export const createBooking = async (req, res) => {
+export const createBooking = (req, res) => createBookingInternal(req, res);
+export const createSharedBooking = (req, res) => createBookingInternal(req, res, req.params.sourceBookingId);
+
+export const getSharingGroup = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).lean();
+    if (!booking) throw sharingError("Booking not found", "BOOKING_NOT_FOUND", {}, 404);
+    assertRoomScope(req.user, booking.hostel);
+    const hostel = await Hostel.findOne({ name: booking.hostel }).lean();
+    const members = booking.sharingGroupId ? await Booking.find({ sharingGroupId: booking.sharingGroupId,
+      hostel: booking.hostel, roomNo: booking.roomNo }).lean() : [booking];
+    return res.json({ success: true, sharingGroupId: booking.sharingGroupId || null,
+      booking: safeSharingMember(booking), roomCapacity: hostel?.rooms?.find(r => r.roomNo === booking.roomNo)?.guestCapacity,
+      members: members.map(safeSharingMember) });
+  } catch (error) { return sendRoomError(res, error); }
+};
+
+const createBookingInternal = async (req, res, sourceBookingId = null) => {
   try {
     const settings = await getSystemSettings();
     console.log("================================================================================");
     console.log("🔓 CREATE BOOKING REQUEST");
-    console.log("📋 Body:", JSON.stringify(req.body, null, 2));
+
     console.log("================================================================================");
 
-    const payload = req.body;
+    const pendingEmails = [];
+    const payload = { ...req.body };
+    let source = null;
+    let sharingGroupId;
+    if (sourceBookingId) {
+      source = await Booking.findById(sourceBookingId);
+      if (!source) throw sharingError("Source booking not found", "BOOKING_NOT_FOUND", {}, 404);
+      assertRoomScope(req.user, source.hostel);
+      if (!["booked", "checked_in"].includes(source.status) ||
+          (source.approvalStatus && source.approvalStatus !== "auto_approved")) {
+        throw sharingError("Only active approved bookings can share a room", "SHARING_SOURCE_INELIGIBLE", {}, 400);
+      }
+      if ((payload.hostel && payload.hostel !== source.hostel) || (payload.roomNo && payload.roomNo !== source.roomNo)) {
+        throw sharingError("Source booking does not belong to the requested room", "SHARING_ROOM_MISMATCH", {}, 400);
+      }
+      const requestedGuests = Number(payload.numGuests ?? payload.guests ?? 1);
+      if (!Number.isInteger(requestedGuests) || requestedGuests < 1) throw sharingError("Guest count must be a positive integer", "INVALID_GUEST_COUNT", {}, 400);
+      payload.hostel = source.hostel;
+      payload.roomNo = source.roomNo;
+      // A shared booking is independent of any source enquiry or bill.
+      delete payload.enquiryId;
+      delete payload.billId;
+      sharingGroupId = source.sharingGroupId || new mongoose.Types.ObjectId();
+    }
     const userRole = String(req.user?.role || "").toLowerCase();
 
     if (!payload.guest && !payload.guestName) throw new Error("Guest name required");
@@ -520,6 +562,8 @@ export const createBooking = async (req, res) => {
     if (!targetRoom) {
       throw new Error(`Room ${payload.roomNo} not found in ${payload.hostel}`);
     }
+
+    if (source && targetRoom.guestRoom === false) throw sharingError("Sharing is available only for Guest Rooms", "NOT_A_GUEST_ROOM", {}, 400);
 
     // ✅ CRITICAL: Reject only if the REQUESTED stay dates overlap the active
     // maintenance block. A room blocked until a given date must still accept
@@ -680,6 +724,7 @@ export const createBooking = async (req, res) => {
     });
 
     if (existingDuplicate) {
+      if (source) throw sharingError("An identical booking already exists for this guest", "DUPLICATE_BOOKING");
       console.log("⚠️ Duplicate booking prevented:", {
         existingBookingId: existingDuplicate._id,
         guest: existingDuplicate.guest,
@@ -694,6 +739,10 @@ export const createBooking = async (req, res) => {
         booking: existingDuplicate,
       });
     }
+
+    await assertRoomStay(bookingData, source ? { groupId: sharingGroupId, sourceId: source._id, requireOverlap: true } : { groupId: null });
+    if (source) Object.assign(bookingData, { sharingGroupId, sharedFromBookingId: source._id,
+      sharingCreatedAt: new Date(), sharingCreatedBy: req.user?._id });
 
     // =========================
     // CONTINUOUS STAY / REBOOKING DETECTION LOGIC
@@ -814,7 +863,7 @@ export const createBooking = async (req, res) => {
             }),
           };
 
-          asyncSendEmails(() => safeSend(rebookingEmailContent));
+          pendingEmails.push(() => safeSend(rebookingEmailContent));
           console.log("✅ Rebooking approval email queued for admins:", reviewRecipients);
         }
       } catch (emailErr) {
@@ -824,8 +873,24 @@ export const createBooking = async (req, res) => {
     }
 
     const booking = await setupBooking.save();
+    if (source && !source.sharingGroupId) {
+      try {
+        const result = await Booking.updateOne({ _id: source._id, sharingGroupId: null,
+          hostel: source.hostel, roomNo: source.roomNo, status: source.status, approvalStatus: source.approvalStatus },
+          { $set: { sharingGroupId, sharingCreatedAt: booking.sharingCreatedAt, sharingCreatedBy: req.user?._id } });
+        if (result.modifiedCount !== 1) throw sharingError("Source booking changed. Please retry.", "SHARING_SOURCE_CHANGED");
+      } catch (error) {
+        await Booking.deleteOne({ _id: booking._id });
+        // Also handle a write that succeeded but whose acknowledgement failed.
+        await Booking.updateOne({ _id: source._id, sharingGroupId }, { $unset: {
+          sharingGroupId: "", sharingCreatedAt: "", sharingCreatedBy: "",
+        } });
+        throw error;
+      }
+    }
 
     console.log("================================================================================");
+    pendingEmails.forEach(asyncSendEmails);
     console.log("✅ BOOKING CREATED:", booking._id);
     console.log("💰 Payment Type:", booking.paymentType);
     console.log("💵 Total:", booking.totalAmount);
@@ -836,8 +901,12 @@ export const createBooking = async (req, res) => {
 
     void createAuditEvent(req, {
       module: "GUEST_ROOM",
-      action: "BOOKING_CREATED",
-      functionName: "createBooking",
+      action: source ? "ROOM_SHARED_BOOKING_CREATED" : "BOOKING_CREATED",
+      functionName: source ? "createSharedBooking" : "createBooking",
+      ...(source ? { details: { sourceBookingId: source._id, sourcePublicBookingId: source.bookingId,
+        newBookingId: booking._id, newPublicBookingId: booking.bookingId, sharingGroupId,
+        hostel: booking.hostel, roomNo: booking.roomNo, from: booking.from, to: booking.to,
+        sourceGuests: source.numGuests, requestedGuests: booking.numGuests, capacity: targetRoom.guestCapacity } } : {}),
       ...bookingAuditFields(booking),
       newState: bookingState(booking),
     });
@@ -870,6 +939,7 @@ export const createBooking = async (req, res) => {
     res.status(err.statusCode || 500).json({ 
       success: false, 
       code: err.code,
+      capacity: err.capacity, occupiedGuests: err.occupiedGuests, requestedGuests: err.requestedGuests, interval: err.interval,
       risk: err.risk,
       message: err.message,
       error: err.message,
@@ -983,6 +1053,16 @@ export const markReported = async (req, res) => {
       { email: booking.email, contact: booking.contact },
       { allowOverride: req.user?.role === "admin" && req.body?.adminOverride === true }
     );
+
+    assertRoomScope(req.user, booking.hostel);
+    if (!["booked", "checked_in"].includes(booking.status) || (booking.approvalStatus && booking.approvalStatus !== "auto_approved")) {
+      throw sharingError("Only active approved bookings can report", "BOOKING_NOT_REPORTABLE", {}, 400);
+    }
+    const reportCandidate = { ...booking.toObject(), from: actualCheckInDate || booking.from,
+      checkInTime: actualCheckInTime || booking.checkInTime, transferHistory: [] };
+    await assertRoomStay(reportCandidate);
+    const occupancy = await getReportingOccupancy(reportCandidate);
+    if (occupancy.occupied) throw sharingError("Room is occupied by another guest or sharing capacity is exceeded", "ROOM_OCCUPIED", occupancy);
 
     // ✅ CRITICAL FIX: Handle early check-in
     const reportDate = actualCheckInDate ? new Date(actualCheckInDate) : new Date();
@@ -1103,6 +1183,8 @@ export const markReported = async (req, res) => {
     }
 
     await booking.save();
+    await Hostel.updateOne({ name: booking.hostel, rooms: { $elemMatch: { roomNo: booking.roomNo, isBlocked: { $ne: true } } } },
+      { $set: { "rooms.$.roomState": "occupied" } });
 
     console.log("✅ Guest reported successfully:", {
       bookingId: booking._id,
@@ -1144,6 +1226,7 @@ export const markReported = async (req, res) => {
     res.status(err.statusCode || 500).json({ 
       success: false, 
       code: err.code,
+      capacity: err.capacity, occupiedGuests: err.occupiedGuests, requestedGuests: err.requestedGuests, interval: err.interval,
       risk: err.risk,
       message: err.statusCode ? err.message : "Server error", 
       error: err.message 
@@ -1338,6 +1421,7 @@ export const transferBooking = async (req, res) => {
       transferTime,
       segmentFrom,
       segmentTo: transferAt,
+      sharingGroupId: booking.sharingGroupId,
       sourceStatus,
       sourceReportedStatus,
       sourceActualCheckInDate: booking.actualCheckInDate || null,
@@ -1352,6 +1436,7 @@ export const transferBooking = async (req, res) => {
       transferredAt,
     });
 
+    booking.sharingGroupId = undefined;
     booking.hostel = toHostel;
     booking.roomNo = toRoomNo;
     booking.caretakerEmail = destinationHostel.caretakerEmail || "";
@@ -1368,6 +1453,9 @@ export const transferBooking = async (req, res) => {
     booking.lastTransferredBy = req.user?._id || null;
 
     await booking.save();
+    if (sourceStatus === "checked_in" || sourceReportedStatus === "reported") {
+      await setRoomCleaningPending({ hostel: fromHostel, roomNo: fromRoomNo, bookingId: booking._id, io: req.app.get("io") });
+    }
     const io = req.app.get("io");
     if (io) {
       io.to("dashboard-room").emit("booking-transferred", {
@@ -1652,6 +1740,7 @@ export const requestExtension = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    await assertRoomStay({ ...booking.toObject(), to: newTo });
     const currentCheckOut = new Date(booking.to);
     const newCheckOut = new Date(newTo);
     const toDateOnly = (d) => {
@@ -1803,7 +1892,7 @@ export const requestExtension = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Extension request error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(err.statusCode || 500).json({ success: false, code: err.code, capacity: err.capacity, occupiedGuests: err.occupiedGuests, requestedGuests: err.requestedGuests, message: err.message });
   }
 };
 
@@ -1918,6 +2007,7 @@ export const directExtendBooking = async (req, res) => {
       });
     }
 
+    await assertRoomStay({ ...booking.toObject(), to: requestedCheckout });
     booking.to = requestedCheckout;
     booking.extensionDate = requestedCheckout;
     booking.extendRemarks = remarks.trim();
@@ -2038,7 +2128,7 @@ export const directExtendBooking = async (req, res) => {
     asyncSendEmails(() => sendBookingEmails(emailBooking, "extended"));
   } catch (err) {
     console.error("❌ Direct extension error:", err);
-    res.status(500).json({ success: false, message: err.message || "Failed to process direct extension" });
+    res.status(err.statusCode || 500).json({ success: false, code: err.code, capacity: err.capacity, occupiedGuests: err.occupiedGuests, requestedGuests: err.requestedGuests, message: err.message || "Failed to process direct extension" });
   }
 };
 
@@ -2069,8 +2159,9 @@ export const approveExtension = async (req, res) => {
       return res.status(404).json({ success: false, message: "Original booking not found" });
     }
 
-    booking.to = parseDateOnlyToUtcDate(updatedCheckOutDate || request.newCheckOutDate);
-    booking.extensionDate = parseDateOnlyToUtcDate(updatedCheckOutDate || request.newCheckOutDate);
+    await assertRoomStay({ ...booking.toObject(), to: updatedCheckOutDate || request.requestedCheckout || request.newCheckOutDate });
+    booking.to = parseDateOnlyToUtcDate(updatedCheckOutDate || request.requestedCheckout || request.newCheckOutDate);
+    booking.extensionDate = parseDateOnlyToUtcDate(updatedCheckOutDate || request.requestedCheckout || request.newCheckOutDate);
     booking.extendRemarks = request.remarks;
 
     if (request.attachments?.length > 0) {
@@ -2157,7 +2248,7 @@ export const approveExtension = async (req, res) => {
     }
 
     // Mark request approved
-    request.status = "APPROVED";
+    request.status = "approved";
     request.approvedBy = req.user._id;
     request.reviewedAt = new Date();
     request.finalAmount = finalAmount;
@@ -2216,7 +2307,7 @@ export const approveExtension = async (req, res) => {
     res.json({ success: true, message: "Extension approved and applied", booking });
   } catch (err) {
     console.error("❌ Approve extension error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(err.statusCode || 500).json({ success: false, code: err.code, capacity: err.capacity, occupiedGuests: err.occupiedGuests, requestedGuests: err.requestedGuests, message: err.message });
   }
 };
 
@@ -2337,6 +2428,7 @@ export const extendBooking = async (req, res) => {
     // ==================================================
     const previousTo = booking.to;
 
+    await assertRoomStay({ ...booking.toObject(), to: newTo });
     booking.to = new Date(newTo);
     booking.extensionDate = new Date(newTo);
     booking.extendRemarks = remarks || booking.extendRemarks || "";
@@ -2425,7 +2517,7 @@ export const extendBooking = async (req, res) => {
   } catch (err) {
     console.error("❌ Extend booking error:", err);
     console.error("Stack:", err.stack);
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });
@@ -2769,6 +2861,10 @@ export const updateBookingDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    if (booking.sharingGroupId && updates.numGuests !== undefined) {
+      assertRoomScope(req.user, booking.hostel);
+      await assertRoomStay({ ...booking.toObject(), numGuests: Number(updates.numGuests) });
+    }
     Object.keys(updates).forEach((key) => {
       if (allowedFields.includes(key)) {
         booking[key] = updates[key];
@@ -2785,7 +2881,7 @@ export const updateBookingDetails = async (req, res) => {
 
   } catch (error) {
     console.error("Update booking details error:", error);
-    res.status(500).json({ success: false, message: "Failed to update details" });
+    return sendRoomError(res, error);
   }
 };
 

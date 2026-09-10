@@ -7,6 +7,7 @@ process.env.NODE_ENV = "test";
 const app = (await import("../index.js")).default;
 const User = (await import("../models/User.js")).default;
 const Hostel = (await import("../models/Hostel.js")).default;
+const Booking = (await import("../models/Booking.js")).default;
 const Enquiry = (await import("../models/Enquiry.js")).default;
 
 let mongoServer;
@@ -154,6 +155,7 @@ describe("Fix 3 — enquiry room assignment is date-aware", () => {
 });
 
 describe("Direct Booking max-duration uses midnight crossings and stays dynamic", () => {
+  beforeEach(async () => { await Booking.deleteMany({ hostel: "Block Test Hostel", roomNo: "G2" }); });
   test("configured maximum 4 allows a four-midnight cross-month stay", async () => {
     // Keep the separate continuous-stay/rebooking gate above this stay so this
     // assertion isolates the Direct Booking maximum-duration rule.

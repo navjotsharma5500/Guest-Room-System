@@ -51,6 +51,7 @@ export default function ReportedModal({
   const [checkingRoom, setCheckingRoom] = useState(false);
   const [roomOccupied, setRoomOccupied] = useState(false);
   const [currentOccupant, setCurrentOccupant] = useState(null);
+  const [sharingOccupancy, setSharingOccupancy] = useState({ allowed: false, occupants: [] });
   const [showOccupantPaymentWarning, setShowOccupantPaymentWarning] = useState(false);
   const [checkoutSource, setCheckoutSource] = useState("normal");
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
@@ -308,6 +309,15 @@ export default function ReportedModal({
       );
 
       const data = await response.json();
+
+      // ✅ Backend already accounts for authorized room sharing: `occupied`
+      // is false when the current occupant(s) belong to this booking's
+      // sharing group and capacity permits, even though the room isn't
+      // vacant. Surface that as an informational banner instead of nothing.
+      setSharingOccupancy({
+        allowed: Boolean(data.sharingAllowed),
+        occupants: Array.isArray(data.occupants) ? data.occupants : [],
+      });
 
       if (data.occupied) {
         setRoomOccupied(true);
@@ -658,6 +668,28 @@ export default function ReportedModal({
                   </p>
                   </div>
               </motion.div>
+              )}
+
+              {/* Shared Room Info - Show when the current occupant(s) belong to
+                  this booking's sharing group and capacity allows reporting */}
+              {!isAlreadyReported && !isNotReported && !isNoShow && !roomOccupied &&
+                sharingOccupancy.allowed && sharingOccupancy.occupants.length > 0 && (
+                <motion.div
+                  className="bg-violet-50 border-l-4 border-violet-500 p-4 rounded-lg flex items-start gap-3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <User className="w-5 h-5 text-violet-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-violet-800">
+                    <p className="font-semibold mb-1">Shared Room</p>
+                    <p className="text-xs">
+                      Currently occupied by{" "}
+                      {sharingOccupancy.occupants.map((o) => o.guest).filter(Boolean).join(", ")}. This
+                      booking is authorized to share the room.
+                    </p>
+                  </div>
+                </motion.div>
               )}
 
               {/* Room Occupancy Warning - Show if room is occupied */}

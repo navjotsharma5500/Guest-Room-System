@@ -12,6 +12,7 @@ const TransferHistorySchema = new mongoose.Schema(
     transferTime: { type: String, required: true },
     segmentFrom: { type: Date, required: true },
     segmentTo: { type: Date, required: true },
+    sharingGroupId: { type: mongoose.Schema.Types.ObjectId },
     sourceStatus: { type: String, required: true },
     sourceReportedStatus: { type: String, required: true },
     sourceActualCheckInDate: { type: Date, default: null },
@@ -78,6 +79,11 @@ const BookingSchema = new mongoose.Schema(
     // =========================
     hostel: { type: String, required: true },
     roomNo: { type: String, required: true },
+
+    sharingGroupId: { type: mongoose.Schema.Types.ObjectId, index: true },
+    sharedFromBookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+    sharingCreatedAt: { type: Date },
+    sharingCreatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     transferHistory: { type: [TransferHistorySchema], default: [] },
     lastTransferredAt: { type: Date, default: null },

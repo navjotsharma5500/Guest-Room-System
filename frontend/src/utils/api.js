@@ -287,5 +287,47 @@ export const apiCreateDirectBooking = async (data) => {
 };
 
 // ============================================================================
+// ROOM SHARING ("Share Room")
+// ============================================================================
+export const apiShareRoom = async (sourceBookingId, data) => {
+  const token = localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API}/api/bookings/${sourceBookingId}/share-room`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    throw Object.assign(new Error(json.message || "Failed to create shared booking"), {
+      code: json.code,
+      details: json,
+    });
+  }
+  return json;
+};
+
+export const apiGetSharingGroup = async (bookingId) => {
+  const token = localStorage.getItem("token");
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API}/api/bookings/${bookingId}/sharing-group`, {
+    credentials: "include",
+    headers,
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    throw Object.assign(new Error(json.message || "Failed to load sharing group"), { code: json.code });
+  }
+  return json;
+};
+
+// ============================================================================
 // END OF FILE
 // ============================================================================

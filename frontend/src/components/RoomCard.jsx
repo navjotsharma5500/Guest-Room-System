@@ -81,6 +81,39 @@ const RoomCard = memo(function RoomCard({
     return activeBookings[0] || (room.bookings || [])[0] || null;
   }, [underReviewBooking, activeBookings, room.bookings]);
 
+  // ✅ Shared Room: group active bookings by sharingGroupId. A group only
+  // counts as an actual sharing arrangement when 2+ of THIS room's active
+  // bookings carry the same (backend-assigned) sharingGroupId — two merely
+  // sequential, unrelated bookings never share that id, so they are never
+  // mislabelled as SHARED.
+  const sharingGroups = useMemo(() => {
+    const map = new Map();
+    activeBookings.forEach((b) => {
+      if (!b.sharingGroupId) return;
+      const key = String(b.sharingGroupId);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(b);
+    });
+    for (const [key, list] of map) {
+      if (list.length < 2) map.delete(key);
+    }
+    return map;
+  }, [activeBookings]);
+
+  const isBookingShared = (b) => Boolean(b?.sharingGroupId) && sharingGroups.has(String(b.sharingGroupId));
+
+  const primarySharedGroup = useMemo(() => {
+    if (sharingGroups.size === 0) return null;
+    const groups = [...sharingGroups.values()];
+    const primaryId = primaryBooking?._id || primaryBooking?.id;
+    return groups.find((g) => g.some((b) => String(b._id || b.id) === String(primaryId))) || groups[0];
+  }, [sharingGroups, primaryBooking]);
+
+  const sharedGuestCount = (group) =>
+    (group || []).reduce((sum, b) => sum + (Number(b.numGuests) || 1), 0);
+
+  const sharedGuestNames = (group) => (group || []).map((b) => (b.guest || "Guest").split(" ")[0]);
+
   const approvalStatus = primaryBooking?.approvalStatus || "auto_approved";
   const canReviewUnderReviewBooking =
     userRole === "admin";
@@ -559,12 +592,21 @@ const RoomCard = memo(function RoomCard({
         >
           {/* ✅ REMOVED BOOK BUTTON - Click on card to book available rooms */}
 
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <p className="font-semibold text-base">Room {room.roomNo}</p>
             <span className="text-xs text-gray-500">
               ({room.roomType || "Guest Room"})
             </span>
           </div>
+
+          {primarySharedGroup && (
+            <span
+              className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-600 text-white"
+              aria-label={`Shared room, ${sharedGuestCount(primarySharedGroup)} guests`}
+            >
+              SHARED · {sharedGuestCount(primarySharedGroup)} GUESTS
+            </span>
+          )}
 
           {currentActive ? (
             <div className="mt-2">
@@ -572,6 +614,13 @@ const RoomCard = memo(function RoomCard({
                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 Booking Active
               </p>
+
+              {primarySharedGroup && (
+                <p className="text-xs text-violet-700 font-medium mt-1 truncate">
+                  {sharedGuestNames(primarySharedGroup).slice(0, 2).join(" & ")}
+                  {sharedGuestNames(primarySharedGroup).length > 2 && ` +${sharedGuestNames(primarySharedGroup).length - 2}`}
+                </p>
+              )}
 
               {firstBooking && (
                 <div className="text-xs text-gray-600 mt-1 space-y-0.5">
@@ -789,12 +838,20 @@ const RoomCard = memo(function RoomCard({
                           </div>
 
                           <div className="pr-20">
-                            <p className={`text-sm font-bold flex items-center gap-1.5 mb-2 ${
+                            <p className={`text-sm font-bold flex items-center gap-1.5 mb-1 flex-wrap ${
                               isActive ? "text-red-700" : "text-green-700"
                             }`}>
                               <User2 className="w-4 h-4" />
                               {b.guest}
+                              {isBookingShared(b) && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-300">
+                                  SHARED
+                                </span>
+                              )}
                             </p>
+                            {b.bookingId && (
+                              <p className="text-[11px] text-gray-500 mb-1">{b.bookingId}</p>
+                            )}
 
                             <div className="space-y-1 text-xs text-gray-600">
                               <div className="flex items-start gap-1.5">
@@ -917,6 +974,21 @@ const RoomCard = memo(function RoomCard({
         {roomState !== "available" && (
           <div className="mt-2">
             <RoomCleaningStatusBadge state={roomState} />
+          </div>
+        )}
+
+        {primarySharedGroup && (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-600 text-white"
+              aria-label={`Shared room, ${sharedGuestCount(primarySharedGroup)} guests`}
+            >
+              SHARED · {sharedGuestCount(primarySharedGroup)} GUESTS
+            </span>
+            <span className={`text-xs truncate ${theme === "dark" ? "text-violet-300" : "text-violet-700"}`}>
+              {sharedGuestNames(primarySharedGroup).slice(0, 2).join(" & ")}
+              {sharedGuestNames(primarySharedGroup).length > 2 && ` +${sharedGuestNames(primarySharedGroup).length - 2}`}
+            </span>
           </div>
         )}
 
@@ -1054,12 +1126,20 @@ const RoomCard = memo(function RoomCard({
                         </div>
 
                         <div className="pr-20">
-                          <p className={`text-sm font-bold flex items-center gap-1.5 mb-2 ${
+                          <p className={`text-sm font-bold flex items-center gap-1.5 mb-1 flex-wrap ${
                             isActive ? "text-red-700" : "text-green-700"
                           }`}>
                             <User2 className="w-4 h-4" />
                             {b.guest}
+                            {isBookingShared(b) && (
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-300">
+                                SHARED
+                              </span>
+                            )}
                           </p>
+                          {b.bookingId && (
+                            <p className="text-[11px] text-gray-500 mb-1">{b.bookingId}</p>
+                          )}
 
                           <div className="space-y-1 text-xs text-gray-600">
                             <div className="flex items-start gap-1.5">

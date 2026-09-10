@@ -1,9 +1,16 @@
+import Booking from "../models/Booking.js";
 import Hostel from "../models/Hostel.js";
 import RoomCleaningLog from "../models/RoomCleaningLog.js";
 import { getSystemSettings } from "./systemSettings.js";
 
 export const setRoomCleaningPending = async ({ hostel, roomNo, bookingId, io = null }) => {
   if (!hostel || !roomNo) return null;
+
+  const remainingOccupant = await Booking.exists({ hostel, roomNo,
+    status: { $in: ["booked", "checked_in"] },
+    $or: [{ status: "checked_in" }, { reportedStatus: "reported" }],
+  });
+  if (remainingOccupant) return null;
 
   const settings = await getSystemSettings();
   // operations.enableCleaningWorkflow is the single canonical master switch

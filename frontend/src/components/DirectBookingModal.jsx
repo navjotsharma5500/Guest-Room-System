@@ -42,7 +42,9 @@ const authenticator = async () => {
 };
 
 export default function DirectBookingModal({ modal, onClose, onSubmit }) {
-  const { hostel, room, prefill } = modal || {};
+  const { hostel, room, prefill, sourceBooking } = modal || {};
+  const mode = modal?.mode === "sharing" && sourceBooking ? "sharing" : "normal";
+  const roomCapacity = room?.guestCapacity ?? modal?.roomCapacity ?? null;
   const { currentUser } = useAuth();
   const { settings: systemSettings } = useSystemSettings();
   const toastContext = useToast();
@@ -144,7 +146,9 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     // Validation 2: Room must not be under maintenance for the selected dates.
     // A room blocked until a given date can still be booked for stays that
     // start after the block ends.
-    if (doesDateOverlapMaintenanceBlock(room, fromDate)) {
+    // ✅ Sharing mode: maintenance is re-checked authoritatively by the
+    // backend on submit (the caller may not have full room maintenance data).
+    if (mode !== "sharing" && doesDateOverlapMaintenanceBlock(room, fromDate)) {
       const blockedTillDate = room?.blockedTill ? new Date(room.blockedTill) : null;
       errors.dates = blockedTillDate
         ? `❌ This room is under maintenance until ${blockedTillDate.toLocaleDateString()}. Choose a check-in date after that.`
@@ -153,14 +157,64 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     }
 
     // Validation 3: Maximum booking duration from system settings
-    const daysDiff = getDaysDifference(fromDate, toDate);
-    if (daysDiff > directBookingLimit) {
-      errors.dates = `❌ Maximum booking duration is ${directBookingLimit} days. You selected ${daysDiff} days.`;
-      return errors;
+    // ✅ Sharing mode: a shared booking may legitimately outlast the direct
+    // booking day limit (it just goes to normal approval review instead of
+    // being rejected), so this cap does not apply here.
+    if (mode !== "sharing") {
+      const daysDiff = getDaysDifference(fromDate, toDate);
+      if (daysDiff > directBookingLimit) {
+        errors.dates = `❌ Maximum booking duration is ${directBookingLimit} days. You selected ${daysDiff} days.`;
+        return errors;
+      }
     }
 
     return errors;
   };
+
+  /* ------------------ SHARING MODE HELPERS ------------------ */
+  // A booking belongs to the same sharing context as the source booking when
+  // it IS the source booking, or shares its sharingGroupId — mirrors the
+  // backend's validateSharingIntervals grouping logic.
+  const isSameSharingContext = (b) => {
+    if (!sourceBooking) return false;
+    const bId = b?._id || b?.id;
+    const srcId = sourceBooking._id || sourceBooking.id;
+    if (bId && srcId && String(bId) === String(srcId)) return true;
+    return Boolean(sourceBooking.sharingGroupId) && Boolean(b?.sharingGroupId) &&
+      String(b.sharingGroupId) === String(sourceBooking.sharingGroupId);
+  };
+
+  // Returns null when the selected dates are fine for sharing, otherwise a
+  // reason code describing why the Next/Submit action should be blocked.
+  const getSharingOverlapIssue = () => {
+    if (mode !== "sharing" || !from || !to) return null;
+    const relevant = (room?.bookings || []).filter((b) => b.status !== "cancelled");
+    const overlapsSelected = (b) => isDateTimeRangeOverlapping(
+      b.from, b.to, b.checkInTime || "00:00", b.checkOutTime || "23:59",
+      from, to, checkInTime || "00:00", checkOutTime || "23:59"
+    );
+    if (relevant.some((b) => !isSameSharingContext(b) && overlapsSelected(b))) return "unrelated";
+    if (!relevant.some((b) => isSameSharingContext(b) && overlapsSelected(b))) return "no-overlap";
+    return null;
+  };
+
+  // Simple, informational capacity estimate for the sharing UX indicator.
+  // The backend performs the authoritative peak-interval capacity check.
+  const sharingCapacityInfo = (() => {
+    if (mode !== "sharing" || !sourceBooking) return null;
+    const relevant = (room?.bookings || []).filter((b) => b.status !== "cancelled");
+    const overlapsSelected = (b) => from && to && isDateTimeRangeOverlapping(
+      b.from, b.to, b.checkInTime || "00:00", b.checkOutTime || "23:59",
+      from, to, checkInTime || "00:00", checkOutTime || "23:59"
+    );
+    const existingGuests = relevant
+      .filter((b) => isSameSharingContext(b) && overlapsSelected(b))
+      .reduce((sum, b) => sum + (Number(b.numGuests) || 1), 0);
+    const newGuests = Number(form.numGuests) || 0;
+    const after = existingGuests + newGuests;
+    const capacity = Number.isInteger(roomCapacity) ? roomCapacity : null;
+    return { capacity, existingGuests, newGuests, after, exceeded: capacity !== null && after > capacity };
+  })();
 
   // ✅ Validate Roll No format (numeric only, max 12 digits)
   const validateRollNo = (value) => {
@@ -206,6 +260,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
     const startDate = new Date(from);
     const endDate = new Date(to);
     if (startDate > endDate) return false;
+
+    // ✅ Sharing mode: overlap with the source booking / its sharing group is
+    // required and allowed; overlap with any unrelated booking still blocks.
+    if (mode === "sharing") {
+      return !getSharingOverlapIssue();
+    }
 
     return !(room?.bookings || []).some((b) => {
       if (b.status === "cancelled") return false;
@@ -257,7 +317,10 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
     if (!from || !to || !checkInTime || !checkOutTime) return false;
     if (!validateDateRange()) return false;
-    
+
+    // ✅ Sharing mode: block submit once the room's sharing capacity is exceeded.
+    if (mode === "sharing" && sharingCapacityInfo?.exceeded) return false;
+
     return true;
   };
 
@@ -410,7 +473,7 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
       hostel: hostel,
       roomNo: room?.roomNo,
       
-      enquiryId: prefill?.enquiryId || null,
+      enquiryId: mode === "sharing" ? null : (prefill?.enquiryId || null),
     };
 
     try {
@@ -421,7 +484,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
         "Content-Type": "application/json",
       };
 
-      const res = await fetch(`${API}/api/bookings`, {
+      const endpoint = mode === "sharing"
+        ? `${API}/api/bookings/${sourceBooking._id || sourceBooking.id}/share-room`
+        : `${API}/api/bookings`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
         credentials: "include",
         headers: bookingHeaders,
@@ -454,7 +521,11 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
 
       onSubmit(savedBooking);
       showToast(
-        saved?.duplicatePrevented ? "✅ Existing booking reused. Duplicate prevented." : "✅ Booking created successfully",
+        saved?.duplicatePrevented
+          ? "✅ Existing booking reused. Duplicate prevented."
+          : mode === "sharing"
+          ? "✅ Shared room booking created successfully"
+          : "✅ Booking created successfully",
         "success"
       );
       onClose();
@@ -504,9 +575,21 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
           animate={{ scale: 1 }}
         >
           {/* HEADER */}
-          <h2 className="text-xl font-bold text-red-700 mb-4">
-            Direct Booking — {hostel} / Room {room?.roomNo}
+          <h2 className="text-xl font-bold text-red-700 mb-2">
+            {mode === "sharing" ? "Create Shared Room Booking" : `Direct Booking — ${hostel} / Room ${room?.roomNo}`}
           </h2>
+
+          {mode === "sharing" && sourceBooking && (
+            <div className="mb-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900 break-words">
+              <p className="font-semibold">Sharing:</p>
+              <p>{hostel} · Room {room?.roomNo}</p>
+              <p className="mt-2 font-semibold">Existing booking:</p>
+              <p>{sourceBooking.guest} · {sourceBooking.bookingId || sourceBooking._id || sourceBooking.id}</p>
+              <p className="mt-2 text-xs text-violet-700">
+                This creates a separate booking. Payment, attachments, reporting and checkout remain independent.
+              </p>
+            </div>
+          )}
 
           {/* ------------------ STEP 1: DATE SELECTION ------------------ */}
           {step === 1 && (
@@ -617,7 +700,16 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 </div>
               )}
 
-              {!isDateValid && (
+              {!isDateValid && mode === "sharing" && (
+                <p className="text-sm text-red-600 mt-2">
+                  ⚠️{" "}
+                  {getSharingOverlapIssue() === "no-overlap"
+                    ? "This stay does not overlap the selected shared-room booking. Please create a normal Direct Booking instead."
+                    : "This date and time range conflicts with another, unrelated booking in this room."}
+                </p>
+              )}
+
+              {!isDateValid && mode !== "sharing" && (
                 <p className="text-sm text-red-600 mt-2">
                   ⚠️ This date and time range conflicts with an existing booking.
                 </p>
@@ -783,6 +875,30 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   <p className="text-sm text-red-600 col-span-2 bg-red-50 p-2 rounded border border-red-200">
                     {validationErrors.guestCount}
                   </p>
+                )}
+
+                {mode === "sharing" && sharingCapacityInfo && (
+                  <div
+                    className={`col-span-2 rounded-lg border p-3 text-sm ${
+                      sharingCapacityInfo.exceeded
+                        ? "border-red-300 bg-red-50 text-red-700"
+                        : "border-violet-200 bg-violet-50 text-violet-800"
+                    }`}
+                  >
+                    <p className="font-semibold mb-1">Room Sharing Capacity</p>
+                    <p>Room Capacity: {sharingCapacityInfo.capacity ?? "—"}</p>
+                    <p>Existing Guests: {sharingCapacityInfo.existingGuests}</p>
+                    <p>New Guests: {sharingCapacityInfo.newGuests}</p>
+                    <p className="font-semibold">
+                      After Sharing: {sharingCapacityInfo.after}
+                      {sharingCapacityInfo.capacity !== null ? `/${sharingCapacityInfo.capacity}` : ""}
+                    </p>
+                    {sharingCapacityInfo.exceeded && (
+                      <p className="mt-1 font-semibold">
+                        ⚠️ Room capacity exceeded for the selected sharing period.
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 <select
@@ -1293,6 +1409,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                 )}
               </div>
 
+              {mode === "sharing" && sharingCapacityInfo?.exceeded && (
+                <p className="mt-3 text-sm text-red-600 font-medium">
+                  ⚠️ Room capacity exceeded for the selected sharing period.
+                </p>
+              )}
+
               {/* NAVIGATION */}
               <div className="flex justify-end gap-3 mt-6">
                 <button
@@ -1403,6 +1525,12 @@ export default function DirectBookingModal({ modal, onClose, onSubmit }) {
                   )}
                 </div>
               </div>
+
+              {mode === "sharing" && sharingCapacityInfo?.exceeded && (
+                <p className="mt-3 text-sm text-red-600 font-medium">
+                  ⚠️ Room capacity exceeded for the selected sharing period.
+                </p>
+              )}
 
               <div className="flex justify-end gap-3 mt-6">
                 <button

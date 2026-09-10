@@ -24,7 +24,7 @@ const parseDate = (value) => {
   return date;
 };
 
-const validateSlot = ({ fromDate, toDate, startTime, endTime }) => {
+export const validateSlot = ({ fromDate, toDate, startTime, endTime }) => {
   const startDate = parseDate(fromDate);
   const endDate = parseDate(toDate);
 
@@ -37,7 +37,7 @@ const validateSlot = ({ fromDate, toDate, startTime, endTime }) => {
   return null;
 };
 
-const getVenueEntries = async () => {
+export const getVenueEntries = async ({ session = null, requireStored = false } = {}) => {
   // Prefer the global document, otherwise the newest legacy config, in one read.
   const [config] = await VenueConfig.aggregate([
     { $match: { $or: [{ key: "global" }, { key: { $exists: false } }, { key: null }, { key: "" }] } },
@@ -45,7 +45,8 @@ const getVenueEntries = async () => {
     { $sort: { integrationPriority: -1, updatedAt: -1 } },
     { $limit: 1 },
     { $project: { mainTabs: 1 } },
-  ]);
+  ]).session(session);
+  if (requireStored && !config?.mainTabs?.length) return [];
   const tabs = Array.isArray(config?.mainTabs) && config.mainTabs.length
     ? config.mainTabs
     : cloneDefaultVenueConfig();
@@ -107,7 +108,7 @@ export const getVenueCatalog = async (_req, res) => {
   }
 };
 
-const hasConflict = (slot, venue, bookings) =>
+export const hasConflict = (slot, venue, bookings) =>
   bookings.some(
     (booking) =>
       (venue.hallAliasNames || [venue.hall]).some(

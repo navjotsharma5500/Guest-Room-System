@@ -1,3 +1,5 @@
+import { withRoomBookingLock } from "../middleware/roomBookingLock.js";
+import { assertRoomStay, assertRoomScope, getReportingOccupancy, sendRoomError } from "../utils/roomSharing.js";
 // bookingRoutes.js - FIXED VERSION
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
@@ -24,6 +26,8 @@ router.get('/health', (req, res) => {
 
 import {
   createBooking,
+  createSharedBooking,
+  getSharingGroup,
   cancelBooking,
   markReported,
   markNotReported,
@@ -44,18 +48,21 @@ import {
   transferBooking
 } from "../controllers/bookingController.js";
 
+router.post("/:sourceBookingId/share-room", protect, withRoomBookingLock(createSharedBooking));
+router.get("/:id/sharing-group", protect, getSharingGroup);
+
 router.get("/list", protect, getAllBookingsFlat);
 router.get("/history", protect, getBookingHistory);
 router.get("/extension-requests", protect, getExtensionRequests);
-router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), auditBookingAction("EXTENSION_APPROVED", "approveExtension"), approveExtension);
+router.post("/extension-requests/approve", protect, authorizeRoles("admin", "adosa", "co_warden"), auditBookingAction("EXTENSION_APPROVED", "approveExtension"), withRoomBookingLock(approveExtension));
 router.post("/extension-requests/reject", protect, authorizeRoles("admin", "adosa", "co_warden"), auditBookingAction("EXTENSION_REJECTED", "rejectExtension"), rejectExtension);
 
 // Rebooking approval routes
 router.post("/:id/approve", protect, authorizeRoles("admin"), auditBookingAction("REJOIN_APPROVED", "approveRebooking"), approveRebooking);
 router.post("/:id/reject", protect, authorizeRoles("admin"), auditBookingAction("REJOIN_REJECTED", "rejectRebooking"), rejectRebooking);
 
-router.put("/:id/details", protect, auditBookingAction("BOOKING_UPDATED", "updateBookingDetails"), updateBookingDetails);
-router.put("/:id/transfer", protect, auditBookingAction("BOOKING_TRANSFERRED", "transferBooking"), transferBooking);
+router.put("/:id/details", protect, auditBookingAction("BOOKING_UPDATED", "updateBookingDetails"), withRoomBookingLock(updateBookingDetails));
+router.put("/:id/transfer", protect, auditBookingAction("BOOKING_TRANSFERRED", "transferBooking"), withRoomBookingLock(transferBooking));
 
 const handleCancel = async (req, res) => { 
   await cancelBooking(req, res); 
@@ -75,13 +82,13 @@ const handleCancel = async (req, res) => {
 router.put("/:id/cancel", protect, auditBookingAction("BOOKING_CANCELLED", "cancelBooking"), handleCancel);   // GuestDetails uses PUT
 router.post("/:id/cancel", protect, auditBookingAction("BOOKING_CANCELLED", "cancelBooking"), handleCancel);  // useBookingHandlers uses POST
 
-router.post("/:id/request-extension", protect, auditBookingAction("EXTENSION_REQUESTED", "requestExtension"), requestExtension);
-router.post("/:id/direct-extension", protect, auditBookingAction("DIRECT_EXTENSION", "directExtendBooking"), directExtendBooking);
+router.post("/:id/request-extension", protect, auditBookingAction("EXTENSION_REQUESTED", "requestExtension"), withRoomBookingLock(requestExtension));
+router.post("/:id/direct-extension", protect, auditBookingAction("DIRECT_EXTENSION", "directExtendBooking"), withRoomBookingLock(directExtendBooking));
 router.post("/:id/rejoin", protect, auditBookingAction("REJOIN_REQUESTED", "rejoinBooking"), rejoinBooking);
 router.get("/download/csv", protect, downloadBookingsCSV);  
-router.put("/:id/reported", protect, auditBookingAction("GUEST_REPORTED", "markReported"), markReported);
+router.put("/:id/reported", protect, auditBookingAction("GUEST_REPORTED", "markReported"), withRoomBookingLock(markReported));
 router.put("/:id/not-reported", protect, auditBookingAction("GUEST_NOT_REPORTED", "markNotReported"), markNotReported);
-router.put("/:id/checkout", protect, auditBookingAction("GUEST_CHECKED_OUT", "checkOutGuest"), checkOutGuest);
+router.put("/:id/checkout", protect, auditBookingAction("GUEST_CHECKED_OUT", "checkOutGuest"), withRoomBookingLock(checkOutGuest));
 
 router.post("/:id/attachments", protect, async (req, res) => {
   try {
@@ -141,6 +148,9 @@ const normalizeBooking = (b) => ({
   bookingId: b.bookingId || undefined,
   hostel: b.hostel || "",
   roomNo: b.roomNo || "",
+  sharingGroupId: b.sharingGroupId || null,
+  sharedFromBookingId: b.sharedFromBookingId || null,
+  sharingCreatedAt: b.sharingCreatedAt || null,
   transferHistory: Array.isArray(b.transferHistory) ? b.transferHistory : [],
   lastTransferredAt: b.lastTransferredAt || null,
   lastTransferredBy: b.lastTransferredBy || null,
@@ -307,7 +317,7 @@ const buildHostelRoomSkeleton = async () => {
 ============================================================= */
 
 // Create a single booking (direct or enquiry approval)
-router.post("/", protect, createBooking);
+router.post("/", protect, withRoomBookingLock(createBooking));
 
 // =============================================================
 // PAYMENT UPDATE - ✅ FIXED: Socket.IO inside route handler
@@ -581,7 +591,7 @@ router.get(
 // =============================================================
 // EXTEND BOOKING - UPDATED FOR EXTENSION PAYMENT + EMAIL
 // =============================================================
-router.put("/:id/extend", protect, auditBookingAction("DIRECT_EXTENSION", "extendBooking"), async (req, res) => {
+router.put("/:id/extend", protect, auditBookingAction("DIRECT_EXTENSION", "extendBooking"), withRoomBookingLock(async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -660,21 +670,8 @@ router.put("/:id/extend", protect, auditBookingAction("DIRECT_EXTENSION", "exten
       });
     }
 
-    // ---------------- OVERLAP CHECK ----------------
-    const overlappingBookings = await Booking.find({
-      _id: { $ne: id },
-      hostel: hostel || booking.hostel,
-      roomNo: roomNo || booking.roomNo,
-      status: { $nin: ["cancelled", "checked_out", "no_show"] },
-      from: { $lt: newToDateObj },
-      to: { $gt: currentToDate }
-    });
-
-    if (overlappingBookings.length > 0) {
-      return res.status(409).json({
-        message: "Cannot extend booking. The room is booked for the extended dates."
-      });
-    }
+    assertRoomScope(req.user, booking.hostel);
+    await assertRoomStay({ ...booking.toObject(), to: newToDateObj });
 
     // ---------------- CORE EXTENSION UPDATE ----------------
     booking.to = newToDateObj;
@@ -747,12 +744,9 @@ router.put("/:id/extend", protect, auditBookingAction("DIRECT_EXTENSION", "exten
 
   } catch (error) {
     console.error("❌ EXTENSION ERROR:", error);
-    return res.status(500).json({
-      message: "Server error while extending booking",
-      error: error.message
-    });
+    return sendRoomError(res, error);
   }
-});
+}));
 
 // =============================================================
 // CANCEL BOOKING - ✅ FIXED: Socket.IO inside route handler
@@ -926,97 +920,16 @@ router.put("/:id/report-status", protect, auditBookingAction((req) => req.body?.
 router.post("/check-room-occupancy", protect, async (req, res) => {
   try {
     const { hostel, roomNo, checkInDate, excludeBookingId } = req.body;
-
-    console.log("🔍 Checking room occupancy:", { hostel, roomNo, checkInDate, excludeBookingId });
-
-    if (!hostel || !roomNo || !checkInDate) {
-      return res.status(400).json({
-        success: false,
-        message: "Hostel, room number, and check-in date are required"
-      });
+    if (!hostel || !roomNo || !checkInDate) return res.status(400).json({ success: false, message: "Hostel, room number, and check-in date are required" });
+    assertRoomScope(req.user, hostel);
+    const booking = excludeBookingId ? await Booking.findById(excludeBookingId).lean() : null;
+    if (excludeBookingId && (!booking || booking.hostel !== hostel || booking.roomNo !== roomNo)) {
+      return res.status(400).json({ success: false, message: "Booking does not belong to the requested room" });
     }
-
-    // Convert checkInDate to Date object
-    const targetDate = new Date(checkInDate);
-    targetDate.setHours(0, 0, 0, 0);
-
-    console.log("📅 Target date:", targetDate.toISOString());
-
-    // Build query to find overlapping bookings
-    const query = {
-      hostel: hostel,
-      roomNo: roomNo,
-      status: "checked_in", // Only check currently staying guests
-    };
-
-    // Exclude the current booking if provided
-    if (excludeBookingId) {
-      query._id = { $ne: excludeBookingId };
-    }
-
-    console.log("🔎 Query:", JSON.stringify(query, null, 2));
-
-    // Find all checked-in bookings in this room
-    const occupiedBookings = await Booking.find(query).lean();
-
-    console.log(`📋 Found ${occupiedBookings.length} checked-in bookings in this room`);
-
-    // Check if any of these bookings overlap with the target date
-    for (const booking of occupiedBookings) {
-      const bookingStart = new Date(booking.actualCheckInDate || booking.from);
-      const bookingEnd = new Date(booking.to);
-      
-      bookingStart.setHours(0, 0, 0, 0);
-      bookingEnd.setHours(23, 59, 59, 999);
-
-      console.log(`📊 Checking booking ${booking._id}:`, {
-        guest: booking.guest,
-        start: bookingStart.toISOString(),
-        end: bookingEnd.toISOString(),
-        targetDate: targetDate.toISOString()
-      });
-
-      // Check if target date falls within this booking's stay period
-      if (targetDate >= bookingStart && targetDate <= bookingEnd) {
-        console.log(`✅ Room IS occupied by ${booking.guest}`);
-        
-        return res.status(200).json({
-          success: true,
-          occupied: true,
-          occupant: {
-            _id: booking._id,
-            guest: booking.guest,
-            contact: booking.contact,
-            email: booking.email,
-            from: booking.from,
-            to: booking.to,
-            actualCheckInDate: booking.actualCheckInDate,
-            actualCheckInTime: booking.actualCheckInTime,
-            hostel: booking.hostel,
-            roomNo: booking.roomNo,
-            status: booking.status
-          }
-        });
-      }
-    }
-
-    // Room is vacant
-    console.log("✅ Room is VACANT");
-    
-    return res.status(200).json({
-      success: true,
-      occupied: false,
-      occupant: null
-    });
-
-  } catch (error) {
-    console.error("❌ Check room occupancy error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to check room occupancy",
-      error: error.message
-    });
-  }
+    const candidate = booking ? { ...booking, from: checkInDate, checkInTime: req.body.checkInTime || booking.checkInTime, transferHistory: [] }
+      : { hostel, roomNo, from: checkInDate, to: checkInDate, checkInTime: "00:00", checkOutTime: "23:59", numGuests: 1 };
+    return res.json({ success: true, ...await getReportingOccupancy(candidate) });
+  } catch (error) { return sendRoomError(res, error); }
 });
 
 // =============================================================

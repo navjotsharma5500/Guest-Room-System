@@ -1,5 +1,6 @@
 import request from "supertest";
 import app from "../index.js";
+import Hostel from "../models/Hostel.js";
 import Booking from "../models/Booking.js";
 import Enquiry from "../models/Enquiry.js";
 import User from "../models/User.js";
@@ -30,6 +31,8 @@ const attach = (booking, type, url) => request(app)
 
 beforeAll(async () => {
   await db.connect();
+  await Hostel.create({ name: "Agira", code: "AG", caretakerEmail: "caretaker@example.com",
+    wardenEmail: "warden@example.com", rooms: [{ roomNo: "101" }] });
   for (const role of ["caretaker", "Warden", "admin"]) {
     const email = `proof-${role.toLowerCase()}@test.com`;
     const user = await User.create({ name: role, email, password: "password123", role, assignedHostel: "Agira" });
@@ -39,6 +42,7 @@ beforeAll(async () => {
     tokens[role] = response.body.token;
   }
 });
+beforeEach(async () => { await Booking.deleteMany({}); });
 afterAll(() => db.closeDatabase());
 
 describe("Add Attachments routing", () => {

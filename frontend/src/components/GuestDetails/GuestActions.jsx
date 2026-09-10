@@ -1,7 +1,7 @@
 // GuestActions.jsx - UPDATED: Added Payment Waiver button for Admin/Manager
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag, ArrowRightLeft } from "lucide-react";
+import { MoreVertical, Edit, History, Receipt, Download, CreditCard, Calendar, XCircle, MessageCircle, Mail, ShieldOff, Flag, ArrowRightLeft, Users } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import useSystemSettings from "../../hooks/useSystemSettings";
@@ -23,6 +23,7 @@ export default function GuestActions({
   onFlagGuest,
   onTransferGuest,
   onPaymentWaiver, // ✅ NEW: Payment Waiver handler
+  onShareRoom,
   userRole,
 }) {
   const navigate = useNavigate();
@@ -79,6 +80,17 @@ export default function GuestActions({
   const canTransferGuest =
     onTransferGuest &&
     ["booked", "checked_in"].includes(booking?.status) &&
+    ["admin", "manager", "caretaker", "warden", "Warden", "co_warden", "adosa"].includes(userRole);
+
+  // ✅ Share Room - only for active, approved bookings that a role permitted to
+  // manage Guest Room bookings can act on. Mirrors backend assertRoomScope /
+  // createSharedBooking eligibility (terminal statuses and non-auto-approved
+  // approvalStatus values are excluded).
+  const canShareRoom =
+    onShareRoom &&
+    booking &&
+    ["booked", "checked_in"].includes(booking?.status) &&
+    (!booking?.approvalStatus || booking.approvalStatus === "auto_approved") &&
     ["admin", "manager", "caretaker", "warden", "Warden", "co_warden", "adosa"].includes(userRole);
 
   // ✅ WhatsApp and Email handlers
@@ -244,6 +256,20 @@ export default function GuestActions({
                   />
                 )}
 
+                {canShareRoom && (
+                  <ActionButton
+                    icon={<Users className="w-4 h-4" />}
+                    label="Share Room"
+                    title="Create a separate booking for another guest sharing this room"
+                    onClick={() => {
+                      onShareRoom();
+                      setShowActionsDropdown(false);
+                    }}
+                    theme={theme}
+                    share
+                  />
+                )}
+
                 {/* Pay Amount - Only if not cancelled and has pending balance */}
                 {booking?.status !== "cancelled" && hasPendingBalance && (
                   <ActionButton
@@ -330,12 +356,14 @@ export default function GuestActions({
   );
 }
 
-function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp, email, waiver }) {
+function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp, email, waiver, share, title }) {
   return (
     <button
       onClick={() => {
         onClick();
       }}
+      title={title}
+      aria-label={title || label}
       className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
         danger
           ? theme === "dark"
@@ -353,6 +381,10 @@ function ActionButton({ icon, label, onClick, theme, highlight, danger, whatsapp
           ? theme === "dark"
             ? "text-orange-400 hover:bg-orange-900/30"
             : "text-orange-600 hover:bg-orange-50"
+          : share
+          ? theme === "dark"
+            ? "text-violet-400 hover:bg-violet-900/30"
+            : "text-violet-600 hover:bg-violet-50"
           : highlight
           ? theme === "dark"
             ? "text-blue-400 hover:bg-blue-900/30"

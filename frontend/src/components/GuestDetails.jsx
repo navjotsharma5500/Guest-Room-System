@@ -2,13 +2,16 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../context/ToastContext";
-import { Info, Save, X, Building2, Receipt, Upload, Trash2, CheckCircle } from "lucide-react";
+import { Info, Save, X, Building2, Receipt, Upload, Trash2, CheckCircle, Users } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 import PaymentWaiverModal from "./PaymentWaiverModal";
 import { IKContext, IKUpload } from "imagekitio-react";
 import GuestHistory from "./GuestHistory";
 import ReportedModal from "./ReportedModal";
 import CancelModal from "./CancelModal";
+import DirectBookingModal from "./DirectBookingModal";
+import { apiGetSharingGroup } from "../utils/api";
+import { getIndiaDateKey } from "../utils/dateUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useAuth } from "../context/AuthContext";
@@ -84,6 +87,11 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [showFlagGuestModal, setShowFlagGuestModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [guestFlagInfo, setGuestFlagInfo] = useState({ flags: [], risk: null });
+  const [showShareRoomModal, setShowShareRoomModal] = useState(false);
+  const [shareRoomRoomData, setShareRoomRoomData] = useState(null);
+  const [loadingShareRoom, setLoadingShareRoom] = useState(false);
+  const [sharingGroup, setSharingGroup] = useState(null);
+  const [loadingSharingGroup, setLoadingSharingGroup] = useState(false);
 
   // ✅ FIXED: Close Guest Details panel on checkout
   useEffect(() => {
@@ -491,6 +499,35 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     };
   }, [booking?._id, booking?.id]);
 
+  // ✅ Shared Room: load the linked sharing group whenever the selected
+  // booking belongs to one, so the banner and capacity badge stay current.
+  useEffect(() => {
+    const bookingId = booking?._id || booking?.id;
+    const groupId = booking?.sharingGroupId;
+    if (!bookingId || !groupId || String(bookingId).startsWith("b_")) {
+      setSharingGroup(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingSharingGroup(true);
+    apiGetSharingGroup(bookingId)
+      .then((data) => {
+        if (!cancelled) setSharingGroup(data);
+      })
+      .catch((err) => {
+        console.error("Failed to load sharing group:", err);
+        if (!cancelled) setSharingGroup(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSharingGroup(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booking?._id, booking?.id, booking?.sharingGroupId]);
+
   if (!activeRoomRef) {
     return (
       <div className="flex flex-col items-center justify-center mt-10 text-gray-500 italic">
@@ -637,6 +674,95 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
     }
 
     setShowReportedModal(true);
+  };
+
+  // ✅ Share Room: prepare the destination room's current bookings + capacity,
+  // then open DirectBookingModal in "sharing" mode against this booking.
+  const handleOpenShareRoom = async () => {
+    const bookingId = b._id || b.id;
+    if (!bookingId || loadingShareRoom) return;
+
+    try {
+      setLoadingShareRoom(true);
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const [bookingsRes, occupancyRes] = await Promise.all([
+        fetch(`${API}/api/bookings/all`, { credentials: "include", headers }),
+        fetch(`${API}/api/bookings/check-room-occupancy`, {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            hostel: b.hostel,
+            roomNo: b.roomNo,
+            checkInDate: getIndiaDateKey(b.from) || getIndiaDateKey(new Date()),
+            excludeBookingId: bookingId,
+          }),
+        }),
+      ]);
+
+      const bookingsData = await bookingsRes.json();
+      const occupancyData = await occupancyRes.json().catch(() => ({}));
+
+      let roomBookings = [];
+      const hostelEntry = (bookingsData?.hostels || []).find((h) => h.name === b.hostel);
+      const roomEntry = hostelEntry?.rooms?.find((r) => String(r.roomNo) === String(b.roomNo));
+      if (roomEntry?.bookings) roomBookings = roomEntry.bookings;
+
+      setShareRoomRoomData({
+        roomNo: b.roomNo,
+        guestCapacity: Number.isInteger(occupancyData?.capacity) ? occupancyData.capacity : null,
+        bookings: roomBookings,
+      });
+      setShowShareRoomModal(true);
+    } catch (err) {
+      console.error("Failed to prepare Share Room:", err);
+      showToast("❌ Failed to load room availability for sharing", "error");
+    } finally {
+      setLoadingShareRoom(false);
+    }
+  };
+
+  const handleShareRoomSubmit = async (newBooking) => {
+    setShowShareRoomModal(false);
+    showToast(
+      `✅ Shared booking created${newBooking?.bookingId ? ` (${newBooking.bookingId})` : ""}`,
+      "success"
+    );
+
+    const bookingId = b._id || b.id;
+    if (bookingId) {
+      try {
+        const data = await apiGetSharingGroup(bookingId);
+        setSharingGroup(data);
+      } catch (err) {
+        console.error("Failed to refresh sharing group:", err);
+      }
+    }
+
+    // Nudge any listening room/board views (e.g. RoomCard) to refresh.
+    window.dispatchEvent(new CustomEvent("hostelDataUpdated"));
+  };
+
+  // ✅ Shared Room banner: open a linked member's own Guest Details in place.
+  const handleViewLinkedBooking = async (memberId) => {
+    if (!memberId) return;
+    try {
+      setLoading(true);
+      const headers = { "Content-Type": "application/json" };
+      const res = await fetch(`${API}/api/bookings/${memberId}`, { credentials: "include", headers });
+      const data = await res.json();
+      const fetchedBooking = data?.success && data.booking ? data.booking : (data?._id ? data : null);
+      if (!fetchedBooking) throw new Error("Booking not found");
+      setBooking(normalizeBooking(fetchedBooking));
+    } catch (err) {
+      console.error("Failed to open linked booking:", err);
+      showToast("❌ Failed to open linked booking", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOverrideGuestFlag = async (flag) => {
@@ -1187,8 +1313,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               }}
               onFlagGuest={() => setShowFlagGuestModal(true)}
               onTransferGuest={() => setShowTransferModal(true)}
-              onCancelBooking={() => setShowCancelModal(true)} 
+              onCancelBooking={() => setShowCancelModal(true)}
               onPaymentWaiver={() => setShowPaymentWaiverModal(true)}
+              onShareRoom={handleOpenShareRoom}
               userRole={userRole}
             />
           </div>
@@ -1214,6 +1341,83 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
             if (activeFlag) handleOverrideGuestFlag(activeFlag);
           }}
         />
+
+        {/* SHARED ROOM BANNER — only when this booking's metadata indicates
+            a real sharing group (never for coincidental sequential bookings) */}
+        {b.sharingGroupId && (
+          <div
+            className={`mx-4 sm:mx-6 mt-4 rounded-xl border p-4 ${
+              theme === "dark" ? "border-violet-700 bg-violet-950/40" : "border-violet-200 bg-violet-50"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Users className={`w-4 h-4 flex-shrink-0 ${theme === "dark" ? "text-violet-300" : "text-violet-600"}`} />
+              <span className={`text-xs font-bold tracking-wide uppercase ${theme === "dark" ? "text-violet-300" : "text-violet-700"}`}>
+                Shared Room
+              </span>
+            </div>
+
+            {loadingSharingGroup ? (
+              <p className={`text-sm ${theme === "dark" ? "text-violet-200" : "text-violet-700"}`}>
+                Loading sharing details…
+              </p>
+            ) : sharingGroup ? (
+              <>
+                <p className={`text-sm font-semibold break-words ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  {b.hostel} · Guest Room {b.roomNo}
+                  {Number.isInteger(sharingGroup.roomCapacity) && (
+                    <> · Capacity {(sharingGroup.members || []).length}/{sharingGroup.roomCapacity}</>
+                  )}
+                </p>
+
+                <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>You are viewing:</p>
+                <p className={`text-sm font-medium break-words ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  {b.guest} · {b.bookingId || b._id || b.id}
+                </p>
+
+                {(sharingGroup.members || []).filter((m) => String(m._id) !== String(b._id || b.id)).length > 0 && (
+                  <>
+                    <p className={`text-xs mt-3 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Sharing with:</p>
+                    <div className="mt-1 space-y-2">
+                      {(sharingGroup.members || [])
+                        .filter((m) => String(m._id) !== String(b._id || b.id))
+                        .map((member) => (
+                          <div
+                            key={member._id}
+                            className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 border ${
+                              theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-violet-100"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className={`text-sm font-medium truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                                {member.guest} · {member.bookingId || member._id}
+                              </p>
+                              <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                                {formatDate(member.from)} {formatTimeWithAMPM(member.checkInTime)} → {formatDate(member.to)}{" "}
+                                {formatTimeWithAMPM(member.checkOutTime)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              aria-label={`View booking for ${member.guest}`}
+                              onClick={() => handleViewLinkedBooking(member._id)}
+                              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors"
+                            >
+                              View Booking
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                Sharing details unavailable.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* 1. PROFILE SECTION */}
         <GuestProfile 
@@ -1761,7 +1965,27 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
           setPaymentModalOpen(true);
         }}
       />
-      
+
+      {showShareRoomModal && shareRoomRoomData && (
+        <DirectBookingModal
+          modal={{
+            open: true,
+            mode: "sharing",
+            hostel: b.hostel,
+            room: shareRoomRoomData,
+            prefill: {
+              from: getIndiaDateKey(b.from),
+              to: getIndiaDateKey(b.to),
+              checkInTime: b.checkInTime || "",
+              checkOutTime: b.checkOutTime || "",
+            },
+            sourceBooking: b,
+          }}
+          onClose={() => setShowShareRoomModal(false)}
+          onSubmit={handleShareRoomSubmit}
+        />
+      )}
+
       <AnimatePresence>
         {showGuestHistory && (
           <GuestHistory 

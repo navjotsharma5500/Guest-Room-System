@@ -2,6 +2,13 @@
 import mongoose from 'mongoose';
 
 const venueBookingSchema = new mongoose.Schema({
+  // Optional provenance for approved Society Portal event batches.
+  sourceSystem: String,
+  sourceEventId: String,
+  sourceEventPublicId: String,
+  sourceSocietyId: String,
+  integrationBatchId: String,
+  integrationIdempotencyKey: String,
   // Venue & Room Info
   hall: {
     type: String,
