@@ -11,6 +11,13 @@ const ADMIN_AUDITORIUMS = [
   "C-Hall",
 ];
 
+const SUKHDEV_SINGH_EMAIL = "sukhdevsingh@thapar.edu";
+const SUKHDEV_VENUES = ["mainauditorium", "tanauditorium", "chall"];
+const shouldNotifySukhdevSingh = (data = {}) =>
+  [data.venueName, data.hall, data.roomNo].some((value) =>
+    SUKHDEV_VENUES.includes(String(value || "").toLowerCase().replace(/[\s-]+/g, ""))
+  );
+
 const normalizeVenueToken = (value = "") => String(value || "").trim().toLowerCase();
 
 const shouldNotifyAdminOfficer = (data = {}) => {
@@ -61,6 +68,15 @@ export async function sendVenueEmail({
     }
 
     console.log("📧 Admin officer notified:", notifyAdminOfficer);
+
+    if (shouldNotifySukhdevSingh(data)) {
+      context.cc = [...(context.cc || []), SUKHDEV_SINGH_EMAIL];
+    }
+    context.cc = (context.cc || []).filter((address, index, addresses) =>
+      addresses.findIndex((candidate) =>
+        String(candidate).trim().toLowerCase() === String(address).trim().toLowerCase()
+      ) === index
+    );
 
     await authority.transporter.sendMail({
       ...context,

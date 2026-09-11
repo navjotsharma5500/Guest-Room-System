@@ -38,15 +38,21 @@ const to12Hour = (timeString = '') => {
   return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 };
 
-const bookingToCalendarEvent = (booking) => {
-  const today = todayDateString();
+export const bookingToCalendarEvent = (booking, now = new Date()) => {
+  // Venue dates/times are campus wall time (IST), independent of server TZ.
+  const campusNow = new Date(now.getTime() + 330 * 60 * 1000);
+  const today = campusNow.toISOString().slice(0, 10);
+  const minutes = campusNow.getUTCHours() * 60 + campusNow.getUTCMinutes();
+  const endDate = booking.checkOutDate || booking.checkInDate;
+  const startMinutes = parseTimeToMinutes(booking.checkInTime);
+  const endMinutes = booking.checkOutTime ? parseTimeToMinutes(booking.checkOutTime) : startMinutes + 120;
   let derivedStatus = 'upcoming';
 
   if (booking.status === 'cancelled' || booking.status === 'no_show') {
     derivedStatus = 'cancelled';
-  } else if (booking.status === 'checked_out' || booking.checkOutDate < today) {
+  } else if (booking.status === 'checked_out' || (endDate < today || (endDate === today && minutes > endMinutes))) {
     derivedStatus = 'completed';
-  } else if (booking.status === 'checked_in' || (booking.checkInDate <= today && booking.checkOutDate >= today)) {
+  } else if ((booking.checkInDate < today || (booking.checkInDate === today && minutes >= startMinutes))) {
     derivedStatus = 'ongoing';
   }
 
@@ -87,7 +93,7 @@ const mergeAndSortEvents = (eventDocs = [], bookingDocs = []) => {
 
   const mappedVenueBookings = bookingDocs
     .filter((booking) => !linkedVenueBookingIds.has(String(booking._id)))
-    .map(bookingToCalendarEvent);
+    .map((booking) => bookingToCalendarEvent(booking));
 
   return [...calendarEvents, ...mappedVenueBookings].sort((a, b) => {
     if (a.eventDate !== b.eventDate) return a.eventDate.localeCompare(b.eventDate);

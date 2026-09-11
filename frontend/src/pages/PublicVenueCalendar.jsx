@@ -37,8 +37,8 @@ const VENUE_TREE = [
     rooms: [
       { id: "main-auditorium",  label: "Main Auditorium",  match: (r) => /main.?auditorium|mainauditorium/.test(r) },
       { id: "tan-auditorium",   label: "TAN Auditorium",   match: (r) => /tan.?auditorium|tanauditorium/.test(r)  },
-      { id: "deans-auditorium", label: "Dean's Auditorium",match: (r) => /dean.?auditorium/.test(r)               },
-      { id: "c-hall",           label: "C-Hall",           match: (r) => /^c.?hall$|chall/.test(r)                },
+      { id: "deans-auditorium", label: "Dean's Auditorium",match: (r) => /dean.?auditorium|dean[’']s?auditorium/.test(r)               },
+      { id: "c-hall",           label: "C-Hall",           match: (r) => /^c-?hall$/.test(r)                },
     ],
   },
   {
@@ -85,10 +85,12 @@ const ALL_ROOMS = VENUE_TREE.flatMap((g) => g.rooms.map((r) => ({ ...r, groupId:
 // ─── UTILS ────────────────────────────────────────────────────────────────────
 const normalizeStr = (s = "") => String(s).toLowerCase().replace(/\s+/g, "");
 
-const resolveRoomId = (roomNo = "", hall = "") => {
-  const combined = normalizeStr(`${roomNo} ${hall}`);
-  for (const room of ALL_ROOMS) {
-    if (room.match(combined)) return room.id;
+export const resolveRoomId = (roomNo = "", hall = "") => {
+  // Prefer the actual room over its parent section; never join their tokens.
+  for (const token of [roomNo, hall].map(normalizeStr).filter(Boolean)) {
+    for (const room of ALL_ROOMS) {
+      if (room.match(token)) return room.id;
+    }
   }
   return null;
 };
@@ -144,13 +146,15 @@ const formatTime = (t = "") => {
   return `${h12}:${String(m || 0).padStart(2, "0")} ${period}`;
 };
 
-const getEventStatus = (event, todayStr, currentMinutes) => {
+export const getEventStatus = (event, todayStr, currentMinutes) => {
   const start = event.startDate || event.eventDate || "";
-  const end   = event.endDate   || event.eventDate || "";
+  const end   = event.endDate   || event.eventEndDate || event.eventDate || "";
   if (todayStr > end)   return "completed";
   if (todayStr < start) return "upcoming";
   const sMin = parseTimeToMinutes(event.eventTime);
   const eMin = event.checkOutTime ? parseTimeToMinutes(event.checkOutTime) : sMin + 120;
+  if (todayStr === end && currentMinutes > eMin) return "completed";
+  if (todayStr === start && currentMinutes < sMin) return "upcoming";
   if (currentMinutes >= sMin && currentMinutes <= eMin) return "live";
   return "active";
 };
@@ -168,7 +172,7 @@ const getVenueColor = (roomId) => {
 };
 
 // ─── NORMALIZE EVENT ──────────────────────────────────────────────────────────
-const normalizeEvent = (e) => {
+export const normalizeEvent = (e) => {
   const roomNo  = e.eventHall?.roomNo || "";
   const hall    = e.eventHall?.hall   || "";
   const roomId  = resolveRoomId(roomNo, hall);

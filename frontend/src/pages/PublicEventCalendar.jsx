@@ -196,13 +196,15 @@ const eventSourceLabel = (event) => {
 
 const isCalendarEvent = (event) => (event.recordType || "event") === "event";
 
-const getEventStatus = (event, todayStr, currentMinutes) => {
+export const getEventStatus = (event, todayStr, currentMinutes) => {
   const startDate = event.eventDate;
   const endDate = event.eventEndDate || event.eventDate;
   if (todayStr > endDate) return "completed";
   if (todayStr < startDate) return "upcoming";
   const startMinutes = parseTime(event.eventTime);
   const endMinutes = event.checkOutTime ? parseTime(event.checkOutTime) : startMinutes + 120;
+  if (todayStr === endDate && currentMinutes > endMinutes) return "completed";
+  if (todayStr === startDate && currentMinutes < startMinutes) return "upcoming";
   if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) return "live";
   return "active";
 };
