@@ -1,3 +1,4 @@
+import { getEventStatus } from "../utils/eventStatus";
 // src/pages/PublicVenueCalendar.jsx
 // Venue-wise Booking Calendar — Public Page
 // Date → Venue Tree (sidebar) → Bookings → Detail popup
@@ -144,19 +145,6 @@ const formatTime = (t = "") => {
   const period = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 || 12;
   return `${h12}:${String(m || 0).padStart(2, "0")} ${period}`;
-};
-
-export const getEventStatus = (event, todayStr, currentMinutes) => {
-  const start = event.startDate || event.eventDate || "";
-  const end   = event.endDate   || event.eventEndDate || event.eventDate || "";
-  if (todayStr > end)   return "completed";
-  if (todayStr < start) return "upcoming";
-  const sMin = parseTimeToMinutes(event.eventTime);
-  const eMin = event.checkOutTime ? parseTimeToMinutes(event.checkOutTime) : sMin + 120;
-  if (todayStr === end && currentMinutes > eMin) return "completed";
-  if (todayStr === start && currentMinutes < sMin) return "upcoming";
-  if (currentMinutes >= sMin && currentMinutes <= eMin) return "live";
-  return "active";
 };
 
 const STATUS_CONFIG = {
@@ -307,8 +295,8 @@ function MiniCalendar({ currentDate, selectedDateKey, onDateSelect, onMonthChang
 }
 
 // ─── BOOKING DETAIL MODAL ────────────────────────────────────────────────────
-function BookingDetailModal({ event, todayStr, currentMinutes, onClose }) {
-  const status = getEventStatus(event, todayStr, currentMinutes);
+function BookingDetailModal({ event, now, onClose }) {
+  const status = getEventStatus(event, now);
   const cfg    = STATUS_CONFIG[status] || STATUS_CONFIG.upcoming;
   const color  = getVenueColor(event.roomId);
 
@@ -411,8 +399,8 @@ function BookingDetailModal({ event, todayStr, currentMinutes, onClose }) {
 }
 
 // ─── BOOKING CARD ─────────────────────────────────────────────────────────────
-function BookingCard({ event, todayStr, currentMinutes, onClick }) {
-  const status = getEventStatus(event, todayStr, currentMinutes);
+function BookingCard({ event, now, onClick }) {
+  const status = getEventStatus(event, now);
   const cfg    = STATUS_CONFIG[status] || STATUS_CONFIG.upcoming;
   const color  = getVenueColor(event.roomId);
 
@@ -603,7 +591,6 @@ export default function PublicVenueCalendar() {
   }, []);
 
   const todayStr       = toDateKey(now);
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   // ── Fetch ─────────────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -846,8 +833,7 @@ export default function PublicVenueCalendar() {
                   <BookingCard
                     key={event.uid}
                     event={event}
-                    todayStr={todayStr}
-                    currentMinutes={currentMinutes}
+                    now={now}
                     onClick={setSelectedEvent}
                   />
                 ))}
@@ -916,8 +902,7 @@ export default function PublicVenueCalendar() {
                   <BookingCard
                     key={event.uid}
                     event={event}
-                    todayStr={todayStr}
-                    currentMinutes={currentMinutes}
+                    now={now}
                     onClick={setSelectedEvent}
                   />
                 ))
@@ -1007,11 +992,12 @@ export default function PublicVenueCalendar() {
       {selectedEvent && (
         <BookingDetailModal
           event={selectedEvent}
-          todayStr={todayStr}
-          currentMinutes={currentMinutes}
+          now={now}
           onClose={() => setSelectedEvent(null)}
         />
       )}
     </div>
   );
 }
+
+export { getEventStatus };

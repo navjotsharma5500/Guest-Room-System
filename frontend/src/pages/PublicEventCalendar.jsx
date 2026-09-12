@@ -1,3 +1,4 @@
+import { getEventStatus } from "../utils/eventStatus";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import "../styles/eventcalendar.css";
@@ -196,19 +197,6 @@ const eventSourceLabel = (event) => {
 
 const isCalendarEvent = (event) => (event.recordType || "event") === "event";
 
-export const getEventStatus = (event, todayStr, currentMinutes) => {
-  const startDate = event.eventDate;
-  const endDate = event.eventEndDate || event.eventDate;
-  if (todayStr > endDate) return "completed";
-  if (todayStr < startDate) return "upcoming";
-  const startMinutes = parseTime(event.eventTime);
-  const endMinutes = event.checkOutTime ? parseTime(event.checkOutTime) : startMinutes + 120;
-  if (todayStr === endDate && currentMinutes > endMinutes) return "completed";
-  if (todayStr === startDate && currentMinutes < startMinutes) return "upcoming";
-  if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) return "live";
-  return "active";
-};
-
 const mergeSameSourceRecords = (list) => {
   const seen = new Set();
   return list.filter((event) => {
@@ -265,8 +253,8 @@ function CalendarLegend({ dateColorMap }) {
   );
 }
 
-function EventTile({ event, todayStr, currentMinutes, onOpen }) {
-  const status = getEventStatus(event, todayStr, currentMinutes);
+function EventTile({ event, now, onOpen }) {
+  const status = getEventStatus(event, now);
   const venue = eventVenue(event);
   const dateRange = event.eventDate === (event.eventEndDate || event.eventDate)
     ? shortDate(event.eventDate)
@@ -459,8 +447,6 @@ export default function PublicEventCalendar() {
     selectedDateInitializedRef.current = true;
   }, [calendarLoading, eventsForDate, selectedDateKey]);
 
-  const todayStr = toDateKey(now);
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const hasFilters = Object.values(filters).some(Boolean);
   const filterSearchPool = useMemo(
@@ -780,7 +766,7 @@ export default function PublicEventCalendar() {
                     </div>
                   ) : (
                     filteredSelectedDateEvents.map((event) => (
-                      <EventTile key={eventKey(event)} event={event} todayStr={todayStr} currentMinutes={currentMinutes} onOpen={openEvent} />
+                      <EventTile key={eventKey(event)} event={event} now={now} onOpen={openEvent} />
                     ))
                   )}
                 </div>
@@ -909,8 +895,8 @@ export default function PublicEventCalendar() {
             <motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="event-modal-card event-detail-modal" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setSelectedEvent(null)}><X size={20} /></button>
               <div className="flex items-center gap-2 flex-wrap mb-3">
-                <span className={`${statusBadge(getEventStatus(selectedEvent, todayStr, currentMinutes))} rounded-lg`}>
-                  {getEventStatus(selectedEvent, todayStr, currentMinutes)}
+                <span className={`${statusBadge(getEventStatus(selectedEvent, now))} rounded-lg`}>
+                  {getEventStatus(selectedEvent, now)}
                 </span>
                 {selectedEvent.__hasConflict && <span className="badge-conflict rounded-lg"><AlertTriangle size={10} /> Conflict</span>}
               </div>
@@ -930,3 +916,5 @@ export default function PublicEventCalendar() {
     </div>
   );
 }
+
+export { getEventStatus };
