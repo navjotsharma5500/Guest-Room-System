@@ -16,6 +16,7 @@ export default function GuestActions({
   onBillHistory,
   onDownloadPDF,
   onPayAmount,
+  onCreateNewBill,
   onExtendBooking,
   onDirectExtendBooking,
   onCancelBooking,
@@ -195,6 +196,11 @@ export default function GuestActions({
                     onClick={onEditDetails}
                     theme={theme}
                   />
+                )}
+
+                {userRole === "admin" && ["active", "booked", "checked_in", "checked_out"].includes(booking?.status) && onCreateNewBill && (
+                  <ActionButton icon={<Receipt className="w-4 h-4" />} label="Create New Bill" theme={theme}
+                    onClick={() => { onCreateNewBill(); setShowActionsDropdown(false); }} />
                 )}
 
                 {/* Guest History */}

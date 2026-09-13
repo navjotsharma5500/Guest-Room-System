@@ -91,3 +91,22 @@ describe("GuestActions - Share Room", () => {
     expect(screen.queryByText("Share Room")).toBeNull();
   });
 });
+
+describe("Create New Bill", () => {
+  test.each(["booked", "checked_in", "checked_out"])("admin sees action for fully paid %s", status => {
+    const onCreateNewBill = jest.fn(); const setShowActionsDropdown = jest.fn();
+    mount({ ...baseBooking, status, totalAmount: 1000, paidAmount: 1000, balanceAmount: 0, paymentStatus: "PAID" }, "admin", { onCreateNewBill, setShowActionsDropdown });
+    fireEvent.click(screen.getByText("Create New Bill")); expect(onCreateNewBill).toHaveBeenCalledTimes(1);
+    expect(setShowActionsDropdown).toHaveBeenCalledWith(false); expect(screen.queryByText("Pay Amount")).toBeNull();
+  });
+  test.each(["manager", "caretaker", "warden", "adosa", "co_warden", "student", "assistant", "Admin"])("hidden for %s", role => {
+    mount(baseBooking, role, { onCreateNewBill: jest.fn() }); expect(screen.queryByText("Create New Bill")).toBeNull();
+  });
+  test.each(["cancelled", "no_show"])("hidden for %s", status => {
+    mount({ ...baseBooking, status }, "admin", { onCreateNewBill: jest.fn() }); expect(screen.queryByText("Create New Bill")).toBeNull();
+  });
+  test("normal Pay Amount remains available with pending balance", () => {
+    mount({ ...baseBooking, totalAmount: 1000, paidAmount: 850 }, "caretaker", { onCreateNewBill: jest.fn() });
+    expect(screen.getByText("Pay Amount")).toBeInTheDocument();
+  });
+});

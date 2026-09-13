@@ -1,9 +1,11 @@
 //routes/paymentRoutes.js
 import express from "express";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { auditBookingAction } from "../middleware/logMiddleware.js";
 import {
   processPayment,
+  createAdminBill,
   getPaymentHistory,
   downloadBillPDF,
   processWaiver,
@@ -15,6 +17,8 @@ const router = express.Router();
 
 // 💳 SINGLE payment entry point
 router.post("/bookings/:id/payment", protect, auditBookingAction("PAYMENT_UPDATED", "processPayment"), processPayment);
+
+router.post("/bookings/:id/admin-bill", protect, authorizeRoles("admin"), createAdminBill);
 
 // 📊 History
 router.get("/bookings/:id/payment-history", protect, getPaymentHistory);

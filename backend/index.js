@@ -166,7 +166,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id"
+      "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id, Idempotency-Key"
     );
     res.setHeader(
       "Access-Control-Allow-Methods",
@@ -193,7 +193,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id"
+    "Content-Type, Authorization, Accept, Cookie, X-Requested-With, X-Request-Id, Idempotency-Key"
   );
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -254,7 +254,7 @@ app.get("/api/imagekit/auth", (req, res) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Accept, X-Requested-With, Cookie"
+    "Content-Type, Authorization, Accept, X-Requested-With, Cookie, Idempotency-Key"
   );
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Cache-Control", "no-cache");

@@ -62,6 +62,7 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
   const [uploadedProfileUrl, setUploadedProfileUrl] = useState(null);
   const [showActionsDropdown, setShowActionsDropdown] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalMode, setPaymentModalMode] = useState("normal");
   const [isEditMode, setIsEditMode] = useState(false);
   const [showGuestHistory, setShowGuestHistory] = useState(false);
   const mongoFetchSuccessRef = useRef(false);
@@ -1291,6 +1292,11 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
               onBillHistory={handleBillHistory}
               onDownloadPDF={handleDownloadPDF}
               onPayAmount={() => setPaymentModalOpen(true)}
+              onCreateNewBill={() => {
+                if (userRole !== "admin") return;
+                setPaymentModalMode("adminCreateBill");
+                setPaymentModalOpen(true);
+              }}
               onExtendBooking={() => {
                 setExtensionModal({
                   hostel: b.hostel,
@@ -1945,8 +1951,9 @@ export default function GuestDetails({ activeRoomRef = null, onCancel = () => {}
       {/* Modals */}
       {paymentModalOpen && (
         <PaymentModal 
+          mode={paymentModalMode}
           booking={b} 
-          onClose={() => setPaymentModalOpen(false)} 
+          onClose={() => { setPaymentModalOpen(false); setPaymentModalMode("normal"); }}
           onSuccess={handlePaymentSuccess} 
         />
       )}

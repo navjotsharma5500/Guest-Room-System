@@ -246,7 +246,7 @@ export function PublicQuickLinks({ config, onOpen }) {
   const iconFor = (id) => id === "home" ? Home : id === "install" ? Package : id === "community" ? MessageSquare : id === "about" ? Building2 : ArrowRight;
   const serviceLinks = [
     { id: "guest-room-service", title: "Guest Room Booking", destination: "/guest-room" },
-    { id: "library-pass-service", title: "Library Night Pass", destination: "https://permissions.thapar.edu/" },
+    { id: "library-pass-service", title: "Library Night Pass", destination: "https://campusconnect.thapar.edu/permissions/" },
     { id: "venue-service", title: "Venue Booking", destination: "/venue-enquiry" },
     { id: "societies-service", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/" },
     { id: "lost-found-service", title: "Lost & Found", destination: "/lostnfound/", documentNavigation: true },

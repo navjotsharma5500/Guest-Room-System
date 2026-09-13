@@ -30,10 +30,12 @@ const billSchema = new mongoose.Schema(
     // Bill type: standard payment or waiver
     billType: {
       type: String,
-      enum: ["PAYMENT", "DIRECT_EXTENSION", "EXTENSION_PAYMENT", "REBOOKING_PAYMENT", "WAIVER"],
+      enum: ["PAYMENT", "ADMIN_MANUAL_PAYMENT", "DIRECT_EXTENSION", "EXTENSION_PAYMENT", "REBOOKING_PAYMENT", "WAIVER"],
       default: "PAYMENT"
     },
 
+    // Hash binds an admin retry key to its original request.
+    adminRequestHash: String,
     totalAmount: Number,
     amountPaid: Number,
     paidBeforeWaiver: Number, // Amount already paid before waiver

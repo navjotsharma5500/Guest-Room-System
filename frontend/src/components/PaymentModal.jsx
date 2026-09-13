@@ -13,7 +13,19 @@ import {
 
 const API = BACKEND_URL;
 
-export default function PaymentModal({ booking, onClose, onSuccess }) {
+export default function PaymentModal({ booking, onClose, onSuccess, mode = "normal" }) {
+  const isAdminBill = mode === "adminCreateBill";
+  const submittingRef = useRef(false);
+  const retryStorageKey = `admin-bill-pending:${booking._id}`;
+  const [pendingRequest] = useState(() => {
+    if (!isAdminBill) return null;
+    try { return JSON.parse(sessionStorage.getItem(retryStorageKey) || "null"); } catch { return null; }
+  });
+  const retryRef = useRef(pendingRequest);
+  const clearPendingRequest = () => {
+    retryRef.current = null;
+    try { sessionStorage.removeItem(retryStorageKey); } catch { /* Memory retry remains available. */ }
+  };
   const toastContext = useToast();
   const showToast = (message, type = "info") => {
     if (toastContext?.showToast) {
@@ -31,7 +43,9 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
   const totalAmount = booking.totalAmount || booking.totalDue || 0;
   const paidSoFar = booking.paidAmount || 0;
   const previousDiscount = booking.discount || booking.waveOff || 0;
-  const balance = totalAmount - paidSoFar - previousDiscount;
+  const balance = isAdminBill
+    ? Math.max(0, Math.round((totalAmount - paidSoFar - previousDiscount + Number.EPSILON) * 100) / 100)
+    : totalAmount - paidSoFar - previousDiscount;
   const paymentType = booking.paymentType || "Paid";
   const isFreeBedding = paymentType === "Free";
   const isFullyPaid = !isFreeBedding && balance <= 0;
@@ -49,12 +63,12 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
   // ✅ STATES
   const [discountPercent, setDiscountPercent] = useState(0);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState(pendingRequest?.payload.amount || 0);
   const [paymentMode, setPaymentMode] = useState("");
   const [transactionId, setTransactionId] = useState("");
   const [transactionDate, setTransactionDate] = useState("");
-  const [paymentRemarks, setPaymentRemarks] = useState("");
-  const [attachments, setAttachments] = useState([]);
+  const [paymentRemarks, setPaymentRemarks] = useState(pendingRequest?.payload.remarks || "");
+  const [attachments, setAttachments] = useState(pendingRequest?.payload.paymentAttachments || []);
   const [billPaymentType, setBillPaymentType] = useState("Full Payment");
   const [loading, setLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -76,6 +90,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
   // ✅ AUTO-FILL PAID AMOUNT BASED ON PAYMENT TYPE
   useEffect(() => {
+    if (isAdminBill) return;
     // When discount changes, update paid amount to match discounted balance
     if (billPaymentType === "Full Payment") {
       setPaidAmount(amountAfterDiscount);
@@ -85,14 +100,15 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
         setPaidAmount(amountAfterDiscount);
       }
     }
-  }, [billPaymentType, amountAfterDiscount]);
+  }, [billPaymentType, amountAfterDiscount, isAdminBill]);
 
   // ✅ Update paid amount when discount changes (for Full Payment)
   useEffect(() => {
+    if (isAdminBill) return;
     if (billPaymentType === "Full Payment") {
       setPaidAmount(amountAfterDiscount);
     }
-  }, [discountPercent]); 
+  }, [discountPercent, isAdminBill]);
 
 
   const downloadBill = async (billId) => {
@@ -209,6 +225,19 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
   // ✅ VALIDATION FUNCTION
   const validatePayment = () => {
+    if (isAdminBill) {
+      if (!Number.isFinite(Number(paidAmount)) || Number(paidAmount) <= 0) {
+        showToast("Amount must be greater than zero", "warning"); return false;
+      }
+      if (balance > 0 && Number(paidAmount) > balance) {
+        showToast("Amount exceeds the pending balance. Settle it first before adding another bill.", "warning"); return false;
+      }
+      if (!paymentRemarks.trim()) { showToast("Remarks are required", "warning"); return false; }
+      if (!attachments.length || attachments.length > 5) {
+        showToast("Provide between 1 and 5 payment proof attachments", "warning"); return false;
+      }
+      return true;
+    }
     // For free bookings, skip payment validation
     if (isFreeBedding) {
       if (!paymentRemarks.trim()) {
@@ -271,7 +300,42 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
 
   // ✅ SUBMIT PAYMENT TO BACKEND
   const submitPayment = async () => {
-    if (!validatePayment()) return;
+    if (isAdminBill && (submittingRef.current || uploadingFile)) return;
+    if (!(isAdminBill && retryRef.current) && !validatePayment()) return;
+    if (isAdminBill) {
+      submittingRef.current = true;
+      setLoading(true);
+      const payload = { amount: Number(paidAmount), remarks: paymentRemarks.trim(), paymentAttachments: attachments };
+      // Keep the key AND payload after an ambiguous network failure. Editing
+      // fields cannot silently convert a retry into another financial entry.
+      let billConfirmed = false;
+      try {
+        retryRef.current ||= { key: window.crypto.randomUUID(), payload };
+        try { sessionStorage.setItem(retryStorageKey, JSON.stringify(retryRef.current)); } catch { /* Keep the in-memory retry. */ }
+        const response = await fetch(`${API}/api/payments/bookings/${booking._id}/admin-bill`, {
+          method: "POST", credentials: "include",
+          headers: { "Content-Type": "application/json", "Idempotency-Key": retryRef.current.key },
+          body: JSON.stringify(retryRef.current.payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          if (response.status >= 400 && response.status < 500) clearPendingRequest();
+          throw new Error(data.message || "Bill creation failed");
+        }
+        billConfirmed = true;
+        clearPendingRequest();
+        showToast(data.message || "Bill created successfully", "success");
+        onSuccess?.(data.booking);
+        refreshDashboard(true);
+        onClose();
+      } catch (error) {
+        if (billConfirmed) { onClose(); return; }
+        showToast(error.message || "Unable to confirm bill creation. Retry the same bill.", "error");
+        submittingRef.current = false;
+        setLoading(false);
+      }
+      return;
+    }
 
     try {
       setLoading(true);
@@ -343,7 +407,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
   // components/PaymentModal.jsx - PART 2: JSX RENDERING
 
   // ✅ FULLY PAID STATE
-  if (isFullyPaid) {
+  if (isFullyPaid && !isAdminBill) {
     return (
       <AnimatePresence>
         <motion.div
@@ -413,7 +477,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
               </div>
               <div>
                 <h2 className="text-xl font-bold">
-                  {isFreeBedding ? "Free Booking Details" : "Payment Details"}
+                  {isAdminBill ? "Create New Bill" : isFreeBedding ? "Free Booking Details" : "Payment Details"}
                 </h2>
                 <p className="text-green-100 text-sm">
                   For {booking.guest || "Guest"}
@@ -425,6 +489,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             </div>
             <button
               onClick={onClose}
+              disabled={isAdminBill && loading}
               className="text-white hover:bg-white/20 rounded-full p-1.5 transition"
             >
               <X size={20} />
@@ -435,7 +500,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 PAYMENT SUMMARY (Show only for Paid bookings)
             ======================================== */}
-            {!isFreeBedding && (
+            {(isAdminBill || !isFreeBedding) && (
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
@@ -457,7 +522,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 FREE BOOKING NOTICE
             ======================================== */}
-            {isFreeBedding && (
+            {!isAdminBill && isFreeBedding && (
               <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 flex items-center gap-3">
                 <CheckCircle className="w-8 h-8 text-amber-600" />
                 <div>
@@ -470,7 +535,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 AMOUNT AFTER DISCOUNT (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
                 <div className="flex justify-between items-center">
                   <div>
@@ -494,7 +559,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 DISCOUNT INPUT (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
                   Discount (%) <span className="text-gray-500 font-normal">(Optional - applies to all payment types)</span>
@@ -519,7 +584,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 PAYMENT MODE (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
                   Payment Mode <span className="text-red-500">*</span>
@@ -545,7 +610,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 PAYMENT TYPE (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
                   Payment Type <span className="text-red-500">*</span>
@@ -571,7 +636,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 AMOUNT INPUT (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
                   Amount Paying Now (₹) <span className="text-red-500">*</span>
@@ -600,7 +665,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 TRANSACTION DETAILS (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {!isAdminBill && !isFreeBedding && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700">
@@ -629,6 +694,21 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
               </div>
             )}
 
+            {isAdminBill && (
+              <div>
+                <label htmlFor="admin-bill-amount" className="block text-sm font-semibold mb-2 text-gray-700">Amount *</label>
+                <input id="admin-bill-amount" type="number" min="0.01" step="0.01"
+                  value={paidAmount} onChange={e => setPaidAmount(e.target.value)}
+                  disabled={loading || !!retryRef.current}
+                  className="border-2 border-gray-300 p-2.5 rounded-lg w-full" />
+                <p className="text-xs text-gray-600 mt-2">
+                  {balance > 0 ? "Records money already received against the pending balance."
+                    : "Adds an additional charge and records the same amount as received."}
+                </p>
+                {retryRef.current && !loading && <p className="text-sm text-amber-700 mt-2">Retry will confirm your original bill details.</p>}
+              </div>
+            )}
+
             {/* ========================================
                 REMARKS
             ======================================== */}
@@ -637,6 +717,8 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                 Remarks <span className="text-red-500">*</span>
               </label>
               <textarea
+                aria-label="Remarks"
+                disabled={isAdminBill && (loading || !!retryRef.current)}
                 placeholder={isFreeBedding ? "Add remarks for free booking..." : "Add payment remarks or notes..."}
                 value={paymentRemarks}
                 onChange={(e) => setPaymentRemarks(e.target.value)}
@@ -647,7 +729,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
             {/* ========================================
                 PAYMENT PROOF UPLOAD (Only for Paid)
             ======================================== */}
-            {!isFreeBedding && (
+            {(isAdminBill || !isFreeBedding) && (
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 flex items-center gap-2">
                   Upload Payment Proof <span className="text-red-500">* (Max 5)</span>
@@ -676,7 +758,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                     <button
                       type="button"
                       onClick={triggerFileUpload}
-                      disabled={attachments.length >= 5 || uploadingFile}
+                      disabled={attachments.length >= 5 || uploadingFile || (isAdminBill && (loading || !!retryRef.current))}
                       className={`w-full border-2 border-dashed p-4 rounded-xl transition text-center ${
                         attachments.length >= 5 || uploadingFile
                           ? "border-gray-300 bg-gray-100 cursor-not-allowed" 
@@ -724,6 +806,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                             </a>
                           </div>
                           <button
+                            disabled={isAdminBill && (loading || !!retryRef.current)}
                             onClick={() => removeAttachment(i)}
                             className="text-red-500 hover:text-red-700 p-1"
                             title="Remove attachment"
@@ -763,7 +846,7 @@ export default function PaymentModal({ booking, onClose, onSuccess }) {
                   disabled={loading || uploadingFile}
                   className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-semibold shadow-lg disabled:opacity-50 text-sm"
                 >
-                  {loading ? "Processing..." : isFreeBedding ? "Submit" : `Pay ₹${paidAmount}`}
+                  {loading ? "Processing..." : isAdminBill ? "Create Bill" : isFreeBedding ? "Submit" : `Pay ₹${paidAmount}`}
                 </button>
               </div>
             </div>
