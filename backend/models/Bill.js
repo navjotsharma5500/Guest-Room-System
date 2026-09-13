@@ -36,6 +36,7 @@ const billSchema = new mongoose.Schema(
 
     // Hash binds an admin retry key to its original request.
     adminRequestHash: String,
+    adminBillOperationId: { type: mongoose.Schema.Types.ObjectId, unique: true, sparse: true },
     totalAmount: Number,
     amountPaid: Number,
     paidBeforeWaiver: Number, // Amount already paid before waiver

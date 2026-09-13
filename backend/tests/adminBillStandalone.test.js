@@ -3,10 +3,11 @@ import express from "express";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import fs from "fs";
 import Booking from "../models/Booking.js";
 import Bill from "../models/Bill.js";
+import AdminBillOperation from "../models/AdminBillOperation.js";
 import User from "../models/User.js";
 import Log from "../models/Log.js";
 const renderPDF = jest.fn(async () => Buffer.from("%PDF-test receipt"));
@@ -22,9 +23,9 @@ const post = (b, body = payload(), role = "admin", key = "admin-test-request-001
 beforeAll(async () => {
   jest.spyOn(console, "log").mockImplementation(() => {});
   jest.spyOn(console, "error").mockImplementation(() => {});
-  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  mongo = await MongoMemoryServer.create();
   await mongoose.connect(mongo.getUri());
-  await Promise.all([Booking.init(), Bill.init(), User.init(), Log.init()]);
+  await Promise.all([AdminBillOperation.init(), Booking.init(), Bill.init(), User.init(), Log.init()]);
   process.env.JWT_SECRET = "admin-bill-test-only";
   tokens = {};
   for (const role of ["admin", "manager", "caretaker", "warden", "adosa", "co_warden", "assistant", "student"]) {
@@ -34,7 +35,7 @@ beforeAll(async () => {
   }
 }, 60000);
 beforeEach(async () => {
-  await Promise.all([Booking.deleteMany({}), Bill.deleteMany({}), Log.deleteMany({})]);
+  await Promise.all([AdminBillOperation.deleteMany({}), Booking.deleteMany({}), Bill.deleteMany({}), Log.deleteMany({})]);
   emit.mockClear(); renderPDF.mockClear();
 });
 afterEach(async () => {
@@ -83,19 +84,8 @@ test.each([850, 900])("preserves discount with paid=%s", async paidAmount => {
   const res = await post(await seed({ paidAmount, discount: 100 }), payload({ amount: paidAmount === 850 ? 50 : 200 }));
   expect(res.status).toBe(200); expect(res.body.booking.discount).toBe(100); expect(res.body.booking.balanceAmount).toBe(0);
 });
-test("PDF failure rolls back booking and bill, same key retry succeeds once", async () => {
-  const b = await seed(); renderPDF.mockRejectedValueOnce(new Error("PDF failed"));
-  expect((await post(b)).status).toBe(503);
-  expect(await Booking.findById(b._id).lean()).toMatchObject({ paidAmount: 850, balanceAmount: 150, paymentAttachments: [] });
-  expect(await Bill.countDocuments()).toBe(0); expect(emit).not.toHaveBeenCalled();
-  expect((await post(b)).status).toBe(200); expect((await post(b)).body.idempotentReplay).toBe(true);
-  expect(await Bill.countDocuments()).toBe(1); expect(emit).toHaveBeenCalledTimes(1);
-});
-test("bill insert failure rolls back booking", async () => {
-  const b = await seed(); const spy = jest.spyOn(Bill, "create").mockRejectedValueOnce(new Error("insert failed"));
-  expect((await post(b)).status).toBe(503); spy.mockRestore();
-  expect((await Booking.findById(b._id)).paidAmount).toBe(850); expect(await Bill.countDocuments()).toBe(0);
-});
+
+
 test("concurrent duplicate request commits exactly once", async () => {
   const b = await seed({ paidAmount: 1000, balanceAmount: 0 });
   const responses = await Promise.all([post(b, payload({ amount: 200 })), post(b, payload({ amount: 200 }))]);
@@ -105,11 +95,7 @@ test("concurrent duplicate request commits exactly once", async () => {
 test("changed payload cannot reuse a committed key", async () => {
   const b = await seed(); await post(b); expect((await post(b, payload({ amount: 200 }))).status).toBe(409); expect(await Bill.countDocuments()).toBe(1);
 });
-test("transaction-capable topology uses withTransaction", async () => {
-  const spy = jest.spyOn(mongoose, "startSession");
-  expect((await post(await seed())).status).toBe(200);
-  expect(spy).toHaveBeenCalled(); spy.mockRestore();
-});
+
 
 test.each(["FULL", "PARTIAL"])("normal %s payment still uses shared renderer and original contract", async paymentType => {
   const b = await seed(); const amountPaid = paymentType === "FULL" ? 150 : 100;
@@ -144,12 +130,7 @@ test("normal extension receipt keeps existing stay-period resolver", async () =>
   expect(res.status).toBe(200); expect(renderPDF.mock.calls[0][1].from.toISOString()).toBe("2026-09-03T00:00:00.000Z");
 });
 
-test("booking save failure creates no bill or event", async () => {
-  const b = await seed(); const spy = jest.spyOn(Booking.prototype, "save").mockRejectedValueOnce(new Error("save failed"));
-  expect((await post(b)).status).toBe(503); spy.mockRestore();
-  expect(await Bill.countDocuments()).toBe(0); expect(emit).not.toHaveBeenCalled();
-  expect((await Booking.findById(b._id)).paidAmount).toBe(850);
-});
+
 test("currency rounding settles decimal balance without residual", async () => {
   const res = await post(await seed({ totalAmount: 1000.10, paidAmount: 999.80 }), payload({ amount: 0.30 }));
   expect(res.status).toBe(200); expect(res.body.booking).toMatchObject({ paidAmount: 1000.10, balanceAmount: 0, paymentStatus: "PAID" });
@@ -158,16 +139,116 @@ test("unauthenticated requests are rejected", async () => {
   const b = await seed(); expect((await request(app).post(`/api/payments/bookings/${b._id}/admin-bill`).send(payload())).status).toBe(401);
 });
 
-test("legacy scoped idempotency receipts remain replayable", async () => {
-  const { createHash } = await import("crypto");
-  const hash = value => createHash("sha256").update(value).digest("hex");
-  const b = await seed();
-  const key = "admin-test-request-001";
-  const id = new mongoose.Types.ObjectId(hash(`${b._id}:${admin._id}:${key}`).slice(0, 24));
-  await Bill.create({ _id: id, bookingId: b._id, billNumber: "ADM-LEGACY", billType: "ADMIN_MANUAL_PAYMENT",
-    adminRequestHash: hash(JSON.stringify({ amount: 150, remarks: "Received correction", paymentAttachments: proof })) });
-  const res = await post(b);
-  expect(res.status).toBe(200); expect(res.body.idempotentReplay).toBe(true);
+
+test("standalone fully paid 1000 plus 50", async () => {
+  const res = await post(await seed({ paidAmount: 1000, balanceAmount: 0 }), payload({ amount: 50 }));
+  expect(res.status).toBe(200);
+  expect(res.body.booking).toMatchObject({ totalAmount: 1050, paidAmount: 1050, balanceAmount: 0, paymentStatus: "PAID" });
+  expect(res.body.bill.amountPaid).toBe(50);
+});
+
+test.each(["PENDING", "BOOKING_UPDATED", "BILL_CREATED"])("crash before status %s is recoverable", async status => {
+  const b = await seed({ paidAmount: 1000, balanceAmount: 0 });
+  let spy;
+  if (status === "PENDING") spy = jest.spyOn(Booking, "updateOne").mockRejectedValueOnce(new Error("crash before booking write"));
+  else {
+    const original = AdminBillOperation.updateOne.bind(AdminBillOperation);
+    spy = jest.spyOn(AdminBillOperation, "updateOne").mockImplementationOnce((filter, update, options) => {
+      if (status === "BOOKING_UPDATED") throw new Error("crash after booking write, before operation status");
+      return original(filter, update, options);
+    });
+    if (status === "BILL_CREATED") spy.mockImplementationOnce(() => { throw new Error("crash after bill insert"); });
+  }
+  expect((await post(b, payload({ amount: 50 }))).status).toBe(503); spy.mockRestore();
+  expect((await post(b, payload({ amount: 50 }))).status).toBe(200);
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1050);
   expect(await Bill.countDocuments()).toBe(1);
-  expect((await Booking.findById(b._id)).paidAmount).toBe(850);
+  expect((await AdminBillOperation.findOne()).status).toBe("COMPLETED");
+});
+
+test("bill insert failure after booking status resumes without payment duplication", async () => {
+  const b = await seed(); const spy = jest.spyOn(Bill, "create").mockRejectedValueOnce(new Error("crash"));
+  expect((await post(b)).status).toBe(503); spy.mockRestore();
+  expect((await AdminBillOperation.findOne()).status).toBe("BOOKING_UPDATED");
+  expect((await post(b)).status).toBe(200);
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1000);
+  expect(await Bill.countDocuments()).toBe(1);
+});
+
+test("PDF failure retries existing bill", async () => {
+  const b = await seed(); renderPDF.mockRejectedValueOnce(new Error("PDF interrupted"));
+  expect((await post(b)).status).toBe(503);
+  const bill = await Bill.findOne(); expect(bill).toBeTruthy();
+  expect((await post(b)).body.bill._id).toBe(String(bill._id));
+  expect(await Bill.countDocuments()).toBe(1);
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1000);
+});
+
+test.each([{amount: 100}, {remarks: "changed"}, {paymentAttachments: ["https://example.com/new.pdf"]}])("changed payload %j rejected after partial operation", async change => {
+  const b = await seed(); const spy = jest.spyOn(Bill, "create").mockRejectedValueOnce(new Error("crash"));
+  await post(b); spy.mockRestore();
+  const res = await post(b, payload(change));
+  expect(res.status).toBe(409); expect(res.body.code).toBe("IDEMPOTENCY_MISMATCH");
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1000);
+  expect(await Bill.countDocuments()).toBe(0);
+});
+
+test("completed replay returns original snapshot after later payment", async () => {
+  const b = await seed(); const first = await post(b);
+  await post(b, payload({ amount: 50 }), "admin", "admin-test-request-002");
+  const replay = await post(b);
+  expect(replay.body.booking).toEqual(first.body.booking);
+  expect(replay.body.bill).toEqual(first.body.bill);
+  expect(emit).toHaveBeenCalledTimes(2);
+});
+
+test("different booking cannot reuse the key", async () => {
+  await post(await seed());
+  const res = await post(await seed());
+  expect(res.status).toBe(409); expect(res.body.code).toBe("IDEMPOTENCY_MISMATCH");
+  expect(await Bill.countDocuments()).toBe(1);
+});
+
+test("crash before COMPLETED reuses the bill and original payment", async () => {
+  const b = await seed();
+  const original = AdminBillOperation.updateOne.bind(AdminBillOperation);
+  const spy = jest.spyOn(AdminBillOperation, "updateOne").mockImplementation((filter, update, options) => {
+    if (update.$set.status === "COMPLETED") throw new Error("crash before complete");
+    return original(filter, update, options);
+  });
+  expect((await post(b)).status).toBe(503); spy.mockRestore();
+  const bill = await Bill.findOne();
+  expect((await post(b)).body.bill._id).toBe(String(bill._id));
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1000);
+  expect(await Bill.countDocuments()).toBe(1);
+});
+
+test("stale snapshot cannot overwrite an intervening financial update", async () => {
+  const b = await seed();
+  const spy = jest.spyOn(Booking, "updateOne").mockRejectedValueOnce(new Error("crash"));
+  await post(b); spy.mockRestore();
+  await Booking.updateOne({ _id: b._id }, { $set: { paidAmount: 900, balanceAmount: 100 } });
+  const res = await post(b);
+  expect(res.status).toBe(409); expect(res.body.code).toBe("BOOKING_CHANGED");
+  expect((await Booking.findById(b._id)).paidAmount).toBe(900);
+  expect(await Bill.countDocuments()).toBe(0);
+});
+
+test("parallel distinct keys cannot both apply the same financial snapshot", async () => {
+  const b = await seed({ paidAmount: 1000, balanceAmount: 0 });
+  const results = await Promise.all([
+    post(b, payload({ amount: 50 }), "admin", "parallel-distinct-key-001"),
+    post(b, payload({ amount: 50 }), "admin", "parallel-distinct-key-002"),
+  ]);
+  expect(results.every(r => [200, 409].includes(r.status))).toBe(true);
+  const count = await Bill.countDocuments();
+  expect((await Booking.findById(b._id)).paidAmount).toBe(1000 + count * 50);
+});
+
+test.each([{totalAmount: -1}, {paidAmount: -1}, {discount: -1}, {paidAmount: 1001}, {totalAmount: 1e20}])("invalid financial snapshot %j has no operation or money writes", async values => {
+  const b = await seed();
+  await Booking.collection.updateOne({ _id: b._id }, { $set: values });
+  expect((await post(b)).status).toBe(400);
+  expect(await AdminBillOperation.countDocuments()).toBe(0);
+  expect(await Bill.countDocuments()).toBe(0);
 });

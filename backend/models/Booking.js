@@ -412,6 +412,9 @@ const BookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Permanent atomic payment application evidence for standalone recovery.
+BookingSchema.add({ adminBillOperations: [{ type: mongoose.Schema.Types.ObjectId }] });
+
 //CRITICAL: Add virtual for real-time balance
 BookingSchema.virtual('currentBalance').get(function() {
   return this.totalAmount - this.paidAmount;

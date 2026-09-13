@@ -1,3 +1,5 @@
+import { resumeAdminBill } from "../utils/adminBillRecovery.js";
+import AdminBillOperation from "../models/AdminBillOperation.js";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import { createAuditEvent, bookingAuditFields } from "../middleware/logMiddleware.js";
@@ -413,8 +415,7 @@ export const processPayment = async (req, res) => {
   }
 };
 
-// Admin receipts use the existing Bill collection; its unique _id is also the
-// durable idempotency key. Both financial writes commit or abort together.
+// Capable deployments retain transactions; standalone uses durable recovery.
 export const createAdminBill = async (req, res) => {
   let session;
   const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
@@ -434,75 +435,80 @@ export const createAdminBill = async (req, res) => {
     if (!key || !/^[a-zA-Z0-9_-]{16,128}$/.test(key)) fail(400, "A valid Idempotency-Key header is required");
     const payment = round(amount);
     const hash = value => crypto.createHash("sha256").update(value).digest("hex");
-    const billId = new mongoose.Types.ObjectId(hash(`${req.params.id}:${req.user._id}:${key}`).slice(0, 24));
-    const requestHash = hash(JSON.stringify({ amount: payment, remarks: remarks.trim(), paymentAttachments }));
+    const billId = new mongoose.Types.ObjectId(hash(key).slice(0, 24));
+    const requestHash = hash(JSON.stringify({ bookingId: req.params.id, admin: String(req.user._id), amount: payment, remarks: remarks.trim(), paymentAttachments }));
+    // Honor receipts issued by the previous scoped-key implementation.
+    const legacyBillId = new mongoose.Types.ObjectId(hash(`${req.params.id}:${req.user._id}:${key}`).slice(0, 24));
+    const legacyHash = hash(JSON.stringify({ amount: payment, remarks: remarks.trim(), paymentAttachments }));
     const replay = async (bill, activeSession) => {
-      if (bill.adminRequestHash !== requestHash) fail(409, "This retry key was already used with different bill details");
+      if (bill.adminRequestHash !== requestHash && !(String(bill._id) === String(legacyBillId) && bill.adminRequestHash === legacyHash)) throw Object.assign(new Error("This retry key was already used with different bill details"), { status: 409, code: "IDEMPOTENCY_MISMATCH" });
       const booking = await Booking.findById(req.params.id).session(activeSession || null);
-      return { success: true, message: "Bill already created", booking, bill, idempotentReplay: true };
+      return { success: true, message: "Bill already created", booking, bill, remainingBalance: booking?.balanceAmount, idempotentReplay: true };
     };
-    const existing = await Bill.findById(billId);
-    if (existing) return res.json(await replay(existing));
+    const existing = await Bill.findById(billId) || await Bill.findById(legacyBillId);
+    const recovery = await AdminBillOperation.exists({ idempotencyKey: key });
+    if (existing && !recovery) return res.json(await replay(existing));
 
-    // Same fail-closed deployment policy as societyEventBookingController.
     const topology = await mongoose.connection.db.admin().command({ hello: 1 });
-    if (!topology.setName && topology.msg !== "isdbgrid") {
-      fail(503, "Create New Bill requires a transaction-capable MongoDB deployment. No payment was recorded.");
-    }
-    session = await mongoose.startSession();
     let result;
-    try {
-      await session.withTransaction(async () => {
-        const previous = await Bill.findById(billId).session(session);
-        if (previous) { result = await replay(previous, session); return; }
-        const booking = await Booking.findById(req.params.id).session(session);
-        if (!booking) fail(404, "Booking not found");
-        if (!["active", "booked", "checked_in", "checked_out"].includes(booking.status)) {
-          fail(400, "Bills cannot be created for cancelled, no-show or inactive bookings");
-        }
-        const total = round(booking.totalAmount || 0);
-        const paid = round(booking.paidAmount || 0);
-        const discount = Number(booking.discount) || 0;
-        const balance = round(Math.max(0, total - paid - discount));
-        if (balance > 0 && payment > balance) {
-          fail(400, `Amount exceeds the pending balance of ₹${balance.toFixed(2)}. Settle this balance before creating an additional bill.`);
-        }
-        const additionalCharge = balance === 0;
-        if (additionalCharge) {
-          booking.totalAmount = round(total + payment);
-          booking.amount = booking.totalAmount; // Existing legacy total mirror.
-        }
-        booking.paidAmount = round(paid + payment);
-        recalculatePaymentStatus(booking);
-        booking.balanceAmount = round(booking.balanceAmount);
-        if (booking.balanceAmount === 0) booking.paymentStatus = "PAID";
-        booking.paymentRemarks = remarks.trim();
-        booking.paymentAttachments = [...(booking.paymentAttachments || []), ...paymentAttachments];
-        // Write first to serialize competing updates to this booking. A later
-        // bill/PDF failure aborts this write, including attachments and remarks.
-        await booking.save({ session });
-        const period = resolveBillStayPeriod(booking, { previousPaidAmount: paid, previousDiscount: discount });
-        const [bill] = await Bill.create([{
-          _id: billId, adminRequestHash: requestHash,
-          billNumber: (await generateBillNumber()).replace("BILL-", "ADM-"),
-          bookingId: booking._id, guestName: booking.guest, guestEmail: booking.email,
-          guestContact: booking.contact, department: booking.department || "", rollno: booking.rollno || "",
-          hostel: booking.hostel, roomNo: booking.roomNo, from: period.from, to: period.to,
-          billType: "ADMIN_MANUAL_PAYMENT", totalAmount: additionalCharge ? payment : balance,
-          amountPaid: payment, paymentType: booking.balanceAmount === 0 ? "FULL" : "PARTIAL",
-          paymentMethod: "Admin Manual Entry", paymentProof: paymentAttachments,
-          remarks: remarks.trim(), balanceBeforePayment: additionalCharge ? payment : balance,
-          balanceAfterPayment: booking.balanceAmount, createdBy: req.user._id,
-          discountAmount: 0, discountPercent: 0,
-        }], { session });
-        await saveBillPDF(booking, bill, { session, strict: true });
-        result = { success: true, message: "Bill created successfully", booking, bill, remainingBalance: booking.balanceAmount };
-      }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" }, readPreference: "primary" });
-    } catch (error) {
-      if (error.code !== 11000) throw error;
-      const previous = await Bill.findById(billId);
-      if (!previous) throw error;
-      result = await replay(previous);
+    if (recovery || (!topology.setName && topology.msg !== "isdbgrid")) {
+      result = await resumeAdminBill({ key, requestHash, billId, bookingId: req.params.id,
+        userId: req.user._id, payment, remarks: remarks.trim(), paymentAttachments, saveBillPDF });
+    } else {
+      session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const previous = await Bill.findById(billId).session(session);
+          if (previous) { result = await replay(previous, session); return; }
+          const booking = await Booking.findById(req.params.id).session(session);
+          if (!booking) fail(404, "Booking not found");
+          if (!["active", "booked", "checked_in", "checked_out"].includes(booking.status)) {
+            fail(400, "Bills cannot be created for cancelled, no-show or inactive bookings");
+          }
+          const total = round(booking.totalAmount || 0);
+          const paid = round(booking.paidAmount || 0);
+          const discount = Number(booking.discount) || 0;
+          const balance = round(Math.max(0, total - paid - discount));
+          if (balance > 0 && payment > balance) {
+            fail(400, `Amount exceeds the pending balance of ₹${balance.toFixed(2)}. Settle this balance before creating an additional bill.`);
+          }
+          const additionalCharge = balance === 0;
+          if (additionalCharge) {
+            booking.totalAmount = round(total + payment);
+            booking.amount = booking.totalAmount; // Existing legacy total mirror.
+          }
+          booking.paidAmount = round(paid + payment);
+          recalculatePaymentStatus(booking);
+          booking.balanceAmount = round(booking.balanceAmount);
+          if (booking.balanceAmount === 0) booking.paymentStatus = "PAID";
+          booking.paymentRemarks = remarks.trim();
+          booking.paymentAttachments = [...(booking.paymentAttachments || []), ...paymentAttachments];
+          // Write first to serialize competing updates to this booking. A later
+          // bill/PDF failure aborts this write, including attachments and remarks.
+          await booking.save({ session });
+          const period = resolveBillStayPeriod(booking, { previousPaidAmount: paid, previousDiscount: discount });
+          const [bill] = await Bill.create([{
+            _id: billId, adminRequestHash: requestHash,
+            billNumber: (await generateBillNumber()).replace("BILL-", "ADM-"),
+            bookingId: booking._id, guestName: booking.guest, guestEmail: booking.email,
+            guestContact: booking.contact, department: booking.department || "", rollno: booking.rollno || "",
+            hostel: booking.hostel, roomNo: booking.roomNo, from: period.from, to: period.to,
+            billType: "ADMIN_MANUAL_PAYMENT", totalAmount: additionalCharge ? payment : balance,
+            amountPaid: payment, paymentType: booking.balanceAmount === 0 ? "FULL" : "PARTIAL",
+            paymentMethod: "Admin Manual Entry", paymentProof: paymentAttachments,
+            remarks: remarks.trim(), balanceBeforePayment: additionalCharge ? payment : balance,
+            balanceAfterPayment: booking.balanceAmount, createdBy: req.user._id,
+            discountAmount: 0, discountPercent: 0,
+          }], { session });
+          await saveBillPDF(booking, bill, { session, strict: true });
+          result = { success: true, message: "Bill created successfully", booking, bill, remainingBalance: booking.balanceAmount };
+        }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" }, readPreference: "primary" });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        const previous = await Bill.findById(billId);
+        if (!previous) throw error;
+        result = await replay(previous);
+      }
     }
     if (!result.idempotentReplay) {
       await createAuditEvent(req, {
@@ -521,7 +527,7 @@ export const createAdminBill = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error("Admin bill creation failed:", error.message);
-    return res.status(error.status || 503).json({ success: false, message: error.status ? error.message
+    return res.status(error.status || 503).json({ success: false, code: error.code, message: error.status ? error.message
       : "Unable to confirm bill creation. Retry with the same request key." });
   } finally {
     if (session) await session.endSession();
