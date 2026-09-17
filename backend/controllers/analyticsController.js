@@ -24,6 +24,7 @@ const ANALYTICS_SCOPES = {
   overall: { key: 'overall', label: 'Overall' },
   campusconnect: { key: 'campusconnect', label: 'Campus Connect' },
   lostnfound: { key: 'lostnfound', label: 'Lost & Found' },
+  librarynightpass: { key: 'librarynightpass', label: 'Library Night Pass' },
   societies: { key: 'societies', label: 'Student Societies' },
   permissions: { key: 'permissions', label: 'Society Night Permission' },
 };
@@ -31,6 +32,7 @@ const ANALYTICS_SCOPES = {
 const APPLICATION_SCOPES = [
   ANALYTICS_SCOPES.campusconnect,
   ANALYTICS_SCOPES.lostnfound,
+  ANALYTICS_SCOPES.librarynightpass,
   ANALYTICS_SCOPES.societies,
   ANALYTICS_SCOPES.permissions,
 ];
@@ -71,6 +73,11 @@ const lostAndFoundScreenFilter = () => orFilters(
   stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${LOST_AND_FOUND_PATH}/`, 'BEGINS_WITH', true)
 );
 
+const libraryNightPassScreenFilter = () => orFilters(
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${PERMISSIONS_PATH}`, 'EXACT', true),
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true)
+);
+
 const permissionScreenFilter = () => orFilters(
   stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}`, 'EXACT', true),
   stringFilter('unifiedScreenName', `${STUDENT_SOCIETIES_HOST}${PERMISSIONS_PATH}/`, 'BEGINS_WITH', true),
@@ -81,7 +88,7 @@ export const resolveAnalyticsScope = (query = {}) => {
   const requestedScope = String(query.scope || 'overall').trim().toLowerCase();
   const scope = ANALYTICS_SCOPES[requestedScope];
   if (!scope) {
-    const error = new Error('Invalid analytics scope. Use overall, campusconnect, lostnfound, societies, or permissions.');
+    const error = new Error('Invalid analytics scope. Use overall, campusconnect, lostnfound, librarynightpass, societies, or permissions.');
     error.statusCode = 400;
     error.errorType = 'invalid_scope';
     throw error;
@@ -94,12 +101,18 @@ export const buildHistoricalScopeFilter = (scopeKey = 'overall') => {
     case 'campusconnect':
       return andFilters(
         stringFilter('hostName', CAMPUS_CONNECT_HOST),
-        { notExpression: lostAndFoundPathFilter() }
+        { notExpression: lostAndFoundPathFilter() },
+        { notExpression: permissionPathFilter() }
       );
     case 'lostnfound':
       return andFilters(
         stringFilter('hostName', CAMPUS_CONNECT_HOST),
         lostAndFoundPathFilter()
+      );
+    case 'librarynightpass':
+      return andFilters(
+        stringFilter('hostName', CAMPUS_CONNECT_HOST),
+        permissionPathFilter()
       );
     case 'societies':
       return andFilters(
@@ -123,9 +136,15 @@ export const buildRealtimeScopeFilter = (scopeKey = 'overall') => {
 
   switch (scopeKey) {
     case 'campusconnect':
-      return andFilters(campusFilter, { notExpression: lostAndFoundScreenFilter() });
+      return andFilters(
+        campusFilter,
+        { notExpression: lostAndFoundScreenFilter() },
+        { notExpression: libraryNightPassScreenFilter() }
+      );
     case 'lostnfound':
       return lostAndFoundScreenFilter();
+    case 'librarynightpass':
+      return libraryNightPassScreenFilter();
     case 'societies':
       return andFilters(societiesHostFilter, { notExpression: permissionScreenFilter() });
     case 'permissions':
@@ -224,6 +243,9 @@ const getApplicationForPage = (domain, page = '/') => {
   if (domain === CAMPUS_CONNECT_HOST) {
     if (page === LOST_AND_FOUND_PATH || page.startsWith(`${LOST_AND_FOUND_PATH}/`)) {
       return ANALYTICS_SCOPES.lostnfound;
+    }
+    if (page === PERMISSIONS_PATH || page.startsWith(`${PERMISSIONS_PATH}/`)) {
+      return ANALYTICS_SCOPES.librarynightpass;
     }
     return ANALYTICS_SCOPES.campusconnect;
   }
@@ -695,12 +717,13 @@ export const getGA4Realtime = async (req, res) => {
       .sort((a, b) => b.minutesAgo - a.minutesAgo);
     const campusApplication = applications.find(application => application.key === 'campusconnect');
     const lostAndFoundApplication = applications.find(application => application.key === 'lostnfound');
+    const libraryNightPassApplication = applications.find(application => application.key === 'librarynightpass');
     const societiesApplication = applications.find(application => application.key === 'societies');
     const permissionsApplication = applications.find(application => application.key === 'permissions');
     const activeUsersByHostname = [
       {
         domain: CAMPUS_CONNECT_HOST,
-        activeUsers: (campusApplication?.activeUsers || 0) + (lostAndFoundApplication?.activeUsers || 0),
+        activeUsers: (campusApplication?.activeUsers || 0) + (lostAndFoundApplication?.activeUsers || 0) + (libraryNightPassApplication?.activeUsers || 0),
       },
       {
         domain: STUDENT_SOCIETIES_HOST,
