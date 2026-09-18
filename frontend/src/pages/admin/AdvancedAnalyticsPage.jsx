@@ -32,6 +32,7 @@ const GA_SCOPES = [
   { value: "campusconnect", label: "Campus Connect" },
   { value: "lostnfound", label: "Lost & Found" },
   { value: "librarynightpass", label: "Library Night Pass" },
+  { value: "guestroom", label: "Guest Room" },
   { value: "societies", label: "Student Societies" },
   { value: "permissions", label: "Society Night Permission" },
 ];
@@ -683,7 +684,7 @@ const AdvancedAnalyticsPage = () => {
                         0
                       );
                       const pct = totalMetric > 0 ? (metricValue / totalMetric) * 100 : 0;
-                      const colors = [PC.blue, PC.teal, PC.pink, PC.purple, PC.amber];
+                      const colors = [PC.blue, PC.teal, PC.pink, PC.green, PC.purple, PC.amber];
                       return (
                         <div key={application.key} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
                           <div className="flex items-center justify-between gap-3 mb-2">

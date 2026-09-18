@@ -25,6 +25,7 @@ const ANALYTICS_SCOPES = {
   campusconnect: { key: 'campusconnect', label: 'Campus Connect' },
   lostnfound: { key: 'lostnfound', label: 'Lost & Found' },
   librarynightpass: { key: 'librarynightpass', label: 'Library Night Pass' },
+  guestroom: { key: 'guestroom', label: 'Guest Room' },
   societies: { key: 'societies', label: 'Student Societies' },
   permissions: { key: 'permissions', label: 'Society Night Permission' },
 };
@@ -33,6 +34,7 @@ const APPLICATION_SCOPES = [
   ANALYTICS_SCOPES.campusconnect,
   ANALYTICS_SCOPES.lostnfound,
   ANALYTICS_SCOPES.librarynightpass,
+  ANALYTICS_SCOPES.guestroom,
   ANALYTICS_SCOPES.societies,
   ANALYTICS_SCOPES.permissions,
 ];
@@ -41,6 +43,7 @@ const CAMPUS_CONNECT_HOST = INCLUDED_GA4_HOSTS[0];
 const STUDENT_SOCIETIES_HOST = INCLUDED_GA4_HOSTS[1];
 const LOST_AND_FOUND_PATH = '/lostnfound';
 const PERMISSIONS_PATH = '/permissions';
+const GUEST_ROOM_PATH = '/guest-room';
 const LEGACY_PERMISSION_SCREEN_NAME = 'NightPermi — Thapar Institute';
 
 const stringFilter = (fieldName, value, matchType = 'EXACT', caseSensitive = false) => ({
@@ -68,6 +71,16 @@ const lostAndFoundPathFilter = () => orFilters(
   stringFilter('pagePath', `${LOST_AND_FOUND_PATH}/`, 'BEGINS_WITH', true)
 );
 
+const guestRoomPathFilter = () => orFilters(
+  stringFilter('pagePath', GUEST_ROOM_PATH, 'EXACT', true),
+  stringFilter('pagePath', `${GUEST_ROOM_PATH}/`, 'BEGINS_WITH', true)
+);
+
+const guestRoomScreenFilter = () => orFilters(
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${GUEST_ROOM_PATH}`, 'EXACT', true),
+  stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${GUEST_ROOM_PATH}/`, 'BEGINS_WITH', true)
+);
+
 const lostAndFoundScreenFilter = () => orFilters(
   stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${LOST_AND_FOUND_PATH}`, 'EXACT', true),
   stringFilter('unifiedScreenName', `${CAMPUS_CONNECT_HOST}${LOST_AND_FOUND_PATH}/`, 'BEGINS_WITH', true)
@@ -88,7 +101,7 @@ export const resolveAnalyticsScope = (query = {}) => {
   const requestedScope = String(query.scope || 'overall').trim().toLowerCase();
   const scope = ANALYTICS_SCOPES[requestedScope];
   if (!scope) {
-    const error = new Error('Invalid analytics scope. Use overall, campusconnect, lostnfound, librarynightpass, societies, or permissions.');
+    const error = new Error('Invalid analytics scope. Use overall, campusconnect, lostnfound, librarynightpass, guestroom, societies, or permissions.');
     error.statusCode = 400;
     error.errorType = 'invalid_scope';
     throw error;
@@ -102,7 +115,8 @@ export const buildHistoricalScopeFilter = (scopeKey = 'overall') => {
       return andFilters(
         stringFilter('hostName', CAMPUS_CONNECT_HOST),
         { notExpression: lostAndFoundPathFilter() },
-        { notExpression: permissionPathFilter() }
+        { notExpression: permissionPathFilter() },
+        { notExpression: guestRoomPathFilter() }
       );
     case 'lostnfound':
       return andFilters(
@@ -113,6 +127,11 @@ export const buildHistoricalScopeFilter = (scopeKey = 'overall') => {
       return andFilters(
         stringFilter('hostName', CAMPUS_CONNECT_HOST),
         permissionPathFilter()
+      );
+    case 'guestroom':
+      return andFilters(
+        stringFilter('hostName', CAMPUS_CONNECT_HOST),
+        guestRoomPathFilter()
       );
     case 'societies':
       return andFilters(
@@ -139,12 +158,15 @@ export const buildRealtimeScopeFilter = (scopeKey = 'overall') => {
       return andFilters(
         campusFilter,
         { notExpression: lostAndFoundScreenFilter() },
-        { notExpression: libraryNightPassScreenFilter() }
+        { notExpression: libraryNightPassScreenFilter() },
+        { notExpression: guestRoomScreenFilter() }
       );
     case 'lostnfound':
       return lostAndFoundScreenFilter();
     case 'librarynightpass':
       return libraryNightPassScreenFilter();
+    case 'guestroom':
+      return guestRoomScreenFilter();
     case 'societies':
       return andFilters(societiesHostFilter, { notExpression: permissionScreenFilter() });
     case 'permissions':
@@ -246,6 +268,9 @@ const getApplicationForPage = (domain, page = '/') => {
     }
     if (page === PERMISSIONS_PATH || page.startsWith(`${PERMISSIONS_PATH}/`)) {
       return ANALYTICS_SCOPES.librarynightpass;
+    }
+    if (page === GUEST_ROOM_PATH || page.startsWith(`${GUEST_ROOM_PATH}/`)) {
+      return ANALYTICS_SCOPES.guestroom;
     }
     return ANALYTICS_SCOPES.campusconnect;
   }
@@ -718,12 +743,13 @@ export const getGA4Realtime = async (req, res) => {
     const campusApplication = applications.find(application => application.key === 'campusconnect');
     const lostAndFoundApplication = applications.find(application => application.key === 'lostnfound');
     const libraryNightPassApplication = applications.find(application => application.key === 'librarynightpass');
+    const guestRoomApplication = applications.find(application => application.key === 'guestroom');
     const societiesApplication = applications.find(application => application.key === 'societies');
     const permissionsApplication = applications.find(application => application.key === 'permissions');
     const activeUsersByHostname = [
       {
         domain: CAMPUS_CONNECT_HOST,
-        activeUsers: (campusApplication?.activeUsers || 0) + (lostAndFoundApplication?.activeUsers || 0) + (libraryNightPassApplication?.activeUsers || 0),
+        activeUsers: (campusApplication?.activeUsers || 0) + (lostAndFoundApplication?.activeUsers || 0) + (libraryNightPassApplication?.activeUsers || 0) + (guestRoomApplication?.activeUsers || 0),
       },
       {
         domain: STUDENT_SOCIETIES_HOST,
