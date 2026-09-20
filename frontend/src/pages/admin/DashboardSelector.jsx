@@ -1,12 +1,19 @@
 // src/pages/admin/DashboardSelector.jsx
-import React, { useState } from "react";
+//
+// Campus Connect Workspace — the role-aware launch page shown after login.
+//
+// Access model (unchanged):
+//  - Internal dashboards (Guest Room / Venue / Night Pass) come from
+//    resolveDashboardAccess() + settings.dashboardRegistry.
+//  - Everything else (campus portals, Grievance, Fretbox, admin tools) is
+//    described in src/config/campusPortals.js and is independent of the
+//    dashboardRegistry.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, Calendar, Globe, Sparkles, Lock,
-  X, ArrowRight, LayoutDashboard, Settings,
-  MessageSquare, CalendarDays, BarChart3,
-  Database, ArrowLeft, ClipboardList, ExternalLink
+  Building2, Calendar, Globe, X, ArrowRight, LayoutDashboard,
+  MessageSquare, CalendarDays, ArrowLeft, ExternalLink, Menu, Star,
 } from "lucide-react";
 import EchoOrb from "../../components/EchoOrb";
 import EchoModal from "../../components/EchoModal";
@@ -15,9 +22,18 @@ import useSystemSettings from "../../hooks/useSystemSettings";
 import {
   resolveDashboardAccess,
   shouldAlwaysShowDashboardSelector,
-  STAFF_ROLES_WITH_SHARED_SELECTOR,
 } from "../../utils/dashboardAccess";
-import DashboardFooter from "../../components/DashboardFooter";
+import { WorkspaceRail, WorkspaceDrawer } from "../../components/WorkspaceSidebar";
+import {
+  MAX_QUICK_ACCESS,
+  PUBLIC_FORMS_ITEM,
+  getWorkspaceItems,
+  getWorkspaceRoleLabel,
+  readQuickAccessIds,
+  readSidebarPinned,
+  writeQuickAccessIds,
+  writeSidebarPinned,
+} from "../../config/campusPortals";
 import AdvancedAnalyticsPage from "./AdvancedAnalyticsPage";
 
 const PublicFormsModal = ({ open, onClose }) => {
@@ -133,21 +149,85 @@ const PublicFormsModal = ({ open, onClose }) => {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
+// Internal dashboard presentation (colour identity per dashboardRegistry key)
+// ════════════════════════════════════════════════════════════════════════════
+const DASHBOARD_UI = {
+  guestRoom: {
+    title: "Guest Room Dashboard",
+    icon: Building2,
+    gradient: "from-blue-600 via-blue-500 to-cyan-500",
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600",
+  },
+  venue: {
+    title: "Venue Booking Dashboard",
+    icon: Calendar,
+    gradient: "from-purple-600 via-purple-500 to-pink-500",
+    iconBg: "bg-purple-100",
+    iconColor: "text-purple-600",
+  },
+  night: {
+    title: "Night Pass Dashboard",
+    icon: LayoutDashboard,
+    gradient: "from-slate-600 via-slate-500 to-indigo-500",
+    iconBg: "bg-slate-100",
+    iconColor: "text-slate-600",
+  },
+};
+
+const FOCUS_RING =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-2";
+
+// ════════════════════════════════════════════════════════════════════════════
 // MAIN DASHBOARD SELECTOR
 // ════════════════════════════════════════════════════════════════════════════
 const DashboardSelector = () => {
   const { currentUser } = useAuth();
   const role = (currentUser?.role || currentUser?.user?.role || "").toLowerCase();
   const [showPublicForms, setShowPublicForms] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState(null);
   const [showEcho, setShowEcho] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  
+
+  // Workspace UI preferences (sidebar pin + favourites) — never any auth data.
+  const [sidebarPinned, setSidebarPinned] = useState(readSidebarPinned);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [favoritesVersion, setFavoritesVersion] = useState(0);
+  const menuButtonRef = useRef(null);
+
   const navigate = useNavigate();
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
   const { settings } = useSystemSettings();
   const dashboardAccess = resolveDashboardAccess(currentUser || {}, settings);
+
+  const { campusPortals, adminTools, otherTools } = useMemo(() => getWorkspaceItems(role), [role]);
+  const favoritableItems = useMemo(
+    () => [...campusPortals, ...adminTools, ...otherTools].filter((item) => item.favoritable),
+    [campusPortals, adminTools, otherTools]
+  );
+  const quickAccessItems = useMemo(() => {
+    const byId = new Map(favoritableItems.map((item) => [item.id, item]));
+    const ids = readQuickAccessIds(role, favoritableItems.map((item) => item.id));
+    return ids.map((id) => byId.get(id));
+    // favoritesVersion re-reads localStorage after a toggle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, favoritableItems, favoritesVersion]);
+  const favoriteIds = useMemo(
+    () => new Set(quickAccessItems.map((item) => item.id)),
+    [quickAccessItems]
+  );
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // A drawer left open across a resize to desktop would otherwise reappear
+  // when shrinking again.
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1024) setDrawerOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   if (
     dashboardAccess.dashboards.length === 1 &&
@@ -162,33 +242,6 @@ const DashboardSelector = () => {
     }
   }
 
-  const DASHBOARD_UI = {
-    guestRoom: {
-      title: "Guest Room Dashboard",
-      icon: Building2,
-      gradient: "from-blue-600 via-blue-500 to-cyan-500",
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
-      features: ["Room Management", "Guest Tracking", "Booking System"],
-    },
-    venue: {
-      title: "Venue Booking Dashboard",
-      icon: Calendar,
-      gradient: "from-purple-600 via-purple-500 to-pink-500",
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
-      features: ["Venue Management", "Event Calendar", "Enquiry System"],
-    },
-    night: {
-      title: "Night Pass Dashboard",
-      icon: LayoutDashboard,
-      gradient: "from-slate-600 via-slate-500 to-indigo-500",
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-600",
-      features: ["Night Permissions", "Scan Access", "Role Operations"],
-    },
-  };
-
   const dashboards = (settings?.dashboardRegistry || [])
     .filter((dashboard) => dashboard.active && dashboardAccess.dashboards.includes(dashboard.key))
     .map((dashboard) => {
@@ -201,88 +254,67 @@ const DashboardSelector = () => {
         gradient: ui.gradient,
         iconBg: ui.iconBg,
         iconColor: ui.iconColor,
-        available: true,
-        features: ui.features,
-        onClick: () => navigate(dashboard.path),
+        target: { type: "route", path: dashboard.path },
       };
     });
 
-  // ────────────────────────────────────────────────────────────────────────
-  // Shared staff utility/application cards — auxiliary tools shown alongside
-  // the internal dashboardRegistry cards above. These are NOT dashboardRegistry
-  // entries and do not affect dashboardAccess permissions.
-  // ────────────────────────────────────────────────────────────────────────
-  const utilityCards = [];
-
-  if (role === "admin") {
-    utilityCards.push({
-      id: "grievance-admin-portal",
-      title: "Student Grievance Admin Portal",
-      description: "Manage student grievances and grievance portal users",
-      icon: ClipboardList,
-      gradient: "from-amber-600 via-amber-500 to-orange-500",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
-      available: true,
-      features: ["Grievance Management", "Portal User Access", "Case Tracking"],
-      ctaLabel: "Open Portal",
-      // The Grievance Portal is a separate application on the same CampusConnect
-      // domain and is not part of this SPA's router, so a hard same-tab
-      // navigation (not react-router's navigate) is required to reach it.
-      onClick: () => {
-        window.location.href = "/grievance/admin/users";
-      },
-    });
-  }
-
-  if (STAFF_ROLES_WITH_SHARED_SELECTOR.includes(role)) {
-    utilityCards.push({
-      id: "fretbox-resident-app",
-      title: "Fretbox Resident App",
-      description: "Open the Fretbox resident management portal",
-      icon: Globe,
-      gradient: "from-emerald-600 via-emerald-500 to-teal-500",
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
-      available: true,
-      features: ["Resident Management", "External Application"],
-      ctaLabel: "Open External Link",
-      ctaIcon: ExternalLink,
-      badge: { bg: "bg-emerald-100", text: "text-emerald-700", label: "External", icon: ExternalLink },
-      onClick: () => {
-        window.open(
-          "https://admin.fretbox.in/account/signin?returnUrl=dashboard",
-          "_blank",
-          "noopener,noreferrer"
-        );
-      },
-    });
-  }
-
-  const allCards = [...dashboards, ...utilityCards];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.3
-      }
+  // ─── Navigation ───────────────────────────────────────────────────────────
+  const openItem = (item) => {
+    const { target } = item;
+    switch (target.type) {
+      case "external":
+        // New tab keeps the workspace open. The external portal owns its own
+        // session; nothing is passed to it from here.
+        window.open(target.url, "_blank", "noopener,noreferrer");
+        break;
+      case "route":
+        navigate(target.path);
+        break;
+      case "redirect":
+        // Separate app on the same domain (not in this SPA's router).
+        window.location.href = target.path;
+        break;
+      case "action":
+        if (target.action === "showAnalytics") setShowAnalytics(true);
+        if (target.action === "showPublicForms") setShowPublicForms(true);
+        break;
+      default:
+        break;
     }
   };
 
-  const itemVariants = {
-    hidden: { y: 40, opacity: 0 },
-    show: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 15
-      }
-    }
+  const toggleSidebarPinned = () => {
+    const next = !sidebarPinned;
+    setSidebarPinned(next);
+    writeSidebarPinned(next);
+  };
+
+  const canFavorite = quickAccessItems.length < MAX_QUICK_ACCESS;
+  const toggleFavorite = (item) => {
+    const currentIds = quickAccessItems.map((entry) => entry.id);
+    const next = currentIds.includes(item.id)
+      ? currentIds.filter((id) => id !== item.id)
+      : currentIds.length < MAX_QUICK_ACCESS
+      ? [...currentIds, item.id]
+      : currentIds;
+    writeQuickAccessIds(role, next);
+    setFavoritesVersion((version) => version + 1);
+  };
+
+  // ─── Sidebar sections (Workspaces come from the dashboardRegistry result) ──
+  const sidebarSections = [
+    { key: "workspaces", title: "Workspaces", items: dashboards },
+    { key: "campus-portals", title: "Campus Portals", items: campusPortals },
+    { key: "admin-tools", title: "Admin Tools", items: adminTools },
+    { key: "other-tools", title: "Other Tools", items: otherTools },
+  ];
+  const sidebarProps = {
+    sections: sidebarSections,
+    footerItems: [PUBLIC_FORMS_ITEM],
+    favoriteIds,
+    canFavorite,
+    onSelect: openItem,
+    onToggleFavorite: toggleFavorite,
   };
 
   // If Analytics view is active (Admin only)
@@ -290,7 +322,7 @@ const DashboardSelector = () => {
     return (
       <div className="min-h-screen bg-slate-50 relative">
         <div className="fixed top-4 left-4 z-50">
-           <button onClick={() => setShowAnalytics(false)} 
+           <button onClick={() => setShowAnalytics(false)}
              className="bg-white border border-slate-200 shadow-lg px-4 py-2 rounded-xl flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-all hover:scale-105">
              <ArrowRight className="w-4 h-4 rotate-180" /> Back to Dashboard
            </button>
@@ -307,346 +339,194 @@ const DashboardSelector = () => {
     );
   }
 
+  const roleLabel = getWorkspaceRoleLabel(role);
+
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            opacity: [0.03, 0.06, 0.03]
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, -90, 0],
-            opacity: [0.03, 0.06, 0.03]
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-red-400 to-orange-400 rounded-full blur-3xl"
-        />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 lg:flex">
+      <WorkspaceRail
+        {...sidebarProps}
+        pinned={sidebarPinned}
+        onTogglePin={toggleSidebarPinned}
+      />
+      <WorkspaceDrawer
+        {...sidebarProps}
+        open={drawerOpen}
+        onClose={closeDrawer}
+        returnFocusRef={menuButtonRef}
+      />
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-12 pb-64">
-        {/* Header Section */}
-        <motion.div
-          initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-16 relative w-full max-w-7xl mx-auto"
-        >
-          {/* Back Button - Top Left */}
-          <div className="absolute top-0 left-0 hidden md:flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors"
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        {/* Header */}
+        <header className="border-b border-slate-200/70 bg-white/70 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            <button
+              type="button"
+              ref={menuButtonRef}
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open workspace menu"
+              aria-haspopup="dialog"
+              aria-expanded={drawerOpen}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:text-slate-900 lg:hidden ${FOCUS_RING}`}
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-semibold">Back</span>
-            </motion.button>
-            {isAdmin && <>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/admin/public-ui-customizer")}
-                className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-red-100 rounded-xl shadow-sm text-red-600 hover:text-red-700 hover:border-red-200 transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                <span className="text-xs font-semibold">Public UI</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/admin/campus-feedback")}
-                className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm border border-emerald-100 rounded-xl shadow-sm text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="text-xs font-semibold">Feedback</span>
-              </motion.button>
-            </>}
-          </div>
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            </button>
 
-          {/* Admin Analytics Button - Top Right */}
-          {isAdmin && (
-             <div className="absolute top-0 right-0 hidden md:flex items-center gap-2">
-               <motion.button
-                 whileHover={{ scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() => navigate("/admin/echo-knowledge")}
-                 className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
-               >
-                 <Database className="w-4 h-4" />
-                 <span className="text-sm font-semibold">Echo Knowledge</span>
-               </motion.button>
-               <motion.button
-                 whileHover={{ scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() => setShowAnalytics(true)}
-                 className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-red-600 hover:border-red-200 transition-colors"
-               >
-                 <BarChart3 className="w-4 h-4" />
-                 <span className="text-sm font-semibold">System Analytics</span>
-               </motion.button>
-             </div>
-          )}
-
-          {/* Thapar Logo */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{
-              type: "spring",
-              stiffness: 200,
-              damping: 15,
-              delay: 0.2
-            }}
-            className="inline-flex items-center justify-center mb-6"
-          >
             <img
               src="https://ik.imagekit.io/7khjnlfow/email-assets/Thapar_Logo.png?updatedAt=1769371086744"
               alt="Thapar Institute Logo"
-              className="h-24 w-auto object-contain"
+              className="h-10 w-auto shrink-0 object-contain sm:h-12"
             />
-          </motion.div>
 
-          {/* Title */}
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Hostel Management
-          </motion.h1>
-
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="text-xl md:text-2xl text-slate-600 font-light"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            Select your administrative dashboard
-          </motion.p>
-
-          {/* Mobile Admin Analytics Button */}
-          <div className="mt-6 md:hidden space-y-2">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-slate-900"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm font-semibold">Back to Dashboard</span>
-              </button>
-              {isAdmin && <>
-                <button
-                  onClick={() => navigate("/admin/public-ui-customizer")}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-red-100 rounded-xl shadow-sm text-red-600 hover:text-red-700"
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h1
+                  className="text-[28px] font-bold leading-tight text-slate-900 sm:text-[32px] lg:text-[36px]"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
                 >
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Public UI</span>
-                </button>
-                <button
-                  onClick={() => navigate("/admin/campus-feedback")}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-emerald-100 rounded-xl shadow-sm text-emerald-600 hover:text-emerald-700"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Feedback</span>
-                </button>
-              </>}
+                  Campus Connect
+                </h1>
+                <span className="rounded-full border border-red-100 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+                  {roleLabel} Workspace
+                </span>
+              </div>
+              <p className="text-sm text-slate-500">Your campus operations workspace</p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              aria-label="Back"
+              className={`ml-auto flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900 ${FOCUS_RING}`}
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden text-sm font-semibold sm:inline">Back</span>
+            </button>
           </div>
+        </header>
 
-          {/* Mobile Admin Analytics Button */}
-          {isAdmin && (
-             <div className="mt-6 md:hidden space-y-2">
-               <button
-                 onClick={() => navigate("/admin/echo-knowledge")}
-                 className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-blue-600"
-               >
-                 <Database className="w-4 h-4" />
-                 <span className="text-sm font-semibold">Manage Echo Knowledge</span>
-               </button>
-               <button
-                 onClick={() => setShowAnalytics(true)}
-                 className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-red-600"
-               >
-                 <BarChart3 className="w-4 h-4" />
-                 <span className="text-sm font-semibold">View System Analytics</span>
-               </button>
-             </div>
-          )}
-
-          {/* Decorative Line */}
+        {/* Main content */}
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
-            className="w-24 h-1 bg-gradient-to-r from-blue-600 to-red-600 mx-auto mt-6 rounded-full"
-          />
-        </motion.div>
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="mx-auto max-w-6xl space-y-8"
+          >
+            {/* Quick Access */}
+            {favoritableItems.length > 0 && (
+              <section aria-labelledby="quick-access-heading">
+                <div className="mb-3 flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                  <h2
+                    id="quick-access-heading"
+                    className="text-sm font-semibold uppercase tracking-wider text-slate-500"
+                  >
+                    Quick Access
+                  </h2>
+                </div>
 
-        {/* Dashboard Cards Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full"
-        >
-          {allCards.map((dashboard, index) => {
-            const Icon = dashboard.icon;
-            const CtaIcon = dashboard.ctaIcon || ArrowRight;
-            const BadgeIcon = dashboard.badge?.icon || Sparkles;
-            const isHovered = hoveredCard === dashboard.id;
-
-            return (
-              <motion.div
-                key={dashboard.id}
-                variants={itemVariants}
-                onMouseEnter={() => setHoveredCard(dashboard.id)}
-                onMouseLeave={() => setHoveredCard(null)}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="relative group"
-              >
-                <button
-                  disabled={!dashboard.available}
-                  onClick={dashboard.onClick}
-                  className={`
-                    w-full h-full p-8 rounded-3xl border-2 shadow-xl
-                    transition-all duration-500 text-left
-                    ${dashboard.available
-                      ? 'bg-white/80 backdrop-blur-sm border-slate-200 hover:border-slate-300 hover:shadow-2xl cursor-pointer'
-                      : 'bg-slate-50/50 backdrop-blur-sm border-slate-200 cursor-not-allowed opacity-60'
-                    }
-                  `}
-                >
-                  {/* Top Section - Icon & Status */}
-                  <div className="flex items-start justify-between mb-6">
-                    {/* Icon Container */}
-                    <motion.div
-                      animate={isHovered && dashboard.available ? {
-                        rotate: [0, -5, 5, -5, 0],
-                        scale: [1, 1.05, 1]
-                      } : {}}
-                      transition={{ duration: 0.5 }}
-                      className={`
-                        w-16 h-16 rounded-2xl flex items-center justify-center
-                        ${dashboard.iconBg} shadow-lg
-                      `}
-                    >
-                      <Icon className={`w-8 h-8 ${dashboard.iconColor}`} />
-                    </motion.div>
-
-                    {/* Lock Icon for Coming Soon */}
-                    {!dashboard.available && (
-                      <div className="bg-slate-200 text-slate-500 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <Lock className="w-3 h-3" />
-                        Locked
-                      </div>
-                    )}
-
-                    {/* NEW Badge for Venue Booking */}
-                    {dashboard.id === "venue-booking" && (
-                      <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        NEW
-                      </div>
-                    )}
-
-                    {/* Generic badge support */}
-                    {dashboard.badge && dashboard.id !== "venue-booking" && (
-                      <div className={`${dashboard.badge.bg} ${dashboard.badge.text} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
-                        <BadgeIcon className="w-3 h-3" />
-                        {dashboard.badge.label}
-                      </div>
-                    )}
+                {quickAccessItems.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(200px,240px))]">
+                    {quickAccessItems.map((item) => {
+                      const Icon = item.icon;
+                      const LinkIcon = item.external ? ExternalLink : ArrowRight;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => openItem(item)}
+                          aria-label={item.external ? `${item.title} (opens in new tab)` : item.title}
+                          className={`group flex items-center gap-3 rounded-xl border border-slate-200 bg-white/90 p-3 text-left shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md ${FOCUS_RING}`}
+                        >
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${item.iconBg}`}>
+                            <Icon className={`h-[18px] w-[18px] ${item.iconColor}`} aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-slate-900">
+                              {item.title}
+                            </span>
+                            <span className="block truncate text-xs text-slate-500">
+                              {item.description}
+                            </span>
+                          </span>
+                          <LinkIcon
+                            className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-slate-500"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
-
-                  {/* Title */}
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {dashboard.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-slate-600 text-sm mb-6 leading-relaxed">
-                    {dashboard.description}
+                ) : (
+                  <p className="rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-500">
+                    Nothing pinned yet. Use the star next to a portal in the sidebar to add it here.
                   </p>
-
-                  {/* Features List */}
-                  <div className="space-y-2 mb-6">
-                    {dashboard.features.map((feature, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ x: -10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.8 + (idx * 0.1) }}
-                        className="flex items-center gap-2 text-xs text-slate-500"
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${dashboard.gradient}`} />
-                        {feature}
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* CTA Section */}
-                  {dashboard.available ? (
-                    <motion.div
-                      animate={isHovered ? { x: 5 } : { x: 0 }}
-                      className={`
-                        flex items-center gap-2 text-sm font-semibold
-                        bg-gradient-to-r ${dashboard.gradient} bg-clip-text text-transparent
-                      `}
-                    >
-                      {dashboard.ctaLabel || "Open Dashboard"}
-                      <CtaIcon className={`w-4 h-4 text-${dashboard.iconColor.split('-')[1]}-600`} />
-                    </motion.div>
-                  ) : (
-                    <div className="text-sm text-slate-400 font-medium">
-                      Stay tuned for updates
-                    </div>
-                  )}
-
-                  {/* Gradient Overlay on Hover */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isHovered && dashboard.available ? 0.05 : 0 }}
-                    className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${dashboard.gradient} pointer-events-none`}
-                  />
-                </button>
-
-                {/* Glow Effect on Hover */}
-                {dashboard.available && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isHovered ? 0.2 : 0 }}
-                    className={`
-                      absolute inset-0 -z-10 rounded-3xl blur-2xl
-                      bg-gradient-to-br ${dashboard.gradient}
-                    `}
-                  />
                 )}
-              </motion.div>
-            );
-          })}
-        </motion.div>
+              </section>
+            )}
+
+            {/* Internal dashboards */}
+            <section aria-labelledby="dashboards-heading">
+              <h2
+                id="dashboards-heading"
+                className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500"
+              >
+                Dashboards
+              </h2>
+
+              {dashboards.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {dashboards.map((dashboard) => {
+                    const Icon = dashboard.icon;
+                    return (
+                      <button
+                        key={dashboard.id}
+                        type="button"
+                        onClick={() => openItem(dashboard)}
+                        className={`group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${FOCUS_RING}`}
+                      >
+                        <span
+                          className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${dashboard.gradient}`}
+                          aria-hidden="true"
+                        />
+                        <span className="flex items-start gap-3">
+                          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${dashboard.iconBg}`}>
+                            <Icon className={`h-5 w-5 ${dashboard.iconColor}`} aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-base font-bold text-slate-900">
+                              {dashboard.title}
+                            </span>
+                            <span className="mt-0.5 line-clamp-2 block text-sm leading-snug text-slate-500">
+                              {dashboard.description}
+                            </span>
+                          </span>
+                        </span>
+                        <span
+                          className={`mt-3 inline-flex items-center gap-1.5 bg-gradient-to-r ${dashboard.gradient} bg-clip-text text-sm font-semibold text-transparent`}
+                        >
+                          Open Dashboard
+                          <ArrowRight
+                            className={`h-4 w-4 ${dashboard.iconColor} transition-transform duration-200 group-hover:translate-x-1`}
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-500">
+                  No dashboards are assigned to your account.
+                </p>
+              )}
+            </section>
+          </motion.div>
+        </main>
+
+        <footer className="border-t border-slate-200/70 px-4 py-3 text-center text-xs text-slate-400">
+          Created and Maintained by DoSA Office © 2026
+        </footer>
       </div>
 
       {/* ECHO FAB */}
@@ -655,10 +535,8 @@ const DashboardSelector = () => {
       <AnimatePresence>
         {showEcho && <EchoModal open={showEcho} onClose={()=>setShowEcho(false)} role={role} userName={userName}/>}
       </AnimatePresence>
-      
+
       <PublicFormsModal open={showPublicForms} onClose={() => setShowPublicForms(false)} />
-      
-      <DashboardFooter />
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;600;700&display=swap');
