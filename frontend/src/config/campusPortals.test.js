@@ -15,7 +15,7 @@ import { STAFF_ROLES_WITH_SHARED_SELECTOR } from "../utils/dashboardAccess";
 
 const urlsFor = (role, email) => getWorkspaceItems(role, email).campusPortals.map((p) => p.target.url);
 const idsFor = (role, email) => getWorkspaceItems(role, email).campusPortals.map((p) => p.id);
-const SNP_URL = "https://studentsociety.thapar.edu/permissions";
+const SNP_URL = "https://studentsocieties.thapar.edu/permissions/";
 const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
 
 beforeEach(() => localStorage.clear());

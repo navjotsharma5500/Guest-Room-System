@@ -111,7 +111,7 @@ const CAMPUS_PORTAL_CATALOG = {
   },
 };
 
-const SOCIETY_NIGHT_PERMISSION_URL = "https://studentsociety.thapar.edu/permissions";
+const SOCIETY_NIGHT_PERMISSION_URL = "https://studentsocieties.thapar.edu/permissions/";
 const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
 
 // ─── Role → external campus portals (exact URLs, in display order) ──────────

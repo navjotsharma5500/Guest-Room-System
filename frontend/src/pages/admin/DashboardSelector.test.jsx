@@ -47,7 +47,7 @@ jest.mock("./AdvancedAnalyticsPage", () => () => <div>Analytics Page Stub</div>)
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
-const SNP_URL = "https://studentsociety.thapar.edu/permissions";
+const SNP_URL = "https://studentsocieties.thapar.edu/permissions/";
 const ADMIN_PORTALS = [
   ["Student Notices", "https://campusconnect.thapar.edu/student-notices/admin"],
   ["Society Route Manager", "https://studentsocieties.thapar.edu/route-manager/"],
@@ -208,7 +208,7 @@ describe("Lost & Found and Society Night Permission access", () => {
     fireEvent.click(portalButton(list, "Lost & Found"));
     expect(openSpy).toHaveBeenLastCalledWith("https://campusconnect.thapar.edu/lostnfound/", "_blank", "noopener,noreferrer");
     fireEvent.click(portalButton(list, "Society Night Permission"));
-    expect(openSpy).toHaveBeenLastCalledWith("https://studentsociety.thapar.edu/permissions", "_blank", "noopener,noreferrer");
+    expect(openSpy).toHaveBeenLastCalledWith("https://studentsocieties.thapar.edu/permissions/", "_blank", "noopener,noreferrer");
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
