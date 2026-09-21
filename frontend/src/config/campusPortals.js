@@ -20,6 +20,8 @@ import {
   Megaphone,
   MessageSquare,
   Moon,
+  MoonStar,
+  PackageSearch,
   Route,
   Settings,
   BarChart3,
@@ -31,14 +33,33 @@ import { STAFF_ROLES_WITH_SHARED_SELECTOR } from "../utils/dashboardAccess";
 // (lower-case only, no trimming), so no access condition is widened.
 export const normalizeWorkspaceRole = (role = "") => String(role || "").toLowerCase();
 
+// Account-specific access is keyed by e-mail, so it is compared trimmed and
+// lower-cased.
+export const normalizeWorkspaceEmail = (email) => String(email || "").trim().toLowerCase();
+
 // ─── Storage keys (UI preferences only) ─────────────────────────────────────
 export const SIDEBAR_PINNED_STORAGE_KEY = "campusConnect.dashboardSelector.sidebarPinned";
 export const FAVORITES_STORAGE_KEY_PREFIX = "campusConnect.dashboardSelector.favorites.";
 export const MAX_QUICK_ACCESS = 6;
 
 // ─── Portal catalogue ───────────────────────────────────────────────────────
-// Presentation only. URLs are role-specific and live in ROLE_CAMPUS_PORTALS.
+// Presentation only. URLs are access-specific and live in ROLE_CAMPUS_PORTALS /
+// ACCOUNT_CAMPUS_PORTALS.
 const CAMPUS_PORTAL_CATALOG = {
+  "lost-and-found": {
+    title: "Lost & Found",
+    description: "Manage and access the campus Lost & Found portal",
+    icon: PackageSearch,
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
+  },
+  "society-night-permission": {
+    title: "Society Night Permission",
+    description: "Manage society night permission requests",
+    icon: MoonStar,
+    iconBg: "bg-indigo-100",
+    iconColor: "text-indigo-600",
+  },
   "student-notices": {
     title: "Student Notices",
     description: "Manage and publish student notices",
@@ -90,6 +111,9 @@ const CAMPUS_PORTAL_CATALOG = {
   },
 };
 
+const SOCIETY_NIGHT_PERMISSION_URL = "https://studentsociety.thapar.edu/permissions";
+const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
+
 // ─── Role → external campus portals (exact URLs, in display order) ──────────
 // Keyed by the exact normalised role. A role that is not listed here gets no
 // campus portals. Do not infer portal access from dashboardRegistry.
@@ -102,28 +126,64 @@ export const ROLE_CAMPUS_PORTALS = {
     { id: "student-calendar", url: "https://campusconnect.thapar.edu/tc/admin/login" },
     { id: "institute-calendar", url: "https://campusconnect.thapar.edu/ic/admin/login" },
     { id: "student-societies", url: "https://studentsocieties.thapar.edu/admin/login" },
+    { id: "lost-and-found", url: LOST_AND_FOUND_URL },
+    { id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL },
   ],
   assistant: [
     { id: "student-societies", url: "https://studentsocieties.thapar.edu/admin/login" },
     { id: "event-calendar", url: "https://campusconnect.thapar.edu/event-calendar/admin" },
     { id: "student-calendar", url: "https://campusconnect.thapar.edu/tc/admin/login" },
     { id: "institute-calendar", url: "https://campusconnect.thapar.edu/ic/admin/login" },
+    { id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL },
   ],
   caretaker: [
     {
       id: "library-night-pass",
       url: "https://campusconnect.thapar.edu/permissions/login/?next=/permissions/",
     },
+    { id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL },
   ],
+};
+
+// ─── Exceptional accounts → extra campus portals ────────────────────────────
+// Keyed by the normalised (trimmed, lower-case) e-mail, exact match only. These
+// are added on top of whatever the user's role already grants and de-duplicated
+// by portal id. Never grant a role-wide portal by listing one account here.
+export const ACCOUNT_CAMPUS_PORTALS = {
+  "adosa3@thapar.edu": [{ id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL }],
+};
+
+// Extra Quick Access defaults for the same exceptional accounts.
+export const ACCOUNT_DEFAULT_QUICK_ACCESS = {
+  "adosa3@thapar.edu": ["society-night-permission"],
+};
+
+/**
+ * Campus portal entries ({ id, url }) for a user: role portals first, then
+ * account-specific ones, de-duplicated by id (first occurrence wins).
+ */
+export const resolveCampusPortalEntries = (rawRole, rawEmail) => {
+  const role = normalizeWorkspaceRole(rawRole);
+  const email = normalizeWorkspaceEmail(rawEmail);
+  const seen = new Set();
+  return [...(ROLE_CAMPUS_PORTALS[role] || []), ...(ACCOUNT_CAMPUS_PORTALS[email] || [])].filter(
+    ({ id }) => !seen.has(id) && seen.add(id)
+  );
 };
 
 // ─── Default Quick Access per role ──────────────────────────────────────────
 // Ids that a role cannot actually open are dropped by sanitiseFavorites(), so
 // e.g. caretaker's Fretbox default only appears if that role receives Fretbox.
 export const DEFAULT_QUICK_ACCESS = {
-  admin: ["student-notices", "event-calendar", "library-night-pass", "student-societies"],
-  assistant: ["event-calendar", "student-calendar", "institute-calendar", "student-societies"],
-  caretaker: ["library-night-pass", "fretbox-resident-app"],
+  admin: [
+    "student-notices",
+    "event-calendar",
+    "library-night-pass",
+    "student-societies",
+    "society-night-permission",
+  ],
+  assistant: ["event-calendar", "student-calendar", "institute-calendar", "student-societies", "society-night-permission"],
+  caretaker: ["library-night-pass", "fretbox-resident-app", "society-night-permission"],
 };
 const FALLBACK_QUICK_ACCESS = ["fretbox-resident-app"];
 
@@ -206,17 +266,18 @@ const buildAdminTools = () => [
 
 /**
  * Resolve every non-dashboardRegistry launcher item for a role, grouped for the
- * sidebar. `role` is normalised here so callers can pass the raw value.
+ * sidebar. `role` and `email` are normalised here so callers can pass raw values.
  *
  * Access rules (unchanged from the previous selector):
  *  - Grievance + Admin Tools: exact role "admin" only
  *  - Fretbox: any role in STAFF_ROLES_WITH_SHARED_SELECTOR
- *  - Campus portals: only roles listed in ROLE_CAMPUS_PORTALS
+ *  - Campus portals: roles listed in ROLE_CAMPUS_PORTALS, plus accounts listed
+ *    in ACCOUNT_CAMPUS_PORTALS (see resolveCampusPortalEntries)
  */
-export const getWorkspaceItems = (rawRole) => {
+export const getWorkspaceItems = (rawRole, rawEmail) => {
   const role = normalizeWorkspaceRole(rawRole);
 
-  const campusPortals = (ROLE_CAMPUS_PORTALS[role] || []).map(({ id, url }) => ({
+  const campusPortals = resolveCampusPortalEntries(role, rawEmail).map(({ id, url }) => ({
     id,
     ...CAMPUS_PORTAL_CATALOG[id],
     external: true,
@@ -287,9 +348,17 @@ export const writeSidebarPinned = (pinned) => {
   }
 };
 
-const favoritesKey = (rawRole) => {
+// Role-keyed as before. Accounts with account-specific portals get their own
+// key so their preferences neither leak to, nor get overwritten by, other users
+// of the same role on a shared browser. Everyone else keeps the existing key.
+const favoritesKey = (rawRole, rawEmail) => {
   const role = normalizeWorkspaceRole(rawRole).replace(/[^a-z0-9_]/g, "");
-  return role ? `${FAVORITES_STORAGE_KEY_PREFIX}${role}` : null;
+  if (!role) return null;
+  const email = normalizeWorkspaceEmail(rawEmail);
+  if (ACCOUNT_CAMPUS_PORTALS[email] || ACCOUNT_DEFAULT_QUICK_ACCESS[email]) {
+    return `${FAVORITES_STORAGE_KEY_PREFIX}${role}.account.${email.replace(/[^a-z0-9@._-]/g, "")}`;
+  }
+  return `${FAVORITES_STORAGE_KEY_PREFIX}${role}`;
 };
 
 /**
@@ -311,16 +380,19 @@ export const sanitiseFavorites = (value, availableIds) => {
   return result;
 };
 
-export const getDefaultQuickAccess = (rawRole) =>
-  DEFAULT_QUICK_ACCESS[normalizeWorkspaceRole(rawRole)] || FALLBACK_QUICK_ACCESS;
+export const getDefaultQuickAccess = (rawRole, rawEmail) => {
+  const roleDefaults = DEFAULT_QUICK_ACCESS[normalizeWorkspaceRole(rawRole)] || FALLBACK_QUICK_ACCESS;
+  const accountDefaults = ACCOUNT_DEFAULT_QUICK_ACCESS[normalizeWorkspaceEmail(rawEmail)] || [];
+  return [...new Set([...roleDefaults, ...accountDefaults])];
+};
 
 /**
  * Quick Access ids for a role. A saved list (even an empty one, meaning the
  * user removed everything) wins; a missing or malformed value falls back to
  * the role defaults.
  */
-export const readQuickAccessIds = (rawRole, availableIds) => {
-  const key = favoritesKey(rawRole);
+export const readQuickAccessIds = (rawRole, availableIds, rawEmail) => {
+  const key = favoritesKey(rawRole, rawEmail);
   let stored = null;
   if (key) {
     try {
@@ -332,11 +404,11 @@ export const readQuickAccessIds = (rawRole, availableIds) => {
   }
   return Array.isArray(stored)
     ? sanitiseFavorites(stored, availableIds)
-    : sanitiseFavorites(getDefaultQuickAccess(rawRole), availableIds);
+    : sanitiseFavorites(getDefaultQuickAccess(rawRole, rawEmail), availableIds);
 };
 
-export const writeQuickAccessIds = (rawRole, ids) => {
-  const key = favoritesKey(rawRole);
+export const writeQuickAccessIds = (rawRole, ids, rawEmail) => {
+  const key = favoritesKey(rawRole, rawEmail);
   if (!key) return;
   try {
     // Portal ids only — never any credential or session material.

@@ -46,6 +46,8 @@ jest.mock("../../components/EchoModal", () => () => <div>Echo Modal</div>);
 jest.mock("./AdvancedAnalyticsPage", () => () => <div>Analytics Page Stub</div>);
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
+const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
+const SNP_URL = "https://studentsociety.thapar.edu/permissions";
 const ADMIN_PORTALS = [
   ["Student Notices", "https://campusconnect.thapar.edu/student-notices/admin"],
   ["Society Route Manager", "https://studentsocieties.thapar.edu/route-manager/"],
@@ -54,15 +56,19 @@ const ADMIN_PORTALS = [
   ["Student Calendar", "https://campusconnect.thapar.edu/tc/admin/login"],
   ["Institute Calendar", "https://campusconnect.thapar.edu/ic/admin/login"],
   ["Student Societies", "https://studentsocieties.thapar.edu/admin/login"],
+  ["Lost & Found", LOST_AND_FOUND_URL],
+  ["Society Night Permission", SNP_URL],
 ];
 const ASSISTANT_PORTALS = [
   ["Student Societies", "https://studentsocieties.thapar.edu/admin/login"],
   ["Event Calendar", "https://campusconnect.thapar.edu/event-calendar/admin"],
   ["Student Calendar", "https://campusconnect.thapar.edu/tc/admin/login"],
   ["Institute Calendar", "https://campusconnect.thapar.edu/ic/admin/login"],
+  ["Society Night Permission", SNP_URL],
 ];
 const CARETAKER_PORTALS = [
   ["Library Night Pass", "https://campusconnect.thapar.edu/permissions/login/?next=/permissions/"],
+  ["Society Night Permission", SNP_URL],
 ];
 const FRETBOX_URL = "https://admin.fretbox.in/account/signin?returnUrl=dashboard";
 const ADMIN_LIBRARY_URL = "https://campusconnect.thapar.edu/permissions/admin/";
@@ -78,6 +84,9 @@ const favKey = (role) => `campusConnect.dashboardSelector.favorites.${role}`;
 const ADMIN = { role: "admin", name: "Ada", email: "admin@thapar.edu" };
 const ASSISTANT = { role: "assistant", name: "Asha", email: "assistant@thapar.edu" };
 const CARETAKER = { role: "caretaker", name: "Carl", email: "caretaker@thapar.edu" };
+const ADOSA3 = { role: "adosa", name: "Ada Three", email: "adosa3@thapar.edu", dashboardAccess: { dashboards: ["guestRoom"] } };
+const ADOSA2 = { role: "adosa", name: "Ada Two", email: "adosa2@thapar.edu", dashboardAccess: { dashboards: ["guestRoom"] } };
+const DD_ASSISTANT = { role: "dd_assistant", name: "Dee", email: "dd@thapar.edu", dashboardAccess: { dashboards: ["guestRoom"] } };
 
 const renderSelector = (user, settings) => {
   mockUser = user;
@@ -89,6 +98,8 @@ const rail = () => screen.getByRole("complementary", { name: "Workspace sidebar"
 const railList = (name) => within(rail()).queryByRole("list", { name });
 const quickAccess = () => screen.getByRole("region", { name: "Quick Access" });
 const buttonNames = (container) => within(container).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+const portalTitles = () =>
+  within(railList("Campus Portals")).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
 const portalButton = (container, title, external = true) =>
   within(container).getByRole("button", { name: external ? `${title} (opens in new tab)` : title });
 
@@ -121,42 +132,44 @@ describe("compact header", () => {
 
 // ─── Role → portal mapping ──────────────────────────────────────────────────
 describe("role-based campus portals", () => {
-  test("admin sees all 7 portals and each opens its exact URL in a new tab", () => {
+  test("admin sees all 9 portals and each opens its exact URL in a new tab", () => {
     renderSelector(ADMIN);
     const list = railList("Campus Portals");
-    expect(within(list).getAllByRole("button")).toHaveLength(7);
+    expect(within(list).getAllByRole("button")).toHaveLength(9);
     ADMIN_PORTALS.forEach(([title, url]) => {
       fireEvent.click(portalButton(list, title));
       expect(openSpy).toHaveBeenLastCalledWith(url, "_blank", "noopener,noreferrer");
     });
-    expect(openSpy).toHaveBeenCalledTimes(7);
+    expect(openSpy).toHaveBeenCalledTimes(9);
   });
 
-  test("assistant sees exactly its 4 portals, none of the admin-only ones", () => {
+  test("assistant sees exactly its 5 portals, none of the admin-only ones", () => {
     renderSelector(ASSISTANT);
     const list = railList("Campus Portals");
-    expect(within(list).getAllByRole("button")).toHaveLength(4);
+    expect(within(list).getAllByRole("button")).toHaveLength(5);
     ASSISTANT_PORTALS.forEach(([title, url]) => {
       fireEvent.click(portalButton(list, title));
       expect(openSpy).toHaveBeenLastCalledWith(url, "_blank", "noopener,noreferrer");
     });
-    ["Student Notices", "Society Route Manager", "Library Night Pass"].forEach((title) => {
+    ["Student Notices", "Society Route Manager", "Library Night Pass", "Lost & Found"].forEach((title) => {
       expect(screen.queryByRole("button", { name: new RegExp(title) })).not.toBeInTheDocument();
     });
     const opened = openSpy.mock.calls.map(([url]) => url);
     ADMIN_ONLY_URLS.forEach((url) => expect(opened).not.toContain(url));
   });
 
-  test("caretaker sees only Library Night Pass with the caretaker login URL", () => {
+  test("caretaker sees Library Night Pass (caretaker login URL) and Society Night Permission", () => {
     renderSelector(CARETAKER);
     const list = railList("Campus Portals");
-    expect(within(list).getAllByRole("button")).toHaveLength(1);
-    fireEvent.click(portalButton(list, "Library Night Pass"));
-    expect(openSpy).toHaveBeenCalledWith(CARETAKER_PORTALS[0][1], "_blank", "noopener,noreferrer");
+    expect(within(list).getAllByRole("button")).toHaveLength(2);
+    CARETAKER_PORTALS.forEach(([title, url]) => {
+      fireEvent.click(portalButton(list, title));
+      expect(openSpy).toHaveBeenLastCalledWith(url, "_blank", "noopener,noreferrer");
+    });
     expect(openSpy).not.toHaveBeenCalledWith(ADMIN_LIBRARY_URL, expect.anything(), expect.anything());
     [
       "Student Notices", "Society Route Manager", "Event Calendar",
-      "Student Calendar", "Institute Calendar", "Student Societies",
+      "Student Calendar", "Institute Calendar", "Student Societies", "Lost & Found",
     ].forEach((title) => {
       expect(screen.queryByRole("button", { name: new RegExp(title) })).not.toBeInTheDocument();
     });
@@ -180,6 +193,68 @@ describe("role-based campus portals", () => {
   });
 });
 
+describe("Lost & Found and Society Night Permission access", () => {
+  test("admin sees both, once each, after its existing portals", () => {
+    renderSelector(ADMIN);
+    const names = portalTitles();
+    expect(names.filter((n) => n === "Lost & Found (opens in new tab)")).toHaveLength(1);
+    expect(names.filter((n) => n === "Society Night Permission (opens in new tab)")).toHaveLength(1);
+    expect(names.slice(0, 7)).toEqual(ADMIN_PORTALS.slice(0, 7).map(([title]) => `${title} (opens in new tab)`));
+  });
+
+  test("both open the exact URLs in a new tab without leaving the workspace", () => {
+    renderSelector(ADMIN);
+    const list = railList("Campus Portals");
+    fireEvent.click(portalButton(list, "Lost & Found"));
+    expect(openSpy).toHaveBeenLastCalledWith("https://campusconnect.thapar.edu/lostnfound/", "_blank", "noopener,noreferrer");
+    fireEvent.click(portalButton(list, "Society Night Permission"));
+    expect(openSpy).toHaveBeenLastCalledWith("https://studentsociety.thapar.edu/permissions", "_blank", "noopener,noreferrer");
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  test("assistant still sees Society Night Permission exactly once", () => {
+    renderSelector(ASSISTANT);
+    expect(portalTitles().filter((n) => n.startsWith("Society Night Permission"))).toHaveLength(1);
+    expect(portalTitles()).toHaveLength(5);
+  });
+
+  test("adosa3@thapar.edu sees only Society Night Permission and it opens in a new tab", () => {
+    renderSelector(ADOSA3);
+    expect(portalTitles()).toEqual(["Society Night Permission (opens in new tab)"]);
+    fireEvent.click(portalButton(railList("Campus Portals"), "Society Night Permission"));
+    expect(openSpy).toHaveBeenCalledWith(SNP_URL, "_blank", "noopener,noreferrer");
+    expect(screen.queryByRole("button", { name: /Lost & Found/ })).not.toBeInTheDocument();
+    // Existing shared-selector access is unchanged.
+    expect(within(railList("Other Tools")).getAllByRole("button")).toHaveLength(1);
+    expect(within(railList("Workspaces")).getAllByRole("button")).toHaveLength(1);
+  });
+
+  test("email matching is case- and whitespace-insensitive", () => {
+    renderSelector({ ...ADOSA3, email: "  ADoSA3@Thapar.edu " });
+    expect(portalTitles()).toEqual(["Society Night Permission (opens in new tab)"]);
+  });
+
+  test("other ADoSA accounts do not receive it", () => {
+    renderSelector(ADOSA2);
+    expect(railList("Campus Portals")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Society Night Permission/ })).not.toBeInTheDocument();
+  });
+
+  test.each([["adosa3@thapar.edu.evil.com"], ["xadosa3@thapar.edu"], [""], [undefined]])(
+    "look-alike or missing email %p does not receive it",
+    (email) => {
+      renderSelector({ ...ADOSA2, email });
+      expect(railList("Campus Portals")).not.toBeInTheDocument();
+    }
+  );
+
+  test("dd_assistant receives neither Lost & Found nor Society Night Permission", () => {
+    renderSelector(DD_ASSISTANT);
+    expect(railList("Campus Portals")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Lost & Found|Society Night Permission/ })).not.toBeInTheDocument();
+  });
+});
+
 // ─── Quick Access ───────────────────────────────────────────────────────────
 describe("Quick Access defaults", () => {
   test("admin", () => {
@@ -189,6 +264,7 @@ describe("Quick Access defaults", () => {
       "Event Calendar (opens in new tab)",
       "Library Night Pass (opens in new tab)",
       "Student Societies (opens in new tab)",
+      "Society Night Permission (opens in new tab)",
     ]);
   });
 
@@ -199,15 +275,36 @@ describe("Quick Access defaults", () => {
       "Student Calendar (opens in new tab)",
       "Institute Calendar (opens in new tab)",
       "Student Societies (opens in new tab)",
+      "Society Night Permission (opens in new tab)",
     ]);
   });
 
-  test("caretaker gets Library Night Pass and Fretbox", () => {
+  test("caretaker gets Library Night Pass, Fretbox and Society Night Permission", () => {
     renderSelector(CARETAKER);
     expect(buttonNames(quickAccess())).toEqual([
       "Library Night Pass (opens in new tab)",
       "Fretbox Resident App (opens in new tab)",
+      "Society Night Permission (opens in new tab)",
     ]);
+  });
+
+  test("adosa3 gets Fretbox plus Society Night Permission; other ADoSA only Fretbox", () => {
+    const { unmount } = renderSelector(ADOSA3);
+    expect(buttonNames(quickAccess())).toEqual([
+      "Fretbox Resident App (opens in new tab)",
+      "Society Night Permission (opens in new tab)",
+    ]);
+    unmount();
+    renderSelector(ADOSA2);
+    expect(buttonNames(quickAccess())).toEqual(["Fretbox Resident App (opens in new tab)"]);
+  });
+
+  test("Lost & Found is not a default Quick Access item but can be favourited", () => {
+    localStorage.setItem(PINNED_KEY, "true");
+    renderSelector(ADMIN);
+    expect(within(quickAccess()).queryByRole("button", { name: /Lost & Found/ })).not.toBeInTheDocument();
+    fireEvent.click(within(rail()).getByRole("button", { name: "Add Lost & Found to Quick Access" }));
+    expect(within(quickAccess()).getByRole("button", { name: /Lost & Found/ })).toBeInTheDocument();
   });
 
   test("clicking a Quick Access card opens the role's exact URL in a new tab", () => {
@@ -409,7 +506,8 @@ describe("favorites", () => {
     const { unmount } = renderSelector(ADMIN);
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
     expect(readFav("admin")).toEqual([
-      "student-notices", "event-calendar", "library-night-pass", "student-societies", "student-calendar",
+      "student-notices", "event-calendar", "library-night-pass", "student-societies",
+      "society-night-permission", "student-calendar",
     ]);
     expect(within(quickAccess()).getByRole("button", { name: /Student Calendar/ })).toBeInTheDocument();
 
@@ -426,15 +524,15 @@ describe("favorites", () => {
     // Assistant is untouched and still on its defaults.
     expect(localStorage.getItem(favKey("assistant"))).toBeNull();
     renderSelector(ASSISTANT);
-    expect(within(quickAccess()).getAllByRole("button")).toHaveLength(4);
+    expect(within(quickAccess()).getAllByRole("button")).toHaveLength(5);
   });
 
   test("favorites are capped at 6", () => {
     pinSidebar();
     renderSelector(ADMIN);
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
-    fireEvent.click(within(rail()).getByRole("button", { name: "Add Institute Calendar to Quick Access" }));
     expect(readFav("admin")).toHaveLength(6);
+    expect(within(rail()).getByRole("button", { name: "Add Institute Calendar to Quick Access" })).toBeDisabled();
     const blocked = within(rail()).getByRole("button", { name: "Add Society Route Manager to Quick Access" });
     expect(blocked).toBeDisabled();
     fireEvent.click(blocked);
@@ -455,7 +553,7 @@ describe("favorites", () => {
     (raw) => {
       localStorage.setItem(favKey("assistant"), raw);
       renderSelector(ASSISTANT);
-      expect(within(quickAccess()).getAllByRole("button")).toHaveLength(4);
+      expect(within(quickAccess()).getAllByRole("button")).toHaveLength(5);
     }
   );
 
@@ -472,6 +570,60 @@ describe("favorites", () => {
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Grievance Admin to Quick Access" }));
     expect(readFav("admin")).toContain("grievance-admin-portal");
     expect(within(quickAccess()).getByRole("button", { name: "Student Grievance Admin" })).toBeInTheDocument();
+  });
+
+  test("favorites saved for one role/account never expose an unavailable portal to another user", () => {
+    const stored = JSON.stringify(["society-night-permission", "lost-and-found", "student-notices", "fretbox-resident-app"]);
+
+    // adosa3 stores under an account-scoped key; ADoSA colleagues never read it.
+    localStorage.setItem(`${favKey("adosa")}.account.adosa3@thapar.edu`, stored);
+    let view = renderSelector(ADOSA3);
+    expect(buttonNames(quickAccess())).toEqual([
+      "Society Night Permission (opens in new tab)",
+      "Fretbox Resident App (opens in new tab)",
+    ]);
+    view.unmount();
+    view = renderSelector(ADOSA2);
+    expect(buttonNames(quickAccess())).toEqual(["Fretbox Resident App (opens in new tab)"]);
+    view.unmount();
+
+    // Even if the plain role key is polluted, only available ids survive.
+    localStorage.setItem(favKey("adosa"), stored);
+    view = renderSelector(ADOSA2);
+    expect(buttonNames(quickAccess())).toEqual(["Fretbox Resident App (opens in new tab)"]);
+    view.unmount();
+    localStorage.setItem(favKey("dd_assistant"), stored);
+    view = renderSelector(DD_ASSISTANT);
+    expect(buttonNames(quickAccess())).toEqual(["Fretbox Resident App (opens in new tab)"]);
+    view.unmount();
+    localStorage.setItem(favKey("caretaker"), stored);
+    renderSelector(CARETAKER);
+    expect(buttonNames(quickAccess())).toEqual([
+      "Society Night Permission (opens in new tab)",
+      "Fretbox Resident App (opens in new tab)",
+    ]);
+  });
+
+  test("adosa3 favourites are stored under an account-scoped key, not the shared role key", () => {
+    pinSidebar();
+    renderSelector(ADOSA3);
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove Society Night Permission from Quick Access" }));
+    expect(localStorage.getItem(favKey("adosa"))).toBeNull();
+    expect(JSON.parse(localStorage.getItem(`${favKey("adosa")}.account.adosa3@thapar.edu`))).toEqual(["fretbox-resident-app"]);
+  });
+
+  test("no credentials, tokens, sessions or cookies are written to localStorage or cookies", () => {
+    pinSidebar();
+    renderSelector(ADMIN);
+    fireEvent.click(portalButton(railList("Campus Portals"), "Lost & Found"));
+    fireEvent.click(portalButton(railList("Campus Portals"), "Society Night Permission"));
+    fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
+    const dump = JSON.stringify(Object.entries(localStorage)).toLowerCase();
+    expect(dump).not.toMatch(/password|token|session|cookie|secret|credential|bearer/);
+    expect(Object.keys(localStorage).every((key) => key.startsWith("campusConnect.dashboardSelector."))).toBe(true);
+    expect(document.cookie).toBe("");
+    // Launching is a bare URL: nothing is appended to it.
+    expect(openSpy.mock.calls.map(([url]) => url)).toEqual([LOST_AND_FOUND_URL, SNP_URL]);
   });
 
   test("only UI preference keys are ever written to localStorage", () => {

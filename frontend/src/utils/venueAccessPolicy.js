@@ -3,7 +3,6 @@
 export const DD_ASSISTANT_ALLOWED_ROOMS = [
   "LT-201",
   "LT-202",
-  "TAN Auditorium",
 ];
 
 export const DD_OFFICE_EMAIL = "hostel.support@thapar.edu";

@@ -195,23 +195,24 @@ const DashboardSelector = () => {
   const menuButtonRef = useRef(null);
 
   const navigate = useNavigate();
+  const email = currentUser?.email || currentUser?.user?.email || "";
   const isAdmin = role === "admin";
   const userName = currentUser?.name || "User";
   const { settings } = useSystemSettings();
   const dashboardAccess = resolveDashboardAccess(currentUser || {}, settings);
 
-  const { campusPortals, adminTools, otherTools } = useMemo(() => getWorkspaceItems(role), [role]);
+  const { campusPortals, adminTools, otherTools } = useMemo(() => getWorkspaceItems(role, email), [role, email]);
   const favoritableItems = useMemo(
     () => [...campusPortals, ...adminTools, ...otherTools].filter((item) => item.favoritable),
     [campusPortals, adminTools, otherTools]
   );
   const quickAccessItems = useMemo(() => {
     const byId = new Map(favoritableItems.map((item) => [item.id, item]));
-    const ids = readQuickAccessIds(role, favoritableItems.map((item) => item.id));
+    const ids = readQuickAccessIds(role, favoritableItems.map((item) => item.id), email);
     return ids.map((id) => byId.get(id));
     // favoritesVersion re-reads localStorage after a toggle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, favoritableItems, favoritesVersion]);
+  }, [role, email, favoritableItems, favoritesVersion]);
   const favoriteIds = useMemo(
     () => new Set(quickAccessItems.map((item) => item.id)),
     [quickAccessItems]
@@ -297,7 +298,7 @@ const DashboardSelector = () => {
       : currentIds.length < MAX_QUICK_ACCESS
       ? [...currentIds, item.id]
       : currentIds;
-    writeQuickAccessIds(role, next);
+    writeQuickAccessIds(role, next, email);
     setFavoritesVersion((version) => version + 1);
   };
 

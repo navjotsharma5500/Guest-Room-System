@@ -1,15 +1,22 @@
 import {
+  ACCOUNT_CAMPUS_PORTALS,
   DEFAULT_QUICK_ACCESS,
   MAX_QUICK_ACCESS,
   ROLE_CAMPUS_PORTALS,
+  getDefaultQuickAccess,
   getWorkspaceItems,
+  normalizeWorkspaceEmail,
   readQuickAccessIds,
+  resolveCampusPortalEntries,
   sanitiseFavorites,
   writeQuickAccessIds,
 } from "./campusPortals";
 import { STAFF_ROLES_WITH_SHARED_SELECTOR } from "../utils/dashboardAccess";
 
-const urlsFor = (role) => getWorkspaceItems(role).campusPortals.map((p) => p.target.url);
+const urlsFor = (role, email) => getWorkspaceItems(role, email).campusPortals.map((p) => p.target.url);
+const idsFor = (role, email) => getWorkspaceItems(role, email).campusPortals.map((p) => p.id);
+const SNP_URL = "https://studentsociety.thapar.edu/permissions";
+const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
 
 beforeEach(() => localStorage.clear());
 
@@ -29,15 +36,19 @@ test("exact role → URL mapping", () => {
     "https://campusconnect.thapar.edu/tc/admin/login",
     "https://campusconnect.thapar.edu/ic/admin/login",
     "https://studentsocieties.thapar.edu/admin/login",
+    LOST_AND_FOUND_URL,
+    SNP_URL,
   ]);
   expect(urlsFor("assistant")).toEqual([
     "https://studentsocieties.thapar.edu/admin/login",
     "https://campusconnect.thapar.edu/event-calendar/admin",
     "https://campusconnect.thapar.edu/tc/admin/login",
     "https://campusconnect.thapar.edu/ic/admin/login",
+    SNP_URL,
   ]);
   expect(urlsFor("caretaker")).toEqual([
     "https://campusconnect.thapar.edu/permissions/login/?next=/permissions/",
+    SNP_URL,
   ]);
 });
 
@@ -86,4 +97,75 @@ test("Quick Access storage is role-keyed and tolerant of a broken storage layer"
   });
   expect(() => writeQuickAccessIds("admin", ["a"])).not.toThrow();
   setItem.mockRestore();
+});
+
+test.each(["dd_assistant", "manager", "warden", "co_warden", "adosa", "student", "assistant_admin"])(
+  "%s cannot receive Society Night Permission or Lost & Found",
+  (role) => {
+    expect(idsFor(role)).toEqual([]);
+    expect(idsFor(role, "someone@thapar.edu")).toEqual([]);
+  }
+);
+
+test("Lost & Found is admin-only", () => {
+  expect(idsFor("admin")).toContain("lost-and-found");
+  ["assistant", "caretaker", "adosa", "dd_assistant"].forEach((role) => {
+    expect(idsFor(role, "adosa3@thapar.edu")).not.toContain("lost-and-found");
+  });
+});
+
+test("account-specific access is exactly adosa3@thapar.edu -> Society Night Permission", () => {
+  expect(ACCOUNT_CAMPUS_PORTALS).toEqual({
+    "adosa3@thapar.edu": [{ id: "society-night-permission", url: SNP_URL }],
+  });
+  expect(urlsFor("adosa", "adosa3@thapar.edu")).toEqual([SNP_URL]);
+  expect(idsFor("adosa", "adosa2@thapar.edu")).toEqual([]);
+  expect(idsFor("adosa")).toEqual([]);
+});
+
+test("email is normalised before matching", () => {
+  expect(normalizeWorkspaceEmail("  ADoSA3@Thapar.EDU ")).toBe("adosa3@thapar.edu");
+  expect(normalizeWorkspaceEmail(null)).toBe("");
+  expect(idsFor("adosa", "ADoSA3@thapar.edu")).toEqual(["society-night-permission"]);
+  expect(idsFor("adosa", " adosa3@thapar.edu ")).toEqual(["society-night-permission"]);
+  expect(idsFor("adosa", "adosa3@thapar.edu.evil.com")).toEqual([]);
+});
+
+test("role and account portals are merged and de-duplicated by id", () => {
+  // Assistant already has it by role; an account entry must not duplicate it.
+  const assistantIds = idsFor("assistant", "adosa3@thapar.edu");
+  expect(assistantIds.filter((id) => id === "society-night-permission")).toHaveLength(1);
+  expect(assistantIds).toEqual(idsFor("assistant"));
+  const ids = resolveCampusPortalEntries("caretaker", "adosa3@thapar.edu").map((e) => e.id);
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
+test("Quick Access defaults: admin/caretaker include Society Night Permission; adosa3 only for that account", () => {
+  expect(DEFAULT_QUICK_ACCESS.admin).toEqual([
+    "student-notices", "event-calendar", "library-night-pass", "student-societies", "society-night-permission",
+  ]);
+  expect(DEFAULT_QUICK_ACCESS.admin).not.toContain("lost-and-found");
+  expect(DEFAULT_QUICK_ACCESS.caretaker).toEqual([
+    "library-night-pass", "fretbox-resident-app", "society-night-permission",
+  ]);
+  expect(getDefaultQuickAccess("adosa", "adosa3@thapar.edu")).toEqual([
+    "fretbox-resident-app", "society-night-permission",
+  ]);
+  expect(getDefaultQuickAccess("adosa", "adosa2@thapar.edu")).toEqual(["fretbox-resident-app"]);
+  expect(getDefaultQuickAccess("assistant", "adosa3@thapar.edu")).toEqual(DEFAULT_QUICK_ACCESS.assistant);
+});
+
+test("account-scoped favourites use a separate key, and unavailable ids are sanitised away", () => {
+  const stored = ["society-night-permission", "lost-and-found"];
+  writeQuickAccessIds("adosa", stored, "ADoSA3@thapar.edu");
+  expect(Object.keys(localStorage)).toEqual([
+    "campusConnect.dashboardSelector.favorites.adosa.account.adosa3@thapar.edu",
+  ]);
+  const adosa3Available = idsFor("adosa", "adosa3@thapar.edu");
+  expect(readQuickAccessIds("adosa", adosa3Available, "adosa3@thapar.edu")).toEqual(["society-night-permission"]);
+  // Other ADoSA users read the role key, never the account one.
+  expect(readQuickAccessIds("adosa", idsFor("adosa", "adosa2@thapar.edu"), "adosa2@thapar.edu")).toEqual([]);
+  // A polluted role-wide key still cannot expose the account portal.
+  localStorage.setItem("campusConnect.dashboardSelector.favorites.adosa", JSON.stringify(stored));
+  expect(readQuickAccessIds("adosa", idsFor("adosa", "adosa2@thapar.edu"), "adosa2@thapar.edu")).toEqual([]);
 });
