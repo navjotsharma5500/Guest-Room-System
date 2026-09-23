@@ -38,6 +38,7 @@ test("exact role → URL mapping", () => {
     "https://studentsocieties.thapar.edu/admin/login",
     LOST_AND_FOUND_URL,
     SNP_URL,
+    "https://campusconnect.thapar.edu/dispensary/admin",
   ]);
   expect(urlsFor("assistant")).toEqual([
     "https://studentsocieties.thapar.edu/admin/login",
@@ -45,6 +46,7 @@ test("exact role → URL mapping", () => {
     "https://campusconnect.thapar.edu/tc/admin/login",
     "https://campusconnect.thapar.edu/ic/admin/login",
     SNP_URL,
+    "https://campusconnect.thapar.edu/dispensary/admin",
   ]);
   expect(urlsFor("caretaker")).toEqual([
     "https://campusconnect.thapar.edu/permissions/login/?next=/permissions/",
@@ -142,7 +144,7 @@ test("role and account portals are merged and de-duplicated by id", () => {
 
 test("Quick Access defaults: admin/caretaker include Society Night Permission; adosa3 only for that account", () => {
   expect(DEFAULT_QUICK_ACCESS.admin).toEqual([
-    "student-notices", "event-calendar", "library-night-pass", "student-societies", "society-night-permission",
+    "student-notices", "event-calendar", "library-night-pass", "student-societies", "society-night-permission", "tiet-health-hub",
   ]);
   expect(DEFAULT_QUICK_ACCESS.admin).not.toContain("lost-and-found");
   expect(DEFAULT_QUICK_ACCESS.caretaker).toEqual([
@@ -169,3 +171,26 @@ test("account-scoped favourites use a separate key, and unavailable ids are sani
   localStorage.setItem("campusConnect.dashboardSelector.favorites.adosa", JSON.stringify(stored));
   expect(readQuickAccessIds("adosa", idsFor("adosa", "adosa2@thapar.edu"), "adosa2@thapar.edu")).toEqual([]);
 });
+
+
+test.each(["ADMIN", "ASSISTANT"])("%s receives TIET Health Hub and its default Quick Access entry", (role) => {
+  expect(getWorkspaceItems(role).campusPortals.find(({ id }) => id === "tiet-health-hub")).toMatchObject({
+    title: "TIET Health Hub",
+    description: "Access TIET Health Hub administration",
+    external: true,
+    target: { type: "external", url: "https://campusconnect.thapar.edu/dispensary/admin" },
+  });
+  expect(readQuickAccessIds(role, idsFor(role))).toContain("tiet-health-hub");
+  expect(MAX_QUICK_ACCESS).toBe(6);
+});
+
+test.each(["caretaker", "adosa", "dd_assistant", "manager", "warden", "co_warden", "student", "faculty", "assistant_admin", "unknown", "", null])(
+  "%s cannot receive TIET Health Hub through role, account or saved favorites",
+  (role) => {
+    [undefined, "someone@thapar.edu", "adosa3@thapar.edu"].forEach((email) => {
+      expect(idsFor(role, email)).not.toContain("tiet-health-hub");
+      writeQuickAccessIds(role, ["tiet-health-hub"], email);
+      expect(readQuickAccessIds(role, idsFor(role, email), email)).not.toContain("tiet-health-hub");
+    });
+  }
+);

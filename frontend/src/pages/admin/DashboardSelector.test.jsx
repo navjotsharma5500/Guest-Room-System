@@ -58,6 +58,7 @@ const ADMIN_PORTALS = [
   ["Student Societies", "https://studentsocieties.thapar.edu/admin/login"],
   ["Lost & Found", LOST_AND_FOUND_URL],
   ["Society Night Permission", SNP_URL],
+  ["TIET Health Hub", "https://campusconnect.thapar.edu/dispensary/admin"],
 ];
 const ASSISTANT_PORTALS = [
   ["Student Societies", "https://studentsocieties.thapar.edu/admin/login"],
@@ -65,6 +66,7 @@ const ASSISTANT_PORTALS = [
   ["Student Calendar", "https://campusconnect.thapar.edu/tc/admin/login"],
   ["Institute Calendar", "https://campusconnect.thapar.edu/ic/admin/login"],
   ["Society Night Permission", SNP_URL],
+  ["TIET Health Hub", "https://campusconnect.thapar.edu/dispensary/admin"],
 ];
 const CARETAKER_PORTALS = [
   ["Library Night Pass", "https://campusconnect.thapar.edu/permissions/login/?next=/permissions/"],
@@ -132,21 +134,21 @@ describe("compact header", () => {
 
 // ─── Role → portal mapping ──────────────────────────────────────────────────
 describe("role-based campus portals", () => {
-  test("admin sees all 9 portals and each opens its exact URL in a new tab", () => {
+  test("admin sees all 10 portals and each opens its exact URL in a new tab", () => {
     renderSelector(ADMIN);
     const list = railList("Campus Portals");
-    expect(within(list).getAllByRole("button")).toHaveLength(9);
+    expect(within(list).getAllByRole("button")).toHaveLength(10);
     ADMIN_PORTALS.forEach(([title, url]) => {
       fireEvent.click(portalButton(list, title));
       expect(openSpy).toHaveBeenLastCalledWith(url, "_blank", "noopener,noreferrer");
     });
-    expect(openSpy).toHaveBeenCalledTimes(9);
+    expect(openSpy).toHaveBeenCalledTimes(10);
   });
 
-  test("assistant sees exactly its 5 portals, none of the admin-only ones", () => {
+  test("assistant sees exactly its 6 portals, none of the admin-only ones", () => {
     renderSelector(ASSISTANT);
     const list = railList("Campus Portals");
-    expect(within(list).getAllByRole("button")).toHaveLength(5);
+    expect(within(list).getAllByRole("button")).toHaveLength(6);
     ASSISTANT_PORTALS.forEach(([title, url]) => {
       fireEvent.click(portalButton(list, title));
       expect(openSpy).toHaveBeenLastCalledWith(url, "_blank", "noopener,noreferrer");
@@ -215,7 +217,7 @@ describe("Lost & Found and Society Night Permission access", () => {
   test("assistant still sees Society Night Permission exactly once", () => {
     renderSelector(ASSISTANT);
     expect(portalTitles().filter((n) => n.startsWith("Society Night Permission"))).toHaveLength(1);
-    expect(portalTitles()).toHaveLength(5);
+    expect(portalTitles()).toHaveLength(6);
   });
 
   test("adosa3@thapar.edu sees only Society Night Permission and it opens in a new tab", () => {
@@ -265,6 +267,7 @@ describe("Quick Access defaults", () => {
       "Library Night Pass (opens in new tab)",
       "Student Societies (opens in new tab)",
       "Society Night Permission (opens in new tab)",
+      "TIET Health Hub (opens in new tab)",
     ]);
   });
 
@@ -276,6 +279,7 @@ describe("Quick Access defaults", () => {
       "Institute Calendar (opens in new tab)",
       "Student Societies (opens in new tab)",
       "Society Night Permission (opens in new tab)",
+      "TIET Health Hub (opens in new tab)",
     ]);
   });
 
@@ -303,6 +307,7 @@ describe("Quick Access defaults", () => {
     localStorage.setItem(PINNED_KEY, "true");
     renderSelector(ADMIN);
     expect(within(quickAccess()).queryByRole("button", { name: /Lost & Found/ })).not.toBeInTheDocument();
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Lost & Found to Quick Access" }));
     expect(within(quickAccess()).getByRole("button", { name: /Lost & Found/ })).toBeInTheDocument();
   });
@@ -504,6 +509,7 @@ describe("favorites", () => {
   test("add and remove persist role-wise and never affect other roles", () => {
     pinSidebar();
     const { unmount } = renderSelector(ADMIN);
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
     expect(readFav("admin")).toEqual([
       "student-notices", "event-calendar", "library-night-pass", "student-societies",
@@ -524,12 +530,13 @@ describe("favorites", () => {
     // Assistant is untouched and still on its defaults.
     expect(localStorage.getItem(favKey("assistant"))).toBeNull();
     renderSelector(ASSISTANT);
-    expect(within(quickAccess()).getAllByRole("button")).toHaveLength(5);
+    expect(within(quickAccess()).getAllByRole("button")).toHaveLength(6);
   });
 
   test("favorites are capped at 6", () => {
     pinSidebar();
     renderSelector(ADMIN);
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
     expect(readFav("admin")).toHaveLength(6);
     expect(within(rail()).getByRole("button", { name: "Add Institute Calendar to Quick Access" })).toBeDisabled();
@@ -553,7 +560,7 @@ describe("favorites", () => {
     (raw) => {
       localStorage.setItem(favKey("assistant"), raw);
       renderSelector(ASSISTANT);
-      expect(within(quickAccess()).getAllByRole("button")).toHaveLength(5);
+      expect(within(quickAccess()).getAllByRole("button")).toHaveLength(6);
     }
   );
 
@@ -567,6 +574,7 @@ describe("favorites", () => {
   test("Grievance and Fretbox can be favourited by admin, and stay admin-scoped", () => {
     pinSidebar();
     renderSelector(ADMIN);
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Grievance Admin to Quick Access" }));
     expect(readFav("admin")).toContain("grievance-admin-portal");
     expect(within(quickAccess()).getByRole("button", { name: "Student Grievance Admin" })).toBeInTheDocument();
@@ -617,6 +625,7 @@ describe("favorites", () => {
     renderSelector(ADMIN);
     fireEvent.click(portalButton(railList("Campus Portals"), "Lost & Found"));
     fireEvent.click(portalButton(railList("Campus Portals"), "Society Night Permission"));
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
     const dump = JSON.stringify(Object.entries(localStorage)).toLowerCase();
     expect(dump).not.toMatch(/password|token|session|cookie|secret|credential|bearer/);
@@ -629,6 +638,7 @@ describe("favorites", () => {
   test("only UI preference keys are ever written to localStorage", () => {
     pinSidebar();
     renderSelector(ADMIN);
+    fireEvent.click(within(rail()).getByRole("button", { name: "Remove TIET Health Hub from Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Add Student Calendar to Quick Access" }));
     fireEvent.click(within(rail()).getByRole("button", { name: "Unpin sidebar" }));
     const keys = Object.keys(localStorage);
@@ -704,5 +714,25 @@ describe("footer", () => {
     expect(screen.queryByText(/Powered by Thapar Institute/)).not.toBeInTheDocument();
     expect(screen.queryByText("System Online")).not.toBeInTheDocument();
     expect(screen.queryByText("Created by DoSA Office")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("TIET Health Hub", () => {
+  test.each([ADMIN, ASSISTANT])("%o can launch from default Quick Access", (user) => {
+    renderSelector(user);
+    fireEvent.click(portalButton(quickAccess(), "TIET Health Hub"));
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://campusconnect.thapar.edu/dispensary/admin", "_blank", "noopener,noreferrer"
+    );
+  });
+
+  test.each([CARETAKER, ADOSA2, ADOSA3, DD_ASSISTANT,
+    ...["manager", "warden", "co_warden", "student", "unknown"].map((role) => ({ role }))
+  ])("%o cannot see it even with a saved favorite", (user) => {
+    localStorage.setItem(favKey(user.role), JSON.stringify(["tiet-health-hub"]));
+    renderSelector(user);
+    expect(screen.queryByRole("button", { name: /TIET Health Hub/ })).not.toBeInTheDocument();
+    expect(openSpy).not.toHaveBeenCalled();
   });
 });

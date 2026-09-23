@@ -16,6 +16,7 @@ import {
   Database,
   GraduationCap,
   Globe,
+  HeartPulse,
   Landmark,
   Megaphone,
   MessageSquare,
@@ -46,6 +47,13 @@ export const MAX_QUICK_ACCESS = 6;
 // Presentation only. URLs are access-specific and live in ROLE_CAMPUS_PORTALS /
 // ACCOUNT_CAMPUS_PORTALS.
 const CAMPUS_PORTAL_CATALOG = {
+  "tiet-health-hub": {
+    title: "TIET Health Hub",
+    description: "Access TIET Health Hub administration",
+    icon: HeartPulse,
+    iconBg: "bg-rose-100",
+    iconColor: "text-rose-600",
+  },
   "lost-and-found": {
     title: "Lost & Found",
     description: "Manage and access the campus Lost & Found portal",
@@ -113,6 +121,7 @@ const CAMPUS_PORTAL_CATALOG = {
 
 const SOCIETY_NIGHT_PERMISSION_URL = "https://studentsocieties.thapar.edu/permissions/";
 const LOST_AND_FOUND_URL = "https://campusconnect.thapar.edu/lostnfound/";
+const TIET_HEALTH_HUB_URL = "https://campusconnect.thapar.edu/dispensary/admin";
 
 // ─── Role → external campus portals (exact URLs, in display order) ──────────
 // Keyed by the exact normalised role. A role that is not listed here gets no
@@ -128,6 +137,7 @@ export const ROLE_CAMPUS_PORTALS = {
     { id: "student-societies", url: "https://studentsocieties.thapar.edu/admin/login" },
     { id: "lost-and-found", url: LOST_AND_FOUND_URL },
     { id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL },
+    { id: "tiet-health-hub", url: TIET_HEALTH_HUB_URL },
   ],
   assistant: [
     { id: "student-societies", url: "https://studentsocieties.thapar.edu/admin/login" },
@@ -135,6 +145,7 @@ export const ROLE_CAMPUS_PORTALS = {
     { id: "student-calendar", url: "https://campusconnect.thapar.edu/tc/admin/login" },
     { id: "institute-calendar", url: "https://campusconnect.thapar.edu/ic/admin/login" },
     { id: "society-night-permission", url: SOCIETY_NIGHT_PERMISSION_URL },
+    { id: "tiet-health-hub", url: TIET_HEALTH_HUB_URL },
   ],
   caretaker: [
     {
@@ -181,8 +192,9 @@ export const DEFAULT_QUICK_ACCESS = {
     "library-night-pass",
     "student-societies",
     "society-night-permission",
+    "tiet-health-hub",
   ],
-  assistant: ["event-calendar", "student-calendar", "institute-calendar", "student-societies", "society-night-permission"],
+  assistant: ["event-calendar", "student-calendar", "institute-calendar", "student-societies", "society-night-permission", "tiet-health-hub"],
   caretaker: ["library-night-pass", "fretbox-resident-app", "society-night-permission"],
 };
 const FALLBACK_QUICK_ACCESS = ["fretbox-resident-app"];
