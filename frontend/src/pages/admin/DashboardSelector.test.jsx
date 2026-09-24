@@ -391,6 +391,7 @@ describe("Fretbox and Student Grievance access", () => {
     const tools = railList("Admin Tools");
     expect(within(tools).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
       "Student Grievance Admin",
+      "Manage Public Forms",
       "Public UI",
       "Campus Feedback",
       "Echo Knowledge",
@@ -403,7 +404,7 @@ describe("Fretbox and Student Grievance access", () => {
     (user) => {
       renderSelector(user);
       expect(screen.queryByRole("button", { name: /Grievance/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /Public UI|Campus Feedback|Echo Knowledge|System Analytics/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Manage Public Forms|Public UI|Campus Feedback|Echo Knowledge|System Analytics/ })).not.toBeInTheDocument();
     }
   );
 
@@ -416,6 +417,8 @@ describe("Fretbox and Student Grievance access", () => {
     expect(mockNavigate).toHaveBeenLastCalledWith("/admin/campus-feedback");
     fireEvent.click(within(tools).getByRole("button", { name: "Echo Knowledge" }));
     expect(mockNavigate).toHaveBeenLastCalledWith("/admin/echo-knowledge");
+    fireEvent.click(within(tools).getByRole("button", { name: "Manage Public Forms" }));
+    expect(mockNavigate).toHaveBeenLastCalledWith("/admin/public-forms");
   });
 
   test("Fretbox opens in a new tab", () => {
@@ -441,6 +444,10 @@ describe("System Analytics and Public Forms", () => {
     expect(screen.queryByText("Access public booking portals and calendars")).not.toBeInTheDocument();
     fireEvent.click(within(rail()).getByRole("button", { name: "Public Forms" }));
     expect(screen.getByRole("heading", { level: 2, name: "Public Forms" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Student Forms & Downloads/ })).toHaveAttribute("href", "/public-forms");
+    for (const title of ["Hostel Guest Room Booking Form", "Guest Room Feedback Form", "Venue Booking Form", "Event Calendar Page"]) {
+      expect(screen.getByRole("link", { name: new RegExp(title) })).toBeInTheDocument();
+    }
   });
 
   test("Echo FAB still opens Echo", () => {

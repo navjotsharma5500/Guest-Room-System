@@ -62,6 +62,7 @@ import websiteContentRoutes from "./routes/websiteContentRoutes.js";
 import publicGuestRoomRoutes from "./routes/publicGuestRoomRoutes.js";
 import campusFeedbackRoutes from "./routes/campusFeedbackRoutes.js";
 import studentNoticeRoutes from "./routes/studentNoticeRoutes.js";
+import publicFormRoutes from "./routes/publicFormRoutes.js";
 import venueIntegrationRoutes from "./routes/venueIntegrationRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
 import { trustImmediateProxy } from "./config/trustedProxy.js";
@@ -450,6 +451,7 @@ app.use("/api/website-content", websiteContentRoutes);
 app.use("/api/public/guest-room", publicGuestRoomRoutes);
 app.use("/api/campus-feedback", campusFeedbackRoutes);
 app.use("/api/student-notices", studentNoticeRoutes);
+app.use("/api/public-forms", publicFormRoutes);
 app.use("/api/integration", venueIntegrationRoutes);
 app.use("/api/admin/audit-logs", auditRoutes);
 

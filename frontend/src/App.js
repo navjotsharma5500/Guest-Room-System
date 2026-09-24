@@ -66,6 +66,8 @@ import EchoKnowledgePage from "./pages/admin/EchoKnowledgePage";
 import PublicUiCustomizerPage from "./pages/admin/PublicUiCustomizerPage";
 import CampusFeedbackAdminPage from "./pages/admin/CampusFeedbackAdminPage";
 import StudentNoticesPage from "./pages/StudentNoticesPage";
+import PublicFormsPage from "./pages/PublicFormsPage";
+import PublicFormsAdminPage from "./pages/admin/PublicFormsAdminPage";
 import StudentNoticesAdminPage from "./pages/admin/StudentNoticesAdminPage";
 import AuditActivityPage from "./pages/admin/AuditActivityPage";
 import PublicVenueCalendar from "./pages/PublicVenueCalendar";
@@ -449,6 +451,12 @@ export default function App() {
           <Route path="/install-app"          element={<InstallApp />} />
           <Route path="/about-us"             element={<CampusConnect />} />
           <Route path="/student-notices" element={<StudentNoticesPage />} />
+          <Route path="/public-forms" element={<PublicFormsPage />} />
+          <Route path="/admin/public-forms" element={
+            currentUser && role === "admin" && currentUser.isActive !== false
+              ? <PublicFormsAdminPage />
+              : <Navigate to={currentUser ? "/admin/dashboard-selector" : "/login"} replace />
+          } />
           <Route
             path="/student-notices/admin"
             element={<StudentNoticesAdminPage />}

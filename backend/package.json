@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "devdb": "dotenv -e .env -e .env.dev --override -- nodemon index.js",
+    "seed:public-forms": "node scripts/seedPublicForms.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {

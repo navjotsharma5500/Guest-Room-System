@@ -14,6 +14,7 @@ import {
   CalendarDays,
   ClipboardList,
   Database,
+  FileText,
   GraduationCap,
   Globe,
   HeartPulse,
@@ -233,6 +234,16 @@ const buildGrievanceItem = () => ({
 });
 
 const buildAdminTools = () => [
+  {
+    id: "manage-public-forms",
+    title: "Manage Public Forms",
+    description: "Manage student forms and downloads",
+    icon: FileText,
+    iconBg: "bg-red-100",
+    iconColor: "text-red-600",
+    favoritable: false,
+    target: { type: "route", path: "/admin/public-forms" },
+  },
   {
     id: "public-ui",
     title: "Public UI",

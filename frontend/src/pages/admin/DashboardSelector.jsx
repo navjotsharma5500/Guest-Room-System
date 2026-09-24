@@ -13,7 +13,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Calendar, Globe, X, ArrowRight, LayoutDashboard,
-  MessageSquare, CalendarDays, ArrowLeft, ExternalLink, Menu, Star,
+  MessageSquare, CalendarDays, ArrowLeft, ExternalLink, Menu, Star, FileText,
 } from "lucide-react";
 import EchoOrb from "../../components/EchoOrb";
 import EchoModal from "../../components/EchoModal";
@@ -40,6 +40,16 @@ const PublicFormsModal = ({ open, onClose }) => {
   if (!open) return null;
 
   const forms = [
+    {
+      title: "Student Forms & Downloads",
+      description: "Browse official student forms and documents",
+      url: "/public-forms",
+      icon: FileText,
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      hover: "hover:border-red-400"
+    },
     {
       title: "Hostel Guest Room Booking Form",
       description: "Book guest rooms for visitors",

@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import CampusConnect, { PublicQuickLinks } from "./CampusConnect";
-import { DEFAULT_PUBLIC_UI_CONFIG } from "../utils/publicUiConfig";
+import { DEFAULT_PUBLIC_UI_CONFIG, normalizePublicUiConfig } from "../utils/publicUiConfig";
 
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }), { virtual: true });
 jest.mock("../components/PublicPageWidgets", () => () => null);
 jest.mock("../components/CampusFeedbackSection", () => () => null);
+jest.mock("../hooks/usePublicForms", () => () => ({ forms: [], loading: false, error: "", reload: jest.fn() }));
 jest.mock("../utils/publicUiConfig", () => ({
   ...jest.requireActual("../utils/publicUiConfig"),
   fetchPublicUiConfig: () => new Promise(() => {}),
@@ -50,7 +51,7 @@ test("existing Quick Links retain their order, labels, destinations and navigati
     "Home", "How to Install", "Sign In", "Student Notices", "Institute Calendar",
     "Student Calendar", "Student Societies", "About Us", "Guest Room Booking",
     "Library Night Pass", "Venue Booking", "Student Societies",
-    "TIET Health Hub – Staff Login",
+    "TIET Health Hub – Staff Login", "Public Forms & Downloads",
   ]);
   for (const item of DEFAULT_PUBLIC_UI_CONFIG.footer.quickLinks) {
     fireEvent.click(footer.getAllByRole("button", { name: item.title })[0]);
@@ -61,6 +62,7 @@ test("existing Quick Links retain their order, labels, destinations and navigati
     { id: "library-pass-service", title: "Library Night Pass", destination: "https://campusconnect.thapar.edu/permissions/" },
     { id: "venue-service", title: "Venue Booking", destination: "/venue-enquiry" },
     { id: "societies-service", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/" },
+    { id: "public-forms-service", title: "Public Forms & Downloads", destination: "/public-forms" },
   ]) {
     const buttons = footer.getAllByRole("button", { name: item.title });
     fireEvent.click(buttons[buttons.length - 1]);
@@ -69,4 +71,18 @@ test("existing Quick Links retain their order, labels, destinations and navigati
   const lostFound = footer.getByRole("link", { name: "Lost & Found" });
   expect(lostFound).toHaveAttribute("href", "/lostnfound/");
   expect(lostFound).not.toHaveAttribute("target");
+});
+
+test("application carousel still renders only the existing configured application cards", () => {
+  render(<CampusConnect />);
+  const config = normalizePublicUiConfig(DEFAULT_PUBLIC_UI_CONFIG);
+  const cards = config.selector.cardOrder.map((id) => config.selector.cards.find((card) => card.id === id)).filter((card) => card?.enabled === true);
+  const expectedLabels = cards.map((card) => {
+    const suffix = card.locked ? " — Locked" : card.comingSoon || card.status === "Coming Soon" || !card.destination ? " — Coming Soon" : "";
+    return `${card.title}${suffix}`;
+  });
+  const carouselCards = screen.getAllByRole("button").filter((button) => button.getAttribute("class")?.includes("platform-orbit-card"));
+  expect(carouselCards.map((button) => button.getAttribute("aria-label"))).toEqual(expectedLabels);
+  expect(screen.queryByRole("button", { name: /Public Forms.*Coming Soon|Public Forms.*Locked/ })).not.toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: "Public Forms" })).toHaveLength(1);
 });

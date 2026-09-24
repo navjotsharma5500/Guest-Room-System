@@ -15,6 +15,7 @@ import {
 } from "../utils/publicUiConfig";
 import PublicPageWidgets from "../components/PublicPageWidgets";
 import CampusFeedbackSection from "../components/CampusFeedbackSection";
+import PublicFormsNav, { isPublicFormsNavigation } from "../components/PublicFormsNav";
 import "../styles/CampusPublicChrome.css";
 
 /* ─────────────────────────────────────────
@@ -225,6 +226,14 @@ export function PublicHeader({ config, onOpen, applications }) {
       };
     })
     .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  let formsNavigationAdded = false;
+  const publicNavigation = navigation.filter((item) => {
+    if (!isPublicFormsNavigation(item)) return true;
+    if (formsNavigationAdded) return false;
+    formsNavigationAdded = true;
+    return true;
+  });
+  if (!formsNavigationAdded) publicNavigation.push({ id: "public-forms", title: "Public Forms", destination: "/public-forms" });
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 300, background: "#fff", borderBottom: "1px solid #e5e7eb", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
       <div className="about-public-header">
@@ -232,8 +241,10 @@ export function PublicHeader({ config, onOpen, applications }) {
           <img src={header.logoUrl} alt={header.logoAlt || "Thapar"} style={{ height: "clamp(56px,6vw,72px)", width: "auto", objectFit: "contain" }} />
           <strong style={{ maxWidth: 250, fontSize: 12.5, lineHeight: 1.25 }}>{header.title}</strong>
         </div>
-        <nav className="about-public-nav">
-          {navigation.map((item) => <HeaderNavItem key={item.id || item.title} item={item} onOpen={onOpen} />)}
+        <nav className="about-public-nav pf-header-nav">
+          {publicNavigation.map((item) => isPublicFormsNavigation(item)
+            ? <PublicFormsNav key={item.id || item.title} title={item.title} onOpen={onOpen} />
+            : <HeaderNavItem key={item.id || item.title} item={item} onOpen={onOpen} />)}
         </nav>
       </div>
     </header>
@@ -251,6 +262,7 @@ export function PublicQuickLinks({ config, onOpen }) {
     { id: "societies-service", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/" },
     { id: "lost-found-service", title: "Lost & Found", destination: "/lostnfound/", documentNavigation: true },
     { id: "health-hub-staff", title: "TIET Health Hub – Staff Login", destination: "https://campusconnect.thapar.edu/dispensary/admin" },
+    { id: "public-forms-service", title: "Public Forms & Downloads", destination: "/public-forms" },
   ];
   return (
     <>
