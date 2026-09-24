@@ -250,6 +250,7 @@ export function PublicQuickLinks({ config, onOpen }) {
     { id: "venue-service", title: "Venue Booking", destination: "/venue-enquiry" },
     { id: "societies-service", title: "Student Societies", destination: "https://studentsocieties.thapar.edu/" },
     { id: "lost-found-service", title: "Lost & Found", destination: "/lostnfound/", documentNavigation: true },
+    { id: "health-hub-staff", title: "TIET Health Hub – Staff Login", destination: "https://campusconnect.thapar.edu/dispensary/admin" },
   ];
   return (
     <>
