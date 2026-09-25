@@ -65,6 +65,13 @@ export const deletePublicForm = (id) => mutate(`/admin/${id}`, "DELETE");
 export const reorderPublicForms = (items) => mutate("/admin/reorder", "PATCH", { items: items.map(({ id, order }) => ({ id, order })) });
 export const getPublicFormDownloadUrl = (form) => `${ROOT}/${form._id}/download`;
 
+// Fire-and-forget: counts an actual form-open action without blocking the
+// browser's native new-tab navigation (which must stay synchronous with the
+// click to avoid popup blockers).
+export function incrementPublicFormView(id) {
+  fetch(`${ROOT}/${id}/view`, { method: "POST", credentials: "include", cache: "no-store" }).catch(() => {});
+}
+
 export function isFormFileUrl(value) {
   try { const url = new URL(value); return /^https?:\/\//i.test(value) && !url.username && !url.password; } catch { return false; }
 }

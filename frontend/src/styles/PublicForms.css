@@ -82,6 +82,7 @@
 .pf-admin-meta a { display:flex; gap:4px; color:#64748b; font-size:11px; }
 .pf-active { color:#257147; background:#eaf7ef; }
 .pf-hidden { color:#64748b; background:#edf0f4; }
+.pf-views { display:inline-flex; align-items:center; gap:4px; color:#1d4ed8; font-size:11px; font-weight:600; }
 .pf-row-actions { display:flex; flex-wrap:wrap; gap:7px; }
 .pf-admin .pf-danger { color:#b92828; }
 .pf-error { padding:13px; background:#fef0f0; color:#a32727; border:1px solid #f2d1d1; border-radius:10px; font-size:13px; margin-bottom:16px; }

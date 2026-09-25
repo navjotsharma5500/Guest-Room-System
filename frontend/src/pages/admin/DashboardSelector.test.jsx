@@ -399,14 +399,23 @@ describe("Fretbox and Student Grievance access", () => {
     ]);
   });
 
-  test.each([ASSISTANT, CARETAKER, { role: "manager" }, { role: "adosa", dashboardAccess: { dashboards: ["guestRoom"] } }])(
-    "non-admin %o sees no Student Grievance or admin tools",
+  test.each([CARETAKER, { role: "manager" }, { role: "adosa", dashboardAccess: { dashboards: ["guestRoom"] } }])(
+    "non-admin, non-assistant %o sees no Student Grievance or admin tools",
     (user) => {
       renderSelector(user);
       expect(screen.queryByRole("button", { name: /Grievance/ })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Manage Public Forms|Public UI|Campus Feedback|Echo Knowledge|System Analytics/ })).not.toBeInTheDocument();
     }
   );
+
+  test("assistant sees only Manage Public Forms among the admin tools, not Grievance or the rest", () => {
+    renderSelector(ASSISTANT);
+    const tools = railList("Admin Tools");
+    expect(within(tools).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Manage Public Forms"]);
+    fireEvent.click(within(tools).getByRole("button", { name: "Manage Public Forms" }));
+    expect(mockNavigate).toHaveBeenLastCalledWith("/admin/public-forms");
+    expect(screen.queryByRole("button", { name: /Grievance|Public UI|Campus Feedback|Echo Knowledge|System Analytics/ })).not.toBeInTheDocument();
+  });
 
   test("admin tools keep their existing routes", () => {
     renderSelector(ADMIN);

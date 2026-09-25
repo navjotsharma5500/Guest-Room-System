@@ -43,6 +43,24 @@ test("renders API cards, exact View URL and Mongo ID download; page and header s
   expect(fetch).toHaveBeenCalledWith("/api/public-forms", expect.objectContaining({ credentials: "include" }));
 });
 
+test("loading the page alone does not increment any form's view count", async () => {
+  render(<PublicFormsPage />);
+  await screen.findByRole("article", { name: form.title });
+  const viewCalls = fetch.mock.calls.filter(([url]) => url.endsWith("/view"));
+  expect(viewCalls).toHaveLength(0);
+});
+
+test("clicking View Form increments the view count; Download does not", async () => {
+  render(<PublicFormsPage />);
+  const card = await screen.findByRole("article", { name: form.title });
+  fireEvent.click(within(card).getByRole("link", { name: "View Form" }));
+  await waitFor(() => expect(fetch.mock.calls.some(([url, options]) => url === `/api/public-forms/${form._id}/view` && options.method === "POST")).toBe(true));
+  const viewCalls = fetch.mock.calls.filter(([url]) => url.endsWith("/view"));
+  expect(viewCalls).toHaveLength(1);
+  fireEvent.click(within(card).getByRole("link", { name: "Download" }));
+  expect(fetch.mock.calls.filter(([url]) => url.endsWith("/view"))).toHaveLength(1);
+});
+
 test("shows loading skeletons while the API is pending", () => {
   fetch.mockImplementation(() => new Promise(() => {}));
   render(<PublicFormsPage />);
@@ -100,6 +118,16 @@ test("shared header backfills forms without mutating custom navigation or duplic
   fireEvent.click(screen.getByRole("link", { name: /View All Forms/ }));
   expect(onOpen).toHaveBeenLastCalledWith({ destination: "/public-forms" });
   expect(JSON.stringify(navigation)).toBe(original);
+});
+
+test("clicking a form in the header dropdown increments its view count", async () => {
+  render(<PublicHeader config={{ ...DEFAULT_PUBLIC_UI_CONFIG, navigation: [] }} onOpen={jest.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Public Forms" }));
+  const link = await screen.findByRole("link", { name: `${form.title} ${form.code}` });
+  const viewCallsBefore = fetch.mock.calls.filter(([url]) => url.endsWith("/view"));
+  expect(viewCallsBefore).toHaveLength(0);
+  fireEvent.click(link);
+  await waitFor(() => expect(fetch.mock.calls.some(([url, options]) => url === `/api/public-forms/${form._id}/view` && options.method === "POST")).toBe(true));
 });
 
 test("dropdown handles forty API records in a scroll container and supports keyboard navigation", async () => {

@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from "react";
 import { ChevronDown, ExternalLink, FileText } from "lucide-react";
 import usePublicForms from "../hooks/usePublicForms";
-import { isFormFileUrl } from "../utils/publicFormsApi";
+import { incrementPublicFormView, isFormFileUrl } from "../utils/publicFormsApi";
 import "../styles/PublicForms.css";
 
 export function isPublicFormsNavigation(item) {
@@ -38,7 +38,7 @@ export default function PublicFormsNav({ title = "Public Forms", onOpen }) {
     {open && <div id={id} ref={menu} className="pf-dropdown pf-dropdown-enter" role="region" aria-label="Public Forms dropdown">
       <div className="pf-dropdown-scroll" role="list" aria-label="Available public forms">
         {loading ? <p role="status">Loading forms…</p> : error ? <div role="alert"><p>We couldn't load the forms right now.</p><button type="button" onClick={reload}>Retry</button></div>
-          : forms.length ? forms.map((form) => <div role="listitem" key={form._id}><a href={isFormFileUrl(form.fileUrl) ? form.fileUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}><FileText size={16} aria-hidden="true" /><span>{form.title}{form.code && <small>{form.code}</small>}</span><ExternalLink size={12} aria-hidden="true" /></a></div>)
+          : forms.length ? forms.map((form) => <div role="listitem" key={form._id}><a href={isFormFileUrl(form.fileUrl) ? form.fileUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => { if (isFormFileUrl(form.fileUrl)) incrementPublicFormView(form._id); setOpen(false); }}><FileText size={16} aria-hidden="true" /><span>{form.title}{form.code && <small>{form.code}</small>}</span><ExternalLink size={12} aria-hidden="true" /></a></div>)
             : <p>No public forms are currently available.</p>}
       </div>
       <a className="pf-view-all" href="/public-forms" onClick={(event) => {

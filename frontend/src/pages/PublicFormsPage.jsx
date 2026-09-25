@@ -5,7 +5,7 @@ import { Download, ExternalLink, FileText, Search, X } from "lucide-react";
 import { PublicHeader, PublicQuickLinks } from "./CampusConnect";
 import PublicPageWidgets from "../components/PublicPageWidgets";
 import usePublicForms from "../hooks/usePublicForms";
-import { getPublicFormDownloadUrl, isFormFileUrl } from "../utils/publicFormsApi";
+import { getPublicFormDownloadUrl, incrementPublicFormView, isFormFileUrl } from "../utils/publicFormsApi";
 import { DEFAULT_PUBLIC_UI_CONFIG, fetchPublicUiConfig, normalizePublicUiConfig } from "../utils/publicUiConfig";
 import "../styles/CampusPublicChrome.css";
 import "../styles/PublicForms.css";
@@ -49,7 +49,7 @@ export default function PublicFormsPage() {
               : <motion.div key={`${activeCategory}|${query}`} initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .2 }}><p className="pf-count" aria-live="polite">{matches.length} {matches.length === 1 ? "resource" : "resources"}</p><div className="pf-grid">{matches.map((form, index) => <motion.article className="pf-card" key={form._id} aria-label={form.title} initial={reducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .25, delay: Math.min(index * .035, .25) }}>
                 <div className="pf-card-top"><span className="pf-document"><FileText size={24} aria-hidden="true" /></span><span className="pf-badge">{form.fileType || "PDF"}</span>{form.featured && <span className="pf-featured">Featured</span>}</div>
                 <p className="pf-category">{form.category}</p><h2>{form.title} {form.code && <span className="pf-code">{form.code}</span>}</h2><p className="pf-description">{form.description}</p>
-                <div className="pf-card-actions"><a href={isFormFileUrl(form.fileUrl) ? form.fileUrl : undefined} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} aria-hidden="true" />View Form</a><a href={getPublicFormDownloadUrl(form)}><Download size={15} aria-hidden="true" />Download</a></div>
+                <div className="pf-card-actions"><a href={isFormFileUrl(form.fileUrl) ? form.fileUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => { if (isFormFileUrl(form.fileUrl)) incrementPublicFormView(form._id); }}><ExternalLink size={15} aria-hidden="true" />View Form</a><a href={getPublicFormDownloadUrl(form)}><Download size={15} aria-hidden="true" />Download</a></div>
               </motion.article>)}</div></motion.div>}
     </main>
     <PublicQuickLinks config={config} onOpen={openItem} /><PublicPageWidgets hideFooter />

@@ -54,11 +54,12 @@ test("exact role → URL mapping", () => {
   ]);
 });
 
-test("admin tools and grievance are admin-only; Fretbox follows the shared-selector roles", () => {
+test("admin tools and grievance are admin-only; Assistant only gets Manage Public Forms; Fretbox follows the shared-selector roles", () => {
   expect(getWorkspaceItems("admin").adminTools.map((t) => t.id)).toEqual([
     "grievance-admin-portal", "manage-public-forms", "public-ui", "campus-feedback", "echo-knowledge", "system-analytics",
   ]);
-  ["assistant", "caretaker", "manager", "faculty", ""].forEach((role) => {
+  expect(getWorkspaceItems("assistant").adminTools.map((t) => t.id)).toEqual(["manage-public-forms"]);
+  ["caretaker", "manager", "faculty", ""].forEach((role) => {
     expect(getWorkspaceItems(role).adminTools).toEqual([]);
   });
   ["admin", ...STAFF_ROLES_WITH_SHARED_SELECTOR, "faculty", "student"].forEach((role) => {

@@ -4,13 +4,16 @@ import { makeFormSlug } from "../../utils/publicFormsApi";
 
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }), { virtual: true });
 jest.mock("react-hot-toast", () => ({ __esModule: true, default: { success: jest.fn(), error: jest.fn() }, Toaster: () => null }));
+let mockUser = { role: "admin" };
+jest.mock("../../context/AuthContext", () => ({ useAuth: () => ({ currentUser: mockUser }) }));
 
-const original = { _id: "507f1f77bcf86cd799439011", title: "Research Support", code: "RS9", slug: "research-support", category: "Research", description: "Lab support", fileUrl: "https://ik.imagekit.io/test/research.pdf", keywords: ["laboratory"], enabled: true, featured: false, order: 1, fileType: "PDF", createdAt: "2026-09-24", updatedBy: "admin-id", __v: 0 };
-const second = { ...original, _id: "507f1f77bcf86cd799439012", title: "Studio Access", slug: "studio-access", category: "Creative", order: 2 };
+const original = { _id: "507f1f77bcf86cd799439011", title: "Research Support", code: "RS9", slug: "research-support", category: "Research", description: "Lab support", fileUrl: "https://ik.imagekit.io/test/research.pdf", keywords: ["laboratory"], enabled: true, featured: false, order: 1, fileType: "PDF", viewCount: 1245, createdAt: "2026-09-24", updatedBy: "admin-id", __v: 0 };
+const second = { ...original, _id: "507f1f77bcf86cd799439012", title: "Studio Access", slug: "studio-access", category: "Creative", order: 2, viewCount: 3 };
 let records;
 const sent = (method) => fetch.mock.calls.filter(([, options]) => options.method === method);
 
 beforeEach(() => {
+  mockUser = { role: "admin" };
   localStorage.setItem("token", "existing-admin-token");
   records = [{ ...original }, { ...second }];
   global.fetch = jest.fn(async (url, options) => {
@@ -126,4 +129,36 @@ test("slug generation follows backend rules", () => {
   expect(makeFormSlug("  Society Expense Form! ")).toBe("society-expense-form");
   expect(makeFormSlug("Café & Travel 2027")).toBe("cafe-travel-2027");
   expect(makeFormSlug("---")).toBe("");
+});
+
+test("shows each form's view count and the total form opens from the loaded forms, from the database not localStorage", async () => {
+  render(<PublicFormsAdminPage />);
+  const card = within(await screen.findByRole("article", { name: original.title }));
+  expect(card.getByText("1,245 views")).toBeInTheDocument();
+  const secondCard = within(await screen.findByRole("article", { name: second.title }));
+  expect(secondCard.getByText("3 views")).toBeInTheDocument();
+  expect(screen.getByText("1,248")).toBeInTheDocument();
+  expect(screen.getByText("Total Form Opens")).toBeInTheDocument();
+});
+
+test("forms missing a stored view count show zero instead of crashing", async () => {
+  records = [{ ...original, viewCount: undefined }];
+  render(<PublicFormsAdminPage />);
+  const card = within(await screen.findByRole("article", { name: original.title }));
+  expect(card.getByText("0 views")).toBeInTheDocument();
+});
+
+test("assistant sees management controls but not Delete", async () => {
+  mockUser = { role: "assistant" };
+  render(<PublicFormsAdminPage />);
+  const card = within(await screen.findByRole("article", { name: original.title }));
+  expect(card.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+  expect(card.getByRole("button", { name: "Disable" })).toBeInTheDocument();
+  expect(card.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+});
+
+test("admin still sees Delete", async () => {
+  render(<PublicFormsAdminPage />);
+  const card = within(await screen.findByRole("article", { name: original.title }));
+  expect(card.getByRole("button", { name: "Delete" })).toBeInTheDocument();
 });

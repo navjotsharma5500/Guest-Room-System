@@ -233,17 +233,21 @@ const buildGrievanceItem = () => ({
   target: { type: "redirect", path: GRIEVANCE_PATH },
 });
 
+// Shared with Assistant (see getWorkspaceItems): Assistant gets management
+// access to Public Forms only, not the rest of the Admin Tools rail.
+const buildPublicFormsItem = () => ({
+  id: "manage-public-forms",
+  title: "Manage Public Forms",
+  description: "Manage student forms and downloads",
+  icon: FileText,
+  iconBg: "bg-red-100",
+  iconColor: "text-red-600",
+  favoritable: false,
+  target: { type: "route", path: "/admin/public-forms" },
+});
+
 const buildAdminTools = () => [
-  {
-    id: "manage-public-forms",
-    title: "Manage Public Forms",
-    description: "Manage student forms and downloads",
-    icon: FileText,
-    iconBg: "bg-red-100",
-    iconColor: "text-red-600",
-    favoritable: false,
-    target: { type: "route", path: "/admin/public-forms" },
-  },
+  buildPublicFormsItem(),
   {
     id: "public-ui",
     title: "Public UI",
@@ -291,8 +295,10 @@ const buildAdminTools = () => [
  * Resolve every non-dashboardRegistry launcher item for a role, grouped for the
  * sidebar. `role` and `email` are normalised here so callers can pass raw values.
  *
- * Access rules (unchanged from the previous selector):
- *  - Grievance + Admin Tools: exact role "admin" only
+ * Access rules (unchanged from the previous selector, except as noted):
+ *  - Grievance + full Admin Tools: exact role "admin" only
+ *  - Manage Public Forms: also shown to role "assistant" (management access,
+ *    no delete — see publicFormRoutes.js)
  *  - Fretbox: any role in STAFF_ROLES_WITH_SHARED_SELECTOR
  *  - Campus portals: roles listed in ROLE_CAMPUS_PORTALS, plus accounts listed
  *    in ACCOUNT_CAMPUS_PORTALS (see resolveCampusPortalEntries)
@@ -311,6 +317,8 @@ export const getWorkspaceItems = (rawRole, rawEmail) => {
   const adminTools = [];
   if (role === "admin") {
     adminTools.push(buildGrievanceItem(), ...buildAdminTools());
+  } else if (role === "assistant") {
+    adminTools.push(buildPublicFormsItem());
   }
 
   const otherTools = [];

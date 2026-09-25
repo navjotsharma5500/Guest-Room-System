@@ -63,7 +63,7 @@ export async function getPublicForm(req, res) {
 export async function listAdminForms(req, res) {
   try {
     const forms = await PublicForm.find().sort({ order: 1, title: 1, _id: 1 }).lean();
-    return res.json({ success: true, forms });
+    return res.json({ success: true, forms: forms.map((form) => ({ ...form, viewCount: form.viewCount || 0 })) });
   } catch (error) { return formError(res, error); }
 }
 
@@ -99,6 +99,19 @@ export async function deletePublicForm(req, res) {
     const form = await PublicForm.findByIdAndDelete(req.params.id);
     if (!form) return res.status(404).json({ success: false, message: "Public form not found." });
     return res.json({ success: true, message: "Public form deleted." });
+  } catch (error) { return formError(res, error); }
+}
+
+export async function incrementFormView(req, res) {
+  if (!validFormId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid form ID." });
+  try {
+    const form = await PublicForm.findOneAndUpdate(
+      { _id: req.params.id, enabled: true },
+      { $inc: { viewCount: 1 } },
+      { new: true },
+    ).select("_id viewCount").lean();
+    if (!form) return res.status(404).json({ success: false, message: "Public form not found." });
+    return res.json({ success: true, viewCount: form.viewCount });
   } catch (error) { return formError(res, error); }
 }
 

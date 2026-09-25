@@ -72,7 +72,14 @@ test("admin forms deep-link route renders for an active Admin", () => {
   expect(screen.getByText("PublicFormsAdminPage")).toBeInTheDocument();
 });
 
-test.each([null, "assistant", "caretaker", "adosa", "dd_assistant", "student", "manager", "warden"])("admin forms route denies %s", (role) => {
+test("admin forms deep-link route renders for an active Assistant", () => {
+  mockPath = "/admin/public-forms";
+  mockUser = { role: "assistant", isActive: true };
+  render(<App />);
+  expect(screen.getByText("PublicFormsAdminPage")).toBeInTheDocument();
+});
+
+test.each([null, "caretaker", "adosa", "dd_assistant", "student", "manager", "warden"])("admin forms route denies %s", (role) => {
   mockPath = "/admin/public-forms";
   mockUser = role ? { role } : null;
   render(<App />);
@@ -83,6 +90,13 @@ test.each([null, "assistant", "caretaker", "adosa", "dd_assistant", "student", "
 test("inactive admin cannot render management", () => {
   mockPath = "/admin/public-forms";
   mockUser = { role: "admin", isActive: false };
+  render(<App />);
+  expect(screen.queryByText("PublicFormsAdminPage")).not.toBeInTheDocument();
+});
+
+test("inactive assistant cannot render management", () => {
+  mockPath = "/admin/public-forms";
+  mockUser = { role: "assistant", isActive: false };
   render(<App />);
   expect(screen.queryByText("PublicFormsAdminPage")).not.toBeInTheDocument();
 });

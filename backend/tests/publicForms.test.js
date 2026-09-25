@@ -93,17 +93,36 @@ test("admin can create, edit all metadata, disable, re-enable and delete with id
   expect(await PublicForm.countDocuments()).toBe(0);
 });
 
-test("all admin routes reject public, student, assistant and inactive admin callers", async () => {
+test("all admin routes reject public, student and inactive admin callers", async () => {
   const form = await PublicForm.create(base);
   const paths = [["get", "/admin/all"], ["post", "/admin"], ["put", `/admin/${form.id}`], ["delete", `/admin/${form.id}`], ["patch", `/admin/${form.id}/status`], ["patch", "/admin/reorder"]];
   for (const [method, path] of paths) {
     await request(app)[method](`/api/public-forms${path}`).send(base).expect(401);
-    for (const token of [studentToken, assistantToken, inactiveToken]) {
+    for (const token of [studentToken, inactiveToken]) {
       await request(app)[method](`/api/public-forms${path}`).set("Authorization", `Bearer ${token}`).send(base).expect(403);
     }
   }
   expect((await PublicForm.findById(form.id)).title).toBe(base.title);
   expect(await PublicForm.countDocuments()).toBe(1);
+});
+
+test("assistant can list, create, edit, enable/disable and reorder public forms, but not delete", async () => {
+  const assistantRequest = (method, path) => request(app)[method](`/api/public-forms${path}`).set("Authorization", `Bearer ${assistantToken}`);
+  const created = await assistantRequest("post", "/admin").send(base).expect(201);
+  const id = created.body.form._id;
+  expect(created.body.form).toMatchObject({ title: base.title, enabled: true });
+  await assistantRequest("get", "/admin/all").expect(200);
+  await assistantRequest("put", `/admin/${id}`).send({ ...base, title: "Assistant Edited" }).expect(200);
+  await assistantRequest("patch", `/admin/${id}/status`).send({ enabled: false }).expect(200);
+  await assistantRequest("patch", "/admin/reorder").send({ items: [{ id, order: 5 }] }).expect(200);
+  await assistantRequest("delete", `/admin/${id}`).expect(403);
+  expect(await PublicForm.countDocuments({ _id: id })).toBe(1);
+});
+
+test("admin can still delete public forms", async () => {
+  const form = await PublicForm.create(base);
+  await adminRequest("delete", `/admin/${form.id}`).expect(200);
+  expect(await PublicForm.countDocuments()).toBe(0);
 });
 
 test.each(["not a URL", "ftp://ik.imagekit.io/a.pdf", "javascript:alert(1)", "//ik.imagekit.io/a.pdf", "https://", "https://user:pass@ik.imagekit.io/a.pdf"])("invalid URL is rejected: %s", async (fileUrl) => {
@@ -137,6 +156,38 @@ test("reorder updates public order and audit identity; invalid batches do not wr
   await adminRequest("patch", "/admin/reorder").send({ items: [{ id: one.id, order: 0 }, { id: String(new mongoose.Types.ObjectId()), order: 1 }] }).expect(404);
   await adminRequest("patch", "/admin/reorder").send({ items: [{ id: one.id, order: 0 }, { id: one.id, order: 1 }] }).expect(400);
   expect((await PublicForm.findById(one.id)).order).toBe(9);
+});
+
+test("POST /:id/view increments viewCount and returns the new count; public reads never change it", async () => {
+  const form = await PublicForm.create(base);
+  expect(form.viewCount).toBe(0);
+  const first = await request(app).post(`/api/public-forms/${form.id}/view`).expect(200);
+  expect(first.body).toEqual({ success: true, viewCount: 1 });
+  await request(app).get(`/api/public-forms/${form.id}`).expect(200);
+  await request(app).get("/api/public-forms").expect(200);
+  await request(app).get("/api/public-forms/admin/all").set("Authorization", `Bearer ${adminToken}`).expect(200);
+  expect((await PublicForm.findById(form.id)).viewCount).toBe(1);
+});
+
+test("view increments run concurrently without losing updates", async () => {
+  const form = await PublicForm.create(base);
+  await Promise.all(Array.from({ length: 20 }, () => request(app).post(`/api/public-forms/${form.id}/view`).expect(200)));
+  expect((await PublicForm.findById(form.id)).viewCount).toBe(20);
+});
+
+test("disabled or nonexistent forms cannot have their view count incremented", async () => {
+  const disabled = await PublicForm.create({ ...base, enabled: false });
+  await request(app).post(`/api/public-forms/${disabled.id}/view`).expect(404);
+  expect((await PublicForm.findById(disabled.id)).viewCount).toBe(0);
+  await request(app).post(`/api/public-forms/${new mongoose.Types.ObjectId()}/view`).expect(404);
+  await request(app).post("/api/public-forms/not-an-id/view").expect(400);
+});
+
+test("existing records without a stored viewCount default safely to zero in the admin listing", async () => {
+  const form = await PublicForm.create(base);
+  await PublicForm.collection.updateOne({ _id: form._id }, { $unset: { viewCount: "" } });
+  const all = await request(app).get("/api/public-forms/admin/all").set("Authorization", `Bearer ${adminToken}`).expect(200);
+  expect(all.body.forms[0].viewCount).toBe(0);
 });
 
 test("seed inserts the exact eight forms, is idempotent, and preserves admin edits, timestamps and additional forms", async () => {

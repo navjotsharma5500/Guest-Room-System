@@ -453,7 +453,7 @@ export default function App() {
           <Route path="/student-notices" element={<StudentNoticesPage />} />
           <Route path="/public-forms" element={<PublicFormsPage />} />
           <Route path="/admin/public-forms" element={
-            currentUser && role === "admin" && currentUser.isActive !== false
+            currentUser && (role === "admin" || role === "assistant") && currentUser.isActive !== false
               ? <PublicFormsAdminPage />
               : <Navigate to={currentUser ? "/admin/dashboard-selector" : "/login"} replace />
           } />
